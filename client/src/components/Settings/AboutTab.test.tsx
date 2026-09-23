@@ -41,7 +41,7 @@ describe('AboutTab', () => {
     render(<AboutTab appVersion="2.9.10" />);
     const link = document.querySelector('a[href*="issues/new"]');
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', 'https://github.com/liketrek/TREK/issues/new?template=bug_report.yml');
+    expect(link).toHaveAttribute('href', 'https://github.com/chuanman2707/panelmint-trek/issues');
   });
 
   it('FE-COMP-ABOUT-007: displays feature request link', () => {

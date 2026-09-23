@@ -264,7 +264,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <a
-          href="https://github.com/liketrek/TREK/issues/new?template=bug_report.yml"
+          href="https://github.com/chuanman2707/panelmint-trek/issues"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -298,7 +298,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
           <ExternalLink size={14} className="ml-auto flex-shrink-0 text-content-faint" />
         </a>
         <a
-          href="https://github.com/liketrek/TREK/discussions/new?category=feature-requests"
+          href="https://github.com/chuanman2707/panelmint-trek/issues"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
