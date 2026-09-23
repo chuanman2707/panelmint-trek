@@ -32,13 +32,11 @@ import './index.css'
 // the polyfill's synthetic click/dblclick otherwise turned quick one-finger map pans into
 // double-tap zooms (#1440). See utils/touchDragPolyfill.ts.
 import { maybeInstallTouchDragPolyfill } from './utils/touchDragPolyfill'
-import { startConnectivityProbe } from './sync/connectivity'
 import { requestPersistentStorage } from './sync/persistentStorage'
 import ErrorBoundary, { RootErrorFallback } from './components/shared/ErrorBoundary'
 import { installGlobalErrorHandlers } from './utils/globalErrorHandlers'
 
 maybeInstallTouchDragPolyfill()
-startConnectivityProbe()
 // Keep offline data (map tiles, file blobs, IndexedDB) exempt from eviction.
 requestPersistentStorage()
 // Event handlers and async code never reach a boundary; this is where they land.

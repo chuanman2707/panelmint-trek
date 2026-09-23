@@ -1,0 +1,38 @@
+// Surrogate-id allocation for the `panelmint` database.
+//
+// Every table this is called on has a plain `id` primary key (see
+// db/panelmintDb.ts). The junction tables keyed by a natural compound
+// (packingBagMembers, tripMembers) take no surrogate id, and the `number` key
+// type on the signature refuses them at compile time.
+import type { Table } from 'dexie'
+
+/**
+ * Ids handed out this session, per table name.
+ *
+ * A pure max-id read cannot be the allocator: two calls with no insert in
+ * between would hand out the same id. Remembering the last issued id makes the
+ * allocator strictly monotonic within the session — including over rows that
+ * were deleted (max-id would otherwise reissue a freed trailing id). Rows that
+ * arrive without going through nextId — an import, a seed — are still covered
+ * because every allocation floors at max(stored id) + 1.
+ *
+ * Cross-tab safety is the caller's transaction: call nextId inside the `rw`
+ * transaction performing the insert and IndexedDB serialises the writers. The
+ * map itself never rolls back, so an aborted transaction can leave a gap in
+ * the id sequence — gaps are harmless, ids carry no ordering meaning beyond
+ * uniqueness.
+ */
+const allocated = new Map<string, number>()
+
+/**
+ * The next free id for `table`: greater than both the largest stored id and
+ * every id already issued this session. Starts at 1 on an empty table.
+ */
+export async function nextId<T extends { id?: number }>(
+  table: Table<T, number>,
+): Promise<number> {
+  const last = await table.orderBy('id').last()
+  const next = Math.max(last?.id ?? 0, allocated.get(table.name) ?? 0) + 1
+  allocated.set(table.name, next)
+  return next
+}
