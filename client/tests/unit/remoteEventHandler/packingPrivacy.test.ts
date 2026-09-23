@@ -21,8 +21,10 @@ const { packingItems } = vi.hoisted(() => ({
   packingItems: { put: vi.fn(async () => undefined), delete: vi.fn(async () => undefined) },
 }));
 
-vi.mock('../../../src/db/offlineDb', () => ({
-  offlineDb: {
+// Packing writes went to the panelmint DB (the system of record) when the
+// write-through was rewired — intercept there, not on the legacy cache.
+vi.mock('../../../src/db/panelmintDb', () => ({
+  db: {
     packingItems,
     // The handler module touches these at import time only.
     trips: {}, days: {}, places: {}, assignments: {},

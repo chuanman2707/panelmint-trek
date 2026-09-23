@@ -21,6 +21,7 @@ import { createBudgetSlice } from './slices/budgetSlice'
 import { createReservationsSlice } from './slices/reservationsSlice'
 import { createFilesSlice } from './slices/filesSlice'
 import { handleRemoteEvent } from './slices/remoteEventHandler'
+import type { TrekWsTripEventName } from '@trek/shared'
 import type {
   Trip, Day, Place, Assignment, DayNote, PackingItem, TodoItem,
   Tag, Category, BudgetItem, TripFile, Reservation,
@@ -72,6 +73,15 @@ export interface TripStoreState
   setPlacesFilter: (filter: string) => void
   setPlacesCategoryFilter: (categoryIds: Set<string>) => void
   handleRemoteEvent: (event: WebSocketEvent) => void
+  /**
+   * The local-mode counterpart of the socket echo: replays the effect a local
+   * `api/local/*` adapter returned (its side-channel fields are the payloads
+   * the server used to broadcast) through `handleRemoteEvent`, so the store
+   * update and the Dexie write-through are the same code path a remote event
+   * would have taken. Callers without `get()` import the bound
+   * `applyLocalEffect` from './localEffects' — same method, one mechanism.
+   */
+  applyLocalEffect: (type: TrekWsTripEventName, payload?: Record<string, unknown>) => void
   resetTrip: () => void
   loadTrip: (tripId: number | string) => Promise<void>
   hydrateActiveTrip: (tripId: number | string) => Promise<void>
@@ -105,6 +115,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   setPlacesCategoryFilter: (categoryIds: Set<string>) => set({ placesCategoryFilter: categoryIds }),
 
   handleRemoteEvent: (event: WebSocketEvent) => handleRemoteEvent(set, get, event),
+  applyLocalEffect: (type, payload = {}) => handleRemoteEvent(set, get, { type, ...payload }),
 
   // Clear every trip-scoped slice so switching trips (or losing access to one)
   // can never leave a previous trip's data visible. Global tags/categories are

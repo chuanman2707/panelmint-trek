@@ -243,3 +243,20 @@ export function addListener(fn: WebSocketListener): void {
 export function removeListener(fn: WebSocketListener): void {
   listeners.delete(fn)
 }
+
+/**
+ * Local mode: feed a synthesized event to every registered listener, the way a
+ * socket frame used to arrive. This is the dispatch path for side-channel
+ * effects whose event is consumed OUTSIDE the tripStore appliers
+ * (HANDLED_OUTSIDE_TRIP_STORE in api/wsEventPolicy — e.g. a local updateTime
+ * replays its `vias` result as 'roadtripVia:changed' so useRoadtripVias
+ * re-anchors its in-memory list). TripStore events go through
+ * `applyLocalEffect` (store/localEffects.ts) instead — `handleRemoteEvent` is
+ * itself one of these listeners while a trip socket hook is mounted, so
+ * sending a store event here too would double-apply it.
+ */
+export function emitLocalEvent(event: Record<string, unknown>): void {
+  listeners.forEach(fn => {
+    try { fn(event) } catch (err: unknown) { console.error('Local event listener error:', err) }
+  })
+}

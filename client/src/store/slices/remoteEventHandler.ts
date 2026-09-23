@@ -3,6 +3,7 @@ import type { TrekWsTripEventName } from '@trek/shared'
 import type { TripStoreState } from '../tripStore'
 import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetItemMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
 import { offlineDb } from '../../db/offlineDb'
+import { db } from '../../db/panelmintDb'
 import { useAuthStore } from '../authStore'
 import { mergeAssignmentPlace } from './placesSlice'
 
@@ -10,13 +11,24 @@ type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
 
 // ── Dexie write-through ───────────────────────────────────────────────────────
+//
+// Entity rows write through to `db` (panelmintDb) — the system of record in
+// local mode. `tripFiles` is the one exception: panelmintDb has no files table
+// yet, so file:* events keep writing to the legacy offlineDb cache until the
+// files domain is ported or dropped.
+//
+// The same writers run for local writes: api/local/* adapters mutate `db`
+// inside their own transaction and hand the side-channel fields the server
+// used to broadcast back to the caller, which replays them here through
+// `applyLocalEffect` (store/localEffects.ts). The second write is idempotent —
+// it re-persists the already-updated rows out of Zustand state.
 
 type DexieWriter = (payload: Record<string, unknown>, state: TripStoreState) => Promise<void>
 
 // Shared writer bodies (one function referenced by every event that used to
 // share a switch fallthrough group).
 const putPlace: DexieWriter = async payload => {
-  await offlineDb.places.put(payload.place as Place)
+  await db.places.put(payload.place as Place)
 }
 const writeAssignmentDay: DexieWriter = async (payload, state) => {
   const assignment = payload.assignment as Assignment
@@ -45,31 +57,34 @@ const writeDayById: DexieWriter = async (payload, state) => {
  */
 const putPackingItem: DexieWriter = async payload => {
   const item = payload.item as PackingItem
+  // Local mode: `me` resolves to the local self roster id once the auth stub
+  // lands (plan task A7 maps getSelf() into `user`). Until then a null user
+  // refuses private items — the fail-closed answer, same as signed-out.
   const me = useAuthStore.getState().user?.id
   const mine = !item?.is_private || item.owner_id == null || item.owner_id === me
     || (item.recipients || []).some(r => r.user_id === me)
   if (!mine) {
-    await offlineDb.packingItems.delete(item.id)
+    await db.packingItems.delete(item.id)
     return
   }
-  await offlineDb.packingItems.put(item)
+  await db.packingItems.put(item)
 }
 const putTodoItem: DexieWriter = async payload => {
-  await offlineDb.todoItems.put(payload.item as TodoItem)
+  await db.todoItems.put(payload.item as TodoItem)
 }
 const putBudgetItem: DexieWriter = async payload => {
-  await offlineDb.budgetItems.put(payload.item as BudgetItem)
+  await db.budgetItems.put(payload.item as BudgetItem)
 }
 // Partial update — read the canonical item from the updated Zustand state.
 const putCanonicalBudgetItem: DexieWriter = async (payload, state) => {
   const item = state.budgetItems.find(i => i.id === (payload.itemId as number))
-  if (item) await offlineDb.budgetItems.put(item)
+  if (item) await db.budgetItems.put(item)
 }
 const putReservation: DexieWriter = async payload => {
   // The same empty ping the appliers above handle; without this the write
   // throws and only the swallowed catch keeps it quiet.
   if (!payload.reservation) return
-  await offlineDb.reservations.put(payload.reservation as Reservation)
+  await db.reservations.put(payload.reservation as Reservation)
 }
 const putTripFile: DexieWriter = async payload => {
   await offlineDb.tripFiles.put(payload.file as TripFile)
@@ -87,7 +102,7 @@ export const DEXIE_WRITERS: Partial<Record<TrekWsTripEventName, DexieWriter>> = 
   'place:created': putPlace,
   'place:updated': putPlace,
   'place:deleted': async payload => {
-    await offlineDb.places.delete(payload.placeId as number)
+    await db.places.delete(payload.placeId as number)
   },
 
   // ── Assignments (embedded in Day rows) ──────────────────────────────────
@@ -108,7 +123,7 @@ export const DEXIE_WRITERS: Partial<Record<TrekWsTripEventName, DexieWriter>> = 
   'day:created': writeDayById,
   'day:updated': writeDayById,
   'day:deleted': async payload => {
-    await offlineDb.days.delete(payload.dayId as number)
+    await db.days.delete(payload.dayId as number)
   },
 
   // ── Day notes (embedded in Day rows) ─────────────────────────────────────
@@ -120,38 +135,38 @@ export const DEXIE_WRITERS: Partial<Record<TrekWsTripEventName, DexieWriter>> = 
   'packing:created': putPackingItem,
   'packing:updated': putPackingItem,
   'packing:deleted': async payload => {
-    await offlineDb.packingItems.delete(payload.itemId as number)
+    await db.packingItems.delete(payload.itemId as number)
   },
 
   // ── Todo ─────────────────────────────────────────────────────────────────
   'todo:created': putTodoItem,
   'todo:updated': putTodoItem,
   'todo:deleted': async payload => {
-    await offlineDb.todoItems.delete(payload.itemId as number)
+    await db.todoItems.delete(payload.itemId as number)
   },
 
   // ── Budget ───────────────────────────────────────────────────────────────
   'budget:created': putBudgetItem,
   'budget:updated': putBudgetItem,
   'budget:deleted': async payload => {
-    await offlineDb.budgetItems.delete(payload.itemId as number)
+    await db.budgetItems.delete(payload.itemId as number)
   },
   'budget:members-updated': putCanonicalBudgetItem,
   'budget:member-paid-updated': putCanonicalBudgetItem,
   'budget:reordered': async (_payload, state) => {
-    await offlineDb.budgetItems.bulkPut(state.budgetItems)
+    await db.budgetItems.bulkPut(state.budgetItems)
   },
 
   // ── Reservations ─────────────────────────────────────────────────────────
   'reservation:created': putReservation,
   'reservation:updated': putReservation,
   'reservation:deleted': async payload => {
-    await offlineDb.reservations.delete(payload.reservationId as number)
+    await db.reservations.delete(payload.reservationId as number)
   },
 
   // ── Trip ─────────────────────────────────────────────────────────────────
   'trip:updated': async payload => {
-    await offlineDb.trips.put(payload.trip as Trip)
+    await db.trips.put(payload.trip as Trip)
   },
 
   // ── Files ─────────────────────────────────────────────────────────────────
@@ -185,7 +200,7 @@ function writeToDexie(
 async function _writeDayToDb(dayId: number, state: TripStoreState): Promise<void> {
   const day = state.days.find(d => d.id === dayId)
   if (!day) return
-  await offlineDb.days.put({
+  await db.days.put({
     ...day,
     assignments: state.assignments[String(dayId)] ?? [],
     notes_items: state.dayNotes[String(dayId)] ?? [],
@@ -523,9 +538,14 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
 }
 
 /**
- * Applies a remote WebSocket event to the local Zustand store, keeping state in sync across collaborators.
- * Each event type maps to an immutable state update (create/update/delete) for the relevant entity.
- * After the Zustand update, the change is also written through to IndexedDB for offline access.
+ * Applies an event to the local Zustand store + IndexedDB, keeping state in
+ * sync. Two callers feed it the same `{ type, ...payload }` envelope:
+ *  - the WebSocket listener (remote collaborators' changes), and
+ *  - `applyLocalEffect` (store/localEffects.ts), which replays the side-channel
+ *    fields a local api adapter returned — the effects the server used to
+ *    broadcast for the caller's own writes.
+ * Each event type maps to an immutable state update (create/update/delete) for
+ * the relevant entity; the matching Dexie writer then persists the result.
  */
 export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocketEvent): void {
   const { type, ...payload } = event
