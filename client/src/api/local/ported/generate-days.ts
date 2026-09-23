@@ -65,8 +65,8 @@ export interface DayRegenerationPlan {
 export function assertTripSpan(startDate: string | null | undefined, endDate: string | null | undefined): void {
   if (!startDate || !endDate) return;
   const span = tripSpanDays(startDate, endDate);
-  if (span < 1) throw new DayRangeError('End date must be on or after start date');
-  if (span > MAX_TRIP_DAYS) throw new DayRangeError(`Trip duration cannot exceed ${MAX_TRIP_DAYS} days`);
+  if (span < 1) throw new DayRangeError('End date must be after start date');
+  if (span > MAX_TRIP_DAYS) throw new DayRangeError(`A trip can span at most ${MAX_TRIP_DAYS} days`);
 }
 
 function hasContent(day: Day, contentDayIds: ReadonlySet<number> | undefined): boolean {

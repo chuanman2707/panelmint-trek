@@ -1,4 +1,5 @@
 // FE-PLANNER-FILEIMP-001 to FE-PLANNER-FILEIMP-018
+import 'fake-indexeddb/auto';
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -7,6 +8,7 @@ import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildTrip } from '../../../tests/helpers/factories';
 import FileImportModal from './FileImportModal';
+import { db } from '../../db/panelmintDb';
 
 const toastCalls: Array<[string, string]> = [];
 vi.mock('../shared/Toast', () => ({
@@ -33,13 +35,17 @@ const fileInput = () => document.querySelector('input[type="file"]') as HTMLInpu
 const dropZone = () => screen.getByText(/Click to select a file or drag and drop here/).parentElement as HTMLElement;
 const importBtn = () => screen.getByRole('button', { name: 'Import' });
 
-beforeEach(() => {
+beforeEach(async () => {
   toastCalls.length = 0;
   resetAllStores();
+  // The post-import loadTrip goes through the local trips/days adapters —
+  // trip 3 must exist in the panelmint db.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await db.trips.put(buildTrip({ id: 3, user_id: 1 }));
   seedStore(useTripStore, { trip: buildTrip({ id: 3 }) });
-  server.use(
-    http.get('/api/trips/3', () => HttpResponse.json({ trip: buildTrip({ id: 3 }), days: [], places: [], assignments: {} })),
-  );
 });
 
 describe('FileImportModal', () => {

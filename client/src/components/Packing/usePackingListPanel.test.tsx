@@ -1,4 +1,5 @@
 // FE-W5HOOK-001 to FE-W5HOOK-058
+import 'fake-indexeddb/auto'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { ChangeEvent, ReactNode } from 'react'
 import { http, HttpResponse } from 'msw'
@@ -12,6 +13,9 @@ import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
 import { usePackingList, type PackingListPanelProps } from './usePackingListPanel'
+import { db, type LocalTripMember } from '../../db/panelmintDb'
+import { tripsApi } from '../../api/client'
+import { LocalApiError } from '../../api/local/helpers'
 import type { PackingItem } from '../../types'
 
 const wrapper = ({ children }: { children: ReactNode }) => <TranslationProvider>{children}</TranslationProvider>
@@ -30,13 +34,17 @@ async function settled() {
   await act(async () => { await Promise.resolve() })
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores()
   toastSpy.mockClear()
   window.__addToast = toastSpy
+  // getMembers is local now — the default roster is owner 'owner' (self) alone.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'owner', is_self: 1 })
+  await db.trips.put(buildTrip({ id: 1, user_id: 1 }))
   server.use(
-    http.get('/api/trips/:id/members', () =>
-      HttpResponse.json({ owner: { id: 1, username: 'owner', avatar_url: null }, members: [] })),
     http.get('/api/trips/:id/packing/category-assignees', () => HttpResponse.json({ assignees: {} })),
     http.get('/api/addons', () => HttpResponse.json({ bagTracking: false, addons: [] })),
     http.get('/api/trips/:id/packing/templates', () => HttpResponse.json({ templates: [] })),
@@ -54,22 +62,23 @@ afterEach(() => {
 
 describe('usePackingList — members & assignees', () => {
   it('FE-W5HOOK-001: merges the owner and the members into one member list', async () => {
-    server.use(
-      http.get('/api/trips/:id/members', () =>
-        HttpResponse.json({
-          owner: { id: 1, username: 'owner', avatar_url: 'a.png' },
-          members: [{ id: 2, username: 'alice', avatar_url: null, is_guest: 1 }],
-        })),
-    )
+    // alice as a guest: is_self:0 roster row + a membership on trip 1.
+    await db.localUsers.put({ id: 2, name: 'alice', is_self: 0 })
+    await db.tripMembers.put({
+      tripId: 1, id: 2, username: 'alice', role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'owner', is_guest: true,
+    } as LocalTripMember)
     const { result } = renderPanel()
 
     await waitFor(() => expect(result.current.tripMembers).toHaveLength(2))
-    expect(result.current.tripMembers[0]).toEqual({ id: 1, username: 'owner', avatar: 'a.png', is_guest: false })
+    // Local wire rows carry no avatars — the tiles fall back to initials.
+    expect(result.current.tripMembers[0]).toEqual({ id: 1, username: 'owner', avatar: null, is_guest: false })
     expect(result.current.tripMembers[1]).toEqual({ id: 2, username: 'alice', avatar: null, is_guest: true })
   })
 
-  it('FE-W5HOOK-002: a response without owner or members yields no members', async () => {
-    server.use(http.get('/api/trips/:id/members', () => HttpResponse.json({})))
+  it('FE-W5HOOK-002: a trip whose owner is not on the roster yields no members', async () => {
+    // Point the trip at an absent roster row — owner resolves to null, no members.
+    await db.trips.update(1, { user_id: 99 })
     const { result } = renderPanel()
 
     await settled()
@@ -77,7 +86,7 @@ describe('usePackingList — members & assignees', () => {
   })
 
   it('FE-W5HOOK-003: a failing members request leaves the list empty', async () => {
-    server.use(http.get('/api/trips/:id/members', () => new HttpResponse(null, { status: 500 })))
+    vi.spyOn(tripsApi, 'getMembers').mockRejectedValue(new LocalApiError(500, 'Server error'))
     const { result } = renderPanel()
 
     await settled()

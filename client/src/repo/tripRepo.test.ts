@@ -1,10 +1,11 @@
 // FE-REPO-TRIP-001 to FE-REPO-TRIP-011
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import 'fake-indexeddb/auto'
-import { http, HttpResponse } from 'msw'
-import { server } from '../../tests/helpers/msw/server'
 import { tripRepo } from './tripRepo'
+import { tripsApi } from '../api/client'
+import { LocalApiError } from '../api/local/helpers'
 import { offlineDb, clearAll } from '../db/offlineDb'
+import { db } from '../db/panelmintDb'
 import { buildTrip } from '../../tests/helpers/factories'
 
 function setOnline(v: boolean): void {
@@ -13,6 +14,10 @@ function setOnline(v: boolean): void {
 
 beforeEach(async () => {
   await clearAll()
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
   setOnline(true)
 })
 
@@ -20,16 +25,20 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+/** The shape of a request that never reached a server — the only error
+ *  onlineThenCache treats as fall-back-to-cache. */
+function axiosNetworkError(): Error {
+  const err = new Error('Network Error')
+  Object.assign(err, { isAxiosError: true })
+  return err
+}
+
 describe('tripRepo.list', () => {
   it('FE-REPO-TRIP-001: online — merges active + archived and caches both in Dexie', async () => {
+    // tripsApi is the local adapter: the "online" read is the panelmint db.
     const active = buildTrip({ title: 'Lisbon' })
     const archived = buildTrip({ title: 'Old Trip', is_archived: 1 })
-    server.use(
-      http.get('/api/trips', ({ request }) => {
-        const isArchived = new URL(request.url).searchParams.get('archived')
-        return HttpResponse.json({ trips: isArchived ? [archived] : [active] })
-      }),
-    )
+    await db.trips.bulkPut([active, archived])
 
     const result = await tripRepo.list()
     expect(result.trips.map(t => t.title)).toEqual(['Lisbon'])
@@ -47,18 +56,17 @@ describe('tripRepo.list', () => {
     ])
     setOnline(false)
 
-    let restCalled = false
-    server.use(http.get('/api/trips', () => { restCalled = true; return HttpResponse.json({ trips: [] }) }))
+    const apiSpy = vi.spyOn(tripsApi, 'list')
 
     const result = await tripRepo.list()
     expect(result.trips.map(t => t.id)).toEqual([71])
     expect(result.archivedTrips.map(t => t.id)).toEqual([72])
-    expect(restCalled).toBe(false)
+    expect(apiSpy).not.toHaveBeenCalled()
   })
 
   it('FE-REPO-TRIP-003: rethrows a server error instead of falling back to the cache', async () => {
     await offlineDb.trips.put(buildTrip({ id: 73 }))
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'boom' }, { status: 500 })))
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new LocalApiError(500, 'boom'))
 
     await expect(tripRepo.list()).rejects.toThrow()
   })
@@ -67,7 +75,7 @@ describe('tripRepo.list', () => {
 describe('tripRepo.get', () => {
   it('FE-REPO-TRIP-004: online — returns the trip and caches it', async () => {
     const trip = buildTrip({ id: 80, title: 'Kyoto' })
-    server.use(http.get('/api/trips/80', () => HttpResponse.json({ trip })))
+    await db.trips.put(trip)
 
     const result = await tripRepo.get(80)
     expect(result.trip.title).toBe('Kyoto')
@@ -91,7 +99,7 @@ describe('tripRepo.get', () => {
 
   it('FE-REPO-TRIP-007: network-level failure falls back to the cache (captive portal)', async () => {
     await offlineDb.trips.put(buildTrip({ id: 82, title: 'Fallback' }))
-    server.use(http.get('/api/trips/82', () => HttpResponse.error()))
+    vi.spyOn(tripsApi, 'get').mockRejectedValue(axiosNetworkError())
 
     const result = await tripRepo.get(82)
     expect(result.trip.title).toBe('Fallback')
@@ -106,10 +114,10 @@ describe('tripRepo.active', () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
 
-  it('FE-REPO-TRIP-008: online — passes the server answer straight through', async () => {
-    server.use(http.get('/api/trips/active', () =>
-      HttpResponse.json({ trip: { id: 90, title: 'Server pick', start_date: null, end_date: null } }),
-    ))
+  it('FE-REPO-TRIP-008: online — passes the local ranking straight through', async () => {
+    await db.trips.put(
+      buildTrip({ id: 90, title: 'Current', start_date: dateOffset(-1), end_date: dateOffset(2) }),
+    )
 
     const result = await tripRepo.active()
     expect(result.trip!.id).toBe(90)
@@ -139,7 +147,7 @@ describe('tripRepo.active', () => {
 
   it('FE-REPO-TRIP-011: an HTTP error still rejects instead of falling back', async () => {
     await offlineDb.trips.put(buildTrip({ id: 95 }))
-    server.use(http.get('/api/trips/active', () => HttpResponse.json({ error: 'boom' }, { status: 500 })))
+    vi.spyOn(tripsApi, 'active').mockRejectedValue(new LocalApiError(500, 'boom'))
 
     await expect(tripRepo.active()).rejects.toThrow()
   })

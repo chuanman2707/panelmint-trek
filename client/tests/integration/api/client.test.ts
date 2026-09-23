@@ -24,13 +24,11 @@ const wsMock = await import('../../../src/api/websocket');
 const {
   apiClient,
   authApi,
-  tripsApi,
   placesApi,
   packingApi,
   inAppNotificationsApi,
   shareApi,
   backupApi,
-  daysApi,
   assignmentsApi,
   tagsApi,
   categoriesApi,
@@ -381,28 +379,8 @@ describe('API client interceptors', () => {
   });
 
   // ── API namespace URL spot-checks ────────────────────────────────────────────
-
-  it('FE-API-015: tripsApi.list() makes GET to /api/trips', async () => {
-    server.use(
-      http.get('/api/trips', () => HttpResponse.json([]))
-    );
-
-    const result = await tripsApi.list();
-    expect(result).toEqual([]);
-  });
-
-  it('FE-API-016: tripsApi.get(42) makes GET to /api/trips/42', async () => {
-    let hitUrl = '';
-    server.use(
-      http.get('/api/trips/42', ({ request }) => {
-        hitUrl = new URL(request.url).pathname;
-        return HttpResponse.json({ id: 42 });
-      })
-    );
-
-    await tripsApi.get(42);
-    expect(hitUrl).toBe('/api/trips/42');
-  });
+  // (tripsApi/daysApi are local adapters now — api/local/* — so there is no
+  // /api/trips or /api/trips/:id/days traffic left to smoke-test here.)
 
   it('FE-API-017: placesApi.create posts to /api/trips/1/places and returns data directly', async () => {
     const place = { id: 1, name: 'Paris', trip_id: 1 };
@@ -500,11 +478,6 @@ describe('API client interceptors', () => {
 });
 
 describe('API namespace smoke tests', () => {
-  it('daysApi.list fetches trip days', async () => {
-    server.use(http.get('/api/trips/1/days', () => HttpResponse.json([])));
-    await expect(daysApi.list(1)).resolves.toEqual([]);
-  });
-
   it('assignmentsApi.list fetches day assignments', async () => {
     server.use(http.get('/api/trips/1/days/1/assignments', () => HttpResponse.json([])));
     await expect(assignmentsApi.list(1, 1)).resolves.toEqual([]);
@@ -625,33 +598,6 @@ describe('API namespace smoke tests', () => {
     await expect(backupApi.list()).resolves.toEqual([]);
   });
 
-  // ── tripsApi additional methods ──────────────────────────────────────────────
-
-  it('tripsApi.create posts new trip', async () => {
-    server.use(http.post('/api/trips', () => HttpResponse.json({ id: 1, title: 'Test' })));
-    await expect(tripsApi.create({ title: 'Test' })).resolves.toMatchObject({ id: 1 });
-  });
-
-  it('tripsApi.update puts trip data', async () => {
-    server.use(http.put('/api/trips/1', () => HttpResponse.json({ id: 1 })));
-    await expect(tripsApi.update(1, { title: 'Updated' })).resolves.toMatchObject({ id: 1 });
-  });
-
-  it('tripsApi.delete deletes a trip', async () => {
-    server.use(http.delete('/api/trips/1', () => HttpResponse.json({ ok: true })));
-    await expect(tripsApi.delete(1)).resolves.toMatchObject({ ok: true });
-  });
-
-  it('tripsApi.getMembers fetches trip members', async () => {
-    server.use(http.get('/api/trips/1/members', () => HttpResponse.json([])));
-    await expect(tripsApi.getMembers(1)).resolves.toEqual([]);
-  });
-
-  it('tripsApi.copy copies a trip', async () => {
-    server.use(http.post('/api/trips/1/copy', () => HttpResponse.json({ id: 99 })));
-    await expect(tripsApi.copy(1)).resolves.toMatchObject({ id: 99 });
-  });
-
   // ── placesApi additional methods ─────────────────────────────────────────────
 
   it('placesApi.list fetches places', async () => {
@@ -706,18 +652,6 @@ describe('API namespace smoke tests', () => {
   it('assignmentsApi.reorder reorders assignments', async () => {
     server.use(http.put('/api/trips/1/days/1/assignments/reorder', () => HttpResponse.json({ ok: true })));
     await expect(assignmentsApi.reorder(1, 1, [3, 1, 2])).resolves.toMatchObject({ ok: true });
-  });
-
-  // ── daysApi additional methods ───────────────────────────────────────────────
-
-  it('daysApi.create creates a day', async () => {
-    server.use(http.post('/api/trips/1/days', () => HttpResponse.json({ id: 1 })));
-    await expect(daysApi.create(1, { date: '2025-06-01' })).resolves.toMatchObject({ id: 1 });
-  });
-
-  it('daysApi.delete deletes a day', async () => {
-    server.use(http.delete('/api/trips/1/days/1', () => HttpResponse.json({ ok: true })));
-    await expect(daysApi.delete(1, 1)).resolves.toMatchObject({ ok: true });
   });
 
   // ── tagsApi / categoriesApi additional methods ────────────────────────────────

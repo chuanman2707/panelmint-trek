@@ -4,6 +4,7 @@ import { afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { tripsApi } from '../../api/client';
+import { buildTrip } from '../../../tests/helpers/factories';
 import { useTranslation } from '../../i18n/TranslationContext';
 import CopyToTripModal from './CopyToTripModal';
 
@@ -16,8 +17,8 @@ function Harness(props: ModalProps): React.ReactElement {
 }
 
 const TRIPS = [
-  { id: 1, title: 'Rome 2026', start_date: '2026-04-02', end_date: '2026-04-09', cover_image: '/uploads/covers/rome.jpg' },
-  { id: 2, title: 'Tokyo', start_date: null, end_date: null, cover_image: null },
+  buildTrip({ id: 1, title: 'Rome 2026', start_date: '2026-04-02', end_date: '2026-04-09', cover_image: '/uploads/covers/rome.jpg' }),
+  buildTrip({ id: 2, title: 'Tokyo', start_date: null, end_date: null, cover_image: null }),
 ];
 
 let addToast: ReturnType<typeof vi.fn>;
@@ -76,7 +77,7 @@ describe('CopyToTripModal', () => {
   });
 
   it('FE-COMP-COPYTRIP-016: a trip without a title still renders and stays filterable', async () => {
-    vi.spyOn(tripsApi, 'list').mockResolvedValue({ trips: [{ id: 8, title: null }, ...TRIPS] });
+    vi.spyOn(tripsApi, 'list').mockResolvedValue({ trips: [{ id: 8, title: null } as never, ...TRIPS] });
     renderModal();
 
     await screen.findByText('Rome 2026');
@@ -88,8 +89,8 @@ describe('CopyToTripModal', () => {
   it('FE-COMP-COPYTRIP-014: a one-sided date range falls back to the single date it has', async () => {
     vi.spyOn(tripsApi, 'list').mockResolvedValue({
       trips: [
-        { id: 3, title: 'Open ended', start_date: '2026-04-02', end_date: null },
-        { id: 4, title: 'Return only', start_date: null, end_date: '2026-04-09' },
+        buildTrip({ id: 3, title: 'Open ended', start_date: '2026-04-02', end_date: null }),
+        buildTrip({ id: 4, title: 'Return only', start_date: null, end_date: '2026-04-09' }),
       ],
     });
     renderModal();
@@ -126,7 +127,7 @@ describe('CopyToTripModal', () => {
   });
 
   it('FE-COMP-COPYTRIP-005: an empty or failing trips response shows the no-trips copy', async () => {
-    vi.spyOn(tripsApi, 'list').mockResolvedValue({});
+    vi.spyOn(tripsApi, 'list').mockResolvedValue({} as never);
     const { unmount } = render(<Harness {...{ isOpen: true, onClose: vi.fn(), placeIds: [7], onCopy: vi.fn(async () => ({ copied: 0, skipped: [] })) }} />);
     expect(await screen.findByText('No trips yet')).toBeInTheDocument();
     unmount();

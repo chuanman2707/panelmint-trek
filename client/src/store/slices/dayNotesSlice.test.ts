@@ -1,23 +1,32 @@
 // FE-TSLICE-NOTES-001 to FE-TSLICE-NOTES-009 (error paths and empty-map paths of the day-notes slice)
+import 'fake-indexeddb/auto';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildDay, buildDayNote } from '../../../tests/helpers/factories';
+import { buildDay, buildDayNote, buildTrip } from '../../../tests/helpers/factories';
 import { useTripStore } from '../tripStore';
+import { db } from '../../db/panelmintDb';
+import { daysApi } from '../../api/client';
+import { LocalApiError } from '../../api/local/helpers';
+import type { DayRow } from '../../api/local/dexieStore';
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
   server.resetHandlers();
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('dayNotesSlice', () => {
   it('FE-TSLICE-NOTES-001: updateDayNotes throws the server message and leaves the day untouched', async () => {
     seedStore(useTripStore, { days: [buildDay({ id: 1, trip_id: 1, notes: 'original' })] });
-    server.use(
-      http.put('/api/trips/1/days/1', () =>
-        HttpResponse.json({ error: 'Notes too long' }, { status: 422 }),
-      ),
-    );
+    vi.spyOn(daysApi, 'update').mockRejectedValue(new LocalApiError(422, 'Notes too long'));
 
     await expect(useTripStore.getState().updateDayNotes(1, 1, 'x'.repeat(10))).rejects.toThrow('Notes too long');
     expect(useTripStore.getState().days[0].notes).toBe('original');
@@ -25,17 +34,19 @@ describe('dayNotesSlice', () => {
 
   it('FE-TSLICE-NOTES-002: updateDayTitle throws the server message and leaves the title untouched', async () => {
     seedStore(useTripStore, { days: [buildDay({ id: 1, trip_id: 1, title: 'Day one' })] });
-    server.use(
-      http.put('/api/trips/1/days/1', () =>
-        HttpResponse.json({ error: 'Title rejected' }, { status: 422 }),
-      ),
-    );
+    vi.spyOn(daysApi, 'update').mockRejectedValue(new LocalApiError(422, 'Title rejected'));
 
     await expect(useTripStore.getState().updateDayTitle(1, 1, 'New title')).rejects.toThrow('Title rejected');
     expect(useTripStore.getState().days[0].title).toBe('Day one');
   });
 
   it('FE-TSLICE-NOTES-003: updateDayNotes matches the day by numeric id even for a string dayId', async () => {
+    // daysApi is the local adapter — the update lands on the seeded rows.
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.days.bulkPut([
+      { ...buildDay({ id: 1, trip_id: 1 }), vias: [] } as DayRow,
+      { ...buildDay({ id: 2, trip_id: 1 }), vias: [] } as DayRow,
+    ]);
     seedStore(useTripStore, {
       days: [buildDay({ id: 1, trip_id: 1 }), buildDay({ id: 2, trip_id: 1 })],
     });

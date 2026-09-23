@@ -1,4 +1,5 @@
 // FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-084
+import 'fake-indexeddb/auto';
 import type { Mock } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -13,6 +14,12 @@ import { server } from '../../../tests/helpers/msw/server';
 import type { Trip } from '../../types';
 import { MAX_TRIP_DAYS } from '@trek/shared';
 import TripFormModal from './TripFormModal';
+import { db, type LocalTripMember } from '../../db/panelmintDb';
+import { tripsApi } from '../../api/client';
+import { LocalApiError } from '../../api/local/helpers';
+
+type CoverSearchResult = Awaited<ReturnType<typeof tripsApi.searchCoverImages>>;
+type CoverPhoto = CoverSearchResult['photos'][number];
 
 const defaultProps = {
   isOpen: true,
@@ -28,10 +35,32 @@ let addToast: Mock<AddToast>;
 let createObjectURL: Mock<(obj: Blob) => string>;
 let originalCreateObjectURL: typeof URL.createObjectURL;
 
-beforeEach(() => {
+/** tripsApi is the local adapter now — cover uploads, cover_image updates and
+ *  member add/remove all write through Dexie. Trips 1/5/99 cover every id the
+ *  suite references; self's roster name is 'me' so the owner chip matches the
+ *  old server fixtures. */
+async function seedLocalData() {
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'me', is_self: 1 });
+  await db.trips.bulkPut([buildTrip({ id: 1 }), buildTrip({ id: 5 }), buildTrip({ id: 99 })]);
+}
+
+/** Search results for the cover picker — searchCoverImages is a hosted-only
+ *  integration, so the local adapter returns an empty list; tests that need
+ *  photos stub the adapter method directly. */
+function stubCoverSearch(
+  impl: (query: string) => Promise<{ photos: CoverPhoto[] }>,
+) {
+  return vi.spyOn(tripsApi, 'searchCoverImages').mockImplementation(impl);
+}
+
+beforeEach(async () => {
   resetAllStores();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
+  await seedLocalData();
   addToast = vi.fn<AddToast>(() => 0);
   window.__addToast = addToast;
   createObjectURL = vi.fn(() => 'blob:cover');
@@ -346,24 +375,23 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     let updateBody: unknown;
-    server.use(
-      http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({
-          photos: [{
-            id: 'unsplash-1',
-            url: 'https://images.example.com/regular.jpg',
-            thumb: 'https://images.example.com/thumb.jpg',
-            description: 'Mountain lake',
-            photographer: 'Alice',
-            link: 'https://unsplash.com/photos/unsplash-1',
-          }],
-        })
-      ),
-      http.put('/api/trips/99', async ({ request }) => {
-        updateBody = await request.json();
-        return HttpResponse.json({ trip: buildTrip({ id: 99, cover_image: 'https://images.example.com/regular.jpg' }) });
-      }),
-    );
+    stubCoverSearch(async () => ({
+      photos: [{
+        id: 'unsplash-1',
+        url: 'https://images.example.com/regular.jpg',
+        thumb: 'https://images.example.com/thumb.jpg',
+        description: 'Mountain lake',
+        photographer: 'Alice',
+        link: 'https://unsplash.com/photos/unsplash-1',
+      }],
+    }));
+    // The cover save is tripsApi.update — local now. Capture the body and let
+    // the real adapter persist it against the seeded trip 99 row.
+    const realUpdate = tripsApi.update.bind(tripsApi);
+    vi.spyOn(tripsApi, 'update').mockImplementation(async (id, body) => {
+      updateBody = body;
+      return realUpdate(id, body);
+    });
 
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Alpine Trip');
@@ -519,7 +547,7 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-041: a trip with blank fields falls back to the form defaults', async () => {
-    server.use(http.get('/api/trips/5/members', () => HttpResponse.json({})));
+    // getMembers(5) resolves locally off the seeded trip row.
     const bare = {
       ...buildTrip({ id: 5 }),
       title: '',
@@ -556,11 +584,12 @@ describe('TripFormModal', () => {
     const identifiers: string[] = [];
     server.use(
       http.get('/api/auth/users', () => HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })),
-      http.post('/api/trips/99/members', async ({ request }) => {
-        identifiers.push(((await request.json()) as { identifier: string }).identifier);
-        return HttpResponse.json({ success: true });
-      }),
     );
+    // addMember is local — capture the identifier the modal passes.
+    vi.spyOn(tripsApi, 'addMember').mockImplementation(async (_id, identifier) => {
+      identifiers.push(identifier);
+      return { member: { id: 100, username: identifier, avatar: null, avatar_url: null, role: 'member' } };
+    });
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
 
@@ -580,8 +609,8 @@ describe('TripFormModal', () => {
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
     server.use(
       http.get('/api/auth/users', () => HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })),
-      http.post('/api/trips/99/members', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
     );
+    vi.spyOn(tripsApi, 'addMember').mockRejectedValue(new LocalApiError(500, 'nope'));
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} onClose={onClose} />);
 
@@ -598,9 +627,7 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-045: a staged cover file is uploaded once the trip exists', async () => {
     const user = userEvent.setup();
     const onCoverUpdate = vi.fn();
-    server.use(
-      http.post('/api/trips/99/cover', () => HttpResponse.json({ cover_image: '/uploads/covers/new.jpg' })),
-    );
+    // Real local upload — cover_image lands as a data: URL on the trip 99 row.
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} onCoverUpdate={onCoverUpdate} />);
 
@@ -609,13 +636,14 @@ describe('TripFormModal', () => {
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Cover Trip');
     await submitNewTrip(user);
 
-    await waitFor(() => expect(onCoverUpdate).toHaveBeenCalledWith(99, '/uploads/covers/new.jpg'));
+    await waitFor(() => expect(onCoverUpdate).toHaveBeenCalledWith(99, expect.stringMatching(/^data:image\//)));
+    expect((await db.trips.get(99))?.cover_image).toMatch(/^data:image\//);
   });
 
   it('FE-COMP-TRIPFORM-046: a failing cover upload after create only warns', async () => {
     const user = userEvent.setup();
     const onCoverUpdate = vi.fn();
-    server.use(http.post('/api/trips/99/cover', () => HttpResponse.json({}, { status: 500 })));
+    vi.spyOn(tripsApi, 'uploadCover').mockRejectedValue(new LocalApiError(500, 'nope'));
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} onCoverUpdate={onCoverUpdate} />);
 
@@ -630,12 +658,10 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-047: a failing Unsplash cover save after create only warns', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Alice' }] })
-      ),
-      http.put('/api/trips/99', () => HttpResponse.json({}, { status: 500 })),
-    );
+    stubCoverSearch(async () => ({
+      photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Alice' }],
+    }));
+    vi.spyOn(tripsApi, 'update').mockRejectedValue(new LocalApiError(500, 'nope'));
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
 
@@ -651,23 +677,21 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-048: picking a file on an existing trip uploads it immediately', async () => {
     const onCoverUpdate = vi.fn();
-    server.use(
-      http.post('/api/trips/1/cover', () => HttpResponse.json({ cover_image: '/uploads/covers/edit.jpg' })),
-    );
+    // Real local upload — the stored cover is a data: URL, not an /uploads path.
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} onCoverUpdate={onCoverUpdate} />);
 
     fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
 
-    await waitFor(() => expect(onCoverUpdate).toHaveBeenCalledWith(1, '/uploads/covers/edit.jpg'));
+    await waitFor(() => expect(onCoverUpdate).toHaveBeenCalledWith(1, expect.stringMatching(/^data:image\//)));
     expect(addToast).toHaveBeenCalledWith('Cover image saved', 'success', undefined);
-    expect(document.querySelector('img[src="/uploads/covers/edit.jpg"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src^="data:image/"]')).toBeInTheDocument();
     // Staging a file is only for new trips — nothing gets a blob URL here.
     expect(createObjectURL).not.toHaveBeenCalled();
   });
 
   it('FE-COMP-TRIPFORM-049: a failing immediate cover upload shows an error toast', async () => {
     const onCoverUpdate = vi.fn();
-    server.use(http.post('/api/trips/1/cover', () => HttpResponse.json({}, { status: 500 })));
+    vi.spyOn(tripsApi, 'uploadCover').mockRejectedValue(new LocalApiError(500, 'nope'));
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1 })} onCoverUpdate={onCoverUpdate} />);
 
     fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
@@ -677,14 +701,13 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-050: clearing the file picker uploads nothing', async () => {
-    let uploads = 0;
-    server.use(http.post('/api/trips/1/cover', () => { uploads++; return HttpResponse.json({ cover_image: 'x' }); }));
+    const uploadSpy = vi.spyOn(tripsApi, 'uploadCover');
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1 })} />);
 
     fireEvent.change(fileInput(), { target: { files: [] } });
 
     await waitFor(() => expect(fileInput().value).toBe(''));
-    expect(uploads).toBe(0);
+    expect(uploadSpy).not.toHaveBeenCalled();
     expect(addToast).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: /Add cover image/i })).toBeInTheDocument();
   });
@@ -715,7 +738,8 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-053: a search without results reports it', async () => {
     const user = userEvent.setup();
-    server.use(http.get('/api/trips/cover-images/search', () => HttpResponse.json({})));
+    // The local searchCoverImages always returns an empty photo list — exactly
+    // the "no results" branch this test covers.
     render(<TripFormModal {...defaultProps} trip={null} />);
 
     await user.type(screen.getByPlaceholderText('Search destination photos'), 'nowhere');
@@ -726,11 +750,7 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-054: a failing search shows the server error', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ error: 'Unsplash key missing' }, { status: 500 })
-      ),
-    );
+    stubCoverSearch(async () => { throw new LocalApiError(500, 'Unsplash key missing'); });
     render(<TripFormModal {...defaultProps} trip={null} />);
 
     await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
@@ -741,11 +761,9 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-055: a photo without a photographer falls back in the label and drops the credit', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ photos: [{ id: 'p1', url: '', thumb: 'https://img/t.jpg', description: null, photographer: null }] })
-      ),
-    );
+    stubCoverSearch(async () => ({
+      photos: [{ id: 'p1', url: '', thumb: 'https://img/t.jpg', description: null, photographer: null }],
+    }));
     render(<TripFormModal {...defaultProps} trip={null} />);
 
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Alps');
@@ -765,15 +783,16 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     const onCoverUpdate = vi.fn();
     let putBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }] })
-      ),
-      http.put('/api/trips/1', async ({ request }) => {
-        putBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ trip: buildTrip({ id: 1 }) });
-      }),
-    );
+    stubCoverSearch(async () => ({
+      photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }],
+    }));
+    // tripsApi.update is local — capture the cover_image body and let the real
+    // adapter persist it on the seeded trip 1 row.
+    const realUpdate = tripsApi.update.bind(tripsApi);
+    vi.spyOn(tripsApi, 'update').mockImplementation(async (id, body) => {
+      putBody = body as Record<string, unknown>;
+      return realUpdate(id, body);
+    });
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} onCoverUpdate={onCoverUpdate} />);
 
     await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
@@ -787,12 +806,10 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-057: a failing Unsplash save while editing shows the server error', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/trips/cover-images/search', () =>
-        HttpResponse.json({ photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }] })
-      ),
-      http.put('/api/trips/1', () => HttpResponse.json({ error: 'Cover rejected' }, { status: 500 })),
-    );
+    stubCoverSearch(async () => ({
+      photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }],
+    }));
+    vi.spyOn(tripsApi, 'update').mockRejectedValue(new LocalApiError(500, 'Cover rejected'));
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} />);
 
     await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
@@ -806,8 +823,7 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-058: removing a staged cover only clears the preview', async () => {
     const user = userEvent.setup();
-    let puts = 0;
-    server.use(http.put('/api/trips/1', () => { puts++; return HttpResponse.json({}); }));
+    const updateSpy = vi.spyOn(tripsApi, 'update');
     render(<TripFormModal {...defaultProps} trip={null} />);
 
     fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
@@ -816,31 +832,35 @@ describe('TripFormModal', () => {
     await user.click(screen.getByRole('button', { name: /Change/i }).nextElementSibling as HTMLElement);
 
     await waitFor(() => expect(document.querySelector('img[src="blob:cover"]')).not.toBeInTheDocument());
-    expect(puts).toBe(0);
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 
   it('FE-COMP-TRIPFORM-059: removing an existing cover clears it on the server', async () => {
     const user = userEvent.setup();
     const onCoverUpdate = vi.fn();
+    // tripsApi.update is local — capture the body, let the adapter write it.
     let putBody: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1', async ({ request }) => {
-        putBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ trip: buildTrip({ id: 1 }) });
-      }),
-    );
+    const realUpdate = tripsApi.update.bind(tripsApi);
+    vi.spyOn(tripsApi, 'update').mockImplementation(async (id, body) => {
+      putBody = body as Record<string, unknown>;
+      return realUpdate(id, body);
+    });
+    await db.trips.update(1, { cover_image: '/uploads/covers/a.jpg' });
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} onCoverUpdate={onCoverUpdate} />);
 
     await user.click(screen.getByRole('button', { name: /Change/i }).nextElementSibling as HTMLElement);
 
     await waitFor(() => expect(putBody).toMatchObject({ cover_image: null }));
-    expect(onCoverUpdate).toHaveBeenCalledWith(1, null);
+    // putBody is captured inside the spy before the adapter resolves — the
+    // onCoverUpdate continuation lands a microtask later.
+    await waitFor(() => expect(onCoverUpdate).toHaveBeenCalledWith(1, null));
     expect(document.querySelector('img[src="/uploads/covers/a.jpg"]')).not.toBeInTheDocument();
+    expect((await db.trips.get(1))?.cover_image).toBeNull();
   });
 
   it('FE-COMP-TRIPFORM-060: a failing cover removal keeps the preview and warns', async () => {
     const user = userEvent.setup();
-    server.use(http.put('/api/trips/1', () => HttpResponse.json({}, { status: 500 })));
+    vi.spyOn(tripsApi, 'update').mockRejectedValue(new LocalApiError(500, 'nope'));
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} />);
 
     await user.click(screen.getByRole('button', { name: /Change/i }).nextElementSibling as HTMLElement);
@@ -1012,43 +1032,51 @@ describe('TripFormModal', () => {
 
   // ── Members while editing ─────────────────────────────────────────────────
 
-  const editMembersServer = (members: { id: number; username: string }[]) => {
+  /** The member chips are `getMembers(1).members` — tripMembers rows joined to
+   *  the localUsers roster. auth/users stays HTTP: it is the account picker. */
+  const editMembersSeed = async (members: { id: number; username: string }[]) => {
     server.use(
       http.get('/api/auth/users', () =>
         HttpResponse.json({ users: [{ id: 1, username: 'me' }, { id: 100, username: 'alice' }, { id: 200, username: 'bob' }] })
       ),
-      http.get('/api/trips/1/members', () => HttpResponse.json({ members })),
     );
+    await db.tripMembers.bulkPut(members.map(m => ({
+      tripId: 1, id: m.id, username: m.username, role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'me', is_guest: false,
+    })) as LocalTripMember[]);
   };
 
   it('FE-COMP-TRIPFORM-072: clicking a member chip removes them, the own chip is inert', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
-    let deletedId: string | null = null;
-    editMembersServer([{ id: 1, username: 'me' }, { id: 100, username: 'alice' }]);
-    server.use(
-      http.delete('/api/trips/1/members/:userId', ({ params }) => {
-        deletedId = params.userId as string;
-        return HttpResponse.json({ success: true });
-      }),
-    );
+    let removedId: number | null = null;
+    await editMembersSeed([{ id: 1, username: 'me' }, { id: 100, username: 'alice' }]);
+    // removeMember is local — record the userId and let the real row delete.
+    const realRemove = tripsApi.removeMember.bind(tripsApi);
+    vi.spyOn(tripsApi, 'removeMember').mockImplementation(async (id, userId) => {
+      removedId = Number(userId);
+      return realRemove(id, userId);
+    });
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Crew' })} />);
 
     const own = await screen.findByText('me');
     await user.click(own);
-    expect(deletedId).toBeNull();
+    expect(removedId).toBeNull();
 
     await user.click(screen.getByText('alice'));
-    await waitFor(() => expect(deletedId).toBe('100'));
-    expect(addToast).toHaveBeenCalledWith('alice removed', 'success', undefined);
+    await waitFor(() => expect(removedId).toBe(100));
+    // removedId flips inside the spy, before the awaited removeMember resolves
+    // and the success toast fires — wait for it the way the error twin does.
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('alice removed', 'success', undefined));
     await waitFor(() => expect(screen.queryByText('alice')).not.toBeInTheDocument());
+    expect(await db.tripMembers.get([1, 100])).toBeUndefined();
   });
 
   it('FE-COMP-TRIPFORM-073: a failing member removal keeps the chip', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
-    editMembersServer([{ id: 100, username: 'alice' }]);
-    server.use(http.delete('/api/trips/1/members/:userId', () => HttpResponse.json({}, { status: 500 })));
+    await editMembersSeed([{ id: 100, username: 'alice' }]);
+    vi.spyOn(tripsApi, 'removeMember').mockRejectedValue(new LocalApiError(500, 'nope'));
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Crew' })} />);
 
     await user.click(await screen.findByText('alice'));
@@ -1061,13 +1089,13 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
     let identifier: string | null = null;
-    editMembersServer([{ id: 100, username: 'alice' }]);
-    server.use(
-      http.post('/api/trips/1/members', async ({ request }) => {
-        identifier = ((await request.json()) as { identifier: string }).identifier;
-        return HttpResponse.json({ success: true });
-      }),
-    );
+    await editMembersSeed([{ id: 100, username: 'alice' }]);
+    // The local adapter resolves identifiers against the roster (self-only) —
+    // capture the identifier the modal hands it instead of writing a row.
+    vi.spyOn(tripsApi, 'addMember').mockImplementation(async (_id, ident) => {
+      identifier = ident;
+      return { member: { id: 200, username: ident, avatar: null, avatar_url: null, role: 'member' } };
+    });
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Crew' })} />);
 
     await screen.findByText('alice');
@@ -1086,8 +1114,8 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-075: a failing member add while editing shows an error', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
-    editMembersServer([{ id: 100, username: 'alice' }]);
-    server.use(http.post('/api/trips/1/members', () => HttpResponse.json({}, { status: 500 })));
+    await editMembersSeed([{ id: 100, username: 'alice' }]);
+    vi.spyOn(tripsApi, 'addMember').mockRejectedValue(new LocalApiError(500, 'nope'));
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Crew' })} />);
 
     await screen.findByText('alice');
@@ -1150,12 +1178,11 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-080: the cover button reports the upload while it runs', async () => {
-    server.use(
-      http.post('/api/trips/1/cover', async () => {
-        await delay(30);
-        return HttpResponse.json({ cover_image: '/uploads/covers/late.jpg' });
-      }),
-    );
+    // Hold the local upload open the way the delayed msw handler did.
+    vi.spyOn(tripsApi, 'uploadCover').mockImplementation(async () => {
+      await delay(30);
+      return { cover_image: '/uploads/covers/late.jpg' };
+    });
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} />);
 
     fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
@@ -1168,17 +1195,14 @@ describe('TripFormModal', () => {
   // A slow first search must never overwrite the results of a newer one (#1277).
   it('FE-COMP-TRIPFORM-081: a stale successful search response is discarded', async () => {
     let staleResolved = false;
-    server.use(
-      http.get('/api/trips/cover-images/search', async ({ request }) => {
-        const query = new URL(request.url).searchParams.get('query');
-        if (query === 'slow') {
-          await delay(60);
-          staleResolved = true;
-          return HttpResponse.json({ photos: [{ id: 's', url: 'https://img/s.jpg', thumb: 'https://img/st.jpg', photographer: 'Stale' }] });
-        }
-        return HttpResponse.json({ photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }] });
-      }),
-    );
+    stubCoverSearch(async (query) => {
+      if (query === 'slow') {
+        await delay(60);
+        staleResolved = true;
+        return { photos: [{ id: 's', url: 'https://img/s.jpg', thumb: 'https://img/st.jpg', photographer: 'Stale' }] };
+      }
+      return { photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }] };
+    });
     render(<TripFormModal {...defaultProps} trip={null} />);
     const search = screen.getByPlaceholderText('Search destination photos');
 
@@ -1194,17 +1218,14 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-082: a stale failing search does not clobber fresh results', async () => {
     let staleResolved = false;
-    server.use(
-      http.get('/api/trips/cover-images/search', async ({ request }) => {
-        const query = new URL(request.url).searchParams.get('query');
-        if (query === 'slow') {
-          await delay(60);
-          staleResolved = true;
-          return HttpResponse.json({ error: 'Stale failure' }, { status: 500 });
-        }
-        return HttpResponse.json({ photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }] });
-      }),
-    );
+    stubCoverSearch(async (query) => {
+      if (query === 'slow') {
+        await delay(60);
+        staleResolved = true;
+        throw new LocalApiError(500, 'Stale failure');
+      }
+      return { photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }] };
+    });
     render(<TripFormModal {...defaultProps} trip={null} />);
     const search = screen.getByPlaceholderText('Search destination photos');
 
@@ -1219,12 +1240,17 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-083: a closed modal fetches nothing until it is opened', async () => {
-    // The trip planner keeps the modal mounted behind the page.
+    // The trip planner keeps the modal mounted behind the page. getMembers is a
+    // local Dexie read — the spy records the call the way the msw handler did.
     const seen: string[] = [];
     server.use(
       http.get('/api/auth/users', () => { seen.push('users'); return HttpResponse.json({ users: [] }); }),
-      http.get('/api/trips/:id/members', () => { seen.push('members'); return HttpResponse.json({ members: [] }); }),
     );
+    const realGetMembers = tripsApi.getMembers.bind(tripsApi);
+    vi.spyOn(tripsApi, 'getMembers').mockImplementation(async (id) => {
+      seen.push('members');
+      return realGetMembers(id);
+    });
     const trip = buildTrip({ id: 5 });
     const { rerender } = render(<TripFormModal {...defaultProps} isOpen={false} trip={trip} />);
 

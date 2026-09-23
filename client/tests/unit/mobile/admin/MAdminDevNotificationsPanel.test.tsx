@@ -1,16 +1,23 @@
 // FE-MOB-ADEV-001 to FE-MOB-ADEV-015
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
+import 'fake-indexeddb/auto';
 import { render, screen, waitFor } from '../../../helpers/render';
 import { server } from '../../../helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../helpers/store';
-import { buildAdmin } from '../../../helpers/factories';
+import { buildAdmin, buildTrip } from '../../../helpers/factories';
 import { useAuthStore } from '../../../../src/store/authStore';
+import { db } from '../../../../src/db/panelmintDb';
+import { tripsApi } from '../../../../src/api/client';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
 import MAdminDevNotificationsPanel from '../../../../src/mobile/screens/admin/MAdminDevNotificationsPanel';
 
 const ADMIN = buildAdmin({ id: 7, username: 'testadmin', email: 'admin@example.com' });
+
+// The old MSW /api/trips fixture, now seeded into the panelmint database.
+const PARIS = buildTrip({ id: 101, title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });
+const TOKYO = buildTrip({ id: 102, title: 'Tokyo Trip', start_date: '2026-09-01', end_date: '2026-09-15' });
 
 function renderPanel() {
   return render(
@@ -37,12 +44,18 @@ function clickButton(user: ReturnType<typeof userEvent.setup>, label: string) {
   return user.click(screen.getByText(label).closest('button')!);
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
   seedStore(useAuthStore, { isAuthenticated: true, user: ADMIN });
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'testadmin', is_self: 1 });
+  await db.trips.bulkPut([PARIS, TOKYO]);
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   server.resetHandlers();
 });
 
@@ -74,6 +87,8 @@ describe('MAdminDevNotificationsPanel', () => {
   it('FE-MOB-ADEV-003: the user selector shows username and email of every user', async () => {
     renderPanel();
     await screen.findByText('User-Scoped Events');
+    // tripsApi.list resolves on Dexie time now — wait for both selects.
+    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
 
     const userSelect = screen.getAllByRole('combobox')[1];
     const labels = Array.from(userSelect.querySelectorAll('option')).map((o) => o.textContent ?? '');
@@ -168,6 +183,7 @@ describe('MAdminDevNotificationsPanel', () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByText('User-Scoped Events');
+    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
 
     const userSelect = screen.getAllByRole('combobox')[1] as HTMLSelectElement;
     const recipientId = Number(userSelect.value);
@@ -229,6 +245,7 @@ describe('MAdminDevNotificationsPanel', () => {
     const user = userEvent.setup();
     renderPanel();
     await screen.findByText('User-Scoped Events');
+    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
 
     const userSelect = screen.getAllByRole('combobox')[1];
     const alice = Array.from(userSelect.querySelectorAll('option')).find(
@@ -289,8 +306,8 @@ describe('MAdminDevNotificationsPanel', () => {
   });
 
   it('FE-MOB-ADEV-013: the scoped sections stay hidden when both lookups fail', async () => {
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new Error('down'));
     server.use(
-      http.get('/api/trips', () => HttpResponse.json({}, { status: 500 })),
       http.get('/api/admin/users', () => HttpResponse.json({}, { status: 500 })),
     );
     renderPanel();
@@ -302,8 +319,10 @@ describe('MAdminDevNotificationsPanel', () => {
   });
 
   it('FE-MOB-ADEV-014: bare arrays are accepted as well as the wrapped payloads', async () => {
+    // The local adapter always returns { trips } — keep the bare-array tolerance
+    // coverage by stubbing the call itself.
+    vi.spyOn(tripsApi, 'list').mockResolvedValue([{ id: 55, title: 'Bare Trip' }] as never);
     server.use(
-      http.get('/api/trips', () => HttpResponse.json([{ id: 55, title: 'Bare Trip' }])),
       http.get('/api/admin/users', () =>
         HttpResponse.json([{ id: 66, username: 'bare', email: 'bare@example.com' }]),
       ),
@@ -320,7 +339,7 @@ describe('MAdminDevNotificationsPanel', () => {
 
   it('FE-MOB-ADEV-015: without trips or a signed-in user the invite falls back to defaults', async () => {
     const bodies = captureSends();
-    server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [] })));
+    await db.trips.clear();
     resetAllStores();
     const user = userEvent.setup();
     renderPanel();

@@ -1,8 +1,17 @@
 // FE-APISURF-001 to FE-APISURF-057
+import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
+import { db } from '../db/panelmintDb'
+import { buildDay, buildTrip } from '../../tests/helpers/factories'
+import type { DayRow } from './local/dexieStore'
+import type { LocalTripMember } from '../db/panelmintDb'
+
+// tripsApi.create/update fetch live FX rates for the currency rebase — keep the
+// surface suite offline.
+vi.mock('../hooks/useExchangeRates', () => ({ fetchExchangeRates: vi.fn().mockResolvedValue(null) }))
 import {
   apiClient,
   authApi, oauthApi, tripsApi, daysApi, placesApi, assignmentsApi, packingApi, todoApi,
@@ -31,13 +40,38 @@ function recorder() {
   })
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   log = []
   server.use(recorder())
   // parseInDev/checkInDev warn on every stub payload that doesn't match its
   // @trek/shared schema — expected here, so keep the output readable.
   vi.spyOn(console, 'warn').mockImplementation(() => {})
+  // tripsApi/daysApi are the Dexie-backed local adapters — start every test
+  // from a clean `panelmint` db with just the self roster row.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
 })
+
+/** Trip 3 owned by self + three day rows on trip 1 for the nested-day calls. */
+async function seedTripAndDays() {
+  await db.trips.put(buildTrip({ id: 3 }))
+  await db.trips.put(buildTrip({ id: 1 }))
+  await db.days.bulkPut([1, 2, 3].map((i) => ({
+    ...buildDay({ id: i, trip_id: 1, day_number: i, date: `2025-06-0${i}` }),
+    vias: [],
+  })) as DayRow[])
+}
+
+/** A roster member row (guest or second profile) on trip 3. */
+async function seedMemberRow(userId: number, name: string, isSelf: 0 | 1, email?: string) {
+  await db.localUsers.put({ id: userId, name, is_self: isSelf, email })
+  await db.tripMembers.put({
+    tripId: 3, id: userId, username: name, role: 'member',
+    added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: isSelf !== 1,
+  } as LocalTripMember)
+}
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -45,11 +79,19 @@ afterEach(() => {
 
 interface Call { n: string; r: () => Promise<unknown>; e: string }
 
-/** Runs every call in isolation and checks the verb + path it produced. */
+/**
+ * Runs every call in isolation and checks the verb + path it produced.
+ * `e === 'local'` marks a Dexie-backed tripsApi/daysApi call: it must resolve
+ * and emit ZERO HTTP requests — that is the wiring contract post-migration.
+ */
 async function assertCalls(calls: Call[]): Promise<void> {
   for (const c of calls) {
     log = []
     await c.r()
+    if (c.e === 'local') {
+      expect(log.length, `${c.n}: local adapter emitted an HTTP request`).toBe(0)
+      continue
+    }
     expect(log.length, `${c.n}: expected exactly one request`).toBe(1)
     const rec = log[0]
     const [path] = rec.url.split('?')
@@ -121,36 +163,66 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-003: tripsApi maps trip, member and guest endpoints', async () => {
+  it('FE-APISURF-003: tripsApi covers the trip, member and guest surface locally', async () => {
+    // Every call resolves against the seeded panelmint db and emits no HTTP —
+    // the pre-migration version asserted verb+path on /api/trips*.
     await assertCalls([
-      { n: 'list', r: () => tripsApi.list(), e: 'GET /api/trips' },
-      { n: 'create', r: () => tripsApi.create({ title: 'Rome' }), e: 'POST /api/trips' },
-      { n: 'get', r: () => tripsApi.get(3), e: 'GET /api/trips/3' },
-      { n: 'update', r: () => tripsApi.update(3, { title: 'Rome 2' }), e: 'PUT /api/trips/3' },
-      { n: 'delete', r: () => tripsApi.delete(3), e: 'DELETE /api/trips/3' },
-      { n: 'searchCoverImages', r: () => tripsApi.searchCoverImages('rome'), e: 'GET /api/trips/cover-images/search' },
-      { n: 'archive', r: () => tripsApi.archive(3), e: 'PUT /api/trips/3' },
-      { n: 'unarchive', r: () => tripsApi.unarchive(3), e: 'PUT /api/trips/3' },
-      { n: 'getMembers', r: () => tripsApi.getMembers(3), e: 'GET /api/trips/3/members' },
-      { n: 'addMember', r: () => tripsApi.addMember(3, 'bob'), e: 'POST /api/trips/3/members' },
-      { n: 'removeMember', r: () => tripsApi.removeMember(3, 9), e: 'DELETE /api/trips/3/members/9' },
-      { n: 'transferOwnership', r: () => tripsApi.transferOwnership(3, 9), e: 'POST /api/trips/3/transfer' },
-      { n: 'createGuest', r: () => tripsApi.createGuest(3, 'Anna'), e: 'POST /api/trips/3/guests' },
-      { n: 'renameGuest', r: () => tripsApi.renameGuest(3, 9, 'Ana'), e: 'PUT /api/trips/3/guests/9' },
-      { n: 'deleteGuest', r: () => tripsApi.deleteGuest(3, 9), e: 'DELETE /api/trips/3/guests/9' },
-      { n: 'copy', r: () => tripsApi.copy(3, { title: 'Copy' }), e: 'POST /api/trips/3/copy' },
-      { n: 'bundle', r: () => tripsApi.bundle(3), e: 'GET /api/trips/3/bundle' },
+      { n: 'list', r: () => tripsApi.list(), e: 'local' },
+      { n: 'create', r: () => tripsApi.create({ title: 'Rome' }), e: 'local' },
+      { n: 'get', r: async () => { await seedTripAndDays(); return tripsApi.get(3) }, e: 'local' },
+      { n: 'update', r: async () => { await seedTripAndDays(); return tripsApi.update(3, { title: 'Rome 2' }) }, e: 'local' },
+      { n: 'delete', r: async () => { await seedTripAndDays(); return tripsApi.delete(3) }, e: 'local' },
+      { n: 'searchCoverImages', r: () => tripsApi.searchCoverImages('rome'), e: 'local' },
+      { n: 'archive', r: async () => { await seedTripAndDays(); return tripsApi.archive(3) }, e: 'local' },
+      { n: 'unarchive', r: async () => { await seedTripAndDays(); return tripsApi.unarchive(3) }, e: 'local' },
+      { n: 'getMembers', r: async () => { await seedTripAndDays(); return tripsApi.getMembers(3) }, e: 'local' },
+      // addMember resolves a roster row by name — 'bob' must exist as a
+      // non-guest localUser (locally the only non-guest rows are self-type).
+      {
+        n: 'addMember',
+        r: async () => {
+          await seedTripAndDays()
+          await db.localUsers.put({ id: 9, name: 'bob', is_self: 1 })
+          return tripsApi.addMember(3, 'bob')
+        },
+        e: 'local',
+      },
+      { n: 'removeMember', r: async () => { await seedTripAndDays(); await seedMemberRow(9, 'bob', 0); return tripsApi.removeMember(3, 9) }, e: 'local' },
+      {
+        n: 'transferOwnership',
+        r: async () => {
+          await seedTripAndDays()
+          await seedMemberRow(9, 'bob', 1)
+          return tripsApi.transferOwnership(3, 9)
+        },
+        e: 'local',
+      },
+      { n: 'createGuest', r: async () => { await seedTripAndDays(); return tripsApi.createGuest(3, 'Anna') }, e: 'local' },
+      { n: 'renameGuest', r: async () => { await seedTripAndDays(); await seedMemberRow(9, 'Anna', 0); return tripsApi.renameGuest(3, 9, 'Ana') }, e: 'local' },
+      { n: 'deleteGuest', r: async () => { await seedTripAndDays(); await seedMemberRow(9, 'Anna', 0); return tripsApi.deleteGuest(3, 9) }, e: 'local' },
+      { n: 'copy', r: async () => { await seedTripAndDays(); return tripsApi.copy(3, { title: 'Copy' }) }, e: 'local' },
+      { n: 'bundle', r: async () => { await seedTripAndDays(); return tripsApi.bundle(3) }, e: 'local' },
     ])
   })
 
-  it('FE-APISURF-004: daysApi and dayNotesApi map their nested trip endpoints', async () => {
+  it('FE-APISURF-004: daysApi runs locally while dayNotesApi maps its nested endpoints', async () => {
     await assertCalls([
-      { n: 'days.list', r: () => daysApi.list(1), e: 'GET /api/trips/1/days' },
-      { n: 'days.create', r: () => daysApi.create(1, { date: '2026-06-01' }), e: 'POST /api/trips/1/days' },
-      { n: 'days.update', r: () => daysApi.update(1, 2, { notes: 'hi' }), e: 'PUT /api/trips/1/days/2' },
-      { n: 'days.updateTransport', r: () => daysApi.updateTransport(1, 2, 'car'), e: 'PUT /api/trips/1/days/2/transport' },
-      { n: 'days.delete', r: () => daysApi.delete(1, 2), e: 'DELETE /api/trips/1/days/2' },
-      { n: 'days.reorder', r: () => daysApi.reorder(1, [2, 1]), e: 'PUT /api/trips/1/days/reorder' },
+      { n: 'days.list', r: async () => { await seedTripAndDays(); return daysApi.list(1) }, e: 'local' },
+      { n: 'days.create', r: async () => { await seedTripAndDays(); return daysApi.create(1, { date: '2026-06-01' }) }, e: 'local' },
+      { n: 'days.update', r: async () => { await seedTripAndDays(); return daysApi.update(1, 2, { notes: 'hi' }) }, e: 'local' },
+      { n: 'days.updateTransport', r: async () => { await seedTripAndDays(); return daysApi.updateTransport(1, 2, 'car') }, e: 'local' },
+      { n: 'days.delete', r: async () => { await seedTripAndDays(); return daysApi.delete(1, 2) }, e: 'local' },
+      {
+        n: 'days.reorder',
+        // Earlier runners in this test created/deleted rows — reorder wants a
+        // full permutation of whatever trip 1 holds right now.
+        r: async () => {
+          await seedTripAndDays()
+          const ids = (await db.days.where('trip_id').equals(1).toArray()).map((d) => d.id).reverse()
+          return daysApi.reorder(1, ids)
+        },
+        e: 'local',
+      },
       { n: 'dayNotes.list', r: () => dayNotesApi.list(1, 2), e: 'GET /api/trips/1/days/2/notes' },
       { n: 'dayNotes.create', r: () => dayNotesApi.create(1, 2, { text: 'note' }), e: 'POST /api/trips/1/days/2/notes' },
       { n: 'dayNotes.update', r: () => dayNotesApi.update(1, 2, 5, { text: 'edit' }), e: 'PUT /api/trips/1/days/2/notes/5' },
@@ -563,7 +635,15 @@ describe('client > endpoint wiring', () => {
 
 describe('client > request payloads', () => {
   it('FE-APISURF-022: reorder helpers wrap their ids in the contract field', async () => {
-    expect((await traceOne(() => daysApi.reorder(1, [3, 1, 2]))).body).toEqual({ orderedIds: [3, 1, 2] })
+    // daysApi is local — the "wrap" is the orderedIds argument itself; assert
+    // the permutation persisted instead of a wire body.
+    await seedTripAndDays()
+    await daysApi.reorder(1, [3, 1, 2])
+    const stored = (await db.days.where('trip_id').equals(1).toArray())
+      .sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0))
+      .map((d) => d.id)
+    expect(stored).toEqual([3, 1, 2])
+    expect(log).toHaveLength(0)
     expect((await traceOne(() => packingApi.reorder(1, [2, 1]))).body).toEqual({ orderedIds: [2, 1] })
     expect((await traceOne(() => todoApi.reorder(1, [9]))).body).toEqual({ orderedIds: [9] })
     expect((await traceOne(() => budgetApi.reorderItems(1, [4, 5]))).body).toEqual({ orderedIds: [4, 5] })
@@ -581,10 +661,22 @@ describe('client > request payloads', () => {
 
   it('FE-APISURF-024: single-value helpers wrap their argument in the documented key', async () => {
     expect((await traceOne(() => authApi.updateMapsKey(null))).body).toEqual({ maps_api_key: null })
-    expect((await traceOne(() => tripsApi.addMember(1, 'bob@x.test'))).body).toEqual({ identifier: 'bob@x.test' })
-    expect((await traceOne(() => tripsApi.transferOwnership(1, 9))).body).toEqual({ newOwnerId: 9 })
-    expect((await traceOne(() => tripsApi.createGuest(1, 'Anna'))).body).toEqual({ name: 'Anna' })
-    expect((await traceOne(() => daysApi.updateTransport(1, 2, 'walk'))).body).toEqual({ transport_mode: 'walk' })
+    // tripsApi/daysApi are local — assert the argument lands in the row the
+    // server's documented field used to set. `log` still holds the auth call.
+    log = []
+    await db.trips.put(buildTrip({ id: 1 }))
+    await db.localUsers.put({ id: 9, name: 'bob@x.test', is_self: 1 })
+    await tripsApi.addMember(1, 'bob@x.test')
+    expect(await db.tripMembers.get([1, 9])).toMatchObject({ username: 'bob@x.test' })
+    await tripsApi.transferOwnership(1, 9)
+    expect((await db.trips.get(1))?.user_id).toBe(9)
+    await db.trips.put(buildTrip({ id: 1 }))
+    await tripsApi.createGuest(1, 'Anna')
+    expect((await db.localUsers.toArray()).some((u) => u.name === 'Anna' && u.is_self === 0)).toBe(true)
+    await db.days.put({ ...buildDay({ id: 2, trip_id: 1 }), vias: [] } as DayRow)
+    await daysApi.updateTransport(1, 2, 'walk')
+    expect((await db.days.get(2))?.default_transport_mode).toBe('walk')
+    expect(log).toHaveLength(0)
     expect((await traceOne(() => assignmentsApi.updateTransport(1, 7, null))).body).toEqual({ transport_mode: null })
     expect((await traceOne(() => collabApi.votePoll(1, 2, 3))).body).toEqual({ option_index: 3 })
     expect((await traceOne(() => collabApi.reactMessage(1, 2, '🎉'))).body).toEqual({ emoji: '🎉' })
@@ -598,9 +690,14 @@ describe('client > request payloads', () => {
       .toEqual({ config: { k: 'v' } })
   })
 
-  it('FE-APISURF-025: tripsApi.archive/unarchive send the is_archived flag', async () => {
-    expect((await traceOne(() => tripsApi.archive(3))).body).toEqual({ is_archived: true })
-    expect((await traceOne(() => tripsApi.unarchive(3))).body).toEqual({ is_archived: false })
+  it('FE-APISURF-025: tripsApi.archive/unarchive flip the stored is_archived flag', async () => {
+    // Local adapter: assert the row state instead of a PUT body.
+    await db.trips.put(buildTrip({ id: 3 }))
+    await tripsApi.archive(3)
+    expect((await db.trips.get(3))?.is_archived).toBe(1)
+    await tripsApi.unarchive(3)
+    expect((await db.trips.get(3))?.is_archived).toBe(0)
+    expect(log).toHaveLength(0)
   })
 
   it('FE-APISURF-026: placesApi bulk operations merge ids with the patch', async () => {
@@ -657,7 +754,12 @@ describe('client > request payloads', () => {
   })
 
   it('FE-APISURF-033: tripsApi.copy and shareApi.createLink default to an empty body', async () => {
-    expect((await traceOne(() => tripsApi.copy(3))).body).toEqual({})
+    // Local copy: no request body exists — assert the no-arg call clones trip 3.
+    await seedTripAndDays()
+    const { trip: copy } = await tripsApi.copy(3)
+    expect(copy.id).not.toBe(3)
+    expect(await db.trips.get(copy.id)).toBeDefined()
+    expect(log).toHaveLength(0)
     expect((await traceOne(() => shareApi.createLink(1))).body).toEqual({})
   })
 
@@ -675,11 +777,20 @@ describe('client > request payloads', () => {
 })
 
 describe('client > query parameters', () => {
-  it('FE-APISURF-035: tripsApi.list forwards arbitrary filters as query params', async () => {
-    const rec = await traceOne(() => tripsApi.list({ archived: true, q: 'rome' }))
-    const qs = new URLSearchParams(rec.url.split('?')[1])
-    expect(qs.get('archived')).toBe('true')
-    expect(qs.get('q')).toBe('rome')
+  it('FE-APISURF-035: tripsApi.list honours the archived filter locally', async () => {
+    // The axios version forwarded filters as query params; the local adapter
+    // applies them over Dexie — assert the filter effect, not the URL.
+    await db.trips.bulkPut([
+      buildTrip({ id: 1, title: 'Rome', is_archived: 0 }),
+      buildTrip({ id: 2, title: 'Done', is_archived: 1 }),
+    ])
+    log = []
+    const all = await tripsApi.list()
+    expect(all.trips.map((t) => t.id)).toEqual([1])
+    // The controller's `archived === '1'` flag, applied over Dexie.
+    const archived = await tripsApi.list({ archived: '1' })
+    expect(archived.trips.map((t) => t.id)).toEqual([2])
+    expect(log).toHaveLength(0)
   })
 
   it('FE-APISURF-036: filesApi.list only sets the trash flag when asked', async () => {
@@ -768,7 +879,14 @@ describe('client > multipart uploads', () => {
     const fd = new FormData()
 
     await authApi.uploadAvatar(fd)
-    await tripsApi.uploadCover(3, fd)
+    // tripsApi.uploadCover is local — the file lands on the trip row as a
+    // data: URL, no axios call is made.
+    await db.trips.put(buildTrip({ id: 3 }))
+    const coverFd = new FormData()
+    coverFd.append('cover', new File(['x'], 'cover.png', { type: 'image/png' }))
+    const cover = await tripsApi.uploadCover(3, coverFd)
+    expect(cover.cover_image).toMatch(/^data:image\/png/)
+    expect((await db.trips.get(3))?.cover_image).toBe(cover.cover_image)
     await filesApi.upload(1, fd)
     await journeyApi.uploadPhotos(9, fd)
     await journeyApi.uploadGalleryPhotos(2, fd)
@@ -778,7 +896,6 @@ describe('client > multipart uploads', () => {
 
     expect(post.mock.calls.map(c => c[0])).toEqual([
       '/auth/avatar',
-      '/trips/3/cover',
       '/trips/1/files',
       '/journeys/entries/9/photos',
       '/journeys/2/gallery/photos',

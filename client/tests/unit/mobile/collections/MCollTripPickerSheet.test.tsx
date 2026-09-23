@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 import MCollTripPickerSheet from '../../../../src/mobile/screens/collections/MCollTripPickerSheet'
 import { tripsApi } from '../../../../src/api/client'
 import { useTranslation } from '../../../../src/i18n'
+import { buildTrip } from '../../../helpers/factories'
 
 // FE-MOB-CTRIPP-001 to FE-MOB-CTRIPP-014
 
@@ -11,9 +12,9 @@ type Props = ComponentProps<typeof MCollTripPickerSheet>
 type CopyResult = { copied: number; skipped: { id: number; name: string }[] }
 
 const TRIPS = [
-  { id: 1, title: 'Japan 2020', start_date: '2020-03-01', end_date: '2020-03-05', cover_image: '/uploads/covers/jp.jpg' },
-  { id: 2, title: 'Weekend in Prague', start_date: null, end_date: null, cover_image: null },
-  { id: 3, title: 'Open ended', start_date: '2020-03-01', end_date: null, cover_image: null },
+  buildTrip({ id: 1, title: 'Japan 2020', start_date: '2020-03-01', end_date: '2020-03-05', cover_image: '/uploads/covers/jp.jpg' }),
+  buildTrip({ id: 2, title: 'Weekend in Prague', start_date: null, end_date: null, cover_image: null }),
+  buildTrip({ id: 3, title: 'Open ended', start_date: '2020-03-01', end_date: null, cover_image: null }),
 ]
 
 function Harness(props: Omit<Props, 't'>) {
@@ -81,7 +82,7 @@ describe('MCollTripPickerSheet', () => {
   })
 
   it('FE-MOB-CTRIPP-005: a response without a trips array falls back to the empty state', async () => {
-    vi.mocked(tripsApi.list).mockResolvedValue({})
+    vi.mocked(tripsApi.list).mockResolvedValue({} as never)
     setup()
     expect(await screen.findByText('No trips yet')).toBeInTheDocument()
   })

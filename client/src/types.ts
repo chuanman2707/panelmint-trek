@@ -566,6 +566,9 @@ export interface LocalUser {
   id: number
   name: string
   is_self: 0 | 1
+  /** Guests carry the `guest-*@guests.invalid` placeholder the server's users
+   *  row generated — surfaced by the member list the way the server emitted it. */
+  email?: string
 }
 
 /** packing_bag_members — PRIMARY KEY (bag_id, user_id), no surrogate id. */

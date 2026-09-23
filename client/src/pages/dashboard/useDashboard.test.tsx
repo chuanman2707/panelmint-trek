@@ -10,6 +10,9 @@ import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore } from '../../store/authStore';
 import { useDashboard } from './useDashboard';
 import type { DashboardTrip } from './dashboardModel';
+import { db } from '../../db/panelmintDb';
+import { tripsApi } from '../../api/client';
+import { LocalApiError } from '../../api/local/helpers';
 
 // FE-HOOK-DASH-001 onwards
 
@@ -19,13 +22,10 @@ const ROME = buildTrip({ id: 103, title: 'Old Rome', start_date: '2024-01-01', e
 
 let toastCalls: Array<[string, string | undefined]>;
 
-function tripsHandler(active: DashboardTrip[], archived: DashboardTrip[] = []) {
-  server.use(
-    http.get('/api/trips', ({ request }) => {
-      const url = new URL(request.url);
-      return HttpResponse.json({ trips: url.searchParams.get('archived') ? archived : active });
-    }),
-  );
+/** tripsApi is the local adapter now — the trip list comes from the panelmint
+ *  Dexie db, not /api/trips, so the fixtures are seeded as rows. */
+async function seedTrips(trips: DashboardTrip[]) {
+  await db.trips.bulkPut(trips);
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -52,7 +52,7 @@ async function mountLoaded(entry = '/dashboard') {
   return view;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
   toastCalls = [];
@@ -60,7 +60,11 @@ beforeEach(() => {
     toastCalls.push([message, type]);
     return 1;
   }) as unknown as typeof window.__addToast;
-  tripsHandler([PARIS, TOKYO], [ROME]);
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await seedTrips([PARIS, TOKYO, ROME]);
   server.use(
     http.get('/api/auth/travel-stats', () => HttpResponse.json({ totalTrips: 2, countries: ['fr'] })),
     http.get('/api/reservations/upcoming', () =>
@@ -69,6 +73,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   delete window.__addToast;
 });
 
@@ -102,7 +107,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-004: a failing trip load raises the error banner and toasts', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new LocalApiError(500, 'boom'));
     const { result } = await mountLoaded();
 
     expect(result.current.loadError).toBe(true);
@@ -110,11 +115,11 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-005: retrying after recovery clears the banner', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    // Only the first list call fails — the seeded rows are back on retry.
+    vi.spyOn(tripsApi, 'list').mockRejectedValueOnce(new LocalApiError(500, 'boom'));
     const { result } = await mountLoaded();
     expect(result.current.loadError).toBe(true);
 
-    tripsHandler([PARIS, TOKYO], [ROME]);
     act(() => { result.current.retryLoad(); });
 
     await waitFor(() => expect(result.current.loadError).toBe(false));
@@ -131,7 +136,7 @@ describe('useDashboard', () => {
 
   it('FE-HOOK-DASH-007: creating a trip prepends it and returns the payload', async () => {
     const created = buildTrip({ id: 200, title: 'Iceland', start_date: '2027-12-01', end_date: '2027-12-05' });
-    server.use(http.post('/api/trips', () => HttpResponse.json({ trip: created })));
+    vi.spyOn(tripsApi, 'create').mockResolvedValue({ trip: created });
     const { result } = await mountLoaded();
 
     let payload: unknown;
@@ -144,15 +149,14 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-008: a rejected create surfaces the API message', async () => {
-    server.use(http.post('/api/trips', () => HttpResponse.json({ error: 'Title taken' }, { status: 400 })));
+    vi.spyOn(tripsApi, 'create').mockRejectedValue(new LocalApiError(400, 'Title taken'));
     const { result } = await mountLoaded();
 
     await expect(result.current.handleCreate({ title: 'Iceland' })).rejects.toThrow('Title taken');
   });
 
   it('FE-HOOK-DASH-009: updating replaces the edited trip', async () => {
-    server.use(http.put('/api/trips/:id', () =>
-      HttpResponse.json({ trip: { ...PARIS, title: 'Paris Reloaded' } })));
+    vi.spyOn(tripsApi, 'update').mockResolvedValue({ trip: { ...PARIS, title: 'Paris Reloaded' } });
     const { result } = await mountLoaded();
 
     act(() => { result.current.setEditingTrip(PARIS); });
@@ -172,7 +176,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-011: a rejected update surfaces the API message', async () => {
-    server.use(http.put('/api/trips/:id', () => HttpResponse.json({ error: 'Locked' }, { status: 409 })));
+    vi.spyOn(tripsApi, 'update').mockRejectedValue(new LocalApiError(409, 'Locked'));
     const { result } = await mountLoaded();
 
     act(() => { result.current.setEditingTrip(PARIS); });
@@ -180,7 +184,6 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-012: deleting drops the trip from both lists', async () => {
-    server.use(http.delete('/api/trips/:id', () => HttpResponse.json({ success: true })));
     const { result } = await mountLoaded();
 
     act(() => { result.current.setDeleteTrip(PARIS); });
@@ -201,7 +204,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-014: a failing delete toasts and keeps the trip', async () => {
-    server.use(http.delete('/api/trips/:id', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'delete').mockRejectedValue(new LocalApiError(500, 'nope'));
     const { result } = await mountLoaded();
 
     act(() => { result.current.setDeleteTrip(PARIS); });
@@ -213,7 +216,6 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-015: archiving moves the trip into the archive list', async () => {
-    server.use(http.put('/api/trips/:id', () => HttpResponse.json({ trip: { ...PARIS, is_archived: 1 } })));
     const { result } = await mountLoaded();
 
     await act(async () => { await result.current.handleArchive(101); });
@@ -224,7 +226,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-016: a failing archive only toasts', async () => {
-    server.use(http.put('/api/trips/:id', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'archive').mockRejectedValue(new LocalApiError(500, 'nope'));
     const { result } = await mountLoaded();
 
     await act(async () => { await result.current.handleArchive(101); });
@@ -233,7 +235,6 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-017: restoring moves the trip back into the active list', async () => {
-    server.use(http.put('/api/trips/:id', () => HttpResponse.json({ trip: { ...ROME, is_archived: 0 } })));
     const { result } = await mountLoaded();
 
     await act(async () => { await result.current.handleUnarchive(103); });
@@ -246,7 +247,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-018: a failing restore only toasts', async () => {
-    server.use(http.put('/api/trips/:id', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'unarchive').mockRejectedValue(new LocalApiError(500, 'nope'));
     const { result } = await mountLoaded();
 
     await act(async () => { await result.current.handleUnarchive(103); });
@@ -255,10 +256,6 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-019: copying adds the duplicate and clears the dialog', async () => {
-    server.use(http.post('/api/trips/:id/copy', async ({ request }) => {
-      const body = await request.json() as { title: string };
-      return HttpResponse.json({ trip: { ...PARIS, id: 300, title: body.title } });
-    }));
     const { result } = await mountLoaded();
 
     act(() => { result.current.setCopyTrip(PARIS); });
@@ -278,7 +275,7 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-021: a failing copy only toasts', async () => {
-    server.use(http.post('/api/trips/:id/copy', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'copy').mockRejectedValue(new LocalApiError(500, 'nope'));
     const { result } = await mountLoaded();
 
     act(() => { result.current.setCopyTrip(PARIS); });
@@ -301,22 +298,21 @@ describe('useDashboard', () => {
   });
 
   it('FE-HOOK-DASH-023: the hero bundle follows the spotlight trip', async () => {
-    server.use(http.get('/api/trips/:id/bundle', () =>
-      HttpResponse.json({ members: [{ id: 1, username: 'maurice' }], places: [] })));
+    // The real bundle for a member-less trip carries just the owner.
     const { result } = await mountLoaded();
 
     await waitFor(() => expect(result.current.heroBundle?.members).toHaveLength(1));
   });
 
   it('FE-HOOK-DASH-024: a failing bundle leaves the hero without extras', async () => {
-    server.use(http.get('/api/trips/:id/bundle', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'bundle').mockRejectedValue(new LocalApiError(500, 'nope'));
     const { result } = await mountLoaded();
 
     await waitFor(() => expect(result.current.heroBundle).toBeNull());
   });
 
   it('FE-HOOK-DASH-025: an account without trips has no spotlight at all', async () => {
-    tripsHandler([]);
+    await db.trips.clear();
     const { result } = await mountLoaded();
 
     expect(result.current.spotlight).toBeNull();

@@ -22,11 +22,8 @@ import {
   type ResetPasswordRequest, type ChangePasswordRequest,
   type MfaVerifyLoginRequest, type MfaEnableRequest, type McpTokenCreateRequest,
   type ApiTokenCreateRequest, type PublicApiScope,
-  type TripAddMemberRequest, type TripTransferOwnershipRequest,
-  type TripCreateGuestRequest, type TripRenameGuestRequest, type AssignmentReorderRequest,
+  type AssignmentReorderRequest,
   type PackingReorderRequest, type PackingCreateBagRequest, type TodoReorderRequest,
-  type TripCreateRequest, type TripUpdateRequest, type TripCopyRequest, type ActiveTripResponse,
-  type DayCreateRequest, type DayUpdateRequest, type DayReorderRequest,
   type PlaceCreateRequest, type PlaceUpdateRequest,
   type ReservationCreateRequest, type ReservationUpdateRequest,
   type AccommodationCreateRequest, type AccommodationUpdateRequest,
@@ -408,39 +405,9 @@ export const oauthApi = {
   },
 }
 
-export const tripsApi = {
-  list: (params?: Record<string, unknown>) => apiClient.get('/trips', { params }).then(r => r.data),
-  create: (data: TripCreateRequest) => apiClient.post('/trips', data).then(r => r.data),
-  get: (id: number | string) => apiClient.get(`/trips/${id}`).then(r => r.data),
-  // The startup redirect's one lookup — deliberately not list(), which would pull
-  // every trip with its counts just to read one id.
-  active: (): Promise<ActiveTripResponse> => apiClient.get('/trips/active').then(r => r.data),
-  update: (id: number | string, data: TripUpdateRequest) => apiClient.put(`/trips/${id}`, data).then(r => r.data),
-  delete: (id: number | string) => apiClient.delete(`/trips/${id}`).then(r => r.data),
-  uploadCover: (id: number | string, formData: FormData) => postMultipart(`/trips/${id}/cover`, formData),
-  searchCoverImages: (query: string) => apiClient.get('/trips/cover-images/search', { params: { query } }).then(r => r.data),
-  archive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: true }).then(r => r.data),
-  unarchive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: false }).then(r => r.data),
-  getMembers: (id: number | string) => apiClient.get(`/trips/${id}/members`).then(r => r.data),
-  addMember: (id: number | string, identifier: string) => apiClient.post(`/trips/${id}/members`, { identifier } satisfies TripAddMemberRequest).then(r => r.data),
-  removeMember: (id: number | string, userId: number) => apiClient.delete(`/trips/${id}/members/${userId}`).then(r => r.data),
-  transferOwnership: (id: number | string, newOwnerId: number) => apiClient.post(`/trips/${id}/transfer`, { newOwnerId } satisfies TripTransferOwnershipRequest).then(r => r.data),
-  createGuest: (id: number | string, name: string) => apiClient.post(`/trips/${id}/guests`, { name } satisfies TripCreateGuestRequest).then(r => r.data),
-  renameGuest: (id: number | string, userId: number, name: string) => apiClient.put(`/trips/${id}/guests/${userId}`, { name } satisfies TripRenameGuestRequest).then(r => r.data),
-  deleteGuest: (id: number | string, userId: number) => apiClient.delete(`/trips/${id}/guests/${userId}`).then(r => r.data),
-  copy: (id: number | string, data?: TripCopyRequest) => apiClient.post(`/trips/${id}/copy`, data || {}).then(r => r.data),
-  bundle: (id: number | string) => apiClient.get(`/trips/${id}/bundle`).then(r => r.data),
-}
-
-export const daysApi = {
-  list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/days`).then(r => r.data),
-  create: (tripId: number | string, data: DayCreateRequest) => apiClient.post(`/trips/${tripId}/days`, data).then(r => r.data),
-  update: (tripId: number | string, dayId: number | string, data: DayUpdateRequest) => apiClient.put(`/trips/${tripId}/days/${dayId}`, data).then(r => r.data),
-  // Whole-day default route mode (#1281); per-segment leg modes override it.
-  updateTransport: (tripId: number | string, dayId: number | string, mode: string | null) => apiClient.put(`/trips/${tripId}/days/${dayId}/transport`, { transport_mode: mode }).then(r => r.data),
-  delete: (tripId: number | string, dayId: number | string) => apiClient.delete(`/trips/${tripId}/days/${dayId}`).then(r => r.data),
-  reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/days/reorder`, { orderedIds } satisfies DayReorderRequest).then(r => r.data),
-}
+// tripsApi/daysApi are local (api/local/*) — the axios objects were deleted
+// when their adapters landed (README.md barrel strategy, step 3).
+export { tripsApi, daysApi } from './local'
 
 export const placesApi = {
   list: (tripId: number | string, params?: Record<string, unknown>) => apiClient.get(`/trips/${tripId}/places`, { params }).then(r => r.data),

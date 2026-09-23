@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import 'fake-indexeddb/auto';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../src/store/tripStore';
-import { placesApi } from '../../src/api/client';
+import { placesApi, tripsApi, daysApi } from '../../src/api/client';
 import { resetAllStores } from '../helpers/store';
 import { buildTrip, buildDay, buildPlace, buildPackingItem, buildTodoItem, buildTag, buildCategory, buildAssignment, buildDayNote, buildBudgetItem, buildReservation, buildTripFile } from '../helpers/factories';
 import { server } from '../helpers/msw/server';
+import { db } from '../../src/db/panelmintDb';
+import type { DayRow } from '../../src/api/local/dexieStore';
 
 vi.mock('../../src/api/websocket', () => ({
   connect: vi.fn(),
@@ -18,21 +21,42 @@ vi.mock('../../src/api/websocket', () => ({
   setPreReconnectHook: vi.fn(),
 }));
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
 });
 
-/** Full set of MSW handlers for one trip's loadTrip fan-out. */
-function tripHandlers(
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+/** Seed trip (+optional days) into the local `panelmint` db — tripsApi/daysApi read it, not HTTP. */
+async function seedLocalTrip(id: number, days: import('../../src/types').Day[] = []) {
+  await db.trips.put(buildTrip({ id }));
+  // assignmentWire joins place_id against the places table — seed the embedded
+  // places or the day's assignments are filtered out of the wire projection.
+  const places = days.flatMap((d) => (d.assignments ?? []).map((a) => a.place).filter((p) => p != null));
+  if (places.length) await db.places.bulkPut(places as never[]);
+  await db.days.bulkPut(days.map((d) => ({ ...d, trip_id: id, vias: [] })) as DayRow[]);
+}
+
+/**
+ * Full set of MSW handlers for one trip's loadTrip fan-out — trips/days are
+ * local now, so the trip row is seeded into `panelmint` and only the still-HTTP
+ * resources keep handlers.
+ */
+async function tripHandlers(
   id: number,
   data: {
     budget?: unknown[]; reservations?: unknown[]; files?: unknown[];
     tags?: unknown[]; categories?: unknown[];
   },
 ) {
+  await seedLocalTrip(id);
   return [
-    http.get(`/api/trips/${id}`, () => HttpResponse.json({ trip: buildTrip({ id }) })),
-    http.get(`/api/trips/${id}/days`, () => HttpResponse.json({ days: [] })),
     http.get(`/api/trips/${id}/places`, () => HttpResponse.json({ places: [] })),
     http.get(`/api/trips/${id}/packing`, () => HttpResponse.json({ items: [] })),
     http.get(`/api/trips/${id}/todo`, () => HttpResponse.json({ items: [] })),
@@ -47,16 +71,12 @@ function tripHandlers(
 describe('tripStore', () => {
   describe('loadTrip', () => {
     it('FE-TRIP-001: fires parallel API calls for trips, days, places, packing, todo, tags, categories', async () => {
+      await seedLocalTrip(1);
       const calledUrls: string[] = [];
+      // trips/days are local adapter calls; the rest are still HTTP fan-out.
+      const tripsGet = vi.spyOn(tripsApi, 'get');
+      const daysList = vi.spyOn(daysApi, 'list');
       server.use(
-        http.get('/api/trips/:id', ({ params }) => {
-          calledUrls.push(`/api/trips/${params.id}`);
-          return HttpResponse.json({ trip: buildTrip({ id: Number(params.id) }) });
-        }),
-        http.get('/api/trips/:id/days', ({ params }) => {
-          calledUrls.push(`/api/trips/${params.id}/days`);
-          return HttpResponse.json({ days: [] });
-        }),
         http.get('/api/trips/:id/places', ({ params }) => {
           calledUrls.push(`/api/trips/${params.id}/places`);
           return HttpResponse.json({ places: [] });
@@ -81,8 +101,8 @@ describe('tripStore', () => {
 
       await useTripStore.getState().loadTrip(1);
 
-      expect(calledUrls).toContain('/api/trips/1');
-      expect(calledUrls).toContain('/api/trips/1/days');
+      expect(tripsGet).toHaveBeenCalledWith(1);
+      expect(daysList).toHaveBeenCalledWith(1);
       expect(calledUrls).toContain('/api/trips/1/places');
       expect(calledUrls).toContain('/api/trips/1/packing');
       expect(calledUrls).toContain('/api/trips/1/todo');
@@ -98,9 +118,10 @@ describe('tripStore', () => {
       const tag = buildTag();
       const category = buildCategory();
 
+      // Seed the exact row the assertion compares against (buildTrip mints a
+      // fresh title per call).
+      await db.trips.put(trip);
       server.use(
-        http.get('/api/trips/1', () => HttpResponse.json({ trip })),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [place] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [packingItem] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [todoItem] })),
@@ -111,7 +132,8 @@ describe('tripStore', () => {
       await useTripStore.getState().loadTrip(1);
       const state = useTripStore.getState();
 
-      expect(state.trip).toEqual(trip);
+      // The wire trip carries extra server-normalised fields (feed_token: null, …)
+      expect(state.trip).toMatchObject(trip);
       expect(state.places).toEqual([place]);
       expect(state.packingItems).toEqual([packingItem]);
       expect(state.todoItems).toEqual([todoItem]);
@@ -123,9 +145,8 @@ describe('tripStore', () => {
       const assignment = buildAssignment({ day_id: 10, order_index: 0 });
       const day = buildDay({ id: 10, assignments: [assignment], notes_items: [] });
 
+      await seedLocalTrip(1, [day]);
       server.use(
-        http.get('/api/trips/1', () => HttpResponse.json({ trip: buildTrip({ id: 1 }) })),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [day] })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
@@ -136,17 +157,23 @@ describe('tripStore', () => {
       await useTripStore.getState().loadTrip(1);
       const { assignments } = useTripStore.getState();
 
-      expect(assignments['10']).toBeDefined();
-      expect(assignments['10']).toEqual([assignment]);
+      expect(assignments['10']).toHaveLength(1);
+      // The wire assignment carries server-joined fields (place, participants)
+      // beyond the seeded row — match on the columns the test set.
+      expect(assignments['10'][0]).toMatchObject({
+        id: assignment.id,
+        day_id: 10,
+        place_id: assignment.place_id,
+        order_index: 0,
+      });
     });
 
     it('FE-TRIP-004: loadTrip extracts dayNotes map from days response', async () => {
       const note = buildDayNote({ day_id: 10 });
       const day = buildDay({ id: 10, assignments: [], notes_items: [note] });
 
+      await seedLocalTrip(1, [day]);
       server.use(
-        http.get('/api/trips/1', () => HttpResponse.json({ trip: buildTrip({ id: 1 }) })),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [day] })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
@@ -163,13 +190,13 @@ describe('tripStore', () => {
 
     it('FE-TRIP-005: loadTrip sets isLoading true during, false after', async () => {
       let wasLoadingDuringFetch = false;
+      await seedLocalTrip(1);
+      vi.spyOn(tripsApi, 'get').mockImplementation(async () => {
+        wasLoadingDuringFetch = useTripStore.getState().isLoading;
+        return { trip: buildTrip({ id: 1 }) };
+      });
 
       server.use(
-        http.get('/api/trips/1', () => {
-          wasLoadingDuringFetch = useTripStore.getState().isLoading;
-          return HttpResponse.json({ trip: buildTrip({ id: 1 }) });
-        }),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
@@ -185,9 +212,8 @@ describe('tripStore', () => {
     });
 
     it('FE-TRIP-006: loadTrip on API failure sets error and isLoading: false', async () => {
+      // Trip 1 is absent from the local db → tripsApi.get throws its 404.
       server.use(
-        http.get('/api/trips/1', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
@@ -206,7 +232,7 @@ describe('tripStore', () => {
       const budgetItem = buildBudgetItem({ trip_id: 1 });
       const reservation = buildReservation({ trip_id: 1 });
       const file = buildTripFile({ trip_id: 1 });
-      server.use(...tripHandlers(1, { budget: [budgetItem], reservations: [reservation], files: [file] }));
+      server.use(...(await tripHandlers(1, { budget: [budgetItem], reservations: [reservation], files: [file] })));
 
       await useTripStore.getState().loadTrip(1);
       const state = useTripStore.getState();
@@ -218,15 +244,15 @@ describe('tripStore', () => {
 
     it('FE-TRIP-H4: switching trips does not leak budget/reservations/files from the previous trip', async () => {
       // Trip 1 has budget/reservations/files; trip 2 has none.
-      server.use(...tripHandlers(1, {
+      server.use(...(await tripHandlers(1, {
         budget: [buildBudgetItem({ trip_id: 1 })],
         reservations: [buildReservation({ trip_id: 1 })],
         files: [buildTripFile({ trip_id: 1 })],
-      }));
+      })));
       await useTripStore.getState().loadTrip(1);
       expect(useTripStore.getState().budgetItems).toHaveLength(1);
 
-      server.use(...tripHandlers(2, {}));
+      server.use(...(await tripHandlers(2, {})));
       await useTripStore.getState().loadTrip(2);
       const state = useTripStore.getState();
 
@@ -237,12 +263,12 @@ describe('tripStore', () => {
     });
 
     it('FE-TRIP-H4b: resetTrip clears every trip-scoped slice but keeps tags/categories', async () => {
-      server.use(...tripHandlers(1, {
+      server.use(...(await tripHandlers(1, {
         budget: [buildBudgetItem({ trip_id: 1 })],
         reservations: [buildReservation({ trip_id: 1 })],
         files: [buildTripFile({ trip_id: 1 })],
         tags: [buildTag()],
-      }));
+      })));
       await useTripStore.getState().loadTrip(1);
       expect(useTripStore.getState().budgetItems).toHaveLength(1);
 
@@ -262,8 +288,6 @@ describe('tripStore', () => {
 
   describe('hydrateActiveTrip', () => {
     const loadHandlers = (places: unknown[] = [], budget: unknown[] = []) => [
-      http.get('/api/trips/1', () => HttpResponse.json({ trip: buildTrip({ id: 1 }) })),
-      http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
       http.get('/api/trips/1/places', () => HttpResponse.json({ places })),
       http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
@@ -275,6 +299,7 @@ describe('tripStore', () => {
     ];
 
     it('FE-TRIP-H1: silently refreshes resources without resetting or splashing', async () => {
+      await seedLocalTrip(1);
       server.use(...loadHandlers());
       await useTripStore.getState().loadTrip(1);
       expect(useTripStore.getState().trip!.id).toBe(1);
@@ -299,42 +324,37 @@ describe('tripStore', () => {
       const assignment = buildAssignment({ day_id: 20, order_index: 0 });
       const note = buildDayNote({ day_id: 20 });
       const day = buildDay({ id: 20, assignments: [assignment], notes_items: [note] });
-
-      server.use(
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [day] })),
-      );
+      await seedLocalTrip(1, [day]);
 
       await useTripStore.getState().refreshDays(1);
       const state = useTripStore.getState();
 
       expect(state.days).toHaveLength(1);
-      expect(state.assignments['20']).toEqual([assignment]);
+      expect(state.assignments['20']).toHaveLength(1);
+      expect(state.assignments['20'][0]).toMatchObject({
+        id: assignment.id,
+        day_id: 20,
+        place_id: assignment.place_id,
+      });
       expect(state.dayNotes['20']).toEqual([note]);
     });
   });
 
   describe('updateTrip', () => {
     it('FE-TRIP-008: updateTrip persists and refreshes trip + days', async () => {
-      const updatedTrip = buildTrip({ id: 1, title: 'Updated Trip' });
-
-      server.use(
-        http.put('/api/trips/1', () => HttpResponse.json({ trip: updatedTrip })),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
-      );
+      await seedLocalTrip(1);
 
       const result = await useTripStore.getState().updateTrip(1, { title: 'Updated Trip' });
 
-      expect(result).toEqual(updatedTrip);
-      expect(useTripStore.getState().trip).toEqual(updatedTrip);
+      expect(result).toMatchObject({ id: 1, title: 'Updated Trip' });
+      expect(useTripStore.getState().trip).toMatchObject({ id: 1, title: 'Updated Trip' });
     });
 
     it('FE-TRIP-011: updateTrip reloads reservations (re-anchored server-side on date changes, #1288)', async () => {
-      const updatedTrip = buildTrip({ id: 1, start_date: '2025-05-31', end_date: '2025-06-05' });
+      await seedLocalTrip(1);
       const reservation = buildReservation({ id: 7, trip_id: 1, day_id: 21 });
 
       server.use(
-        http.put('/api/trips/1', () => HttpResponse.json({ trip: updatedTrip })),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
         http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [reservation] })),
       );
 

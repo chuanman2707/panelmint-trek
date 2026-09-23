@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { localIsoDate } from '../utils/localDate';
 import { render, screen, waitFor, within } from '../../tests/helpers/render';
@@ -5,20 +6,40 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildAdmin, buildTrip, buildSettings } from '../../tests/helpers/factories';
+import { buildUser, buildTrip, buildPlace, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { usePermissionsStore } from '../store/permissionsStore';
 import { useSettingsStore } from '../store/settingsStore';
 import DashboardPage from './DashboardPage';
+import { db, type LocalTripMember } from '../db/panelmintDb';
+import { tripsApi } from '../api/client';
+import { LocalApiError } from '../api/local/helpers';
+import type { Trip } from '../types';
 
-beforeEach(() => {
+const PARIS = buildTrip({ id: 101, title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });
+const TOKYO = buildTrip({ id: 102, title: 'Tokyo Trip', start_date: '2026-09-01', end_date: '2026-09-15' });
+
+/** tripsApi is the local adapter now — the dashboard reads the panelmint Dexie
+ *  db, not GET /api/trips, so list fixtures are seeded as rows. Replaces the
+ *  whole trip table so tests start from a known set. */
+async function seedTrips(trips: Trip[]) {
+  await db.trips.clear();
+  if (trips.length > 0) await db.trips.bulkPut(trips);
+}
+
+beforeEach(async () => {
   vi.clearAllMocks();
   // Pin "now" to a date inside the fixtures' trip window (Paris Adventure runs
   // 2026-07-01..07-10) so the dashboard's past/upcoming/spotlight split is stable
   // regardless of the wall clock — otherwise these tests break once the date
   // rolls past the hardcoded fixture window. shouldAdvanceTime keeps userEvent
-  // and async waitFor working under fake timers.
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  // and async waitFor working under fake timers. setImmediate stays real —
+  // fake-indexeddb delivers IDB results through it, and faking it kills Dexie
+  // transactions with TransactionInactiveError.
+  vi.useFakeTimers({
+    shouldAdvanceTime: true,
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+  });
   vi.setSystemTime(new Date('2026-07-05T12:00:00Z'));
   resetAllStores();
   // Seed auth with authenticated user
@@ -27,6 +48,13 @@ beforeEach(() => {
   seedStore(usePermissionsStore, {
     level: 'owner',
   } as any);
+  // Clear the panelmint db, seed the self profile and the default trip list
+  // (Paris running, Tokyo upcoming) that the old msw handler minted.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await seedTrips([PARIS, TOKYO]);
   // Intercept CurrencyWidget's external fetch so it resolves before teardown
   server.use(
     http.get('https://api.frankfurter.dev/v2/rates', () => {
@@ -39,6 +67,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
@@ -57,7 +86,7 @@ describe('DashboardPage', () => {
   });
 
   describe('FE-PAGE-DASH-002: Trip list loads on mount', () => {
-    it('fetches trips via GET /api/trips on mount', async () => {
+    it('loads seeded trips from the local db on mount', async () => {
       render(<DashboardPage />);
 
       // After data loads, trip cards should appear
@@ -81,12 +110,8 @@ describe('DashboardPage', () => {
   });
 
   describe('FE-PAGE-DASH-004: Empty state when no trips', () => {
-    it('shows the add-trip card when API returns no trips', async () => {
-      server.use(
-        http.get('/api/trips', () => {
-          return HttpResponse.json({ trips: [] });
-        }),
-      );
+    it('shows the add-trip card when there are no trips', async () => {
+      await seedTrips([]);
 
       render(<DashboardPage />);
 
@@ -117,13 +142,9 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-006: Loading state while fetching trips', () => {
     it('shows loading skeletons while trips are being fetched', async () => {
-      // Delay response to observe loading state
-      server.use(
-        http.get('/api/trips', async () => {
-          await new Promise(resolve => setTimeout(resolve, 50));
-          return HttpResponse.json({ trips: [] });
-        }),
-      );
+      // The local adapter resolves immediately — an empty db exercises the
+      // settled-loading branch the same way a delayed empty response did.
+      await seedTrips([]);
 
       render(<DashboardPage />);
 
@@ -225,11 +246,7 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-011: Archive trip moves it to the archive filter', () => {
     it('archiving a trip removes it from active and shows it under the archive filter', async () => {
-      const archivedTrip = buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10', is_archived: 1 });
-      server.use(
-        http.put('/api/trips/:id', () => HttpResponse.json({ trip: archivedTrip })),
-      );
-
+      // tripsApi.archive writes is_archived straight into Dexie now.
       const user = userEvent.setup();
       render(<DashboardPage />);
 
@@ -290,15 +307,7 @@ describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-014: Archive filter reveals archived trips', () => {
     it('shows archived trips when the archive filter is selected', async () => {
       const oldTrip = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) {
-            return HttpResponse.json({ trips: [oldTrip] });
-          }
-          return HttpResponse.json({ trips: [buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' })] });
-        }),
-      );
+      await seedTrips([PARIS, oldTrip]);
 
       const user = userEvent.setup();
       render(<DashboardPage />);
@@ -383,14 +392,7 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-018: Copy trip creates a new trip', () => {
     it('clicking copy on a trip card copies the trip', async () => {
-      server.use(
-        http.post('/api/trips/:id/copy', async () => {
-          const { buildTrip } = await import('../../tests/helpers/factories');
-          const trip = buildTrip({ title: 'Paris Adventure (Copy)', start_date: '2026-07-01', end_date: '2026-07-10' });
-          return HttpResponse.json({ trip });
-        }),
-      );
-
+      // Real local copy — the dialog submits title '<name> (Copy)'.
       const user = userEvent.setup();
       render(<DashboardPage />);
 
@@ -407,7 +409,9 @@ describe('DashboardPage', () => {
       await user.click(confirmButton);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Paris Adventure (Copy)')[0]).toBeInTheDocument();
+        // dashboard.copySuffix is lowercase — the local adapter copies the
+        // submitted title verbatim rather than a stub's '(Copy)'.
+        expect(screen.getAllByText('Paris Adventure (copy)')[0]).toBeInTheDocument();
       });
     });
   });
@@ -429,26 +433,8 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-020: Archived section - restore trip', () => {
     it('clicking restore in archived section moves trip back to active list', async () => {
-      const activeTrip = buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });
       const archivedTrip = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
-      const restoredTrip = { ...archivedTrip, is_archived: 0 };
-
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) {
-            return HttpResponse.json({ trips: [archivedTrip] });
-          }
-          return HttpResponse.json({ trips: [activeTrip] });
-        }),
-        http.put('/api/trips/:id', async ({ request }) => {
-          const body = await request.json() as Record<string, unknown>;
-          if (body.is_archived === false) {
-            return HttpResponse.json({ trip: restoredTrip });
-          }
-          return HttpResponse.json({ trip: archivedTrip });
-        }),
-      );
+      await seedTrips([PARIS, archivedTrip]);
 
       const user = userEvent.setup();
       render(<DashboardPage />);
@@ -477,13 +463,7 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-021: Create trip via form submission', () => {
     it('submitting the create form adds the trip to the list', async () => {
-      const newTrip = buildTrip({ title: 'New Trip Test', start_date: '2027-01-01', end_date: '2027-01-05' });
-      server.use(
-        http.post('/api/trips', async () => {
-          return HttpResponse.json({ trip: newTrip });
-        }),
-      );
-
+      // Real local create — the row lands in Dexie and the card renders.
       const user = userEvent.setup();
       render(<DashboardPage />);
 
@@ -515,11 +495,9 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-022: Error state on load failure', () => {
     it('shows error toast when trips API fails', async () => {
-      server.use(
-        http.get('/api/trips', () => {
-          return HttpResponse.json({ error: 'Server error' }, { status: 500 });
-        }),
-      );
+      // tripsApi is local — a thrown LocalApiError walks the same error path a
+      // 500 response did (rethrown through onlineThenCache, not a cache hit).
+      vi.spyOn(tripsApi, 'list').mockRejectedValue(new LocalApiError(500, 'Server error'));
 
       render(<DashboardPage />);
 
@@ -544,18 +522,8 @@ describe('DashboardPage', () => {
         title: 'Current Voyage',
         start_date: yesterday,
         end_date: nextWeek,
-        day_count: 9,
-        place_count: 3,
-        shared_count: 1,
       });
-
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
-          return HttpResponse.json({ trips: [ongoingTrip] });
-        }),
-      );
+      await seedTrips([ongoingTrip]);
 
       render(<DashboardPage />);
 
@@ -582,17 +550,8 @@ describe('DashboardPage', () => {
         title: 'Upcoming Safari',
         start_date: inFiveDays,
         end_date: inTenDays,
-        place_count: 2,
-        shared_count: 0,
       });
-
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
-          return HttpResponse.json({ trips: [upcomingTrip] });
-        }),
-      );
+      await seedTrips([upcomingTrip]);
 
       render(<DashboardPage />);
 
@@ -641,16 +600,7 @@ describe('DashboardPage', () => {
     it('shows archived trips under the archive filter and hides them under planned', async () => {
       const activeTrip = buildTrip({ title: 'Active Trip', start_date: '2026-08-01', end_date: '2026-08-10' });
       const archivedTrip = buildTrip({ title: 'Old Archived Trip', start_date: '2024-03-01', end_date: '2024-03-07', is_archived: 1 });
-
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) {
-            return HttpResponse.json({ trips: [archivedTrip] });
-          }
-          return HttpResponse.json({ trips: [activeTrip] });
-        }),
-      );
+      await seedTrips([activeTrip, archivedTrip]);
 
       const user = userEvent.setup();
       render(<DashboardPage />);
@@ -677,24 +627,7 @@ describe('DashboardPage', () => {
     it('clicking restore on an archived trip removes it from archived section', async () => {
       const activeTrip = buildTrip({ title: 'My Active Trip', start_date: '2026-08-01', end_date: '2026-08-10' });
       const archivedTrip = buildTrip({ title: 'Restored Trip', start_date: '2024-06-01', end_date: '2024-06-07', is_archived: 1 });
-      const restoredTrip = { ...archivedTrip, is_archived: 0 };
-
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) {
-            return HttpResponse.json({ trips: [archivedTrip] });
-          }
-          return HttpResponse.json({ trips: [activeTrip] });
-        }),
-        http.put('/api/trips/:id', async ({ request }) => {
-          const body = await request.json() as Record<string, unknown>;
-          if (body.is_archived === false) {
-            return HttpResponse.json({ trip: restoredTrip });
-          }
-          return HttpResponse.json({ trip: archivedTrip });
-        }),
-      );
+      await seedTrips([activeTrip, archivedTrip]);
 
       const user = userEvent.setup();
       render(<DashboardPage />);
@@ -722,13 +655,6 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-029: Copy trip action creates a duplicate', () => {
     it('clicking copy on a spotlight card duplicates the trip', async () => {
-      server.use(
-        http.post('/api/trips/:id/copy', async () => {
-          const trip = buildTrip({ title: 'Paris Adventure (Copy)', start_date: '2026-07-01', end_date: '2026-07-10' });
-          return HttpResponse.json({ trip });
-        }),
-      );
-
       const user = userEvent.setup();
       render(<DashboardPage />);
 
@@ -746,18 +672,14 @@ describe('DashboardPage', () => {
       await user.click(confirmButton);
 
       await waitFor(() => {
-        expect(screen.getAllByText('Paris Adventure (Copy)').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Paris Adventure (copy)').length).toBeGreaterThan(0);
       });
     });
   });
 
   describe('FE-PAGE-DASH-030: Empty state renders create button', () => {
     it('shows empty state with create button when no trips exist', async () => {
-      server.use(
-        http.get('/api/trips', () => {
-          return HttpResponse.json({ trips: [] });
-        }),
-      );
+      await seedTrips([]);
 
       render(<DashboardPage />);
 
@@ -781,17 +703,21 @@ describe('DashboardPage', () => {
         title: 'Live Adventure',
         start_date: yesterday,
         end_date: inFiveDays,
-        place_count: 5,
-        shared_count: 2,
       });
-
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
-          return HttpResponse.json({ trips: [ongoingTrip] });
-        }),
+      await seedTrips([ongoingTrip]);
+      // tripSelect recomputes place_count/shared_count from rows — the old
+      // fixture fields are ignored, so seed 5 places and 2 member rows.
+      await db.places.bulkPut(
+        Array.from({ length: 5 }, (_, i) => buildPlace({ id: 200 + i, trip_id: ongoingTrip.id })),
       );
+      await db.localUsers.bulkPut([
+        { id: 91, name: 'Bud One', is_self: 0 },
+        { id: 92, name: 'Bud Two', is_self: 0 },
+      ]);
+      await db.tripMembers.bulkPut([
+        { tripId: ongoingTrip.id, id: 91, username: 'Bud One', role: 'member', added_at: '2026-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true },
+        { tripId: ongoingTrip.id, id: 92, username: 'Bud Two', role: 'member', added_at: '2026-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true },
+      ] as LocalTripMember[]);
 
       render(<DashboardPage />);
 
@@ -946,19 +872,12 @@ describe('DashboardPage', () => {
   });
 
   describe('FE-PAGE-DASH-035: A trip the hero fell back to still appears in the grid (#1706)', () => {
-    const onlyTrips = (trips: unknown[]) =>
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
-          return HttpResponse.json({ trips });
-        }),
-      );
+    const onlyTrips = (trips: Trip[]) => seedTrips(trips);
     // The grid, not the hero — the hero renders the same title and would mask the bug.
     const grid = () => document.querySelector('.trips') as HTMLElement;
 
     it('lists a finished trip under Completed when it is the only one', async () => {
-      onlyTrips([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
+      await onlyTrips([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
       const user = userEvent.setup();
       render(<DashboardPage />);
 
@@ -968,7 +887,7 @@ describe('DashboardPage', () => {
     });
 
     it('lists a dateless trip under Planned when it is the only one', async () => {
-      onlyTrips([buildTrip({ title: 'Someday Iceland', start_date: null, end_date: null })]);
+      await onlyTrips([buildTrip({ title: 'Someday Iceland', start_date: null, end_date: null })]);
       render(<DashboardPage />);
 
       await waitFor(() => expect(within(grid()).getByText('Someday Iceland')).toBeInTheDocument());
@@ -976,7 +895,7 @@ describe('DashboardPage', () => {
     });
 
     it('does not claim "No trips yet" when the only trip is simply finished', async () => {
-      onlyTrips([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
+      await onlyTrips([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
       render(<DashboardPage />);
 
       await waitFor(() => expect(screen.getAllByText('Lisbon 2025').length).toBeGreaterThan(0));
@@ -984,15 +903,15 @@ describe('DashboardPage', () => {
     });
 
     it('still says "No trips yet" for an account with no trips at all', async () => {
-      onlyTrips([]);
+      await onlyTrips([]);
       render(<DashboardPage />);
 
       await waitFor(() => expect(screen.getByText('No trips yet')).toBeInTheDocument());
     });
 
     it('still keeps a running trip out of the grid, so the hero does not double up', async () => {
-      onlyTrips([
-        buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' }),
+      await onlyTrips([
+        PARIS,
         buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' }),
       ]);
       render(<DashboardPage />);
@@ -1006,17 +925,10 @@ describe('DashboardPage', () => {
   // rename a trip. The controls sat at opacity 0 until the card was hovered, and
   // the archive button carried the same icon whether it would archive or restore.
   describe('FE-PAGE-DASH-036: the cover controls are findable', () => {
-    const activeOnly = (trips: unknown[]) =>
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
-          return HttpResponse.json({ trips });
-        }),
-      );
+    const activeOnly = (trips: Trip[]) => seedTrips(trips);
 
     it('names every action on the card, so none of them is icon-only guesswork', async () => {
-      activeOnly([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
+      await activeOnly([buildTrip({ title: 'Lisbon 2025', start_date: '2025-05-01', end_date: '2025-05-08' })]);
       const user = userEvent.setup();
       render(<DashboardPage />);
 
@@ -1035,12 +947,7 @@ describe('DashboardPage', () => {
 
     it('swaps the archive icon for a restore one once the trip is archived', async () => {
       const archived = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
-      server.use(
-        http.get('/api/trips', ({ request }) => {
-          const url = new URL(request.url);
-          return HttpResponse.json({ trips: url.searchParams.get('archived') ? [archived] : [] });
-        }),
-      );
+      await seedTrips([archived]);
       const user = userEvent.setup();
       render(<DashboardPage />);
 

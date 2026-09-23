@@ -7,6 +7,7 @@
 // `.response.data.error` — so an error thrown here is indistinguishable
 // downstream from an HTTP error the server used to produce.
 import type { Table } from 'dexie'
+import type { z, ZodType } from 'zod'
 
 /** UTC now as an ISO string — what every server-side `created_at` used. */
 export function nowIso(): string {
@@ -94,4 +95,22 @@ export function detachedList<T>(rows: readonly T[]): T[] {
  */
 export function numId(id: number | string): number {
   return typeof id === 'string' ? Number(id) : id
+}
+
+/**
+ * The server's `ZodValidationPipe` (nest/common/zod-validation.pipe.ts) for a
+ * request body: run the shared contract schema, and on failure format the same
+ * `'path: message; path: message'` error the pipe raised (root issues labeled
+ * `body`, `Validation failed` when no issues were produced). Adapters validate
+ * through the same zod schemas so error strings stay single-sourced.
+ */
+export function parseBody<S extends ZodType>(schema: S, data: unknown): z.infer<S> {
+  const result = schema.safeParse(data)
+  if (!result.success) {
+    const message = result.error.issues
+      .map((i) => `${i.path.map(String).join('.') || 'body'}: ${i.message}`)
+      .join('; ')
+    throw badRequest(message || 'Validation failed')
+  }
+  return result.data
 }

@@ -1,11 +1,12 @@
 // FE-REPO-DAY-001 to FE-REPO-DAY-004
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import 'fake-indexeddb/auto'
-import { http, HttpResponse } from 'msw'
-import { server } from '../../tests/helpers/msw/server'
 import { dayRepo } from './dayRepo'
+import { daysApi } from '../api/client'
+import { LocalApiError } from '../api/local/helpers'
 import { offlineDb, clearAll } from '../db/offlineDb'
-import { buildDay } from '../../tests/helpers/factories'
+import { db } from '../db/panelmintDb'
+import { buildDay, buildTrip } from '../../tests/helpers/factories'
 
 function setOnline(v: boolean): void {
   Object.defineProperty(navigator, 'onLine', { value: v, writable: true, configurable: true })
@@ -13,6 +14,10 @@ function setOnline(v: boolean): void {
 
 beforeEach(async () => {
   await clearAll()
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
   setOnline(true)
 })
 
@@ -21,9 +26,10 @@ afterEach(() => {
 })
 
 describe('dayRepo.list', () => {
-  it('FE-REPO-DAY-001: online — returns REST days and caches them', async () => {
-    const days = [buildDay({ id: 11, trip_id: 5 }), buildDay({ id: 12, trip_id: 5 })]
-    server.use(http.get('/api/trips/5/days', () => HttpResponse.json({ days })))
+  it('FE-REPO-DAY-001: online — returns the local days and caches them', async () => {
+    // daysApi is the local adapter: the "online" read is the panelmint db.
+    await db.trips.put(buildTrip({ id: 5 }))
+    await db.days.bulkPut([buildDay({ id: 11, trip_id: 5 }), buildDay({ id: 12, trip_id: 5 })])
 
     const result = await dayRepo.list(5)
     expect(result.days.map(d => d.id)).toEqual([11, 12])
@@ -52,7 +58,7 @@ describe('dayRepo.list', () => {
 
   it('FE-REPO-DAY-004: a 500 is rethrown, not masked by the cache', async () => {
     await offlineDb.days.put(buildDay({ id: 31, trip_id: 5 }))
-    server.use(http.get('/api/trips/5/days', () => HttpResponse.json({ error: 'nope' }, { status: 500 })))
+    vi.spyOn(daysApi, 'list').mockRejectedValue(new LocalApiError(500, 'nope'))
 
     await expect(dayRepo.list(5)).rejects.toThrow()
   })

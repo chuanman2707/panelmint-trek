@@ -1,4 +1,5 @@
 // FE-COMP-COLIMPORT-001 to FE-COMP-COLIMPORT-007
+import 'fake-indexeddb/auto';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, within } from '../../../tests/helpers/render';
@@ -7,12 +8,14 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useTranslation } from '../../i18n/TranslationContext';
 import ImportFromTripModal from './ImportFromTripModal';
+import { db } from '../../db/panelmintDb';
+import { buildTrip, buildPlace } from '../../../tests/helpers/factories';
 
 const BASE = '/api/addons/collections';
 
 const TRIPS = [
-  { id: 7, user_id: 1, title: 'Rome 2026', currency: 'EUR', is_archived: 0, reminder_days: 3, start_date: '2026-05-01', end_date: '2026-05-08', place_count: 3, cover_image: null },
-  { id: 9, user_id: 1, title: 'Lisbon', currency: 'EUR', is_archived: 0, reminder_days: 3, place_count: 0, cover_image: null },
+  buildTrip({ id: 7, user_id: 1, title: 'Rome 2026', start_date: '2026-05-01', end_date: '2026-05-08' }),
+  buildTrip({ id: 9, user_id: 1, title: 'Lisbon', start_date: null, end_date: null }),
 ];
 
 const place = (over: Record<string, unknown>) => ({
@@ -42,9 +45,12 @@ function Harness(props: { onImported?: () => void; onClose?: () => void }): Reac
   );
 }
 
-function useHandlers(importable = IMPORTABLE, onPost?: (body: unknown) => void) {
+async function useHandlers(importable = IMPORTABLE, onPost?: (body: unknown) => void) {
+  // tripsApi.list is local: seed trips + the three places that make Rome's
+  // derived place_count badge read 3.
+  await db.trips.bulkPut(TRIPS);
+  await db.places.bulkPut([11, 12, 13].map((id) => buildPlace({ id, trip_id: 7 })));
   server.use(
-    http.get('/api/trips', () => HttpResponse.json({ trips: TRIPS })),
     http.get(`${BASE}/4/importable/7`, () => HttpResponse.json({ places: importable })),
     http.post(`${BASE}/places/from-trip-many`, async ({ request }) => {
       onPost?.(await request.json());
@@ -60,7 +66,13 @@ async function openTrip(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('ImportFromTripModal', () => {
-  beforeEach(() => useHandlers());
+  beforeEach(async () => {
+    await db.transaction('rw', db.tables, async () => {
+      for (const t of db.tables) await t.clear();
+    });
+    await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+    await useHandlers();
+  });
 
   it('FE-COMP-COLIMPORT-001: lists the trips with their place count and a localized date range', async () => {
     render(<Harness />);
@@ -110,7 +122,7 @@ describe('ImportFromTripModal', () => {
   it('FE-COMP-COLIMPORT-005: only the selected ids are sent, and the result is reported', async () => {
     const onPost = vi.fn();
     const onImported = vi.fn();
-    useHandlers(IMPORTABLE, onPost);
+    await useHandlers(IMPORTABLE, onPost);
     const user = userEvent.setup();
     render(<Harness onImported={onImported} />);
     await openTrip(user);
@@ -140,7 +152,7 @@ describe('ImportFromTripModal', () => {
   });
 
   it('FE-COMP-COLIMPORT-007: a trip whose places are all saved says so instead of offering an empty list', async () => {
-    useHandlers([place({ place_id: 13, name: 'Pantheon', already_in_list: true })]);
+    await useHandlers([place({ place_id: 13, name: 'Pantheon', already_in_list: true })]);
     const user = userEvent.setup();
     render(<Harness />);
     await waitFor(() => expect(screen.getByText('Rome 2026')).toBeInTheDocument());

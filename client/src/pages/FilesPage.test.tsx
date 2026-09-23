@@ -1,14 +1,15 @@
+import 'fake-indexeddb/auto';
 import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '../../tests/helpers/render';
 import { Route, Routes } from 'react-router';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser, buildTrip, buildTripFile } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useTripStore } from '../store/tripStore';
 import FilesPage from './FilesPage';
+import { db } from '../db/panelmintDb';
+import { tripsApi } from '../api/client';
 
 vi.mock('../components/Files/FileManager', () => ({
   default: ({ files }: { files: unknown[]; onUpload: unknown; onDelete: unknown }) =>
@@ -29,9 +30,15 @@ function renderFilesPage(tripId: number | string = 1) {
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
   resetAllStores();
+  // tripRepo.get → tripsApi.get is local — the trip lives in panelmint db.trips.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await db.trips.put(buildTrip({ id: 1, user_id: 1 }));
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
   seedStore(useTripStore, {
     files: [],
@@ -41,16 +48,19 @@ beforeEach(() => {
   } as any);
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('FilesPage', () => {
   describe('FE-PAGE-FILES-001: Loading spinner shown while data fetches', () => {
     it('shows a spinner while data is loading', async () => {
-      server.use(
-        http.get('/api/trips/:id', async () => {
-          await new Promise(resolve => setTimeout(resolve, 200));
-          const trip = buildTrip({ id: 1 });
-          return HttpResponse.json({ trip });
-        }),
-      );
+      // Hold the local get open so the spinner frame is observable.
+      const real = tripsApi.get.bind(tripsApi);
+      vi.spyOn(tripsApi, 'get').mockImplementation(async (id) => {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return real(id);
+      });
 
       renderFilesPage(1);
 
@@ -60,10 +70,7 @@ describe('FilesPage', () => {
 
   describe('FE-PAGE-FILES-002: Trip name displayed in Navbar after load', () => {
     it('passes the trip name to Navbar after data loads', async () => {
-      const trip = buildTrip({ id: 1, title: 'Rome Trip' });
-      server.use(
-        http.get('/api/trips/:id', () => HttpResponse.json({ trip })),
-      );
+      await db.trips.update(1, { title: 'Rome Trip' });
 
       renderFilesPage(1);
 
@@ -137,11 +144,9 @@ describe('FilesPage', () => {
 
   describe('FE-PAGE-FILES-007: Navigation to /dashboard on fetch error', () => {
     it('navigates to /dashboard when trip fetch fails', async () => {
-      server.use(
-        http.get('/api/trips/:id', () =>
-          HttpResponse.json({ error: 'Not found' }, { status: 404 }),
-        ),
-      );
+      // No such trip locally → tripsApi.get 404s (LocalApiError is not a
+      // network error, so the repo's Dexie fallback does not apply).
+      await db.trips.clear();
 
       render(
         <Routes>

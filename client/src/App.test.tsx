@@ -1,14 +1,17 @@
 import React from 'react'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../tests/helpers/msw/server'
+import 'fake-indexeddb/auto'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { resetAllStores } from '../tests/helpers/store'
 import { buildUser, buildSettings, buildTrip } from '../tests/helpers/factories'
 import { offlineDb } from './db/offlineDb'
+import { db } from './db/panelmintDb'
+import { tripsApi } from './api/client'
 import { SETTINGS_WAIT_MS } from './utils/startDestination'
 import App from './App'
 
@@ -63,10 +66,19 @@ function seedAuth(overrides: Record<string, unknown> = {}) {
   })
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores()
   vi.clearAllMocks()
   document.documentElement.classList.remove('dark')
+  // tripsApi.active() reads the panelmint database — start each test empty.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 // ── RootRedirect ───────────────────────────────────────────────────────────────
@@ -95,16 +107,16 @@ describe('RootRedirect', () => {
 // ── RootRedirect — startup destination ────────────────────────────────────────
 
 describe('RootRedirect — startup destination', () => {
-  /** Serves GET /api/trips/active and reports whether it was asked at all. */
-  function stubActiveTrip(trip: { id: number; title: string } | null) {
-    const calls: string[] = []
-    server.use(
-      http.get('/api/trips/active', ({ request }) => {
-        calls.push(request.url)
-        return HttpResponse.json({ trip })
-      }),
-    )
-    return calls
+  /** Seeds the trip the local active() lookup should pick, and returns the spy
+   *  on it so a test can still assert whether it was asked at all. A trip must
+   *  span today to outrank everything else under the server's ranking. */
+  async function stubActiveTrip(trip: { id: number; title: string } | null) {
+    const spy = vi.spyOn(tripsApi, 'active')
+    if (trip) {
+      const today = new Date().toISOString().slice(0, 10)
+      await db.trips.put(buildTrip({ id: trip.id, title: trip.title, start_date: today, end_date: today }))
+    }
+    return spy
   }
 
   it('FE-COMP-APP-026: opens the active trip on the chosen tab', async () => {
@@ -113,7 +125,7 @@ describe('RootRedirect — startup destination', () => {
       isLoaded: true,
       settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
     })
-    stubActiveTrip({ id: 42, title: 'Japan' })
+    await stubActiveTrip({ id: 42, title: 'Japan' })
 
     renderApp('/')
     await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
@@ -125,7 +137,7 @@ describe('RootRedirect — startup destination', () => {
       isLoaded: true,
       settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
     })
-    stubActiveTrip(null)
+    await stubActiveTrip(null)
 
     renderApp('/')
     await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
@@ -137,7 +149,9 @@ describe('RootRedirect — startup destination', () => {
       isLoaded: true,
       settings: buildSettings({ start_page: 'active_trip' }),
     })
-    server.use(http.get('/api/trips/active', () => HttpResponse.error()))
+    // tripsApi.active() throwing drops tripRepo onto the offlineDb fallback,
+    // which is empty here — same dashboard outcome as the 500 it replaces.
+    vi.spyOn(tripsApi, 'active').mockRejectedValue(new Error('lookup failed'))
 
     renderApp('/')
     await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
@@ -172,19 +186,22 @@ describe('RootRedirect — startup destination', () => {
   it('FE-COMP-APP-029: never asks for the active trip when starting on the dashboard', async () => {
     seedAuth({ isAuthenticated: true, user: buildUser() })
     useSettingsStore.setState({ isLoaded: true, settings: buildSettings({ start_page: 'dashboard' }) })
-    const calls = stubActiveTrip({ id: 42, title: 'Japan' })
+    const activeSpy = await stubActiveTrip({ id: 42, title: 'Japan' })
 
     renderApp('/')
     await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
-    expect(calls).toHaveLength(0)
+    expect(activeSpy).not.toHaveBeenCalled()
   })
 
   it('FE-COMP-APP-030: reads the preference from localStorage before settings have loaded', async () => {
     localStorage.setItem('trek_start_page', 'active_trip')
     localStorage.setItem('trek_start_trip_tab', 'finanzplan')
     seedAuth({ isAuthenticated: true, user: buildUser() })
-    useSettingsStore.setState({ isLoaded: false })
-    stubActiveTrip({ id: 42, title: 'Japan' })
+    // A never-resolving loadSettings keeps isLoaded false for the whole test —
+    // otherwise the settings response can beat the Dexie lookup and the rerun
+    // effect would pick the loaded start_page over the mirror it is testing.
+    useSettingsStore.setState({ isLoaded: false, loadSettings: vi.fn(() => new Promise<void>(() => {})) })
+    await stubActiveTrip({ id: 42, title: 'Japan' })
 
     renderApp('/')
     await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
@@ -608,7 +625,8 @@ describe('RootRedirect — preference not mirrored on this device', () => {
     seedAuth({ isAuthenticated: true, user: buildUser() })
     // Cold start: settings are still in flight when RootRedirect first runs.
     useSettingsStore.setState({ isLoaded: false })
-    server.use(http.get('/api/trips/active', () => HttpResponse.json({ trip: { id: 42, title: 'Japan' } })))
+    const today = new Date().toISOString().slice(0, 10)
+    await db.trips.put(buildTrip({ id: 42, title: 'Japan', start_date: today, end_date: today }))
 
     renderApp('/')
 

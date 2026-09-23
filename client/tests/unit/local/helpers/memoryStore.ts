@@ -603,6 +603,15 @@ export class MemoryStore
   }
 
   deleteStay(accommodationId: number, tripId: number): void {
+    // Same two legs as the seam: trg_release_stop_on_stay_delete hands the
+    // booking back to every referencing stop, reservations.accommodation_id
+    // SET NULLs.
+    for (const a of this.assignments) {
+      if (a.accommodation_id === accommodationId) a.accommodation_id = null;
+    }
+    for (const r of this.reservations) {
+      if (Number(r.accommodation_id) === accommodationId) r.accommodation_id = null;
+    }
     this.accommodations = this.accommodations.filter((a) => !(a.id === accommodationId && a.trip_id === tripId));
   }
 
@@ -612,15 +621,15 @@ export class MemoryStore
   ): void {
     const a = this.accommodations.find((x) => x.id === accommodationId);
     if (!a) return;
-    // COALESCE(?, col): only fill where the incoming value is non-null.
-    if (meta.check_in_time != null && a.check_in == null) a.check_in = meta.check_in_time;
-    if (meta.check_in_end_time != null && a.check_in_end == null) a.check_in_end = meta.check_in_end_time;
-    if (meta.check_out_time != null && a.check_out == null) a.check_out = meta.check_out_time;
+    // COALESCE(?, col): a non-null incoming value overwrites, null keeps.
+    if (meta.check_in_time != null) a.check_in = meta.check_in_time;
+    if (meta.check_in_end_time != null) a.check_in_end = meta.check_in_end_time;
+    if (meta.check_out_time != null) a.check_out = meta.check_out_time;
   }
 
   syncStayConfirmation(accommodationId: number, confirmation: string): void {
     const a = this.accommodations.find((x) => x.id === accommodationId);
-    if (a && a.confirmation == null) a.confirmation = confirmation;
+    if (a) a.confirmation = confirmation;
   }
 
   insertReservation(fields: Omit<MemReservation, 'id'>): number {
@@ -697,7 +706,7 @@ export class MemoryStore
     const r = this.reservations.find((x) => x.id === reservationId);
     if (!r) return;
     r.metadata = metadata;
-    if (confirmation != null && r.confirmation_number == null) r.confirmation_number = confirmation;
+    if (confirmation != null) r.confirmation_number = confirmation;
   }
 
   findLinkedBudgetItem(tripId: number, reservationId: number) {

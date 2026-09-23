@@ -4,27 +4,37 @@
  * Source fixtures: server/tests/unit/nest/trips.service.test.ts and
  * server/tests/integration/days*.test.ts pin the dateless keep/trim semantics,
  * positional row reuse, overflow deletion on shorten, and MAX_TRIP_DAYS.
- * The diff is pure here; applying it (two-phase renumbering against a real
- * unique constraint) is the Dexie adapter's job and stays in describe.todo.
+ * The diff is pure; the last describe applies it through tripsApi over the
+ * real Dexie database (fake-indexeddb) — the two-phase renumbering and the
+ * &[trip_id+day_number] unique index only exist there.
  */
+import 'fake-indexeddb/auto';
 import { MAX_TRIP_DAYS } from '@trek/shared';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   assertTripSpan,
   computeDayDiff,
   DayRangeError,
   planDayRegeneration,
 } from '../../../src/api/local/ported/generate-days';
-import type { Day } from '../../../src/types';
+import { tripsApi } from '../../../src/api/local/trips';
+import { db } from '../../../src/db/panelmintDb';
+import { buildDay, buildReservation, buildTrip } from '../../helpers/factories';
+import type { Day, LocalUser } from '../../../src/types';
 
 const day = (id: number, day_number: number, date: string | null = null, extra: Partial<Day> = {}): Day =>
   ({ id, trip_id: 1, day_number, date, ...extra }) as Day;
 
 describe('assertTripSpan', () => {
   it('refuses an inverted range', () => {
+    // The service's verbatim ValidationError text (trips.service.ts).
+    expect(() => assertTripSpan('2026-03-05', '2026-03-01')).toThrow('End date must be after start date');
     expect(() => assertTripSpan('2026-03-05', '2026-03-01')).toThrow(DayRangeError);
   });
   it(`refuses a span above ${MAX_TRIP_DAYS} days`, () => {
+    expect(() => assertTripSpan('2026-01-01', '2029-01-01')).toThrow(
+      `A trip can span at most ${MAX_TRIP_DAYS} days`,
+    );
     expect(() => assertTripSpan('2026-01-01', '2029-01-01')).toThrow(DayRangeError);
   });
   it('accepts a single-day trip and a null range', () => {
@@ -156,8 +166,92 @@ describe('planDayRegeneration — the update() follow-up dispatch', () => {
   });
 });
 
-describe.todo('generateDays against real Dexie persistence', () => {
-  // The two-phase negative renumbering that keeps (trip_id, day_number) unique
-  // mid-update, created-row id allocation, and the reservation/accommodation
-  // restamp follow-ups all need the real adapter over offlineDb.
+describe('generateDays against real Dexie persistence', () => {
+  const SELF: LocalUser = { id: 1, name: 'Me', is_self: 1 };
+  beforeEach(async () => {
+    await db.transaction('rw', db.tables, async () => {
+      for (const t of db.tables) await t.clear();
+    });
+    await db.localUsers.put(SELF);
+  });
+
+  it('create + update allocate day ids monotonically across trips', async () => {
+    const { trip: a } = await tripsApi.create({ title: 'A', start_date: '2026-03-01', end_date: '2026-03-02' });
+    const { trip: b } = await tripsApi.create({ title: 'B', start_date: '2026-05-01', end_date: '2026-05-03' });
+    const aIds = (await db.days.where('trip_id').equals(a.id).toArray()).map((d) => d.id);
+    const bIds = (await db.days.where('trip_id').equals(b.id).toArray()).map((d) => d.id);
+    // Table-wide allocator: trip B's rows never reuse trip A's ids.
+    expect(Math.min(...bIds)).toBeGreaterThan(Math.max(...aIds));
+    // Extending B adds a row past every id issued so far.
+    await tripsApi.update(b.id, { start_date: '2026-05-01', end_date: '2026-05-04' });
+    const grown = await db.days.where('trip_id').equals(b.id).sortBy('day_number');
+    expect(grown).toHaveLength(4);
+    expect(grown[3].date).toBe('2026-05-04');
+    expect(grown[3].id).toBeGreaterThan(Math.max(...bIds));
+  });
+
+  it('shortening a dated trip deletes the overflow rows — the unique index holds', async () => {
+    await db.trips.put(buildTrip({ id: 1, start_date: '2026-03-01', end_date: '2026-03-04' }));
+    await db.days.bulkPut([
+      buildDay({ id: 11, trip_id: 1, day_number: 1, date: '2026-03-01' }),
+      buildDay({ id: 12, trip_id: 1, day_number: 2, date: '2026-03-02' }),
+      buildDay({ id: 13, trip_id: 1, day_number: 3, date: '2026-03-03' }),
+      buildDay({ id: 14, trip_id: 1, day_number: 4, date: '2026-03-04' }),
+    ]);
+    await tripsApi.update(1, { start_date: '2026-03-01', end_date: '2026-03-02' });
+    const days = await db.days.where('trip_id').equals(1).sortBy('day_number');
+    expect(days.map((d) => [d.id, d.day_number, d.date])).toEqual([
+      [11, 1, '2026-03-01'],
+      [12, 2, '2026-03-02'],
+    ]);
+    // No transient negative day_number ever persisted.
+    expect(days.every((d) => (d.day_number ?? 0) > 0)).toBe(true);
+  });
+
+  it('keep_bookings leaves a booking whose date fell out of the range untouched', async () => {
+    await db.trips.put(buildTrip({ id: 1, start_date: '2026-03-01', end_date: '2026-03-03' }));
+    await db.days.bulkPut([
+      buildDay({ id: 11, trip_id: 1, day_number: 1, date: '2026-03-01' }),
+      buildDay({ id: 12, trip_id: 1, day_number: 2, date: '2026-03-02' }),
+      buildDay({ id: 13, trip_id: 1, day_number: 3, date: '2026-03-03' }),
+    ]);
+    await db.reservations.put(
+      buildReservation({ id: 9, trip_id: 1, day_id: 11, reservation_time: '2026-03-01T20:00' }),
+    );
+    // The range shifts forward a week: no day holds 2026-03-01 anymore, and
+    // resyncReservationDays' `newDayId == null → continue` leaves the row
+    // glued to its old day and keeps the timestamp verbatim (server parity).
+    await tripsApi.update(1, { start_date: '2026-03-08', end_date: '2026-03-10' });
+    const r = await db.reservations.get(9);
+    expect(r!.day_id).toBe(11);
+    expect(r!.reservation_time).toBe('2026-03-01T20:00');
+    const days = await db.days.where('trip_id').equals(1).sortBy('day_number');
+    expect(days.map((d) => [d.id, d.date])).toEqual([
+      [11, '2026-03-08'],
+      [12, '2026-03-09'],
+      [13, '2026-03-10'],
+    ]);
+  });
+
+  it("shift_all restamps a booking's date — the reservation stays glued to its day row", async () => {
+    await db.trips.put(buildTrip({ id: 1, start_date: '2026-03-01', end_date: '2026-03-03' }));
+    await db.days.bulkPut([
+      buildDay({ id: 11, trip_id: 1, day_number: 1, date: '2026-03-01' }),
+      buildDay({ id: 12, trip_id: 1, day_number: 2, date: '2026-03-02' }),
+      buildDay({ id: 13, trip_id: 1, day_number: 3, date: '2026-03-03' }),
+    ]);
+    await db.reservations.put(
+      buildReservation({ id: 9, trip_id: 1, day_id: 11, reservation_time: '2026-03-01T20:00' }),
+    );
+    // Same forward shift as the keep_bookings test, but the mode restamps the
+    // timestamp's date part — the booking follows day 11, time preserved.
+    await tripsApi.update(1, {
+      start_date: '2026-03-08',
+      end_date: '2026-03-10',
+      date_shift_mode: 'shift_all',
+    });
+    const r = await db.reservations.get(9);
+    expect(r!.day_id).toBe(11);
+    expect(r!.reservation_time).toBe('2026-03-08T20:00');
+  });
 });

@@ -3,20 +3,34 @@ import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/rende
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
-import { buildUser } from '../../../tests/helpers/factories';
+import 'fake-indexeddb/auto';
+import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
+import { db } from '../../db/panelmintDb';
+import { tripsApi } from '../../api/client';
 import { ToastContainer } from '../shared/Toast';
 import DevNotificationsPanel from './DevNotificationsPanel';
 
 const ADMIN_USER = buildUser({ id: 1, username: 'testadmin', role: 'admin' });
 
-beforeEach(() => {
+// The default MSW /api/trips fixture, now seeded into the panelmint database.
+// created_at keeps Paris first under the local list's created_at-desc ordering.
+const PARIS = buildTrip({ id: 101, title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10', created_at: '2025-06-01T00:00:00.000Z' });
+const TOKYO = buildTrip({ id: 102, title: 'Tokyo Trip', start_date: '2026-09-01', end_date: '2026-09-15', created_at: '2025-01-01T00:00:00.000Z' });
+
+beforeEach(async () => {
   resetAllStores();
   seedStore(useAuthStore, { user: ADMIN_USER, isAuthenticated: true });
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'testadmin', is_self: 1 });
+  await db.trips.bulkPut([PARIS, TOKYO]);
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   server.resetHandlers();
 });
 
@@ -48,6 +62,9 @@ describe('DevNotificationsPanel', () => {
   it('FE-ADMIN-DEVNOTIF-004: user selector populated from API', async () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('User-Scoped Events');
+    // The local trips list resolves on Dexie time — slower than the old MSW
+    // trip handler — so wait for BOTH selectors before indexing them.
+    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
     const selects = screen.getAllByRole('combobox');
     // Second combobox is the user selector (first is trip selector)
     const userSelect = selects[1];
@@ -67,7 +84,8 @@ describe('DevNotificationsPanel', () => {
     );
     const user = userEvent.setup();
     render(<><ToastContainer /><DevNotificationsPanel /></>);
-    await screen.findByText('Type Testing');
+    // Effects (and the toast bridge) flush once the async lookups resolve.
+    await screen.findByText('Trip-Scoped Events');
     await user.click(screen.getByText('Simple → Me').closest('button')!);
     await waitFor(() => expect(capturedBody).toBeDefined());
     expect(capturedBody).toMatchObject({
@@ -85,7 +103,8 @@ describe('DevNotificationsPanel', () => {
     );
     const user = userEvent.setup();
     render(<><ToastContainer /><DevNotificationsPanel /></>);
-    await screen.findByText('Type Testing');
+    // Effects (and the toast bridge) flush once the async lookups resolve.
+    await screen.findByText('Trip-Scoped Events');
     await user.click(screen.getByText('Simple → Me').closest('button')!);
     expect(await screen.findByText('Sent: simple-me')).toBeInTheDocument();
   });
@@ -99,7 +118,7 @@ describe('DevNotificationsPanel', () => {
     );
     const user = userEvent.setup();
     render(<><ToastContainer /><DevNotificationsPanel /></>);
-    await screen.findByText('Type Testing');
+    await screen.findByText('Trip-Scoped Events');
 
     // The request handler never resolves, so sending stays true after the click settles
     await user.click(screen.getByText('Simple → Me').closest('button')!);
@@ -118,7 +137,8 @@ describe('DevNotificationsPanel', () => {
     );
     const user = userEvent.setup();
     render(<><ToastContainer /><DevNotificationsPanel /></>);
-    await screen.findByText('Type Testing');
+    // Effects (and the toast bridge) flush once the async lookups resolve.
+    await screen.findByText('Trip-Scoped Events');
     await user.click(screen.getByText('Simple → Me').closest('button')!);
     expect(await screen.findByText('No channel configured')).toBeInTheDocument();
   });
@@ -131,7 +151,8 @@ describe('DevNotificationsPanel', () => {
     );
     const user = userEvent.setup();
     render(<><ToastContainer /><DevNotificationsPanel /></>);
-    await screen.findByText('Type Testing');
+    // Effects (and the toast bridge) flush once the async lookups resolve.
+    await screen.findByText('Trip-Scoped Events');
     await user.click(screen.getByText('Simple → Me').closest('button')!);
     expect(await screen.findByText('Failed')).toBeInTheDocument();
   });
@@ -162,9 +183,7 @@ describe('DevNotificationsPanel', () => {
   });
 
   it('FE-ADMIN-DEVNOTIF-010: Trip-Scoped section absent when no trips', async () => {
-    server.use(
-      http.get('/api/trips', () => HttpResponse.json({ trips: [] })),
-    );
+    await db.trips.clear();
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     // Wait for user data to confirm async effects have settled
     await screen.findByText('User-Scoped Events');
@@ -181,7 +200,7 @@ describe('DevNotificationsPanel', () => {
     );
     const user = userEvent.setup();
     render(<><ToastContainer /><DevNotificationsPanel /></>);
-    await screen.findByText('Type Testing');
+    await screen.findByText('Trip-Scoped Events');
 
     await user.click(screen.getByText('Boolean → Me').closest('button')!);
     await screen.findByText('Sent: boolean-me');
@@ -249,6 +268,7 @@ describe('DevNotificationsPanel', () => {
     const user = userEvent.setup();
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('User-Scoped Events');
+    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(2));
 
     const userSelect = screen.getAllByRole('combobox')[1] as HTMLSelectElement;
     const aliceOption = Array.from(userSelect.querySelectorAll('option')).find(
@@ -285,8 +305,8 @@ describe('DevNotificationsPanel', () => {
   });
 
   it('FE-ADMIN-DEVNOTIF-015: failing lookups leave both scoped sections out without crashing', async () => {
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new Error('down'));
     server.use(
-      http.get('/api/trips', () => HttpResponse.error()),
       http.get('/api/admin/users', () => HttpResponse.error()),
     );
     render(<><ToastContainer /><DevNotificationsPanel /></>);

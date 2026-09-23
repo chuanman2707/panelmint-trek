@@ -1,14 +1,15 @@
 // FE-MOB-OFFLINE-001 onwards
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import 'fake-indexeddb/auto';
 import { act, render, screen, waitFor, within } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildTrip, buildUser } from '../../../helpers/factories';
-import { server } from '../../../helpers/msw/server';
 import { useAuthStore } from '../../../../src/store/authStore';
 import { _resetNetworkMode } from '../../../../src/sync/networkMode';
 import { _resetOfflinePrefs, getOfflinePrefs } from '../../../../src/sync/offlinePrefs';
+import { db } from '../../../../src/db/panelmintDb';
+import { tripsApi } from '../../../../src/api/client';
 import type { QueuedMutation, SyncMeta } from '../../../../src/db/offlineDb';
 import type { PrepareProgress } from '../../../../src/sync/tripSyncManager';
 import type { Trip } from '../../../../src/types';
@@ -117,13 +118,20 @@ function setOnLine(value: boolean): void {
 
 const card = (title: string) => screen.getByText(title).closest('section') as HTMLElement;
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
   resetAllStores();
   _resetNetworkMode();
   _resetOfflinePrefs();
   setOnLine(true);
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+
+  // The "server" trip list is the panelmint database now; the fakeDb mock only
+  // covers the offlineDb cache the fallback path reads.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
 
   h.syncMetaToArray.mockResolvedValue([]);
   h.tripsGet.mockResolvedValue(undefined);
@@ -142,10 +150,11 @@ beforeEach(() => {
   h.resolveKeepMine.mockResolvedValue(undefined);
   h.resolveKeepServer.mockResolvedValue(undefined);
 
-  server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [paris, tokyo] })));
+  await db.trips.bulkPut([paris, tokyo]);
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   setOnLine(true);
 });
 
@@ -387,7 +396,7 @@ describe('MSettingsOffline', () => {
   });
 
   it('FE-MOB-OFFLINE-016: the per-trip section disappears when there are no trips at all', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [] })));
+    await db.trips.clear();
     render(<MSettingsOffline />);
 
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
@@ -396,7 +405,7 @@ describe('MSettingsOffline', () => {
   });
 
   it('FE-MOB-OFFLINE-017: a failing trips API falls back to the Dexie copy', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'down' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new Error('down'));
     h.tripsToArray.mockResolvedValue([tokyo, paris]);
     render(<MSettingsOffline />);
 
@@ -407,7 +416,7 @@ describe('MSettingsOffline', () => {
   });
 
   it('FE-MOB-OFFLINE-018: when both the API and Dexie fail the trip list is simply empty', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'down' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new Error('down'));
     h.tripsToArray.mockRejectedValue(new Error('dexie is gone'));
     render(<MSettingsOffline />);
 

@@ -1,4 +1,5 @@
 // FE-TSTORE-001 to FE-TSTORE-021 (trip-scoped root store: load, hydrate, refresh, mutate)
+import 'fake-indexeddb/auto';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
@@ -17,6 +18,10 @@ import {
   buildTripFile,
 } from '../../tests/helpers/factories';
 import { offlineDb } from '../db/offlineDb';
+import { db } from '../db/panelmintDb';
+import { tripsApi, daysApi } from '../api/client';
+import { LocalApiError } from '../api/local/helpers';
+import type { DayRow } from '../api/local/dexieStore';
 import { setForcedOffline } from '../sync/networkMode';
 import { useTripStore } from './tripStore';
 
@@ -36,10 +41,28 @@ async function clearCache(): Promise<void> {
   ]);
 }
 
+/**
+ * tripsApi/daysApi are local adapters — tripRepo.get/dayRepo.list read the
+ * `panelmint` Dexie db, not the network. Seed the trip + day rows here; every
+ * other resource (places/packing/todo/budget/…) is still HTTP and stays on msw.
+ */
+async function seedLocalTrip(trip = buildTrip({ id: 1 }), days = serverDays()): Promise<void> {
+  await db.trips.put(trip);
+  // assignmentWire joins place_id against the places table — seed the places
+  // embedded on the day rows or the assignments get filtered out of the wire.
+  const places = days.flatMap((d) => (d.assignments ?? []).map((a) => a.place).filter((p) => p != null));
+  if (places.length) await db.places.bulkPut(places as never[]);
+  await db.days.bulkPut(days.map((d) => ({ ...d, vias: [] })) as DayRow[]);
+}
+
 beforeEach(async () => {
   resetAllStores();
   server.resetHandlers();
   await clearCache();
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
 });
 
 afterEach(() => {
@@ -126,9 +149,8 @@ describe('tripStore', () => {
 
   describe('loadTrip', () => {
     it('FE-TSTORE-003: fills every slice and builds the assignments/dayNotes maps', async () => {
+      await seedLocalTrip(buildTrip({ id: 1, title: 'Paris' }));
       server.use(
-        http.get('/api/trips/1', () => HttpResponse.json({ trip: buildTrip({ id: 1, title: 'Paris' }) })),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: serverDays() })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [buildPlace({ id: 500, trip_id: 1 })] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [buildPackingItem({ id: 60, trip_id: 1 })] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 70, trip_id: 1 })] })),
@@ -166,14 +188,16 @@ describe('tripStore', () => {
         trip: buildTrip({ id: 9, title: 'Old trip' }),
         places: [buildPlace({ id: 111, trip_id: 9 })],
       });
+      await db.trips.put(buildTrip({ id: 1 }));
 
       let placesDuringLoad: number[] = [];
+      // tripsApi is local — spy to observe the store mid-flight the way the
+      // msw handler used to.
+      vi.spyOn(tripsApi, 'get').mockImplementation(async () => {
+        placesDuringLoad = useTripStore.getState().places.map((p) => p.id);
+        return { trip: buildTrip({ id: 1 }) };
+      });
       server.use(
-        http.get('/api/trips/1', () => {
-          placesDuringLoad = useTripStore.getState().places.map(p => p.id);
-          return HttpResponse.json({ trip: buildTrip({ id: 1 }) });
-        }),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
       );
 
@@ -184,8 +208,8 @@ describe('tripStore', () => {
     });
 
     it('FE-TSTORE-005: a failing budget/reservations/files fetch is non-fatal', async () => {
+      await db.trips.put(buildTrip({ id: 1 }));
       server.use(
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
         http.get('/api/trips/1/budget', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
         http.get('/api/trips/1/reservations', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
         http.get('/api/trips/1/files', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
@@ -204,9 +228,9 @@ describe('tripStore', () => {
     it('FE-TSTORE-006: falls back to the cached tags and categories when their endpoints fail', async () => {
       await offlineDb.tags.put(buildTag({ id: 31, name: 'Cached tag' }));
       await offlineDb.categories.put(buildCategory({ id: 32, name: 'Cached category' }));
+      await db.trips.put(buildTrip({ id: 1 }));
 
       server.use(
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
         http.get('/api/tags', () => HttpResponse.json({ error: 'offline' }, { status: 502 })),
         http.get('/api/categories', () => HttpResponse.json({ error: 'offline' }, { status: 502 })),
       );
@@ -265,16 +289,14 @@ describe('tripStore', () => {
     });
 
     it('FE-TSTORE-007: sets the error state and rethrows when the trip itself cannot be fetched', async () => {
-      server.use(
-        http.get('/api/trips/1', () => HttpResponse.json({ error: 'Forbidden' }, { status: 403 })),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
-      );
+      await db.trips.put(buildTrip({ id: 1 }));
+      vi.spyOn(tripsApi, 'get').mockRejectedValue(new LocalApiError(403, 'Forbidden'));
 
       await expect(useTripStore.getState().loadTrip(1)).rejects.toThrow();
 
       const state = useTripStore.getState();
       expect(state.isLoading).toBe(false);
-      expect(state.error).toContain('403');
+      expect(state.error).toContain('Forbidden');
       expect(state.trip).toBeNull();
     });
   });
@@ -282,9 +304,9 @@ describe('tripStore', () => {
   describe('hydrateActiveTrip', () => {
     it('FE-TSTORE-008: silently re-pulls every collaborative slice and nudges the planner', async () => {
       seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [], days: [] });
+      await seedLocalTrip();
 
       server.use(
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: serverDays() })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [buildPlace({ id: 501, trip_id: 1 })] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [buildPackingItem({ id: 61, trip_id: 1 })] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 71, trip_id: 1 })] })),
@@ -315,9 +337,9 @@ describe('tripStore', () => {
       const stalePlace = buildPlace({ id: 111, trip_id: 1, name: 'Kept' });
       seedStore(useTripStore, { places: [stalePlace], packingItems: [], todoItems: [] });
       vi.spyOn(console, 'error').mockImplementation(() => {});
+      await db.trips.put(buildTrip({ id: 1 }));
 
       server.use(
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
         http.get('/api/trips/1/places', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 72, trip_id: 1 })] })),
@@ -333,7 +355,7 @@ describe('tripStore', () => {
   describe('refreshDays', () => {
     it('FE-TSTORE-010: rebuilds the days list plus the assignments and notes maps', async () => {
       seedStore(useTripStore, { days: [], assignments: { '99': [] }, dayNotes: { '99': [] } });
-      server.use(http.get('/api/trips/1/days', () => HttpResponse.json({ days: serverDays() })));
+      await seedLocalTrip();
 
       await useTripStore.getState().refreshDays(1);
 
@@ -349,9 +371,7 @@ describe('tripStore', () => {
       const day = buildDay({ id: 1, trip_id: 1 });
       seedStore(useTripStore, { days: [day] });
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-      server.use(
-        http.get('/api/trips/1/days', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
-      );
+      vi.spyOn(daysApi, 'list').mockRejectedValue(new LocalApiError(500, 'boom'));
 
       await expect(useTripStore.getState().refreshDays(1)).resolves.toBeUndefined();
 
@@ -363,14 +383,10 @@ describe('tripStore', () => {
   describe('updateTrip', () => {
     it('FE-TSTORE-012: persists the patch, refreshes days and re-pulls the re-anchored bookings', async () => {
       seedStore(useTripStore, { trip: buildTrip({ id: 1, title: 'Old' }), days: [], reservations: [] });
+      await seedLocalTrip();
+      const updateSpy = vi.spyOn(tripsApi, 'update');
 
-      let sent: Record<string, unknown> = {};
       server.use(
-        http.put('/api/trips/1', async ({ request }) => {
-          sent = await request.json() as Record<string, unknown>;
-          return HttpResponse.json({ trip: buildTrip({ id: 1, title: 'New', start_date: '2025-06-01' }) });
-        }),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: serverDays() })),
         http.get('/api/trips/1/reservations', () =>
           HttpResponse.json({ reservations: [buildReservation({ id: 92, trip_id: 1, title: 'Re-anchored' })] }),
         ),
@@ -379,7 +395,10 @@ describe('tripStore', () => {
       const result = await useTripStore.getState().updateTrip(1, { title: 'New', start_date: '2025-06-01' });
 
       expect(result.title).toBe('New');
-      expect(sent).toMatchObject({ title: 'New', start_date: '2025-06-01' });
+      expect(updateSpy).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ title: 'New', start_date: '2025-06-01' }),
+      );
       expect(useTripStore.getState().trip?.title).toBe('New');
       expect(useTripStore.getState().days.map(d => d.id)).toEqual([1, 2]);
       expect(useTripStore.getState().assignments['1']).toHaveLength(1);
@@ -387,26 +406,21 @@ describe('tripStore', () => {
     });
 
     it('FE-TSTORE-013: forwards the date_shift_mode flag', async () => {
-      let sent: Record<string, unknown> = {};
-      server.use(
-        http.put('/api/trips/1', async ({ request }) => {
-          sent = await request.json() as Record<string, unknown>;
-          return HttpResponse.json({ trip: buildTrip({ id: 1 }) });
-        }),
-        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
-      );
+      await db.trips.put(buildTrip({ id: 1 }));
+      const updateSpy = vi.spyOn(tripsApi, 'update').mockResolvedValue({ trip: buildTrip({ id: 1 }) });
 
       await useTripStore.getState().updateTrip(1, { start_date: '2025-07-01', date_shift_mode: 'shift_all' });
 
-      expect(sent.date_shift_mode).toBe('shift_all');
+      expect(updateSpy).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ date_shift_mode: 'shift_all' }),
+      );
     });
 
     it('FE-TSTORE-014: throws the server message and leaves the trip untouched', async () => {
       const trip = buildTrip({ id: 1, title: 'Old' });
       seedStore(useTripStore, { trip });
-      server.use(
-        http.put('/api/trips/1', () => HttpResponse.json({ error: 'Not the owner' }, { status: 403 })),
-      );
+      vi.spyOn(tripsApi, 'update').mockRejectedValue(new LocalApiError(403, 'Not the owner'));
 
       await expect(useTripStore.getState().updateTrip(1, { title: 'New' })).rejects.toThrow('Not the owner');
       expect(useTripStore.getState().trip?.title).toBe('Old');

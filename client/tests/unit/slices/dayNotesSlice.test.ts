@@ -1,9 +1,12 @@
+import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores, seedStore } from '../../helpers/store';
-import { buildDay, buildDayNote } from '../../helpers/factories';
+import { buildDay, buildDayNote, buildTrip } from '../../helpers/factories';
 import { server } from '../../helpers/msw/server';
+import { db } from '../../../src/db/panelmintDb';
+import type { DayRow } from '../../../src/api/local/dexieStore';
 
 vi.mock('../../../src/api/websocket', () => ({
   connect: vi.fn(),
@@ -17,8 +20,12 @@ vi.mock('../../../src/api/websocket', () => ({
   setPreReconnectHook: vi.fn(),
 }));
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
 });
 
 describe('dayNotesSlice', () => {
@@ -186,6 +193,9 @@ describe('dayNotesSlice', () => {
   describe('updateDayNotes', () => {
     it('FE-DAYNOTES-007: updateDayNotes persists notes text and updates days array', async () => {
       const day = buildDay({ id: 1, trip_id: 1, notes: null });
+      // daysApi is the local adapter — update lands on the seeded row.
+      await db.trips.put(buildTrip({ id: 1 }));
+      await db.days.put({ ...day, vias: [] } as DayRow);
       seedStore(useTripStore, { days: [day] });
 
       await useTripStore.getState().updateDayNotes(1, 1, 'My travel notes');
@@ -198,6 +208,8 @@ describe('dayNotesSlice', () => {
   describe('updateDayTitle', () => {
     it('FE-DAYNOTES-008: updateDayTitle persists title and updates days array', async () => {
       const day = buildDay({ id: 1, trip_id: 1, title: null });
+      await db.trips.put(buildTrip({ id: 1 }));
+      await db.days.put({ ...day, vias: [] } as DayRow);
       seedStore(useTripStore, { days: [day] });
 
       await useTripStore.getState().updateDayTitle(1, 1, 'Day at the Beach');

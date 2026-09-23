@@ -191,7 +191,7 @@ beforeEach(() => {
   vi.spyOn(addonsApi, 'enabled').mockResolvedValue({ addons: [] })
   vi.spyOn(authApi, 'getAppConfig').mockResolvedValue({})
   vi.spyOn(healthApi, 'features').mockResolvedValue({ bookingImport: false, aiParsing: false })
-  vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [] })
+  vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [], current_user_id: 1 })
   vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
   vi.spyOn(assignmentsApi, 'updateTime').mockResolvedValue({})
   vi.spyOn(assignmentsApi, 'updateNotes').mockResolvedValue({})
@@ -214,8 +214,9 @@ describe('useTripPlanner — bootstrap', () => {
       accommodations: [{ id: 5, trip_id: 42 }] as never,
     })
     vi.mocked(tripsApi.getMembers).mockResolvedValue({
-      owner: { user_id: 1, username: 'owner' },
-      members: [{ user_id: 2, username: 'bob' }],
+      owner: { id: 1, username: 'owner' },
+      members: [{ id: 2, username: 'bob' }],
+      current_user_id: 1,
     })
 
     const { result } = await renderPlanner()
@@ -2113,8 +2114,9 @@ describe('useTripPlanner — misc state', () => {
     await waitFor(() => expect(tripsApi.getMembers).toHaveBeenCalled())
 
     vi.mocked(tripsApi.getMembers).mockResolvedValue({
-      owner: { user_id: 1, username: 'owner' },
-      members: [{ user_id: 2 }, { user_id: 3 }],
+      owner: { id: 1, username: 'owner' },
+      members: [{ id: 2, username: 'm2' }, { id: 3, username: 'm3' }],
+      current_user_id: 1,
     })
     act(() => { result.current.refreshMembers() })
 

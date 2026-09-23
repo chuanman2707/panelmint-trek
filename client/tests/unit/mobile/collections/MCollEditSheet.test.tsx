@@ -1,11 +1,10 @@
 // FE-MOB-COLEDIT-001 to FE-MOB-COLEDIT-014
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
-import { http, HttpResponse } from 'msw'
 import userEvent from '@testing-library/user-event'
 import { render, screen, fireEvent, waitFor } from '../../../helpers/render'
-import { server } from '../../../helpers/msw/server'
 import type { Collection } from '@trek/shared'
+import { tripsApi } from '../../../../src/api/client'
 import MCollEditSheet from '../../../../src/mobile/screens/collections/MCollEditSheet'
 import { useCollectionStore } from '../../../../src/store/collectionStore'
 import { SWATCH_COLORS } from '../../../../src/mobile/screens/collections/collectionsMobileModel'
@@ -54,8 +53,10 @@ function stubObjectUrl(fn: unknown) {
   Object.defineProperty(URL, 'createObjectURL', { writable: true, configurable: true, value: fn })
 }
 
+// The cover search is local now and returns an empty list by design (the
+// Unsplash integration is hosted-only), so tests stub tripsApi directly.
 function unsplash(photos: Record<string, unknown>[]) {
-  server.use(http.get('/api/trips/cover-images/search', () => HttpResponse.json({ photos })))
+  vi.spyOn(tripsApi, 'searchCoverImages').mockResolvedValue({ photos } as never)
 }
 
 /** The cover images carry no alt text, so they are addressed by src. */
@@ -77,6 +78,7 @@ describe('MCollEditSheet', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     delete window.__addToast
     stubObjectUrl(origCreateObjectURL)
     Object.defineProperty(URL, 'revokeObjectURL', { writable: true, configurable: true, value: origRevokeObjectURL })
@@ -235,15 +237,14 @@ describe('MCollEditSheet', () => {
     expect(imageWithSrc('https://img/t0.jpg')).not.toBeNull()
     expect(document.querySelectorAll('img')).toHaveLength(1)
 
-    server.use(http.get('/api/trips/cover-images/search', () => new HttpResponse(null, { status: 500 })))
+    vi.mocked(tripsApi.searchCoverImages).mockRejectedValue(new Error('down'))
     await user.click(screen.getByRole('button', { name: /Unsplash/ }))
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Nobody' })).not.toBeInTheDocument())
   })
 
   it('FE-MOB-COLEDIT-010: Unsplash stays idle while there is neither a query nor a name', async () => {
     const user = userEvent.setup()
-    const search = vi.fn(() => HttpResponse.json({ photos: [] }))
-    server.use(http.get('/api/trips/cover-images/search', search))
+    const search = vi.spyOn(tripsApi, 'searchCoverImages').mockResolvedValue({ photos: [] })
     render(<MCollEditSheet {...baseProps()} />)
 
     expect(screen.getByRole('button', { name: /Unsplash/ })).toBeDisabled()

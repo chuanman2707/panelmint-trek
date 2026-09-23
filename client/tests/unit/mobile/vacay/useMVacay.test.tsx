@@ -1,13 +1,14 @@
 // FE-MOB-MVAC-001 to FE-MOB-MVAC-029
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../../helpers/msw/server';
+import 'fake-indexeddb/auto';
 import { resetAllStores } from '../../../helpers/store';
 import { useMVacay } from '../../../../src/mobile/screens/vacay/useMVacay';
 import { useVacayStore } from '../../../../src/store/vacayStore';
 import { useAuthStore } from '../../../../src/store/authStore';
-import type { VacayEntry, VacayPlan, VacayStat, VacayUser } from '../../../../src/types';
+import { db } from '../../../../src/db/panelmintDb';
+import { tripsApi } from '../../../../src/api/client';
+import type { Trip, VacayEntry, VacayPlan, VacayStat, VacayUser } from '../../../../src/types';
 
 const navigateMock = vi.fn();
 
@@ -65,19 +66,26 @@ function buildVacay(over: Record<string, unknown> = {}): Record<string, unknown>
 }
 
 function tripsRespond(trips: { start_date?: string | null; end_date?: string | null }[]) {
-  server.use(http.get('/api/trips', () => HttpResponse.json({ trips })));
+  // user_id 1 = the local self user, so tripsApi.list() sees them as own trips.
+  return db.trips.bulkPut(
+    trips.map((t, i) => ({ id: i + 1, user_id: 1, ...t }) as Trip),
+  );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
   navigateMock.mockClear();
   toasts.length = 0;
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'alice', is_self: 1 });
   window.__addToast = ((message: string, type?: string) => {
     toasts.push({ type: type ?? 'info', message });
     return 1;
   }) as Window['__addToast'];
   mocks.vacay = buildVacay();
-  tripsRespond([]);
+  await tripsRespond([]);
   useAuthStore.setState({ user: { id: 1, username: 'alice', email: 'a@t.app', role: 'user' } as never });
   useVacayStore.setState({
     users: [alice, bob],
@@ -93,6 +101,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   delete window.__addToast;
 });
 
@@ -122,7 +131,7 @@ describe('useMVacay', () => {
   });
 
   it('FE-MOB-MVAC-003: collects every day covered by an own trip inside the window', async () => {
-    tripsRespond([
+    await tripsRespond([
       { start_date: '2026-03-30', end_date: '2026-04-02' },
       { start_date: '2025-12-30', end_date: '2025-12-31' },
       { start_date: null, end_date: '2026-05-01' },
@@ -137,7 +146,7 @@ describe('useMVacay', () => {
   });
 
   it('FE-MOB-MVAC-004: leaves the trip overlay empty when the trip list fails', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new Error('boom'));
     const { result } = await mount();
 
     await waitFor(() => expect(result.current.tripDates.size).toBe(0));

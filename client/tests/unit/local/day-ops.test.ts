@@ -6,7 +6,8 @@
  * two-phase negative renumbering, the reservation restamp (date part moves,
  * time-of-day preserved), inverted-stay refusal, and dateless vs dated insert.
  */
-import { describe, expect, it } from 'vitest';
+import 'fake-indexeddb/auto';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   addDays,
   assertNoInvertedAccommodation,
@@ -18,6 +19,10 @@ import {
   resyncAccommodationDays,
   withDatePart,
 } from '../../../src/api/local/ported/day-ops';
+import { daysApi } from '../../../src/api/local/days';
+import { db } from '../../../src/db/panelmintDb';
+import { buildDay, buildReservation, buildTrip } from '../../helpers/factories';
+import type { LocalUser } from '../../../src/types';
 import { MemoryStore, type MemReservation } from './helpers/memoryStore';
 
 const res = (over: Partial<MemReservation>): MemReservation => ({
@@ -223,7 +228,70 @@ describe('assertNoInvertedAccommodation', () => {
   });
 });
 
-describe.todo('day ops under real Dexie persistence', () => {
-  // The (trip_id, day_number) UNIQUE constraint is what the two-phase negative
-  // renumber exists for — only a real adapter proves the ordering survives.
+describe('day ops under real Dexie persistence', () => {
+  const SELF: LocalUser = { id: 1, name: 'Me', is_self: 1 };
+  beforeEach(async () => {
+    await db.transaction('rw', db.tables, async () => {
+      for (const t of db.tables) await t.clear();
+    });
+    await db.localUsers.put(SELF);
+  });
+
+  it('reorder survives the real &[trip_id+day_number] unique index', async () => {
+    await db.trips.put(buildTrip({ id: 1, start_date: '2026-03-01', end_date: '2026-03-03' }));
+    await db.days.bulkPut([
+      buildDay({ id: 11, trip_id: 1, day_number: 1, date: '2026-03-01' }),
+      buildDay({ id: 12, trip_id: 1, day_number: 2, date: '2026-03-02' }),
+      buildDay({ id: 13, trip_id: 1, day_number: 3, date: '2026-03-03' }),
+    ]);
+    await daysApi.reorder(1, [13, 11, 12]);
+    // A fresh read off IndexedDB — the in-memory snapshot proved nothing about
+    // what the flush actually committed.
+    const days = await db.days.where('trip_id').equals(1).sortBy('day_number');
+    expect(days.map((d) => [d.id, d.day_number, d.date])).toEqual([
+      [13, 1, '2026-03-01'],
+      [11, 2, '2026-03-02'],
+      [12, 3, '2026-03-03'],
+    ]);
+    // The two-phase negative renumber resolved fully — no transient survives.
+    expect(days.every((d) => (d.day_number ?? 0) > 0)).toBe(true);
+  });
+
+  it('a reorder never touches another trip sharing the same day_numbers', async () => {
+    await db.trips.bulkPut([buildTrip({ id: 1 }), buildTrip({ id: 2 })]);
+    await db.days.bulkPut([
+      buildDay({ id: 11, trip_id: 1, day_number: 1 }),
+      buildDay({ id: 12, trip_id: 1, day_number: 2 }),
+      buildDay({ id: 21, trip_id: 2, day_number: 1 }),
+      buildDay({ id: 22, trip_id: 2, day_number: 2 }),
+    ]);
+    await daysApi.reorder(1, [12, 11]);
+    const untouched = await db.days.where('trip_id').equals(2).sortBy('day_number');
+    expect(untouched.map((d) => d.id)).toEqual([21, 22]);
+  });
+
+  it('a failed reorder commits nothing — the transaction abort restores', async () => {
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.days.bulkPut([
+      buildDay({ id: 11, trip_id: 1, day_number: 1, date: '2026-03-01' }),
+      buildDay({ id: 12, trip_id: 1, day_number: 2, date: '2026-03-02' }),
+    ]);
+    await db.accommodations.put({
+      id: 31, trip_id: 1, place_id: null, start_day_id: 11, end_day_id: 12,
+      check_in: null, check_in_end: null, check_out: null, confirmation: null, notes: null,
+    });
+    await db.reservations.put(
+      buildReservation({ id: 9, trip_id: 1, day_id: 12, reservation_time: '2026-03-02T10:00' }),
+    );
+    // Swapping the days inverts the stay → 400, and NOT a half-written state.
+    await expect(daysApi.reorder(1, [12, 11])).rejects.toMatchObject({
+      response: { status: 400 },
+    });
+    expect(await db.days.where('trip_id').equals(1).sortBy('day_number')).toMatchObject([
+      { id: 11, day_number: 1 },
+      { id: 12, day_number: 2 },
+    ]);
+    // The reservation restamp never landed either.
+    expect((await db.reservations.get(9))!.reservation_time).toBe('2026-03-02T10:00');
+  });
 });

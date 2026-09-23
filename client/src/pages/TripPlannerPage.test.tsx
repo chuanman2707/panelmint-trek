@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '../../tests/helpers/render';
@@ -11,6 +12,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import TripPlannerPage from './TripPlannerPage';
 import { server } from '../../tests/helpers/msw/server';
 import { http, HttpResponse } from 'msw';
+import { db } from '../db/panelmintDb';
 
 // Mock Leaflet-dependent components
 const capturedMapViewProps: { current: Record<string, any> } = { current: {} };
@@ -261,9 +263,16 @@ function renderPlannerPage(tripId: number | string) {
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
   resetAllStores();
+  // tripsApi is local now — the TripFormModal onSave lambda writes through it,
+  // so the canonical fixture trip (id 42) and the self profile live in Dexie.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await db.trips.put(buildTrip({ id: 42, title: 'Test Trip' }));
   mockUseTripWebSocket.mockReset();
   mockSetSelectedPlaceId.mockReset();
   mockSelectAssignment.mockReset();

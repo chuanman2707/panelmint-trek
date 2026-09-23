@@ -6,12 +6,14 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
-import { server } from '../../helpers/msw/server';
-import { http, HttpResponse } from 'msw';
 import { tripSyncManager } from '../../../src/sync/tripSyncManager';
 import { setAuthed } from '../../../src/sync/authGate';
 import { setTripPinned, _resetOfflinePrefs } from '../../../src/sync/offlinePrefs';
 import { offlineDb, clearAll, upsertTrip } from '../../../src/db/offlineDb';
+import { db } from '../../../src/db/panelmintDb';
+import { tripsApi } from '../../../src/api/client';
+import { LocalApiError } from '../../../src/api/local/helpers';
+import type { Trip } from '../../../src/types';
 import {
   buildTrip,
   buildDay,
@@ -45,8 +47,27 @@ function makeBundle(tripId: number) {
   };
 }
 
+/** tripsApi.list runs for real against panelmint db.trips; bundle() is spied
+ *  because the local aggregate deliberately carries `files: []` — the blob
+ *  caching phase under test needs the wire-shaped bundles the server sent.
+ *  Returns the bundle spy for `not.toHaveBeenCalled` assertions. */
+async function serve(trips: Trip[], bundles: Record<number, ReturnType<typeof makeBundle>> = {}) {
+  await db.trips.bulkPut(trips);
+  const spy = vi.spyOn(tripsApi, 'bundle').mockImplementation((id) => {
+    const bundle = bundles[Number(id)];
+    return bundle
+      ? Promise.resolve(bundle as never)
+      : Promise.reject(new LocalApiError(500, 'nope'));
+  });
+  return spy;
+}
+
 beforeEach(async () => {
   await clearAll();
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
   tripSyncManager._resetSyncing();
   _resetOfflinePrefs();
   setAuthed(true);
@@ -67,12 +88,9 @@ afterEach(() => {
 describe('tripSyncManager.syncAll — auth gate (B4)', () => {
   it('no-ops when logged out (gate closed)', async () => {
     setAuthed(false);
-    let called = false;
-    server.use(
-      http.get('/api/trips', () => { called = true; return HttpResponse.json({ trips: [] }); }),
-    );
+    const listSpy = vi.spyOn(tripsApi, 'list');
     await tripSyncManager.syncAll();
-    expect(called).toBe(false);
+    expect(listSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -93,10 +111,7 @@ describe('tripSyncManager.syncAll — offline guard', () => {
   it('#2228: reports how many trips a completed run stored', async () => {
     const tripId = 104;
     const trip = buildTrip({ id: tripId, end_date: dateOffset(3) });
-    server.use(
-      http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
-      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json({ ...makeBundle(tripId), trip })),
-    );
+    await serve([trip], { [tripId]: { ...makeBundle(tripId), trip } });
 
     expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'done', trips: 1 });
   });
@@ -104,13 +119,10 @@ describe('tripSyncManager.syncAll — offline guard', () => {
   it('does nothing when offline', async () => {
     Object.defineProperty(navigator, 'onLine', { value: false });
 
-    let listed = false;
-    server.use(
-      http.get('/api/trips', () => { listed = true; return HttpResponse.json({ trips: [] }); }),
-    );
+    const listSpy = vi.spyOn(tripsApi, 'list');
 
     await tripSyncManager.syncAll();
-    expect(listed).toBe(false);
+    expect(listSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -121,11 +133,9 @@ describe('tripSyncManager.syncAll — trip filtering', () => {
     const tripId = 100;
     const bundle = makeBundle(tripId);
 
-    server.use(
-      http.get('/api/trips', () =>
-        HttpResponse.json({ trips: [buildTrip({ id: tripId, end_date: dateOffset(2) })] }),
-      ),
-      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(bundle)),
+    await serve(
+      [buildTrip({ id: tripId, end_date: dateOffset(2) })],
+      { [tripId]: bundle },
     );
 
     await tripSyncManager.syncAll();
@@ -140,10 +150,7 @@ describe('tripSyncManager.syncAll — trip filtering', () => {
     const bundle = makeBundle(tripId);
     const trip = buildTrip({ id: tripId, end_date: null as unknown as string });
 
-    server.use(
-      http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
-      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json({ ...bundle, trip })),
-    );
+    await serve([trip], { [tripId]: { ...bundle, trip } });
 
     await tripSyncManager.syncAll();
     expect(await offlineDb.trips.get(tripId)).toBeDefined();
@@ -152,23 +159,11 @@ describe('tripSyncManager.syncAll — trip filtering', () => {
   it('does not cache past trips (end_date < today)', async () => {
     const tripId = 102;
 
-    server.use(
-      http.get('/api/trips', () =>
-        HttpResponse.json({ trips: [buildTrip({ id: tripId, end_date: dateOffset(-1) })] }),
-      ),
-    );
-
     // Bundle should NOT be called for past trips
-    let bundleCalled = false;
-    server.use(
-      http.get(`/api/trips/${tripId}/bundle`, () => {
-        bundleCalled = true;
-        return HttpResponse.json({});
-      }),
-    );
+    const bundleSpy = await serve([buildTrip({ id: tripId, end_date: dateOffset(-1) })]);
 
     await tripSyncManager.syncAll();
-    expect(bundleCalled).toBe(false);
+    expect(bundleSpy).not.toHaveBeenCalled();
     expect(await offlineDb.trips.get(tripId)).toBeUndefined();
   });
 
@@ -177,10 +172,7 @@ describe('tripSyncManager.syncAll — trip filtering', () => {
     const trip = buildTrip({ id: tripId, end_date: dateOffset(-40) });
     const bundle = makeBundle(tripId);
 
-    server.use(
-      http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
-      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json({ ...bundle, trip })),
-    );
+    await serve([trip], { [tripId]: { ...bundle, trip } });
 
     // Without the pin the date rule refuses it, which is what made the per-trip
     // switch look like it did nothing for anyone whose trips are all finished.
@@ -202,11 +194,7 @@ describe('tripSyncManager.syncAll — stale eviction', () => {
     // Seed Dexie as if previously cached
     await upsertTrip(buildTrip({ id: staleId, end_date: dateOffset(-8) }));
 
-    server.use(
-      http.get('/api/trips', () =>
-        HttpResponse.json({ trips: [buildTrip({ id: staleId, end_date: dateOffset(-8) })] }),
-      ),
-    );
+    await serve([buildTrip({ id: staleId, end_date: dateOffset(-8) })]);
 
     await tripSyncManager.syncAll();
     expect(await offlineDb.trips.get(staleId)).toBeUndefined();
@@ -218,10 +206,7 @@ describe('tripSyncManager.syncAll — stale eviction', () => {
     await upsertTrip(trip);
     setTripPinned(pinnedId, true);
 
-    server.use(
-      http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
-      http.get(`/api/trips/${pinnedId}/bundle`, () => HttpResponse.json({ ...makeBundle(pinnedId), trip })),
-    );
+    await serve([trip], { [pinnedId]: { ...makeBundle(pinnedId), trip } });
 
     await tripSyncManager.syncAll();
     expect(await offlineDb.trips.get(pinnedId)).toBeDefined();
@@ -232,10 +217,7 @@ describe('tripSyncManager.syncAll — stale eviction', () => {
     const bundle = makeBundle(recentId);
     const trip = buildTrip({ id: recentId, end_date: dateOffset(-6) });
 
-    server.use(
-      http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
-      http.get(`/api/trips/${recentId}/bundle`, () => HttpResponse.json({ ...bundle, trip })),
-    );
+    await serve([trip], { [recentId]: { ...bundle, trip } });
 
     await tripSyncManager.syncAll();
     // end_date = -6 days: still within 7d window, but < today so not cached
@@ -253,11 +235,9 @@ describe('tripSyncManager.syncAll — bundle upsert', () => {
     const tripId = 300;
     const bundle = makeBundle(tripId);
 
-    server.use(
-      http.get('/api/trips', () =>
-        HttpResponse.json({ trips: [buildTrip({ id: tripId, end_date: dateOffset(5) })] }),
-      ),
-      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(bundle)),
+    await serve(
+      [buildTrip({ id: tripId, end_date: dateOffset(5) })],
+      { [tripId]: bundle },
     );
 
     await tripSyncManager.syncAll();
@@ -276,11 +256,9 @@ describe('tripSyncManager.syncAll — bundle upsert', () => {
     const tripId = 301;
     const bundle = makeBundle(tripId);
 
-    server.use(
-      http.get('/api/trips', () =>
-        HttpResponse.json({ trips: [buildTrip({ id: tripId, end_date: dateOffset(5) })] }),
-      ),
-      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(bundle)),
+    await serve(
+      [buildTrip({ id: tripId, end_date: dateOffset(5) })],
+      { [tripId]: bundle },
     );
 
     const before = Date.now();
@@ -301,11 +279,9 @@ describe('tripSyncManager — file blob caching', () => {
     const tripId = 400;
     const bundle = makeBundle(tripId);
 
-    server.use(
-      http.get('/api/trips', () =>
-        HttpResponse.json({ trips: [buildTrip({ id: tripId, end_date: dateOffset(5) })] }),
-      ),
-      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(bundle)),
+    await serve(
+      [buildTrip({ id: tripId, end_date: dateOffset(5) })],
+      { [tripId]: bundle },
     );
 
     await tripSyncManager.syncAll();
@@ -330,11 +306,9 @@ describe('tripSyncManager — file blob caching', () => {
       files: [photoFile],
     };
 
-    server.use(
-      http.get('/api/trips', () =>
-        HttpResponse.json({ trips: [buildTrip({ id: tripId, end_date: dateOffset(5) })] }),
-      ),
-      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(bundle)),
+    await serve(
+      [buildTrip({ id: tripId, end_date: dateOffset(5) })],
+      { [tripId]: bundle },
     );
 
     await tripSyncManager.syncAll();
@@ -372,10 +346,7 @@ describe('tripSyncManager.syncAll — local calendar dates', () => {
       const trip = buildTrip({ id: tripId, end_date: '2026-08-22' });
       const bundle = { ...makeBundle(tripId), trip };
 
-      server.use(
-        http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
-        http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(bundle)),
-      );
+      await serve([trip], { [tripId]: bundle });
 
       await tripSyncManager.syncAll();
       expect(await offlineDb.trips.get(tripId)).toBeDefined();
@@ -390,17 +361,10 @@ describe('tripSyncManager.syncAll — local calendar dates', () => {
       const tripId = 111;
       const trip = buildTrip({ id: tripId, end_date: '2026-08-22' });
 
-      let bundleCalled = false;
-      server.use(
-        http.get('/api/trips', () => HttpResponse.json({ trips: [trip] })),
-        http.get(`/api/trips/${tripId}/bundle`, () => {
-          bundleCalled = true;
-          return HttpResponse.json({});
-        }),
-      );
+      const bundleSpy = await serve([trip]);
 
       await tripSyncManager.syncAll();
-      expect(bundleCalled).toBe(false);
+      expect(bundleSpy).not.toHaveBeenCalled();
       expect(await offlineDb.trips.get(tripId)).toBeUndefined();
     },
   ));
@@ -415,24 +379,26 @@ describe('tripSyncManager.syncAll — logout while syncing', () => {
     const first = buildTrip({ id: firstId, end_date: dateOffset(5) });
     const second = buildTrip({ id: secondId, end_date: dateOffset(5) });
 
-    let secondBundleCalled = false;
-    server.use(
-      http.get('/api/trips', () => HttpResponse.json({ trips: [first, second] })),
-      http.get(`/api/trips/${firstId}/bundle`, () => {
-        // The user logs out while the first bundle is on the wire.
-        setAuthed(false);
-        return HttpResponse.json({ ...makeBundle(firstId), trip: first });
-      }),
-      http.get(`/api/trips/${secondId}/bundle`, () => {
-        secondBundleCalled = true;
-        return HttpResponse.json({ ...makeBundle(secondId), trip: second });
-      }),
-    );
+    await db.trips.bulkPut([first, second]);
+    // The user logs out while the first bundle is "on the wire". The local
+    // tripsApi.list picks its own ordering, so the logout fires on whichever
+    // bundle lands first — the invariant under test is that nothing after it
+    // is fetched or written once the gate closes.
+    let loggedOut = false;
+    const bundleSpy = vi.spyOn(tripsApi, 'bundle').mockImplementation((id) => {
+      const n = Number(id);
+      const trip = n === firstId ? first : second;
+      loggedOut = true;
+      setAuthed(false);
+      return Promise.resolve({ ...makeBundle(n), trip } as never);
+    });
 
     await tripSyncManager.syncAll();
 
-    expect(secondBundleCalled).toBe(false);
-    expect(await offlineDb.trips.get(secondId)).toBeUndefined();
+    expect(loggedOut).toBe(true);
+    expect(bundleSpy).toHaveBeenCalledTimes(1);
+    // Only the first-fetched trip landed; the gate closed before the next.
+    expect(await offlineDb.trips.count()).toBe(1);
   });
 });
 

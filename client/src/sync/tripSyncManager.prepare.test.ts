@@ -11,6 +11,9 @@ import { setAuthed } from './authGate'
 import { setCacheTiles, setTripOfflineEnabled, _resetOfflinePrefs } from './offlinePrefs'
 import { prefetchPlacesForTrip } from './placePrefetcher'
 import { offlineDb, clearAll, upsertTrip } from '../db/offlineDb'
+import { db } from '../db/panelmintDb'
+import { tripsApi } from '../api/client'
+import { LocalApiError } from '../api/local/helpers'
 import { buildTrip, buildDay, buildPlace, buildTripFile } from '../../tests/helpers/factories'
 import type { Trip, TripFile } from '../types'
 
@@ -45,14 +48,18 @@ function bundleFor(trip: Trip, files: TripFile[] = []) {
   }
 }
 
-function serveTrips(trips: Trip[], bundles: Record<number, unknown>): void {
-  server.use(
-    http.get('/api/trips', () => HttpResponse.json({ trips })),
-    http.get('/api/trips/:id/bundle', ({ params }) => {
-      const bundle = bundles[Number(params.id)]
-      return bundle ? HttpResponse.json(bundle) : HttpResponse.json({ error: 'nope' }, { status: 500 })
-    }),
-  )
+/** tripsApi.list runs for real against panelmint db.trips; bundle() is spied
+ *  because the local aggregate deliberately carries `files: []` — the blob
+ *  caching phase under test needs the wire-shaped bundles the server sent. A
+ *  trip id without a bundle entry answers the same 500 the old handler did. */
+async function serveTrips(trips: Trip[], bundles: Record<number, ReturnType<typeof bundleFor>>): Promise<void> {
+  await db.trips.bulkPut(trips)
+  vi.spyOn(tripsApi, 'bundle').mockImplementation((id) => {
+    const bundle = bundles[Number(id)]
+    return bundle
+      ? Promise.resolve(bundle as never)
+      : Promise.reject(new LocalApiError(500, 'nope'))
+  })
 }
 
 function setOnline(v: boolean): void {
@@ -61,6 +68,10 @@ function setOnline(v: boolean): void {
 
 beforeEach(async () => {
   await clearAll()
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
   tripSyncManager._resetSyncing()
   _resetOfflinePrefs()
   setAuthed(true)
@@ -86,11 +97,10 @@ afterEach(() => {
 describe('tripSyncManager.prepareForOffline — guards', () => {
   it('FE-SYNC-PREP-001: reports why it stopped and hits no endpoint when logged out', async () => {
     setAuthed(false)
-    let called = false
-    server.use(http.get('/api/trips', () => { called = true; return HttpResponse.json({ trips: [] }) }))
+    const listSpy = vi.spyOn(tripsApi, 'list')
 
     expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'skipped', reason: 'signed-out' })
-    expect(called).toBe(false)
+    expect(listSpy).not.toHaveBeenCalled()
   })
 
   it('FE-SYNC-PREP-002: reports that it stopped because the browser is offline', async () => {
@@ -100,7 +110,7 @@ describe('tripSyncManager.prepareForOffline — guards', () => {
 
   it('FE-SYNC-PREP-003: a second concurrent run is refused by the syncing flag', async () => {
     const trip = buildTrip({ id: 600, end_date: dateOffset(4) })
-    serveTrips([trip], { 600: bundleFor(trip) })
+    await serveTrips([trip], { 600: bundleFor(trip) })
 
     const [first, second] = await Promise.all([
       tripSyncManager.prepareForOffline(),
@@ -118,7 +128,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
   it('FE-SYNC-PREP-004: reports every phase in order and returns the trip count', async () => {
     const trip = buildTrip({ id: 601, title: 'Munich', end_date: dateOffset(4) })
     const file = buildTripFile({ id: 900, trip_id: 601, url: '/api/trips/601/files/900/download', mime_type: 'application/pdf' })
-    serveTrips([trip], { 601: bundleFor(trip, [file]) })
+    await serveTrips([trip], { 601: bundleFor(trip, [file]) })
 
     const progress: PrepareProgress[] = []
     const count = await tripSyncManager.prepareForOffline(p => progress.push(p))
@@ -132,7 +142,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
   it('FE-SYNC-PREP-005: awaits the bundle, the blobs and the tiles before resolving', async () => {
     const trip = buildTrip({ id: 602, end_date: dateOffset(4) })
     const file = buildTripFile({ id: 901, trip_id: 602, url: '/api/trips/602/files/901/download', mime_type: 'application/pdf' })
-    serveTrips([trip], { 602: bundleFor(trip, [file]) })
+    await serveTrips([trip], { 602: bundleFor(trip, [file]) })
 
     await tripSyncManager.prepareForOffline()
 
@@ -144,7 +154,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
 
   it('FE-SYNC-PREP-006: forces the tile prefetch so an already-cached bbox is refreshed', async () => {
     const trip = buildTrip({ id: 603, end_date: dateOffset(4) })
-    serveTrips([trip], { 603: bundleFor(trip) })
+    await serveTrips([trip], { 603: bundleFor(trip) })
 
     await tripSyncManager.prepareForOffline()
 
@@ -158,7 +168,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
   it('FE-SYNC-PREP-007: skips the tile phase when the user turned map tiles off', async () => {
     setCacheTiles(false)
     const trip = buildTrip({ id: 604, end_date: dateOffset(4) })
-    serveTrips([trip], { 604: bundleFor(trip) })
+    await serveTrips([trip], { 604: bundleFor(trip) })
 
     const progress: PrepareProgress[] = []
     await tripSyncManager.prepareForOffline(p => progress.push(p))
@@ -176,7 +186,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
 
   it('FE-SYNC-PREP-008: caches the global tags and categories', async () => {
     const trip = buildTrip({ id: 605, end_date: dateOffset(4) })
-    serveTrips([trip], { 605: bundleFor(trip) })
+    await serveTrips([trip], { 605: bundleFor(trip) })
 
     await tripSyncManager.prepareForOffline()
 
@@ -186,7 +196,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
 
   it('FE-SYNC-PREP-009: a failing tag/category fetch does not abort the run', async () => {
     const trip = buildTrip({ id: 606, end_date: dateOffset(4) })
-    serveTrips([trip], { 606: bundleFor(trip) })
+    await serveTrips([trip], { 606: bundleFor(trip) })
     server.use(
       http.get('/api/tags', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
       http.get('/api/categories', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
@@ -199,7 +209,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
   it('FE-SYNC-PREP-010: one broken bundle is logged and the other trips still get prepared', async () => {
     const good = buildTrip({ id: 607, end_date: dateOffset(4) })
     const broken = buildTrip({ id: 608, end_date: dateOffset(4) })
-    serveTrips([broken, good], { 607: bundleFor(good) })
+    await serveTrips([broken, good], { 607: bundleFor(good) })
 
     expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'done', trips: 2 })
     expect(await offlineDb.trips.get(607)).toBeDefined()
@@ -212,7 +222,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
     const excluded = buildTrip({ id: 610, end_date: dateOffset(4) })
     await upsertTrip(excluded)
     setTripOfflineEnabled(610, false)
-    serveTrips([kept, excluded], { 609: bundleFor(kept), 610: bundleFor(excluded) })
+    await serveTrips([kept, excluded], { 609: bundleFor(kept), 610: bundleFor(excluded) })
 
     expect(await tripSyncManager.prepareForOffline()).toEqual({ status: 'done', trips: 1 })
     expect(await offlineDb.trips.get(609)).toBeDefined()
@@ -223,7 +233,7 @@ describe('tripSyncManager.prepareForOffline — full run', () => {
 describe('tripSyncManager — file blob caching', () => {
   async function prepareWithFiles(tripId: number, files: TripFile[]): Promise<void> {
     const trip = buildTrip({ id: tripId, end_date: dateOffset(4) })
-    serveTrips([trip], { [tripId]: bundleFor(trip, files) })
+    await serveTrips([trip], { [tripId]: bundleFor(trip, files) })
     await tripSyncManager.prepareForOffline()
   }
 
@@ -296,7 +306,7 @@ describe('tripSyncManager.syncAll — per-trip failures', () => {
     setCacheTiles(false)
     const good = buildTrip({ id: 619, end_date: dateOffset(4) })
     const broken = buildTrip({ id: 620, end_date: dateOffset(4) })
-    serveTrips([broken, good], { 619: bundleFor(good) })
+    await serveTrips([broken, good], { 619: bundleFor(good) })
 
     await tripSyncManager.syncAll()
 
@@ -321,7 +331,7 @@ describe('tripSyncManager.syncAll — background tile pass', () => {
   it('FE-SYNC-PREP-017: prefetches tiles once the browser goes idle', async () => {
     const idle = stubIdle()
     const trip = buildTrip({ id: 616, end_date: dateOffset(4) })
-    serveTrips([trip], { 616: bundleFor(trip) })
+    await serveTrips([trip], { 616: bundleFor(trip) })
 
     await tripSyncManager.syncAll()
     await new Promise(r => setTimeout(r, 50))
@@ -336,7 +346,7 @@ describe('tripSyncManager.syncAll — background tile pass', () => {
   it('FE-SYNC-PREP-018: a logout between sync and idle time cancels the tile pass', async () => {
     stubIdle()
     const trip = buildTrip({ id: 617, end_date: dateOffset(4) })
-    serveTrips([trip], { 617: bundleFor(trip) })
+    await serveTrips([trip], { 617: bundleFor(trip) })
 
     await tripSyncManager.syncAll()
     setAuthed(false)
@@ -348,7 +358,7 @@ describe('tripSyncManager.syncAll — background tile pass', () => {
   it('FE-SYNC-PREP-019: going offline between sync and idle time cancels the tile pass', async () => {
     stubIdle()
     const trip = buildTrip({ id: 618, end_date: dateOffset(4) })
-    serveTrips([trip], { 618: bundleFor(trip) })
+    await serveTrips([trip], { 618: bundleFor(trip) })
 
     await tripSyncManager.syncAll()
     setOnline(false)

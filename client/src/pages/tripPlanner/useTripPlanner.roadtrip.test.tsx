@@ -333,7 +333,7 @@ beforeEach(() => {
 
   vi.spyOn(authApi, 'getAppConfig').mockResolvedValue({})
   vi.spyOn(healthApi, 'features').mockResolvedValue({ bookingImport: false, aiParsing: false })
-  vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [] })
+  vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [], current_user_id: 1 })
   vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
   vi.spyOn(accommodationsApi, 'create').mockResolvedValue({ id: 7 } as never)
   vi.spyOn(airtrailApi, 'sync').mockResolvedValue({ changed: 0 })

@@ -7,4 +7,5 @@
 // — the import surface callers see never changes. Once every kept domain is
 // swapped, client.ts shrinks to `export * from './local'` and the axios
 // instance is deleted (plan task A9). Conventions: ./README.md.
-export {}
+export { tripsApi } from './trips'
+export { daysApi } from './days'

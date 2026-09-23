@@ -1,15 +1,17 @@
 // FE-COMP-OFFLINETAB-001 to FE-COMP-OFFLINETAB-028
+import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
 import { act, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildTrip, buildUser } from '../../../tests/helpers/factories';
-import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { _resetNetworkMode } from '../../sync/networkMode';
 import { _resetOfflinePrefs, getOfflinePrefs } from '../../sync/offlinePrefs';
 import type { QueuedMutation, SyncMeta } from '../../db/offlineDb';
+import { db } from '../../db/panelmintDb';
+import { tripsApi } from '../../api/client';
+import { LocalApiError } from '../../api/local/helpers';
 import type { PrepareProgress } from '../../sync/tripSyncManager';
 import type { Trip } from '../../types';
 import OfflineTab from './OfflineTab';
@@ -121,7 +123,7 @@ const card = (title: string) => screen.getByText(title).closest('div.rounded-xl'
 /** The Stat tile that carries the given label. */
 const stat = (label: string) => screen.getByText(label).parentElement as HTMLElement;
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
   resetAllStores();
   _resetNetworkMode();
@@ -146,7 +148,12 @@ beforeEach(() => {
   h.resolveKeepMine.mockResolvedValue(undefined);
   h.resolveKeepServer.mockResolvedValue(undefined);
 
-  server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [paris, tokyo] })));
+  // tripsApi.list is local now — the "API" trip list is panelmint db.trips.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await db.trips.bulkPut([paris, tokyo]);
 });
 
 afterEach(() => {
@@ -438,7 +445,8 @@ describe('OfflineTab', () => {
   it('FE-COMP-OFFLINETAB-025: an ongoing trip is stored without needing a pin', async () => {
     const soon = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
     const ongoing = buildTrip({ id: 7, title: 'Lisbon', start_date: '2025-01-01', end_date: soon });
-    server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [ongoing] })));
+    await db.trips.clear();
+    await db.trips.put(ongoing);
     render(<OfflineTab />);
 
     const toggle = await screen.findByRole('button', { name: 'Lisbon' });
@@ -480,7 +488,7 @@ describe('OfflineTab', () => {
   });
 
   it('FE-COMP-OFFLINETAB-020: the per-trip section disappears when there are no trips at all', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [] })));
+    await db.trips.clear();
     render(<OfflineTab />);
 
     await screen.findByText('No trips cached yet. Connect to the internet to sync.');
@@ -489,7 +497,7 @@ describe('OfflineTab', () => {
   });
 
   it('FE-COMP-OFFLINETAB-021: a failing trips API falls back to the Dexie copy', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'down' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new LocalApiError(500, 'down'));
     h.tripsToArray.mockResolvedValue([tokyo, paris]);
     render(<OfflineTab />);
 
@@ -502,7 +510,7 @@ describe('OfflineTab', () => {
   });
 
   it('FE-COMP-OFFLINETAB-022: when both the API and Dexie fail the trip list is simply empty', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'down' }, { status: 500 })));
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new LocalApiError(500, 'down'));
     h.tripsToArray.mockRejectedValue(new Error('dexie is gone'));
     render(<OfflineTab />);
 

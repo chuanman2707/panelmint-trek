@@ -8,7 +8,12 @@
 // same bug live on 7 other endpoints — including the two that accept 500 MB (documents
 // and backup restore). Every multipart call now goes through postMultipart(), so this
 // suite pins ALL of them, not just the covers.
-import { describe, it, expect, vi, afterEach } from 'vitest'
+//
+// tripsApi.uploadCover is the exception: it is the Dexie-backed local adapter
+// and stores the cover inline as a data: URL — no HTTP request exists to time
+// out. Its case asserts that instead.
+import 'fake-indexeddb/auto'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import {
   apiClient,
   authApi,
@@ -22,8 +27,18 @@ import {
   backupApi,
 } from './client'
 import { collectionsApi } from './collections'
+import { db } from '../db/panelmintDb'
+import { buildTrip } from '../../tests/helpers/factories'
 
 describe('every multipart upload disables the global request timeout', () => {
+  beforeEach(async () => {
+    await db.transaction('rw', db.tables, async () => {
+      for (const t of db.tables) await t.clear()
+    })
+    await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
+    await db.trips.put(buildTrip({ id: 7 }))
+  })
+
   afterEach(() => {
     vi.restoreAllMocks()
   })
@@ -38,7 +53,6 @@ describe('every multipart upload disables the global request timeout', () => {
   // [id, description, invoke, expected url]
   const cases: [string, string, () => Promise<unknown>, string][] = [
     ['FE-API-UPLOAD-001', 'authApi.uploadAvatar (5 MB)', () => authApi.uploadAvatar(fd()), '/auth/avatar'],
-    ['FE-API-UPLOAD-002', 'tripsApi.uploadCover (20 MB)', () => tripsApi.uploadCover(7, fd()), '/trips/7/cover'],
     ['FE-API-UPLOAD-003', 'placesApi.importGpx (10 MB)', () => placesApi.importGpx(7, file()), '/trips/7/places/import/gpx'],
     ['FE-API-UPLOAD-004', 'placesApi.importMapFile (10 MB)', () => placesApi.importMapFile(7, file()), '/trips/7/places/import/map'],
     ['FE-API-UPLOAD-005', 'adminApi.pluginUpload (50 MB)', () => adminApi.pluginUpload(file()), '/admin/plugins/upload'],
@@ -62,6 +76,16 @@ describe('every multipart upload disables the global request timeout', () => {
       )
     })
   }
+
+  it('FE-API-UPLOAD-002: tripsApi.uploadCover stores the cover locally (no request to time out)', async () => {
+    const post = spyPost()
+    const coverFd = new FormData()
+    coverFd.append('cover', new File(['x'], 'cover.png', { type: 'image/png' }))
+    const res = await tripsApi.uploadCover(7, coverFd)
+    expect(res.cover_image).toMatch(/^data:/)
+    expect((await db.trips.get(7))?.cover_image).toBe(res.cover_image)
+    expect(post).not.toHaveBeenCalled()
+  })
 
   it('FE-API-UPLOAD-013: reservationsApi booking import posts with timeout 0', async () => {
     const post = spyPost()

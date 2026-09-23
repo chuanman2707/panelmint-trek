@@ -1,15 +1,19 @@
+import 'fake-indexeddb/auto';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { render, screen, fireEvent, waitFor, within } from '../../tests/helpers/render';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildTrip, buildSettings } from '../../tests/helpers/factories';
+import { buildUser, buildTrip, buildPlace, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useAddonStore } from '../store/addonStore';
 import { usePluginStore } from '../store/pluginStore';
 import DashboardPage from './DashboardPage';
+import { db, type LocalTripMember } from '../db/panelmintDb';
+import { tripsApi } from '../api/client';
+import type { Trip } from '../types';
 
 // FE-PAGE-DESKDASH-001 onwards
 
@@ -44,13 +48,11 @@ function installMatchMedia(): void {
 
 const TRIP = buildTrip({ id: 101, title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });
 
-function onlyTrips(trips: unknown[]) {
-  server.use(
-    http.get('/api/trips', ({ request }) => {
-      const url = new URL(request.url);
-      return HttpResponse.json({ trips: url.searchParams.get('archived') ? [] : trips });
-    }),
-  );
+/** tripsApi is the local adapter now — the trip list is read from the
+ *  panelmint Dexie db, so the fixture rows are seeded there. */
+async function onlyTrips(trips: Trip[]) {
+  await db.trips.clear();
+  if (trips.length > 0) await db.trips.bulkPut(trips);
 }
 
 function stats(body: Record<string, unknown>) {
@@ -61,15 +63,24 @@ function appearance(dashboard: Record<string, unknown>) {
   seedStore(useSettingsStore, { settings: buildSettings({ appearance: { dashboard } } as never) });
 }
 
-beforeEach(() => {
-  // Pinned inside the fixture trip's window so the spotlight/grid split is stable.
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+beforeEach(async () => {
+  // Pinned inside the fixture trip's window so the spotlight/grid split is
+  // stable. setImmediate stays real — fake-indexeddb delivers IDB results
+  // through it, and faking it kills Dexie transactions.
+  vi.useFakeTimers({
+    shouldAdvanceTime: true,
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+  });
   vi.setSystemTime(new Date('2026-07-05T12:00:00Z'));
   installMatchMedia();
   resetAllStores();
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
   usePluginStore.setState({ plugins: [], loaded: true });
-  onlyTrips([TRIP]);
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await onlyTrips([TRIP]);
   stats({ totalTrips: 3, totalDays: 21, totalPlaces: 9, totalDistanceKm: 0, countries: [] });
   server.use(
     http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([
@@ -77,7 +88,6 @@ beforeEach(() => {
     ])),
     http.get('/api/reservations/upcoming', () => HttpResponse.json({ reservations: [] })),
     http.get('/api/addons/collections', () => HttpResponse.json({ collections: [] })),
-    http.get('/api/trips/:id/bundle', () => HttpResponse.json({ members: [], places: [] })),
   );
 });
 
@@ -243,25 +253,29 @@ describe('DashboardPage (desktop)', () => {
   });
 
   it('FE-PAGE-DESKDASH-012: the boarding pass shows buddies, an overflow badge and places', async () => {
-    server.use(http.get('/api/trips/:id/bundle', () => HttpResponse.json({
-      members: [
-        { id: 1, username: 'Maurice Boe', avatar_url: '/uploads/avatars/1.jpg' },
-        { id: 2, username: 'Julien' },
-        { id: 3, username: 'Ada Lovelace' },
-        { id: 4, username: 'Bo' },
-        { id: 5, username: 'Eve' },
-      ],
-      places: [
-        { id: 1, name: 'Louvre', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
-        { id: 2, name: 'Eiffel', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
-        { id: 3, name: 'Orsay', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
-        { id: 4, name: 'Sacre', image_url: null, lat: 1, lng: 2, google_place_id: null, osm_id: null },
-      ],
-    })));
+    // The bundle is local now: members = [owner, ...tripMembers rows] and
+    // memberWire emits avatar_url: null, so buddies render as initials. Owner
+    // 'Me' + 4 member rows = 5 chips → 4 shown + a '+1' overflow.
+    const roster = [
+      { id: 2, name: 'Maurice Boe' },
+      { id: 3, name: 'Julien' },
+      { id: 4, name: 'Ada Lovelace' },
+      { id: 5, name: 'Bo' },
+    ];
+    await db.localUsers.bulkPut(roster.map(u => ({ ...u, is_self: 0 as const })));
+    await db.tripMembers.bulkPut(roster.map(u => ({
+      tripId: TRIP.id, id: u.id, username: u.name, role: 'member',
+      added_at: '2026-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true,
+    })) as LocalTripMember[]);
+    await db.places.bulkPut(
+      ['Louvre', 'Eiffel', 'Orsay', 'Sacre'].map((name, i) =>
+        buildPlace({ id: 10 + i, trip_id: TRIP.id, name })),
+    );
+
     const { container } = render(<DashboardPage />);
 
     await waitFor(() => expect(container.querySelector('.buddy-more')).toHaveTextContent('+1'));
-    expect(screen.getByAltText('Maurice Boe')).toBeInTheDocument();
+    expect(screen.getByText('MB')).toBeInTheDocument();
     expect(screen.getByText('JU')).toBeInTheDocument();
     expect(screen.getByText('AL')).toBeInTheDocument();
     expect(container.querySelectorAll('.place-more')[0]).toHaveTextContent('+1');
@@ -294,14 +308,14 @@ describe('DashboardPage (desktop)', () => {
   });
 
   it('FE-PAGE-DESKDASH-016: a trip card without dates says the dates are open', async () => {
-    onlyTrips([TRIP, buildTrip({ id: 102, title: 'Someday Iceland', start_date: null, end_date: null })]);
+    await onlyTrips([TRIP, buildTrip({ id: 102, title: 'Someday Iceland', start_date: null, end_date: null })]);
     render(<DashboardPage />);
 
     expect(await screen.findByText('Open dates')).toBeInTheDocument();
   });
 
   it('FE-PAGE-DESKDASH-018: a malformed date renders a dash rather than crashing', async () => {
-    onlyTrips([TRIP, buildTrip({ id: 103, title: 'Broken Dates', start_date: '2027-03-01', end_date: 'oops' })]);
+    await onlyTrips([TRIP, buildTrip({ id: 103, title: 'Broken Dates', start_date: '2027-03-01', end_date: 'oops' })]);
     const { container } = render(<DashboardPage />);
 
     await screen.findByText('Broken Dates');
@@ -311,7 +325,7 @@ describe('DashboardPage (desktop)', () => {
   });
 
   it('FE-PAGE-DESKDASH-019: the grid card actions edit, duplicate and delete the trip', async () => {
-    onlyTrips([TRIP, buildTrip({ id: 104, title: 'Berlin', start_date: '2027-03-01', end_date: '2027-03-05' })]);
+    await onlyTrips([TRIP, buildTrip({ id: 104, title: 'Berlin', start_date: '2027-03-01', end_date: '2027-03-05' })]);
     render(<DashboardPage />);
 
     const card = (await screen.findByText('Berlin')).closest('.trip-card') as HTMLElement;
@@ -325,7 +339,7 @@ describe('DashboardPage (desktop)', () => {
   });
 
   it('FE-PAGE-DESKDASH-020: the grid card delete opens the confirm dialog', async () => {
-    onlyTrips([TRIP, buildTrip({ id: 104, title: 'Berlin', start_date: '2027-03-01', end_date: '2027-03-05' })]);
+    await onlyTrips([TRIP, buildTrip({ id: 104, title: 'Berlin', start_date: '2027-03-01', end_date: '2027-03-05' })]);
     render(<DashboardPage />);
 
     const card = (await screen.findByText('Berlin')).closest('.trip-card') as HTMLElement;
@@ -425,13 +439,16 @@ describe('DashboardPage (desktop)', () => {
   });
 
   it('FE-PAGE-DESKDASH-029: the trip grid stands in for itself while the trips load', async () => {
+    // The trip list is a Dexie read now — hold the adapter's list() the same
+    // way the msw handler held the HTTP response, then let it through.
     let release: (() => void) | null = null;
     const held = new Promise<void>((resolve) => { release = resolve; });
-    server.use(http.get('/api/trips', async ({ request }) => {
+    const realList = tripsApi.list.bind(tripsApi);
+    vi.spyOn(tripsApi, 'list').mockImplementation(async (params) => {
       await held;
-      const url = new URL(request.url);
-      return HttpResponse.json({ trips: url.searchParams.get('archived') ? [] : [buildTrip({ id: 101, title: 'Kyoto' })] });
-    }));
+      return realList(params);
+    });
+    await onlyTrips([buildTrip({ id: 101, title: 'Kyoto' })]);
 
     const { container } = render(<DashboardPage />);
 

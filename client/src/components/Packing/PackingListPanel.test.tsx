@@ -1,4 +1,5 @@
 // FE-COMP-PACKING-001 to FE-COMP-PACKING-020
+import 'fake-indexeddb/auto';
 import { vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -9,6 +10,18 @@ import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildAdmin, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
 import PackingListPanel, { itemWeight } from './PackingListPanel';
+import { db, type LocalTripMember } from '../../db/panelmintDb';
+
+/** getMembers is local: a member is a trip_membership row (the roster falls
+ *  back to the row's username when no localUsers entry exists). */
+async function withMembers(members: { id: number; username: string }[]): Promise<void> {
+  for (const m of members) {
+    await db.tripMembers.put({
+      tripId: 1, id: m.id, username: m.username, role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'owner', is_guest: false,
+    } as LocalTripMember);
+  }
+}
 
 describe('itemWeight (bag total weight calc)', () => {
   it('FE-COMP-PACKING-030: multiplies unit weight by quantity', () => {
@@ -24,13 +37,16 @@ describe('itemWeight (bag total weight calc)', () => {
   });
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
+  // The roster is Dexie now — owner 'owner' (self, id 1) on trip 1, no members.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'owner', is_self: 1 });
+  await db.trips.put(buildTrip({ id: 1, user_id: 1 }));
   // Side-effect APIs PackingListPanel calls on mount
   server.use(
-    http.get('/api/trips/:id/members', () =>
-      HttpResponse.json({ owner: null, members: [], current_user_id: 1 })
-    ),
     http.get('/api/trips/:id/packing/category-assignees', () =>
       HttpResponse.json({ assignees: {} })
     ),
@@ -423,15 +439,7 @@ describe('PackingListPanel', () => {
   });
 
   it('FE-COMP-PACKING-032: category assignee button shown when trip members exist', async () => {
-    server.use(
-      http.get('/api/trips/:id/members', () =>
-        HttpResponse.json({
-          owner: { id: 1, username: 'owner', avatar_url: null },
-          members: [{ id: 2, username: 'alice', avatar_url: null }],
-          current_user_id: 1,
-        })
-      )
-    );
+    await withMembers([{ id: 2, username: 'alice' }]);
     const item = buildPackingItem({ name: 'Passport', category: 'Documents' });
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
@@ -508,15 +516,7 @@ describe('PackingListPanel', () => {
   });
 
   it('FE-COMP-PACKING-036: assignee dropdown opens and lists members when clicked', async () => {
-    server.use(
-      http.get('/api/trips/:id/members', () =>
-        HttpResponse.json({
-          owner: { id: 1, username: 'owner', avatar_url: null },
-          members: [{ id: 2, username: 'alice', avatar_url: null }],
-          current_user_id: 1,
-        })
-      )
-    );
+    await withMembers([{ id: 2, username: 'alice' }]);
     const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
@@ -1074,14 +1074,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-059: clicking member in UserPlus dropdown calls setCategoryAssignees', async () => {
     let assignBody: Record<string, unknown> | null = null;
+    await withMembers([{ id: 2, username: 'alice' }]);
     server.use(
-      http.get('/api/trips/:id/members', () =>
-        HttpResponse.json({
-          owner: { id: 1, username: 'owner', avatar_url: null },
-          members: [{ id: 2, username: 'alice', avatar_url: null }],
-          current_user_id: 1,
-        })
-      ),
       http.put('/api/trips/1/packing/category-assignees/:cat', async ({ request }) => {
         assignBody = await request.json() as Record<string, unknown>;
         return HttpResponse.json({ assignees: [{ user_id: 2, username: 'alice', avatar: null }] });
@@ -1106,16 +1100,10 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-060: clicking assignee chip removes assignee via setCategoryAssignees', async () => {
     let putBody: Record<string, unknown> | null = null;
+    await withMembers([{ id: 2, username: 'alice' }]);
     server.use(
       http.get('/api/trips/:id/packing/category-assignees', () =>
         HttpResponse.json({ assignees: { Electronics: [{ user_id: 2, username: 'alice', avatar: null }] } })
-      ),
-      http.get('/api/trips/:id/members', () =>
-        HttpResponse.json({
-          owner: { id: 1, username: 'owner', avatar_url: null },
-          members: [{ id: 2, username: 'alice', avatar_url: null }],
-          current_user_id: 1,
-        })
       ),
       http.put('/api/trips/1/packing/category-assignees/:cat', async ({ request }) => {
         putBody = await request.json() as Record<string, unknown>;
@@ -1377,14 +1365,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-066: BagCard Plus button opens user picker with trip members', async () => {
     const user = userEvent.setup();
+    await withMembers([{ id: 2, username: 'bob' }]);
     server.use(
-      http.get('/api/trips/:id/members', () =>
-        HttpResponse.json({
-          owner: { id: 1, username: 'owner', avatar_url: null },
-          members: [{ id: 2, username: 'bob', avatar_url: null }],
-          current_user_id: 1,
-        })
-      ),
       http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 12, name: 'Day Pack', color: '#ec4899', weight_limit_grams: null, members: [] }] })
@@ -1418,14 +1400,8 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-067: BagCard user picker member click calls setBagMembers', async () => {
     let membersBody: Record<string, unknown> | null = null;
+    await withMembers([{ id: 3, username: 'carol' }]);
     server.use(
-      http.get('/api/trips/:id/members', () =>
-        HttpResponse.json({
-          owner: { id: 1, username: 'owner', avatar_url: null },
-          members: [{ id: 3, username: 'carol', avatar_url: null }],
-          current_user_id: 1,
-        })
-      ),
       http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
       http.get('/api/trips/:id/packing/bags', () =>
         HttpResponse.json({ bags: [{ id: 13, name: 'Weekend Bag', color: '#f97316', weight_limit_grams: null, members: [] }] })

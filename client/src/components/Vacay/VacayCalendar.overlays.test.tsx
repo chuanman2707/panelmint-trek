@@ -1,14 +1,17 @@
 // FE-COMP-VCYCAL-001 to FE-COMP-VCYCAL-010
 // Covers what the mocked month card in VacayCalendar.test.tsx cannot reach: the
 // trip overlay, the per-day maps handed down to the cards, and the hover tooltip.
+import 'fake-indexeddb/auto'
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { http, HttpResponse } from 'msw'
 import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render'
-import { server } from '../../../tests/helpers/msw/server'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { useVacayStore } from '../../store/vacayStore'
 import VacayCalendar from './VacayCalendar'
+import { db } from '../../db/panelmintDb'
+import { tripsApi } from '../../api/client'
+import { LocalApiError } from '../../api/local/helpers'
+import { buildTrip } from '../../../tests/helpers/factories'
 import type { HolidaysMap, VacayEntry, VacayPlan } from '../../types'
 
 interface MonthCardStubProps {
@@ -52,8 +55,10 @@ function buildPlan(over: Partial<VacayPlan> = {}): VacayPlan {
   }
 }
 
-function tripsRespond(trips: { start_date?: string | null; end_date?: string | null }[]) {
-  server.use(http.get('/api/trips', () => HttpResponse.json({ trips })))
+/** tripsApi.list is local — trip rows for the overlay live in db.trips. */
+async function tripsRespond(trips: { start_date?: string | null; end_date?: string | null }[]) {
+  await db.trips.clear()
+  await db.trips.bulkPut(trips.map((t, i) => buildTrip({ id: 10 + i, user_id: 1, ...t })))
 }
 
 const schoolHolidays: HolidaysMap = {
@@ -63,9 +68,12 @@ const schoolHolidays: HolidaysMap = {
   ],
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores()
-  tripsRespond([])
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
   useVacayStore.setState({ selectedYear: 2026, plan: buildPlan() })
 })
 
@@ -76,7 +84,7 @@ function cardProp(name: string): unknown {
 
 describe('VacayCalendar overlays', () => {
   it('FE-COMP-VCYCAL-001: collects trip days inside the window and skips open-ended trips', async () => {
-    tripsRespond([
+    await tripsRespond([
       { start_date: '2026-03-30', end_date: '2026-04-01' },
       { start_date: '2026-05-01', end_date: null },
       { start_date: '2025-12-31', end_date: '2025-12-31' },
@@ -87,7 +95,7 @@ describe('VacayCalendar overlays', () => {
   })
 
   it('FE-COMP-VCYCAL-002: a failing trip list leaves the overlay empty', async () => {
-    server.use(http.get('/api/trips', () => HttpResponse.json({ error: 'boom' }, { status: 500 })))
+    vi.spyOn(tripsApi, 'list').mockRejectedValue(new LocalApiError(500, 'boom'))
     render(<VacayCalendar />)
 
     await waitFor(() => expect(cardProp('data-trips')).toEqual([]))

@@ -32,7 +32,22 @@ export async function nextId<T extends { id?: number }>(
   table: Table<T, number>,
 ): Promise<number> {
   const last = await table.orderBy('id').last()
-  const next = Math.max(last?.id ?? 0, allocated.get(table.name) ?? 0) + 1
-  allocated.set(table.name, next)
-  return next
+  return reserveIds(table.name, last?.id ?? 0, 1)[0]
+}
+
+/**
+ * Reserve `count` ids for `name` synchronously, sharing the same monotonic
+ * session map as `nextId`. `name` is a table name for table-backed rows; the
+ * Dexie seam also uses it for embedded collections that have no table of their
+ * own (`'days.assignments'`, `'reservations.endpoints'`, …) so those ids stay
+ * unique across the whole parent table.
+ *
+ * `maxStoredId` is the highest id currently persisted (or already loaded in
+ * the caller's snapshot) — the caller's transaction is what makes the result
+ * collision-safe, exactly like `nextId`.
+ */
+export function reserveIds(name: string, maxStoredId: number, count = 1): number[] {
+  const start = Math.max(maxStoredId, allocated.get(name) ?? 0)
+  allocated.set(name, start + count)
+  return Array.from({ length: count }, (_, i) => start + i + 1)
 }
