@@ -295,7 +295,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
           <h2 className="text-subtitle font-semibold tracking-tight text-content">{t('admin.addons.title')}</h2>
           <p className="mt-1 flex flex-wrap items-center gap-1 text-caption text-content-muted">
             {t('admin.addons.subtitleBefore')}
-            <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" style={{ height: 11, verticalAlign: 'middle', opacity: 0.7 }} />
+            <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="PanelMint" style={{ height: 11, verticalAlign: 'middle', opacity: 0.7 }} />
             {t('admin.addons.subtitleAfter')}
           </p>
         </div>

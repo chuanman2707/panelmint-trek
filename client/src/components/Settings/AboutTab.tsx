@@ -175,7 +175,7 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <a
-          href="https://github.com/liketrek/TREK/issues/new?template=bug_report.yml"
+          href="https://github.com/chuanman2707/panelmint-trek/issues"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -209,7 +209,7 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           <ExternalLink size={14} className="ml-auto flex-shrink-0 text-content-faint" />
         </a>
         <a
-          href="https://github.com/liketrek/TREK/discussions/new?category=feature-requests"
+          href="https://github.com/chuanman2707/panelmint-trek/issues"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -285,7 +285,7 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           bug-report links go; this does not. */}
       {managed && (
         <a
-          href="https://github.com/liketrek/TREK"
+          href="https://github.com/chuanman2707/panelmint-trek"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-4 overflow-hidden rounded-xl border border-edge bg-surface-card px-5 py-4 no-underline"

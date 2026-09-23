@@ -347,7 +347,7 @@ export default function DemoBanner(): React.ReactElement | null {
             }}
           >
             {t.titleBefore}
-            <img src="/text-dark.svg" alt="TREK" style={{ height: 18 }} />
+            <img src="/text-dark.svg" alt="PanelMint" style={{ height: 18 }} />
             {t.titleAfter}
           </h2>
         </div>

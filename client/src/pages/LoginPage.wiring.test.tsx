@@ -110,7 +110,7 @@ describe('LoginPage — takeoff', () => {
 
     expect(document.querySelector('.takeoff-overlay')).toBeInTheDocument();
     expect(screen.getByTestId('login-world')).toHaveAttribute('data-variant', 'takeoff');
-    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/logo-light.svg');
+    expect(screen.getByAltText('PanelMint')).toHaveAttribute('src', '/logo-light.svg');
     expect(screen.queryByPlaceholderText(EMAIL_PLACEHOLDER)).toBeNull();
   });
 });
