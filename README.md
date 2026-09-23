@@ -1,3 +1,7 @@
+> **PanelMint** is a fork of [TREK](https://github.com/liketrek/TREK) (AGPL-3.0),
+> rebranded and operated as the trip planner behind [panelmint.com](https://panelmint.com).
+> Pinned to upstream release `v4.3.1`. All modifications live in this public repo.
+
 <div align="center">
 
 <picture>
