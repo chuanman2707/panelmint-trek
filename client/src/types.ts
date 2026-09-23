@@ -23,6 +23,7 @@ import type {
   BudgetItem,
   BudgetItemMember,
   BudgetItemReceipt,
+  BudgetSettlement,
   Reservation,
   ReservationEndpoint,
   Accommodation,
@@ -47,6 +48,7 @@ export type {
   BudgetItem,
   BudgetItemMember,
   BudgetItemReceipt,
+  BudgetSettlement,
   Reservation,
   ReservationEndpoint,
   Accommodation,
@@ -549,4 +551,55 @@ export interface MergedItem {
   type: 'assignment' | 'note' | 'place' | 'transport'
   sortKey: number
   data: Assignment | DayNote | Reservation
+}
+
+// ── PanelMint local-database rows ────────────────────────────────────────────
+// Types for the `panelmint` Dexie database (src/db/panelmintDb.ts) — the system
+// of record now that there is no server. Junction rows mirror the columns of
+// the server tables they replace (server/src/db/schema.ts / migrations.ts), so
+// ported code maps onto them field-for-field; snake_case is deliberate.
+
+/** The local roster: the seeded self profile plus named guests created in the
+ *  member/traveler/payer pickers. `is_self` marks the single self row (id 1)
+ *  the way the server's users table marked the account owner. */
+export interface LocalUser {
+  id: number
+  name: string
+  is_self: 0 | 1
+}
+
+/** packing_bag_members — PRIMARY KEY (bag_id, user_id), no surrogate id. */
+export interface PackingBagMemberRow {
+  bag_id: number
+  user_id: number
+}
+
+/** packing_category_assignees — UNIQUE(trip_id, category_name, user_id). */
+export interface PackingCategoryAssigneeRow {
+  id: number
+  trip_id: number
+  category_name: string
+  user_id: number
+}
+
+/** todo_category_assignees — UNIQUE(trip_id, category_name, user_id). */
+export interface TodoCategoryAssigneeRow {
+  id: number
+  trip_id: number
+  category_name: string
+  user_id: number
+}
+
+/** reservation_travelers — UNIQUE(reservation_id, user_id). */
+export interface ReservationTravelerRow {
+  id: number
+  reservation_id: number
+  user_id: number
+}
+
+/** assignment_participants — UNIQUE(assignment_id, user_id). */
+export interface AssignmentParticipantRow {
+  id: number
+  assignment_id: number
+  user_id: number
 }
