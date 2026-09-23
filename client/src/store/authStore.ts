@@ -13,7 +13,6 @@ import { useSystemNoticeStore } from './systemNoticeStore.js'
 import { clearAppearanceSnapshot } from '../theme/applyAppearance'
 import { clearAllPluginSessions } from './pluginStore'
 import { forgetStartDestination } from '../utils/startDestination'
-import { forgetServerLanguage } from './settingsStore'
 import { markSignedOut, clearSignedOut } from '../utils/signedOut'
 
 interface AuthResponse {
@@ -255,10 +254,6 @@ export const useAuthStore = create<AuthState>()(
     // And the startup-destination mirror, or the next account on this browser
     // gets bounced into a trip it may not even be able to see.
     forgetStartDestination()
-    // Likewise the language mirror: the login page only overrides it when the
-    // browser language is one TREK ships, so otherwise the next user here stays
-    // in the previous account's language, launch after launch.
-    forgetServerLanguage()
     // And work-offline, for the same reason with sharper teeth: the switch lives
     // in localStorage, step 6 below deletes the offline database it reads from,
     // and the next account would come up believing it is offline over a working

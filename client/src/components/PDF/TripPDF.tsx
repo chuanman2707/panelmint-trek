@@ -279,10 +279,9 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
   // when there is no WebGL, no network, or a style that will not load.
   const mapFrame = { width: 720, height: 420, formatDistance: (km: number) => formatDistance(km, unit) }
   const tripMapSvg = tripRoute
-    ? (await renderTripMapImage(tripRoute.days, {
-      ...mapFrame,
-      style: useSettingsStore.getState().settings.maplibre_style,
-    })) ?? buildTripMapSvg(tripRoute.days, mapFrame)
+    // No style override: the maplibre_style setting was pruned with the GL
+    // renderer, so the renderer's built-in default style applies.
+    ? (await renderTripMapImage(tripRoute.days, mapFrame)) ?? buildTripMapSvg(tripRoute.days, mapFrame)
     : null
   // The other way to end up mapless, and the one that is not a failure: nothing in the
   // trip routed. Only worth saying when there were stops to route — a trip nobody has

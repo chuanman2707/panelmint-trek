@@ -20,7 +20,7 @@ import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
-import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
+import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider, type LegacyGlSettings } from './glProviders'
 import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -714,9 +714,11 @@ export function MapViewGL({
   onMapReady,
 }: Props) {
   const { t } = useTranslation()
-  const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
-  const rawMaplibreStyle = useSettingsStore(s => s.settings.maplibre_style || '')
-  const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
+  // The mapbox_*/maplibre_* keys are no longer on Settings — read through the
+  // legacy shape so this dead module keeps compiling until Task 19 removes it.
+  const rawMapboxStyle = useSettingsStore(s => (s.settings as LegacyGlSettings).mapbox_style || MAPBOX_DEFAULT_STYLE)
+  const rawMaplibreStyle = useSettingsStore(s => (s.settings as LegacyGlSettings).maplibre_style || '')
+  const mapboxToken = useSettingsStore(s => (s.settings as LegacyGlSettings).mapbox_access_token || '')
   // The same stored choice the Leaflet map reads, so the two renderers agree.
   const baseLayer = useSettingsStore(s => s.settings.map_base_layer) || 'default'
   const updateSetting = useSettingsStore(s => s.updateSetting)
@@ -726,8 +728,8 @@ export function MapViewGL({
     // is logged there rather than blocking the switch.
     updateSetting('map_base_layer', isSatellite ? 'default' : 'satellite').catch(() => {})
   }, [isSatellite, updateSetting])
-  const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
-  const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
+  const mapbox3d = useSettingsStore(s => (s.settings as LegacyGlSettings).mapbox_3d_enabled !== false)
+  const mapboxQuality = useSettingsStore(s => (s.settings as LegacyGlSettings).mapbox_quality_mode === true)
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'

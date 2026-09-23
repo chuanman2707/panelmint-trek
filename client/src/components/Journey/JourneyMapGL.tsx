@@ -2,7 +2,7 @@ import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'r
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
-import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
+import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider, type LegacyGlSettings } from '../Map/glProviders'
 import type { JourneyTrack } from '@trek/shared'
 import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
 
@@ -138,11 +138,13 @@ function JourneyMapGL(
   const popupItemIdRef = useRef<string | null>(null)
   const stableTrail = trail || EMPTY_TRAIL
   const stableTracks = tracks || EMPTY_TRACKS
-  const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
-  const rawMaplibreStyle = useSettingsStore(s => s.settings.maplibre_style || '')
-  const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
-  const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
-  const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
+  // Dead keys pruned from Settings — read through the legacy shape until
+  // Task 19 removes this renderer (see MapViewAuto).
+  const rawMapboxStyle = useSettingsStore(s => (s.settings as LegacyGlSettings).mapbox_style || MAPBOX_DEFAULT_STYLE)
+  const rawMaplibreStyle = useSettingsStore(s => (s.settings as LegacyGlSettings).maplibre_style || '')
+  const mapboxToken = useSettingsStore(s => (s.settings as LegacyGlSettings).mapbox_access_token || '')
+  const mapbox3d = useSettingsStore(s => (s.settings as LegacyGlSettings).mapbox_3d_enabled !== false)
+  const mapboxQuality = useSettingsStore(s => (s.settings as LegacyGlSettings).mapbox_quality_mode === true)
   const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)

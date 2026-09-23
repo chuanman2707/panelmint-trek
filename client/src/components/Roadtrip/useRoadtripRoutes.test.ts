@@ -1,6 +1,7 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { Assignment, AssignmentsMap, Day, Settings } from '../../types'
+import type { RoadtripPreferences } from '@trek/shared'
 
 // Hoisted together with the mock: the module factory runs before the file body, so a
 // class declared down there would not exist yet when the hook does its `instanceof`.
@@ -89,7 +90,9 @@ afterEach(() => {
 
 describe('automatic daily travel times', () => {
   beforeEach(() => {
-    useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_day_start: '08:00', roadtrip_day_end: '18:00' } })
+    // The roadtrip_* keys are RoadtripPreferences, funnelled through the
+    // settings store by the useRoadtripSettings mock below.
+    useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_day_start: '08:00', roadtrip_day_end: '18:00' } as Settings })
     calculateRouteWithLegs.mockResolvedValue({ ...routed(1), duration: 43200, legs: [{ ...routed(1).legs[0], duration: 43200 }] })
   })
   afterEach(() => act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS } })))
@@ -581,7 +584,7 @@ describe('useRoadtripRoutes', () => {
     })
 
     /** The hook reads the switch off the settings store, the way the limits card writes it. */
-    const setting = (over: Partial<Settings>): void => {
+    const setting = (over: Partial<Settings & RoadtripPreferences>): void => {
       act(() => { useSettingsStore.setState(s => ({ settings: { ...s.settings, ...over } })) })
     }
 
@@ -834,7 +837,7 @@ describe('a visit End on the road trip', () => {
   })
 
   it('FE-ROADTRIP-ROUTES-034: daily travel times spend the hours until the End as well', async () => {
-    act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_day_start: '08:00', roadtrip_day_end: '20:00' } }))
+    act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_day_start: '08:00', roadtrip_day_end: '20:00' } as Settings }))
     const d = await drive([
       { id: 1, at: HAMBURG, time: '09:00', dwell: 0 },
       { id: 2, at: LUENEBURG, end: '14:00', dwell: 30 },
@@ -913,7 +916,7 @@ describe('a booking the traveller rides (#2428)', () => {
 
   it('FE-ROADTRIP-ROUTES-041: a ride landing on a later day seams two cards, and with connected days the ride is the join', async () => {
     calculateRouteWithLegs.mockImplementation(async (points: { lat: number; lng: number }[]) => hourly(points))
-    act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_connect_days: true } }))
+    act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_connect_days: true } as Settings }))
     const days = [day(1, 1), day(2, 2)]
     const assignments = {
       ...map(1, [{ id: 1, at: HAMBURG, time: '18:00', dwell: 0 }]),
@@ -953,7 +956,7 @@ describe('a booking the traveller rides (#2428)', () => {
 
   it('FE-ROADTRIP-ROUTES-045: an overnight ride is the join between its cards, and a moved landing moves it too', async () => {
     calculateRouteWithLegs.mockImplementation(async (points: { lat: number; lng: number }[]) => hourly(points))
-    act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_connect_days: true } }))
+    act(() => useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, roadtrip_connect_days: true } as Settings }))
     const days = [day(1, 1), day(2, 2)]
     const assignments = {
       ...map(1, [{ id: 1, at: HAMBURG, time: '18:00', dwell: 0 }]),

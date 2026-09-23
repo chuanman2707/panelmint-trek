@@ -1,21 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../helpers/msw/server';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useSettingsStore } from '../../../src/store/settingsStore';
 import { resetAllStores } from '../../helpers/store';
-import { buildSettings } from '../../helpers/factories';
+import { db } from '../../../src/db/panelmintDb';
 
-beforeEach(() => {
+// The `settings` Dexie table is the system of record now — there is no server
+// round-trip, so these tests seed and read back IndexedDB rows directly.
+// fake-indexeddb is installed globally by tests/setup.ts.
+
+beforeEach(async () => {
   resetAllStores();
+  await db.settings.clear();
 });
 
 describe('settingsStore', () => {
   describe('FE-SETTINGS-001: loadSettings()', () => {
-    it('fetches settings and updates store', async () => {
-      const settings = buildSettings({ default_currency: 'EUR', language: 'de' });
-      server.use(
-        http.get('/api/settings', () => HttpResponse.json({ settings }))
-      );
+    it('reads stored rows and updates the store', async () => {
+      await db.settings.bulkPut([
+        { key: 'default_currency', value: 'EUR' },
+        { key: 'language', value: 'de' },
+      ]);
 
       await useSettingsStore.getState().loadSettings();
       const state = useSettingsStore.getState();
@@ -27,31 +30,30 @@ describe('settingsStore', () => {
   });
 
   describe('FE-SETTINGS-002: updateSetting() optimistic update', () => {
-    it('immediately updates local state before API resolves', async () => {
-      // The store's set() is called synchronously before the first await (settingsApi.set)
-      // so state is visible without needing to await the full action.
+    it('immediately updates local state before the write resolves', async () => {
+      // The store's set() is called synchronously before the first await (the
+      // Dexie put) so state is visible without needing to await the full action.
       const promise = useSettingsStore.getState().updateSetting('default_currency', 'GBP');
 
       // Check optimistic state — no await needed here
       expect(useSettingsStore.getState().settings.default_currency).toBe('GBP');
 
-      // Let the API call finish to avoid dangling promises
+      // Let the write finish to avoid dangling promises
       await promise;
+      expect(await db.settings.get('default_currency')).toEqual({ key: 'default_currency', value: 'GBP' });
     });
   });
 
-  describe('FE-SETTINGS-003: updateSetting() reverts on API failure', () => {
-    it('throws when API fails', async () => {
-      server.use(
-        http.put('/api/settings', () =>
-          HttpResponse.json({ error: 'Server error' }, { status: 500 })
-        )
-      );
+  describe('FE-SETTINGS-003: updateSetting() throws on write failure', () => {
+    it('rejects when the Dexie write fails', async () => {
+      const spy = vi.spyOn(db.settings, 'put').mockRejectedValueOnce(new Error('disk gone'));
 
       // The store optimistically sets, then throws — the revert is a throw
       await expect(
         useSettingsStore.getState().updateSetting('default_currency', 'GBP')
       ).rejects.toThrow();
+
+      spy.mockRestore();
     });
   });
 
@@ -62,38 +64,30 @@ describe('settingsStore', () => {
       const state = useSettingsStore.getState();
       expect(state.settings.language).toBe('fr');
       expect(localStorage.getItem('app_language')).toBe('fr');
+      expect(await db.settings.get('language')).toEqual({ key: 'language', value: 'fr' });
     });
   });
 
   describe('FE-SETTINGS-005: loadSettings failure', () => {
-    it('leaves isLoaded false on API failure so the load is retried (#1618)', async () => {
-      server.use(
-        http.get('/api/settings', () =>
-          HttpResponse.json({ error: 'Server error' }, { status: 500 })
-        )
-      );
+    it('leaves isLoaded false on a read failure so the load is retried (#1618)', async () => {
+      const spy = vi.spyOn(db.settings, 'toArray').mockRejectedValueOnce(new Error('db blocked'));
 
       await useSettingsStore.getState().loadSettings();
 
       // A transient failure must NOT be treated as "loaded" — otherwise the store
       // stays on built-in DEFAULT_SETTINGS (wrong currency/units) for the whole
-      // session with no retry. isLoaded stays false so the reconnect triggers retry.
+      // session with no retry. isLoaded stays false so the next load retries.
       expect(useSettingsStore.getState().isLoaded).toBe(false);
+      spy.mockRestore();
     });
 
     it('recovers on a later retry after an initial failure (#1618)', async () => {
-      server.use(
-        http.get('/api/settings', () =>
-          HttpResponse.json({ error: 'Server error' }, { status: 500 })
-        )
-      );
+      const spy = vi.spyOn(db.settings, 'toArray').mockRejectedValueOnce(new Error('db blocked'));
       await useSettingsStore.getState().loadSettings();
       expect(useSettingsStore.getState().isLoaded).toBe(false);
+      spy.mockRestore();
 
-      const settings = buildSettings({ default_currency: 'EUR' });
-      server.use(
-        http.get('/api/settings', () => HttpResponse.json({ settings }))
-      );
+      await db.settings.put({ key: 'default_currency', value: 'EUR' });
       await useSettingsStore.getState().loadSettings();
 
       const state = useSettingsStore.getState();
@@ -103,7 +97,7 @@ describe('settingsStore', () => {
   });
 
   describe('FE-STORE-SETTINGS-006: setLanguageLocal updates state and localStorage', () => {
-    it('sets language in state and localStorage without an API call', () => {
+    it('sets language in state and localStorage without a write', () => {
       useSettingsStore.getState().setLanguageLocal('ja');
 
       const state = useSettingsStore.getState();
@@ -125,17 +119,19 @@ describe('settingsStore', () => {
   });
 
   describe('FE-STORE-SETTINGS-008: updateSettings bulk update', () => {
-    it('updates multiple settings keys and calls bulk API', async () => {
+    it('updates multiple settings keys and persists every one', async () => {
       await useSettingsStore.getState().updateSettings({ dark_mode: true, default_currency: 'JPY' });
 
       const state = useSettingsStore.getState();
       expect(state.settings.dark_mode).toBe(true);
       expect(state.settings.default_currency).toBe('JPY');
+      expect(await db.settings.get('dark_mode')).toEqual({ key: 'dark_mode', value: true });
+      expect(await db.settings.get('default_currency')).toEqual({ key: 'default_currency', value: 'JPY' });
     });
   });
 
   describe('FE-STORE-SETTINGS-009: updateSettings optimistic update', () => {
-    it('updates state synchronously before API resolves', async () => {
+    it('updates state synchronously before the write resolves', async () => {
       const promise = useSettingsStore.getState().updateSettings({ dark_mode: true });
 
       expect(useSettingsStore.getState().settings.dark_mode).toBe(true);
@@ -144,17 +140,15 @@ describe('settingsStore', () => {
     });
   });
 
-  describe('FE-STORE-SETTINGS-010: updateSettings API failure throws', () => {
-    it('throws when bulk API returns 500', async () => {
-      server.use(
-        http.post('/api/settings/bulk', () =>
-          HttpResponse.json({ error: 'Server error' }, { status: 500 })
-        )
-      );
+  describe('FE-STORE-SETTINGS-010: updateSettings write failure throws', () => {
+    it('rejects when the Dexie bulk write fails', async () => {
+      const spy = vi.spyOn(db.settings, 'bulkPut').mockRejectedValueOnce(new Error('disk gone'));
 
       await expect(
         useSettingsStore.getState().updateSettings({ dark_mode: true })
       ).rejects.toThrow();
+
+      spy.mockRestore();
     });
   });
 
@@ -168,13 +162,9 @@ describe('settingsStore', () => {
     });
   });
 
-  describe('FE-STORE-SETTINGS-012: loadSettings merges server values with defaults', () => {
-    it('preserves default keys not returned by server', async () => {
-      server.use(
-        http.get('/api/settings', () =>
-          HttpResponse.json({ settings: { dark_mode: true } })
-        )
-      );
+  describe('FE-STORE-SETTINGS-012: loadSettings merges stored values with defaults', () => {
+    it('preserves default keys not present in the table', async () => {
+      await db.settings.put({ key: 'dark_mode', value: true });
 
       await useSettingsStore.getState().loadSettings();
 
@@ -226,28 +216,25 @@ describe('settingsStore', () => {
     });
   });
 
-  describe('FE-STORE-SETTINGS-014: updateSetting API failure leaves optimistic state', () => {
-    it('throws on API failure but keeps the optimistic state', async () => {
-      server.use(
-        http.put('/api/settings', () =>
-          HttpResponse.json({ error: 'Server error' }, { status: 500 })
-        )
-      );
+  describe('FE-STORE-SETTINGS-014: updateSetting write failure leaves optimistic state', () => {
+    it('throws on write failure but keeps the optimistic state', async () => {
+      const spy = vi.spyOn(db.settings, 'put').mockRejectedValueOnce(new Error('disk gone'));
 
       await expect(
         useSettingsStore.getState().updateSetting('default_currency', 'EUR')
       ).rejects.toThrow();
 
       expect(useSettingsStore.getState().settings.default_currency).toBe('EUR');
+      spy.mockRestore();
     });
   });
 
   describe('FE-STORE-SETTINGS-018: loadSettings normalizes a legacy OSM tile template (#1733)', () => {
     it('rewrites the retired {s}.tile.openstreetmap.org host on read', async () => {
-      const settings = buildSettings({
-        map_tile_url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      await db.settings.put({
+        key: 'map_tile_url',
+        value: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       });
-      server.use(http.get('/api/settings', () => HttpResponse.json({ settings })));
 
       await useSettingsStore.getState().loadSettings();
 
@@ -260,11 +247,7 @@ describe('settingsStore', () => {
 
     it('leaves a custom template from another provider untouched', async () => {
       const url = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-      server.use(
-        http.get('/api/settings', () =>
-          HttpResponse.json({ settings: buildSettings({ map_tile_url: url }) })
-        )
-      );
+      await db.settings.put({ key: 'map_tile_url', value: url });
 
       await useSettingsStore.getState().loadSettings();
 
@@ -274,14 +257,6 @@ describe('settingsStore', () => {
 
   describe('FE-STORE-SETTINGS-019: saving normalizes the tile template too (#1733)', () => {
     it('rewrites a hand-typed legacy host in updateSetting and persists the rewrite', async () => {
-      const bodies: unknown[] = [];
-      server.use(
-        http.put('/api/settings', async ({ request }) => {
-          bodies.push(await request.json());
-          return HttpResponse.json({ success: true });
-        })
-      );
-
       await useSettingsStore
         .getState()
         .updateSetting('map_tile_url', 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
@@ -291,31 +266,24 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().settings.map_tile_url).toBe(
         'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
       );
-      expect(bodies).toEqual([
-        { key: 'map_tile_url', value: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
-      ]);
+      expect(await db.settings.get('map_tile_url')).toEqual({
+        key: 'map_tile_url',
+        value: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      });
     });
 
     it('rewrites the template inside a bulk save and persists the rewrite', async () => {
-      const bodies: Array<{ settings: Record<string, unknown> }> = [];
-      server.use(
-        http.post('/api/settings/bulk', async ({ request }) => {
-          bodies.push((await request.json()) as { settings: Record<string, unknown> });
-          return HttpResponse.json({ success: true });
-        })
-      );
-
       await useSettingsStore.getState().updateSettings({
         map_tile_url: 'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        map_provider: 'leaflet',
+        dark_mode: true,
       });
 
       expect(useSettingsStore.getState().settings.map_tile_url).toBe(
         'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
       );
-      expect(bodies[0].settings).toEqual({
-        map_tile_url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        map_provider: 'leaflet',
+      expect(await db.settings.get('map_tile_url')).toEqual({
+        key: 'map_tile_url',
+        value: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       });
     });
 

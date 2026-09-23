@@ -1534,7 +1534,9 @@ const LINES: [number, number][][] = [
 
 /** Per-day colours on or off, without dropping the defaults the providers read. */
 function setDayColors(on: boolean) {
-  useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, roadtrip_day_colors: on } })
+  // roadtrip_day_colors is a RoadtripPreferences key, not a Settings one — the
+  // useRoadtripSettings mock below reads it off the settings bag.
+  useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, roadtrip_day_colors: on } as never })
 }
 
 describe('useTripPlanner road trip: folding a day off the map', () => {

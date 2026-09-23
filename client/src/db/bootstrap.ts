@@ -8,7 +8,9 @@
 import Dexie from 'dexie'
 import { db } from './panelmintDb'
 import { SEED_CATEGORIES } from '../api/local/ported/seeds'
-import { DEFAULT_SETTINGS } from '../store/settingsStore'
+// The leaf module, not the store: importing settingsStore would drag the API
+// client and the legacy per-user offline cache into the boot path.
+import { DEFAULT_SETTINGS } from '../store/settingsDefaults'
 import type { Category, LocalUser } from '../types'
 
 // Re-exported so callers get bootstrap + allocation from one module.

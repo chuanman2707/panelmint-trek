@@ -1,5 +1,20 @@
 export type GlMapProvider = 'mapbox-gl' | 'maplibre-gl'
 
+/**
+ * Settings keys the GL renderer used to read. They were pruned from `Settings`
+ * when the map-provider choice went Leaflet-only; rows may still sit in the
+ * Dexie KV table, so the GL modules (dead code pending removal — see the
+ * MapViewAuto/JourneyMapAuto wrappers) read them through this shape.
+ */
+export interface LegacyGlSettings {
+  map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl'
+  mapbox_access_token?: string
+  mapbox_style?: string
+  maplibre_style?: string
+  mapbox_3d_enabled?: boolean
+  mapbox_quality_mode?: boolean
+}
+
 export interface GlStylePreset {
   name: string
   url: string

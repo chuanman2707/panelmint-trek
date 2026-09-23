@@ -17,14 +17,18 @@ import { useVehicleRange } from './useVehicleRange'
  * nothing; what they guard is the day a reader stops doing that.
  */
 
+// The roadtrip_* keys are RoadtripPreferences, funnelled through the settings
+// store by the useRoadtripSettings mock below — and the cases deliberately feed
+// it words the picker never wrote, so the helpers take an untyped bag rather
+// than the strict preference type.
 // setState replaces the settings object wholesale, which is what the hook has to cope
 // with anyway: the settings load hands it a new one on every fetch.
-function setSettings(over: Partial<Settings>): void {
+function setSettings(over: Partial<Settings> & Record<string, unknown>): void {
   act(() => { useSettingsStore.setState({ settings: over as never }) })
 }
 
 /** Changes one field and leaves the rest, the way the settings dialog does. */
-function changeSetting(over: Partial<Settings>): void {
+function changeSetting(over: Partial<Settings> & Record<string, unknown>): void {
   act(() => {
     useSettingsStore.setState(s => ({ settings: { ...s.settings, ...over } as never }))
   })

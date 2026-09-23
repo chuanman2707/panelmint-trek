@@ -150,8 +150,11 @@ const entries = [
 const singleEntry = [entries[0]]
 
 function withToken(extra: Record<string, unknown> = {}) {
+  // mapbox_access_token is no longer a Settings field — the GL components read it
+  // back through the LegacyGlSettings cast until Task 19 removes them, so the
+  // seed carries it as an untyped bag.
   seedStore(useSettingsStore, {
-    settings: { ...useSettingsStore.getState().settings, mapbox_access_token: 'pk.test_token', ...extra },
+    settings: { ...useSettingsStore.getState().settings, mapbox_access_token: 'pk.test_token', ...extra } as never,
   })
 }
 

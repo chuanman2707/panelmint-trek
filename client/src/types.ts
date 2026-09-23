@@ -136,87 +136,11 @@ export interface Settings {
   map_poi_pill_enabled?: boolean
   map_always_show_routes?: boolean
   optimize_from_accommodation?: boolean
-  map_provider?: 'leaflet' | 'mapbox-gl' | 'maplibre-gl'
   /** Leaflet base layer: default street tiles or a satellite/aerial view. */
   map_base_layer?: 'default' | 'satellite'
-  /**
-   * The three road-trip driving limits (#1797). All three are personal rather than
-   * instance configuration — how long you are willing to drive and how far your car goes
-   * are properties of the traveller, so they are plain per-user settings and stay out of
-   * the defaultable list.
-   *
-   * Stored as numbers; 0 or absent means no limit. Kilometres are always kilometres in
-   * storage and converted for display, the same rule the corridor widths follow.
-   */
-  roadtrip_leg_minutes?: number
-  roadtrip_day_minutes?: number
-  roadtrip_day_start?: string
-  roadtrip_day_end?: string
-  roadtrip_day_end_mode?: 'route' | 'stop'
-  roadtrip_range_km?: number
-  /**
-   * Road classes the drive should leave out where it can, as a comma list
-   * ("toll,ferry"). Absent means route normally, which is the right meaning for absent:
-   * the settings row does not exist until somebody turns one of them on, and the first
-   * paint of every session reads this before the settings have loaded.
-   *
-   * A list rather than three booleans because it is one decision with three parts, and
-   * because it goes to the router as one request either way.
-   */
-  roadtrip_avoid?: string
-  /**
-   * What the traveller drives: 'combustion', 'electric', or absent for "did not say".
-   *
-   * Absent has to mean BOTH kinds refill, which is what the range budget did before this
-   * existed. Anything else would quietly change the warnings of every traveller who never
-   * opened the dialog.
-   */
-  roadtrip_vehicle?: string
-  /** Route the gaps between days too, so the trip is one continuous drive. */
-  roadtrip_connect_days?: boolean
-  /** Draw each day of the trip in its own colour. */
-  roadtrip_day_colors?: boolean
-  /**
-   * How full a fill-up goes, 1 to 100. Absent or 100 means all the way.
-   *
-   * Nobody charges to 100 % on the road, so an electric traveller who leaves this at full
-   * gets a range figure a fifth too generous after every stop.
-   */
-  roadtrip_fill_percent?: number
-  /**
-   * What the vehicle is made of, for travellers who would rather not do the division.
-   *
-   * Optional throughout, and stored METRIC throughout — litres and kilowatt-hours, per
-   * 100 kilometres — exactly as roadtrip_range_km is always kilometres. The dialog does
-   * the round trip into gallons, miles per gallon and kWh per 100 miles for an imperial
-   * traveller; storage stays one system so the arithmetic never has to ask.
-   *
-   * When a pair is complete it WINS over roadtrip_range_km, because it is the more
-   * specific answer. Half a pair computes nothing: a made-up range here would put the
-   * fuel warnings at the wrong place while looking exact.
-   */
-  roadtrip_tank_litres?: number
-  roadtrip_litres_per_100?: number
-  roadtrip_battery_kwh?: number
-  roadtrip_kwh_per_100?: number
-  /**
-   * Percent of the battery the years have taken. Absent means none.
-   *
-   * The one figure of ABRP's list that changes the answer here. Plug type, reference
-   * speed and drive style shape a consumption PREDICTION; this addon does not predict
-   * one, it divides a capacity by a consumption the traveller states. Degradation is
-   * different in kind: it shrinks the capacity itself, and on a five-year-old car by
-   * enough to decide whether the last leg of a day arrives.
-   */
-  roadtrip_battery_degradation?: number
   /** CARTO basemaps watermark keyless tiles; the key is appended as ?key= (#2054). */
   carto_api_key?: string
-  mapbox_access_token?: string
-  mapbox_style?: string
-  maplibre_style?: string
-  mapbox_3d_enabled?: boolean
-  mapbox_quality_mode?: boolean
-  // Dashboard widget prefs — persisted server-side so a (docker) upgrade keeps them (#1311).
+  // Dashboard widget prefs — persisted so a reinstall/refresh keeps them (#1311).
   dashboard_fx_from?: string
   dashboard_fx_to?: string
   dashboard_timezones?: string[]
@@ -224,13 +148,6 @@ export interface Settings {
   start_page?: 'dashboard' | 'active_trip'
   /** Which planner tab 'active_trip' opens on — a TripTabId (constants/tripTabs). */
   start_trip_tab?: string
-  // AI booking-import fallback (per-user config; used when the admin has not set
-  // instance-wide config on the llm_parsing addon). llm_api_key is masked on read.
-  llm_provider?: 'local' | 'openai' | 'anthropic'
-  llm_model?: string
-  llm_base_url?: string
-  llm_multimodal?: boolean
-  llm_api_key?: string
   /** Per-user appearance/customization config (theming, transparency, typography, dashboard widgets). */
   appearance?: AppearanceConfig
 }
