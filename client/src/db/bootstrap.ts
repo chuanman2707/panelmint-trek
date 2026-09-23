@@ -56,14 +56,12 @@ function categorySeeds(): Category[] {
  * harmless — seeds go in only when the table is empty.
  */
 export async function bootstrapLocalData(): Promise<void> {
-  // Best effort, and outside the flag: a browser refuses the delete while
-  // another tab still holds the legacy DB open, and retrying on the next boot
-  // costs nothing.
-  try {
-    await Dexie.delete(LEGACY_DB_NAME)
-  } catch {
-    // Orphaned bytes — nothing to act on.
-  }
+  // Fire-and-forget: while another tab holds the legacy DB open, the
+  // deleteDatabase request queues behind it (onblocked) and the returned
+  // promise stays pending — Dexie never rejects it — so awaiting here could
+  // hang bootstrap on exactly the devices this cleanup targets. Failure is
+  // equally fine: the orphaned bytes are inert and the next boot retries.
+  void Dexie.delete(LEGACY_DB_NAME).catch(() => {})
 
   await db.transaction('rw', [db.localUsers, db.categories, db.settings], async () => {
     if (await db.settings.get(BOOTSTRAP_FLAG)) return
