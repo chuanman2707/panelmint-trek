@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Atribuição de bagagem',
   'notif.packing_tagged.text': '{actor} atribuiu você a {category} em {trip}',
   'notif.version_available.title': 'Nova versão disponível',
-  'notif.version_available.text': 'TREK {version} está disponível',
+  'notif.version_available.text': 'PanelMint {version} está disponível',
   'notif.replica_failure.title': 'Falha na réplica de armazenamento',
   'notif.replica_failure.text': "Falha ao gravar na réplica '{backend}': {op} de {key} — {error}",
   'notif.replica_failure.textSuppressed': "Falha ao gravar na réplica '{backend}': {op} de {key} — {error}. Mais {suppressed} falha(s) foram suprimidas desde a última notificação.",

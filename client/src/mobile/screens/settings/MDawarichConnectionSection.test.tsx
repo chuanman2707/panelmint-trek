@@ -16,7 +16,7 @@
  *  - "Check now" or "Disconnect" offered before a connection exists asks the
  *    server to sync an instance it has no address for;
  *  - the key field advertising "Paste your Dawarich API key" while a key is
- *    already stored sends the reader back to Dawarich for a key TREK already
+ *    already stored sends the reader back to Dawarich for a key PanelMint already
  *    has, and the hook reads anything typed there as a replacement, so the
  *    placeholder is the only signal that the field is empty on purpose;
  *  - the status block claiming "Connected" (or a last-sync time, or a server
@@ -292,11 +292,11 @@ describe('MDawarichConnectionSection', () => {
     // only explanation the reader ever gets.
     show({
       connected: false,
-      probeMessage: 'TREK could not reach that address. (ENOTFOUND)',
+      probeMessage: 'PanelMint could not reach that address. (ENOTFOUND)',
       lastSyncError: 'Dawarich rejected the API key.',
     })
     expect(screen.getByText('Not connected')).toBeInTheDocument()
-    expect(screen.getByText('TREK could not reach that address. (ENOTFOUND)')).toBeInTheDocument()
+    expect(screen.getByText('PanelMint could not reach that address. (ENOTFOUND)')).toBeInTheDocument()
     expect(screen.getByText('Dawarich rejected the API key.')).toBeInTheDocument()
   })
 

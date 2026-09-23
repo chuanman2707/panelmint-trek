@@ -217,7 +217,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': 'Compartit mitjançant',
   'journey.public.madeWith': 'Fet amb',
   'journey.pdf.journeyBook': 'Llibre de travesia',
-  'journey.pdf.madeWith': 'Fet amb TREK',
+  'journey.pdf.madeWith': 'Fet amb PanelMint',
   'journey.pdf.day': 'Dia',
   'journey.pdf.theEnd': 'Fi',
   'journey.pdf.saveAsPdf': 'Desa com a PDF',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'Desa el disseny d\'aquesta doble pàgina com a fitxer, sense les fotos, per compartir-lo o reutilitzar-lo',
   'journey.studio.importSpread': 'Importa',
   'journey.studio.importSpreadHint': 'Afegeix una doble pàgina des d\'un fitxer de disseny baixat',
-  'journey.studio.importSpreadFailed': 'Aquest fitxer no és una doble pàgina del TREK Studio',
+  'journey.studio.importSpreadFailed': 'Aquest fitxer no és una doble pàgina del PanelMint Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': 'Dissenyar un llibre demana espai per treballar, per això l\'Studio només hi és a l\'escriptori, i el PDF també. La resta del teu viatge funciona aquí com sempre.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

@@ -118,7 +118,7 @@ export class LlmParseService {
       // Same reason: the model answers with the fields it read out of the document.
       // Parsed, not raw — this prints the nodes the client already read out of the
       // response, so its single quotes and bare keys are util.inspect's, not the
-      // provider's, and a bug report that quotes them is quoting TREK (#2375).
+      // provider's, and a bug report that quotes them is quoting PanelMint (#2375).
       if (this.env.isManaged()) console.debug(`[DEBUG] LLM response: ${raw.length} item(s)`);
       else console.debug(`[DEBUG] Parsed LLM response (${raw.length} item(s)): `, raw);
     } catch (err) {

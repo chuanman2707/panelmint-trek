@@ -26,7 +26,7 @@ export function newTrekDocUid(): string {
  * separators, control characters, leading dots and NTFS-illegal characters, and
  * they end up both in a DB column and in a Content-Disposition header.
  *
- * The extension is preserved deliberately: it is what TREK's download route
+ * The extension is preserved deliberately: it is what PanelMint's download route
  * derives the Content-Type from, and what the blocklist check reads.
  */
 export function sanitizeIncomingName(raw: string): string {
@@ -47,7 +47,7 @@ export function sanitizeIncomingName(raw: string): string {
 
 /**
  * The blocklist is enforced on incoming provider documents for exactly the same
- * reason it is enforced on uploads: TREK serves downloads inline with an
+ * reason it is enforced on uploads: PanelMint serves downloads inline with an
  * extension-derived Content-Type, so an .svg or .html from a Nextcloud folder
  * would be a stored XSS. A rejected document becomes a visible `rejected_type`
  * row rather than a silent skip, so the person who put it there can find out.
@@ -62,7 +62,7 @@ export function isBlockedName(name: string): boolean {
  *
  * Same rule as an upload: `*` admits anything the blocklist above still lets
  * through, and an empty extension is refused rather than waved past, because a
- * file with no extension is served with a Content-Type TREK had to guess.
+ * file with no extension is served with a Content-Type PanelMint had to guess.
  */
 export function isAllowedByOperator(name: string, allowedCsv: string): boolean {
   const ext = path.extname(name).toLowerCase().replace(/^\./, '');
@@ -110,7 +110,7 @@ export interface SyncItemState {
   remoteModifiedAt: string | null;
   /** The bytes both sides last agreed on. */
   contentSha256: string | null;
-  /** What TREK itself last uploaded: the echo guard. */
+  /** What PanelMint itself last uploaded: the echo guard. */
   pushedSha256: string | null;
   state: string;
   attempts: number;
@@ -118,15 +118,15 @@ export interface SyncItemState {
   nextAttemptAt: string | null;
   remoteMissingAt: string | null;
   /**
-   * When TREK itself put the provider copy in the recycle bin, under the
-   * `trash` policy. A copy binned by TREK and one deleted by somebody else
+   * When PanelMint itself put the provider copy in the recycle bin, under the
+   * `trash` policy. A copy binned by PanelMint and one deleted by somebody else
    * leave the same gap in a listing; only this tells them apart once the file
-   * comes back out of TREK's trash.
+   * comes back out of PanelMint's trash.
    */
   remoteTrashedAt: string | null;
 }
 
-/** What TREK currently holds for this trip. */
+/** What PanelMint currently holds for this trip. */
 export interface LocalDocument {
   fileId: number;
   name: string;
@@ -139,11 +139,11 @@ export interface LocalDocument {
 export type PlanAction =
   /** Bytes only exist upstream: download and create a trip_files row. */
   | { kind: 'pull'; remote: RemoteDocument; itemId: number | null }
-  /** Bytes only exist in TREK: upload. */
+  /** Bytes only exist in PanelMint: upload. */
   | { kind: 'push'; local: LocalDocument; itemId: number | null; remoteId: string | null }
-  /** Upstream moved on while TREK did not: replace local bytes. */
+  /** Upstream moved on while PanelMint did not: replace local bytes. */
   | { kind: 'pull_update'; remote: RemoteDocument; itemId: number }
-  /** TREK moved on while upstream did not: push a new revision. */
+  /** PanelMint moved on while upstream did not: push a new revision. */
   | { kind: 'push_update'; local: LocalDocument; itemId: number; remoteId: string }
   /**
    * Where the id is the path: the paired copy is listed under a new one,
@@ -158,21 +158,21 @@ export type PlanAction =
   /** Present upstream last run, absent now. Recorded, never acted on. */
   | { kind: 'mark_remote_missing'; itemId: number }
   /**
-   * Deleted in TREK; what happens upstream is the link's delete policy. With
+   * Deleted in PanelMint; what happens upstream is the link's delete policy. With
    * `remoteGone`, the provider copy was already on record as missing and the
-   * TREK copy has since been purged: the row closes, and no policy runs,
+   * PanelMint copy has since been purged: the row closes, and no policy runs,
    * because there is nothing left on either side for it to act on.
    */
   | { kind: 'local_deleted'; itemId: number; remoteId: string; remoteGone?: true }
   /**
-   * Back out of TREK's trash while the provider copy stayed: the pairing counts
-   * again. With `missing`, the copy is gone and TREK did not bin it, so the row
+   * Back out of PanelMint's trash while the provider copy stayed: the pairing counts
+   * again. With `missing`, the copy is gone and PanelMint did not bin it, so the row
    * comes back flagged the way a vanished copy is.
    */
   | { kind: 'local_restored'; itemId: number; missing?: true }
-  /** Back out of TREK's trash after TREK binned the copy: unpaired, so it goes up as a new document. */
+  /** Back out of PanelMint's trash after PanelMint binned the copy: unpaired, so it goes up as a new document. */
   | { kind: 'detach'; itemId: number }
-  /** The copy TREK binned is listed again: somebody restored it at the provider. */
+  /** The copy PanelMint binned is listed again: somebody restored it at the provider. */
   | { kind: 'remote_restored'; itemId: number }
   /** Nothing to do but the row should stop looking stale. */
   | { kind: 'touch'; itemId: number; remote: RemoteDocument | null };
@@ -181,7 +181,7 @@ export interface ReconcilePlan {
   actions: PlanAction[];
   /** True when the listing looked like a mass deletion and was not trusted. */
   massDeleteGuardTripped: boolean;
-  /** Newly gone upstream: vanished since the last run, or found gone on a restore in TREK. */
+  /** Newly gone upstream: vanished since the last run, or found gone on a restore in PanelMint. */
   missingCount: number;
 }
 
@@ -275,7 +275,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
    * A side that wins takes the whole document, name and bytes together, because
    * the two halves of one document coming from different sides is not a state
    * anybody asked for. Direction still has the last word: a pull-only binding
-   * cannot push even when TREK is meant to win, so it parks instead of doing
+   * cannot push even when PanelMint is meant to win, so it parks instead of doing
    * the opposite of what was chosen.
    */
   const settle = (it: SyncItemState, r: RemoteDocument, l: LocalDocument | null): void => {
@@ -299,7 +299,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
    * This went through `settle` once, and `trek_wins` re-uploaded identical
    * bytes. Where the provider replaces in place (WebDAV, Synology) the upload
    * also kept the provider's name, so the next run read that as a rename made
-   * upstream and gave TREK's file the name TREK was supposed to win with.
+   * upstream and gave PanelMint's file the name PanelMint was supposed to win with.
    */
   const settleName = (it: SyncItemState, r: RemoteDocument, l: LocalDocument, incoming: string): void => {
     if (conflictPolicy === 'provider_wins' && direction !== 'push') {
@@ -324,7 +324,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
    * went wrong twice. The pairing had already been counted as vanished by then,
    * so the same run flagged it missing (and counted it towards the mass-delete
    * guard); and `touch` wrote the provider's new name into the arbiter, so the
-   * next run read the name TREK still had as a rename made in TREK and renamed
+   * next run read the name PanelMint still had as a rename made in PanelMint and renamed
    * the provider's copy back.
    *
    * So the pairing is moved first, before anything else looks at it, `reopen`
@@ -332,7 +332,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
    * `sameCopy`). Only the id and the version move. The agreed name stays, so
    * the pair loop reads the new name the way it reads any rename, and the rest
    * of the plan sees a document that is listed. A rename then ends exactly as
-   * it does where ids are stable. A rename TREK sent upstream is found again
+   * it does where ids are stable. A rename PanelMint sent upstream is found again
    * the same way: the adapter cannot say what the new path is, so the stored id
    * is stale until here.
    *
@@ -341,9 +341,9 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
    * name on the other file; unless one of them kept its name (a move), neither
    * is moved, and both are handled like any other gap and new document.
    *
-   * A copy TREK binned itself only gets an entry nobody else fits. Its gap is
-   * TREK's own doing, and letting it make a tie meant that deleting one of two
-   * identical files in TREK stopped a rename of the other from being followed,
+   * A copy PanelMint binned itself only gets an entry nobody else fits. Its gap is
+   * PanelMint's own doing, and letting it make a tie meant that deleting one of two
+   * identical files in PanelMint stopped a rename of the other from being followed,
    * which came back as a missing flag plus a second download. It is still
    * recognised on its own, as a copy restored at the provider somewhere else.
    */
@@ -382,13 +382,13 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
   let foundGone = 0;
 
   /**
-   * A file taken back out of TREK's trash.
+   * A file taken back out of PanelMint's trash.
    *
-   * A deletion TREK has acted on is otherwise left alone for good (see the
+   * A deletion PanelMint has acted on is otherwise left alone for good (see the
    * pair loop), so this is the one way out of `local_deleted`, and which way
    * depends on the provider copy. If it is listed, the pairing counts again and
    * the row is judged like any synced one from here on: an edit made upstream
-   * in the meantime comes down. If TREK binned it, TREK took it away and the
+   * in the meantime comes down. If PanelMint binned it, PanelMint took it away and the
    * person asked for it back, so the pairing is dropped and the file goes up as
    * a new document through the ordinary push.
    *
@@ -436,18 +436,18 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
   }
 
   /**
-   * A copy on record as gone whose TREK copy has been purged since.
+   * A copy on record as gone whose PanelMint copy has been purged since.
    *
-   * The row was kept for a person to decide about the TREK copy, and they
+   * The row was kept for a person to decide about the PanelMint copy, and they
    * did: it is out of the trash and cannot come back, so nothing is left to
-   * decide and nothing to restore. Only a purge closes the row. A TREK copy
-   * merely in the trash keeps it open, because binning the gap as TREK's own
+   * decide and nothing to restore. Only a purge closes the row. A PanelMint copy
+   * merely in the trash keeps it open, because binning the gap as PanelMint's own
    * doing would let a later restore upload what somebody else deleted.
    */
   const goneOnBothSides = (it: SyncItemState): boolean =>
     it.state === 'remote_missing' && it.fileId === null && it.remoteId !== null;
 
-  // Upstream is unchanged: only what happened in TREK can need doing, and the
+  // Upstream is unchanged: only what happened in PanelMint can need doing, and the
   // remote half of the plan would be reading a list the adapter did not fetch.
   if (input.remoteUnchanged) {
     for (const it of items) {
@@ -458,7 +458,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
       // A deletion already acted on stays acted on, as in the pair loop. A copy
       // on record as gone is absent from a full listing too, so a full run
       // plans nothing for it until it comes back; binning it here would also
-      // write the gap down as TREK's doing, and a restore would then upload
+      // write the gap down as PanelMint's doing, and a restore would then upload
       // what somebody else deleted.
       if (!it.remoteId || it.state === 'local_deleted' || it.state === 'remote_missing') continue;
       const l = it.fileId !== null ? localById.get(it.fileId) : undefined;
@@ -494,8 +494,8 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
     const l = it.fileId !== null ? localById.get(it.fileId) : undefined;
 
     const remoteChanged = it.remoteVersion !== null && r.remoteVersion !== it.remoteVersion;
-    // The echo guard: bytes TREK itself pushed come back as a change on the
-    // provider side. They are only TREK's own write if the hash still matches
+    // The echo guard: bytes PanelMint itself pushed come back as a change on the
+    // provider side. They are only PanelMint's own write if the hash still matches
     // what was pushed, so this compares content, never timestamps: a time
     // window would misfire on every clock skew.
     const isEcho =
@@ -506,7 +506,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
     // The same reading for bytes both sides agreed on: a version marker moves
     // on a tag, a correspondent or a title as much as on a new revision, and
     // where the listing carries a hash it says which. Downloading the same
-    // bytes again replaced the TREK file with a fresh row and sent the one
+    // bytes again replaced the PanelMint file with a fresh row and sent the one
     // that carried the booking link to the trash, on every edit of metadata.
     // A row in error is left out: `touch` leaves that state alone, so it would
     // sit in error for good over bytes that are in step, while the download
@@ -525,8 +525,8 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
      * A deletion is acted on once, under the policy in force at that moment.
      *
      * This used to be planned again on every run for as long as the file sat
-     * in TREK's trash. Under `unlink` nothing showed; switching the binding to
-     * `trash` later then binned every document ever deleted in TREK, months
+     * in PanelMint's trash. Under `unlink` nothing showed; switching the binding to
+     * `trash` later then binned every document ever deleted in PanelMint, months
      * back included, and a binding on `trash` from the start asked the
      * provider to bin the same copy on every run. A row still here is one
      * `reopen` did not take back: its file is still in the trash or purged.
@@ -541,7 +541,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
     }
 
     /**
-     * Paired upstream, absent in TREK: the download never landed.
+     * Paired upstream, absent in PanelMint: the download never landed.
      *
      * A failed pull stores the remote's version alongside the error, so on the
      * next run `remoteChanged` is false, there is no local file for the other
@@ -578,25 +578,25 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
 
     // Same bytes, different name. Which side renamed is decided by comparing
     // each against the name they last agreed on, not by direction. Reading
-    // `both` as "TREK always wins" silently renamed the provider's copy back
+    // `both` as "PanelMint always wins" silently renamed the provider's copy back
     // every time somebody tidied up a folder, which is the opposite of a
     // two-way sync.
     //
     // Compared through the same sanitiser the local name went through, or a
-    // provider name TREK had to clean up (a slash, a control character, a
-    // leading dot) reads as "TREK renamed this" on the very next run, and the
+    // provider name PanelMint had to clean up (a slash, a control character, a
+    // leading dot) reads as "PanelMint renamed this" on the very next run, and the
     // provider's copy gets renamed to the cleaned version, unasked. For the
-    // same reason TREK takes a new name in its cleaned form, the one a download
+    // same reason PanelMint takes a new name in its cleaned form, the one a download
     // would have given it: a Paperless title with a slash in it used to land
     // in the file manager as it was, and the next run read that as a rename
-    // made in TREK and sent it upstream again.
+    // made in PanelMint and sent it upstream again.
     //
-    // TREK's own name goes through it too. An upload keeps whatever name the
+    // PanelMint's own name goes through it too. An upload keeps whatever name the
     // browser sent, and on Linux and macOS that may hold a colon or a question
     // mark, which a push stores as the agreed name. Compared raw against the
-    // cleaned agreed name, such a file read as renamed in TREK on every run:
+    // cleaned agreed name, such a file read as renamed in PanelMint on every run:
     // Paperless got the same title again each time, and on Nextcloud, whose
-    // own cleaning differs, the row sat in a conflict that "keep TREK" could
+    // own cleaning differs, the row sat in a conflict that "keep PanelMint" could
     // never settle.
     const incoming = sanitizeIncomingName(r.name);
     if (l && incoming !== l.name) {
@@ -654,7 +654,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
     }
   }
 
-  // ── TREK only ─────────────────────────────────────────────────────────────
+  // ── PanelMint only ─────────────────────────────────────────────────────────────
   if (direction !== 'pull') {
     for (const l of local) {
       if (l.deletedAt) continue;
@@ -682,7 +682,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
 /**
  * Whether this run has to list the provider in full, whatever its cursor says.
  *
- * A file back out of TREK's trash whose copy TREK did not bin can only be
+ * A file back out of PanelMint's trash whose copy PanelMint did not bin can only be
  * settled by a listing that shows whether that copy is still there (see
  * `reopen`). An unchanged cursor gives the planner nothing to read, and on a
  * quiet binding the cursor stays unchanged until somebody touches the folder,
@@ -693,7 +693,7 @@ export function needsFullListing(items: readonly SyncItemState[], local: readonl
   return items.some((it) => it.remoteTrashedAt === null && isBackFromTrash(it, localById));
 }
 
-/** A deletion TREK acted on whose file has since come back out of TREK's trash. */
+/** A deletion PanelMint acted on whose file has since come back out of PanelMint's trash. */
 function isBackFromTrash(it: SyncItemState, localById: ReadonlyMap<number, LocalDocument>): boolean {
   if (it.state !== 'local_deleted' || !it.remoteId || it.fileId === null) return false;
   const l = localById.get(it.fileId);
@@ -727,7 +727,7 @@ function soleMatch<T>(candidates: T[], keptItsName: (candidate: T) => boolean): 
 }
 
 /**
- * A file purged from TREK's trash before any run saw it deleted.
+ * A file purged from PanelMint's trash before any run saw it deleted.
  *
  * `file_id` is ON DELETE SET NULL, so the row outlives the file with nothing
  * but a NULL to show for it. Read as a download that never landed, which is

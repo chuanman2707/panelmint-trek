@@ -42,7 +42,7 @@ import {
  *    there and "no such file or directory" here), which is why classification
  *    takes the endpoint into account.
  *  - **DSM auto-blocks the source IP after a handful of failed logins.** A retry
- *    loop around a wrong password locks the TREK server out of the NAS for
+ *    loop around a wrong password locks the PanelMint server out of the NAS for
  *    everyone, so a rejected credential is remembered here and the next attempt
  *    with the same credential fails without touching the network.
  */
@@ -51,7 +51,7 @@ import {
 const SESSION_NAME = 'FileStation';
 
 /** Shown in DSM's connected-devices list, so a user can recognise and revoke it. */
-const DEVICE_NAME = 'TREK';
+const DEVICE_NAME = 'PanelMint';
 
 const AUTH_CGI = '/webapi/auth.cgi';
 const ENTRY_CGI = '/webapi/entry.cgi';
@@ -99,7 +99,7 @@ const SESSION_CODES = new Set([105, 106, 107, 119]);
 /**
  * What SYNO.API.Auth answers when a login carried a device token and DSM still
  * wants the second factor (403) or rejects it (404): the token is no longer
- * trusted, because someone removed TREK from the account's trusted devices or
+ * trusted, because someone removed PanelMint from the account's trusted devices or
  * it expired.
  */
 const DEVICE_TOKEN_REFUSED_CODES = new Set([403, 404]);
@@ -205,7 +205,7 @@ const TRANSPORT_MESSAGES: Record<TransportFailureCode, string> = {
 
 export interface SynologyDriveCreds {
   /**
-   * The TREK connection these credentials belong to, or 0 for a form that has
+   * The PanelMint connection these credentials belong to, or 0 for a form that has
    * not been saved yet. It keys the device token; see `deviceTokens`.
    */
   connectionId: number;
@@ -232,7 +232,7 @@ export interface SynologyDriveCreds {
   allowInsecureTls: boolean;
 }
 
-/** One file or folder as FileStation describes it, with the bits TREK reads. */
+/** One file or folder as FileStation describes it, with the bits PanelMint reads. */
 export interface SynoEntry {
   path: string;
   name: string;
@@ -476,7 +476,7 @@ export class SynologyDriveClient {
    *
    * Keyed by the whole credential rather than by connection id: DSM counts
    * concurrent sessions for one account and answers 107 when a second login
-   * displaces the first, so two TREK connections pointing at the same NAS with
+   * displaces the first, so two PanelMint connections pointing at the same NAS with
    * the same account share one session instead of evicting each other. The
    * password is part of the key because a connection test with a corrected
    * password has to reach the NAS: riding the session the old password opened
@@ -490,7 +490,7 @@ export class SynologyDriveClient {
   private readonly lockouts = new Map<string, CredentialLockout>();
 
   /**
-   * DSM's trusted-device tokens, one slot per TREK connection.
+   * DSM's trusted-device tokens, one slot per PanelMint connection.
    *
    * The token is DSM's record that somebody passed the second factor, and that
    * somebody is whoever typed the code into this connection's form. Keyed by
@@ -752,7 +752,7 @@ export class SynologyDriveClient {
    * The login request, on the connection's device token when it has one and on
    * the form's code otherwise.
    *
-   * A token DSM refuses (someone removed TREK from the account's trusted
+   * A token DSM refuses (someone removed PanelMint from the account's trusted
    * devices, or it expired) is dropped on the spot, and the code in the form
    * gets its turn in the same call. That code is usually what the owner just
    * typed to repair exactly this, and a dead token sent ahead of it would fail
@@ -804,7 +804,7 @@ export class SynologyDriveClient {
    *
    * The API inventory is part of it because a DSM with File Station uninstalled
    * logs in perfectly and then answers 102 to everything, a failure that looks
-   * like a TREK bug unless the connection test says so.
+   * like a PanelMint bug unless the connection test says so.
    */
   async probe(creds: SynologyDriveCreds): Promise<SynoProbe> {
     const info = await this.fileStation(creds, {
@@ -924,8 +924,8 @@ export class SynologyDriveClient {
    * concurrent sync of a large trip in this process's heap.
    *
    * `mtime` goes out in MILLISECONDS while every read path reports seconds. The
-   * point of sending it at all is that the file keeps TREK's timestamp, so the
-   * next listing does not read TREK's own upload as an upstream change.
+   * point of sending it at all is that the file keeps PanelMint's timestamp, so the
+   * next listing does not read PanelMint's own upload as an upstream change.
    */
   async upload(creds: SynologyDriveCreds, req: SynoUploadRequest): Promise<void> {
     if (!isValidSynoName(req.fileName)) {

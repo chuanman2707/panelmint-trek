@@ -16,7 +16,7 @@ const notifications: TranslationStrings = {
   'notifications.synologySessionCleared.title': 'Synology Photos 연결 해제됨',
   'notifications.synologySessionCleared.text': '서버 또는 계정이 변경되었습니다 — 설정에서 연결을 다시 테스트하세요.',
   'notifications.versionAvailable.title': '업데이트 사용 가능',
-  'notifications.versionAvailable.text': 'TREK {version}이(가) 사용 가능합니다.',
+  'notifications.versionAvailable.text': 'PanelMint {version}이(가) 사용 가능합니다.',
   'notifications.versionAvailable.button': '상세 보기',
   'notifications.test.title': '{actor}의 테스트 알림',
   'notifications.test.text': '간단한 테스트 알림입니다.',

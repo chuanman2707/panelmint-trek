@@ -144,7 +144,7 @@ export function deriveMaps(raw: RawEnv) {
     /**
      * Whether the index answers at all. On unless an operator says otherwise,
      * because it is the path we want people on and an upgrade must not quietly
-     * drop back to Nominatim, whose usage policy forbids what TREK was doing
+     * drop back to Nominatim, whose usage policy forbids what PanelMint was doing
      * with it.
      *
      * Deliberately an environment variable and not an admin switch: it decides
@@ -235,7 +235,7 @@ export function derivePlugins(raw: RawEnv) {
     enabled: parseBool(raw.TREK_PLUGINS_ENABLED) !== false,
     devLink: parseBool(raw.TREK_PLUGINS_DEV_LINK) === true,
     /**
-     * Range bypass is default-OFF: only an explicit truthy value turns the TREK-version
+     * Range bypass is default-OFF: only an explicit truthy value turns the PanelMint-version
      * gates into warnings (plugins/install/host-compat.ts). Never inferred from any
      * other switch — an admin has to ask for "install it anyway" by name.
      */

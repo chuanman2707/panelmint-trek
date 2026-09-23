@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'Kapcsold össze a saját Dawarich-példányodat, és lásd, merre jártál valójában. A TREK kiolvassa, és naplóbejegyzéseket, helyeket és országokat javasol — semmi nem kerül be, amíg meg nem erősíted, és a Dawarichba semmit nem ír vissza.',
+    'Kapcsold össze a saját Dawarich-példányodat, és lásd, merre jártál valójában. A PanelMint kiolvassa, és naplóbejegyzéseket, helyeket és országokat javasol — semmi nem kerül be, amíg meg nem erősíted, és a Dawarichba semmit nem ír vissza.',
   'dawarich.url': 'A példány címe',
   'dawarich.apiKey': 'API-kulcs',
   'dawarich.apiKeyPlaceholder': 'Illeszd be a Dawarich API-kulcsodat',
@@ -14,7 +14,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTlsHint':
     'Csak akkor kell, ha a példányod olyan tanúsítványt használ, amelyben a kiszolgálód nem bízik meg.',
   'dawarich.syncEnabled': 'Új tartózkodások automatikus keresése',
-  'dawarich.syncEnabledHint': 'Kikapcsolva a TREK csak akkor olvassa a Dawarichot, ha te kéred.',
+  'dawarich.syncEnabledHint': 'Kikapcsolva a PanelMint csak akkor olvassa a Dawarichot, ha te kéred.',
   'dawarich.test.button': 'Kapcsolat tesztelése',
   'dawarich.test.success': 'Kapcsolódva. {count} tartózkodás az elmúlt 30 napban.',
   'dawarich.test.failed': 'Nem sikerült elérni a Dawarichot.',
@@ -47,18 +47,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'Ez a Dawarich-verzió nem kínálja a következőket: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'A TREK nem érte el ezt a címet.',
+  'dawarich.error.unreachable': 'A PanelMint nem érte el ezt a címet.',
   'dawarich.error.unauthorized': 'A Dawarich elutasította az API-kulcsot.',
   'dawarich.error.forbidden': 'Ez az API-kulcs nem olvashatja ezt.',
   'dawarich.error.not_found': 'Ebben a Dawarich-verzióban nincs ilyen végpont.',
-  'dawarich.error.rate_limited': 'A Dawarich lassítást kért a TREK-től. Próbáld újra hamarosan.',
+  'dawarich.error.rate_limited': 'A Dawarich lassítást kért a PanelMint-től. Próbáld újra hamarosan.',
   'dawarich.error.server_error': 'A Dawarich hibával válaszolt.',
   'dawarich.error.invalid_response': 'Ez a cím olyasmivel válaszolt, ami nem Dawarich.',
-  'dawarich.error.too_large': 'A Dawarich több adatot küldött, mint amennyit a TREK egyszerre beolvas.',
+  'dawarich.error.too_large': 'A Dawarich több adatot küldött, mint amennyit a PanelMint egyszerre beolvas.',
   'dawarich.error.not_connected': 'Még nincs csatlakoztatott Dawarich-példány.',
   'dawarich.error.addon_disabled': 'A Dawarich bővítmény ki van kapcsolva ezen a példányon.',
-  'dawarich.error.offline': 'Ehhez kapcsolat kell — a TREK most offline.',
-  'dawarich.error.invalid_url': 'A TREK nem tudja használni ezt a címet.',
+  'dawarich.error.offline': 'Ehhez kapcsolat kell — a PanelMint most offline.',
+  'dawarich.error.invalid_url': 'A PanelMint nem tudja használni ezt a címet.',
   'dawarich.warning.private_ip': 'Ez a cím privát IP-re mutat ({ip}). Ellenőrizd, hogy így akartad-e — a szervernek ehhez ALLOW_INTERNAL_NETWORK=true kellhet.',
   'dawarich.error.unknown': 'Hiba történt a Dawarichhal folytatott kommunikáció közben.',
 
@@ -99,9 +99,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'A naplóban',
   'dawarich.suggestions.acceptedAs.bucket_list': 'Kívánság kipipálva',
   'dawarich.suggestions.sourceChanged':
-    'Ez a tartózkodás megváltozott a Dawarichban, amióta felhasználtad. Amit a TREK-ben írtál, érintetlen maradt.',
+    'Ez a tartózkodás megváltozott a Dawarichban, amióta felhasználtad. Amit a PanelMint-ben írtál, érintetlen maradt.',
   'dawarich.suggestions.sourceMissing':
-    'Ez a tartózkodás már nem létezik a Dawarichban. Amit a TREK-ben írtál, érintetlen maradt.',
+    'Ez a tartózkodás már nem létezik a Dawarichban. Amit a PanelMint-ben írtál, érintetlen maradt.',
   'dawarich.sourceStatus.suggested': 'Felismerve, megerősítetlen',
   'dawarich.confidence.high': 'Biztos felismerés',
   'dawarich.confidence.medium': 'Meglehetősen biztos felismerés',
@@ -156,12 +156,12 @@ const dawarich: TranslationStrings = {
     'Azok az országok, amelyekben a rögzítéseid szerint jártál. Erősítsd meg, melyek kerüljenek az Atlaszodba — magától semmi nem kerül be, és amit kézzel jelöltél, a tiéd marad.',
   'dawarich.atlas.load': 'Országok keresése',
   'dawarich.atlas.loading': 'A rögzítéseid olvasása…',
-  'dawarich.atlas.empty': 'A rögzítéseid nem mutatnak olyan országot, amelyet a TREK ne ismerne már.',
+  'dawarich.atlas.empty': 'A rögzítéseid nem mutatnak olyan országot, amelyet a PanelMint ne ismerne már.',
   'dawarich.atlas.cities': '{count} város',
   'dawarich.atlas.citiesOne': '1 város',
   'dawarich.atlas.accept': '{count} ország hozzáadása',
   'dawarich.atlas.accepted': '{count} ország hozzáadva',
-  'dawarich.atlas.unresolved': 'A TREK ezeket nem tudta országhoz párosítani: {names}.',
+  'dawarich.atlas.unresolved': 'A PanelMint ezeket nem tudta országhoz párosítani: {names}.',
   'dawarich.atlas.source': 'A Dawarichból',
   'dawarich.atlas.range': 'Vizsgált időszak: {from} – {to}',
 

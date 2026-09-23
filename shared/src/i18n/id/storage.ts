@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Replika',
   'storage.title': 'Penyimpanan',
   'storage.description':
-    'Tempat TREK menyimpan file, foto, dan cadangan yang diunggah. Tidak ada yang berubah sampai Anda menyimpan.',
+    'Tempat PanelMint menyimpan file, foto, dan cadangan yang diunggah. Tidak ada yang berubah sampai Anda menyimpan.',
   'storage.loading': 'Memuat…',
   'storage.saved': 'Konfigurasi penyimpanan disimpan',
   'storage.save': 'Simpan perubahan',
@@ -66,7 +66,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Foto profil',
   'storage.category.places': 'Gambar tempat',
   'storage.category.photos-google': 'Cache foto Google',
-  'storage.category.photos-trek': 'Cache foto TREK',
+  'storage.category.photos-trek': 'Cache foto PanelMint',
   'storage.category.backups': 'Cadangan',
 
   // What each category stores — rendered under the label in the category map.
@@ -79,7 +79,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Salinan foto Google Places yang di-cache — dapat diambil ulang, aman jika hilang.',
   'storage.categoryDesc.photos-trek':
-    'Foto ter-cache dari layanan foto TREK yang digunakan oleh Foto (Memories) — dapat diambil ulang, aman jika hilang.',
+    'Foto ter-cache dari layanan foto PanelMint yang digunakan oleh Foto (Memories) — dapat diambil ulang, aman jika hilang.',
   'storage.categoryDesc.backups': 'Arsip cadangan server yang dibuat oleh panel Cadangan atau jadwal.',
   'storage.health.title': 'Kesehatan',
   'storage.health.allClear': 'Tidak ada kegagalan replika yang tercatat.',

@@ -41,7 +41,7 @@ export class DiscoveryController {
   // already provides. Clients like ChatGPT probe /.well-known/oauth-protected-resource
   // (no path suffix) on every fresh discovery. Without this, they get 404, fall back
   // to the issuer URL as the resource parameter, and the authorize handler rejects
-  // them with invalid_target — showing the user the TREK home page instead of the
+  // them with invalid_target — showing the user the PanelMint home page instead of the
   // consent form.
   @Get('oauth-protected-resource')
   protectedResource(@Res() res: Response): void {
@@ -55,7 +55,7 @@ export class DiscoveryController {
       authorization_servers:    [meta.issuer],
       bearer_methods_supported: ['header'],
       scopes_supported:         ALL_SCOPES,
-      resource_name:            'TREK MCP',
+      resource_name:            'PanelMint MCP',
     });
   }
 

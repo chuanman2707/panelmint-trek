@@ -175,7 +175,7 @@ const DATE_FIELDS = ['departure_time', 'arrival_time', 'checkin_time', 'checkout
  * slices into garbage ("Aug 23 202"). Keep already-ISO values untouched; otherwise parse and
  * reformat.
  *
- * These fields are naive local wall-clock strings everywhere else in TREK, so the components
+ * These fields are naive local wall-clock strings everywhere else in PanelMint, so the components
  * are read back locally. Reading with Date.parse and printing with getUTC* used to shift every
  * such value by the container's UTC offset, which docker-compose sets from TZ and documents
  * with Europe/Berlin. That is why a rental car came back off by the offset rather than by

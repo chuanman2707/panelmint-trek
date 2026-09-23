@@ -112,7 +112,7 @@ export function clearGoogleTransitCache(): void {
 
 /**
  * What a caller may filter by → what `transitPreferences.allowedTravelModes`
- * can express. Google has five buckets; TREK offers thirteen, so ferry, cable
+ * can express. Google has five buckets; PanelMint offers thirteen, so ferry, cable
  * and the fine-grained rail splits have no wire equivalent and are dropped from
  * the request and enforced on the response instead (see `matchesRequestedModes`).
  */
@@ -542,7 +542,7 @@ function fillWalkGaps(legs: TransitLeg[]): void {
 /**
  * The response-side half of the mode filter. Ferry, funicular and the aerial
  * lifts have no `allowedTravelModes` equivalent, and Google's five buckets are
- * coarser than TREK's thirteen — so a user who asked for "subway only" is held
+ * coarser than PanelMint's thirteen — so a user who asked for "subway only" is held
  * to it here rather than being handed a bus.
  */
 function matchesRequestedModes(itinerary: TransitItinerary, requested: string[]): boolean {

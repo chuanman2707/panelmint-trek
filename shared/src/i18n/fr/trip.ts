@@ -34,7 +34,7 @@ const trip: TranslationStrings = {
   'trip.toast.placesDeleted': '{count} lieux supprimés',
   'trip.invite.linkTitle': "Lien d'invitation au voyage",
   'trip.invite.linkHint':
-    "Toute personne disposant d'un compte TREK qui ouvre ce lien rejoint le voyage en tant que membre. Régénérez le lien pour invalider l'ancien.",
+    "Toute personne disposant d'un compte PanelMint qui ouvre ce lien rejoint le voyage en tant que membre. Régénérez le lien pour invalider l'ancien.",
   'trip.invite.create': "Créer un lien d'invitation",
   'trip.invite.regenerate': 'Régénérer',
   'trip.invite.disable': 'Désactiver',

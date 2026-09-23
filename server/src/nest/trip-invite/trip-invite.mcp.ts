@@ -75,7 +75,7 @@ export class TripInviteMcp {
 
   @Tool({
     name: 'create_trip_invite_link',
-    description: 'Create the trip\'s invite link, or rotate it: a trip has exactly one, so calling this again issues a fresh token and the previous link stops working immediately. Anyone with a TREK account who opens the link and signs in becomes a member of the trip, which makes it a different and far stronger thing than create_share_link, whose link only shows a read-only public view. Use add_trip_member instead when the person already has an account and is known by name or email.',
+    description: 'Create the trip\'s invite link, or rotate it: a trip has exactly one, so calling this again issues a fresh token and the previous link stops working immediately. Anyone with a PanelMint account who opens the link and signs in becomes a member of the trip, which makes it a different and far stronger thing than create_share_link, whose link only shows a read-only public view. Use add_trip_member instead when the person already has an account and is known by name or email.',
     inputSchema: {
       tripId: z.number().int().positive(),
       expires_in_days: tripInviteLinkCreateRequestSchema.shape.expires_in_days

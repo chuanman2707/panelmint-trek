@@ -39,7 +39,7 @@ export class RoadtripSearchService {
     let clamped = false;
     settled.forEach((entry, index) => {
       if (entry.status === 'rejected') {
-        failedSources.add(index === 0 ? 'TREK' : `plugin:${providers[Math.floor((index - 1) / categories.length)]}`);
+        failedSources.add(index === 0 ? 'PanelMint' : `plugin:${providers[Math.floor((index - 1) / categories.length)]}`);
         return;
       }
       sources.add(entry.value.source);

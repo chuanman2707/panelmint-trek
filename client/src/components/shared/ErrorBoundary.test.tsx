@@ -205,7 +205,7 @@ describe('RootErrorFallback', () => {
     render(<RootErrorFallback error={new Error('boot failed')} reset={() => {}} isChunkError={false} />);
     // If it called t() and the provider was the thing that broke, the user would
     // be reading "common.errorTitle".
-    expect(screen.getByText('TREK could not start')).toBeInTheDocument();
+    expect(screen.getByText('PanelMint could not start')).toBeInTheDocument();
     expect(screen.getByText('boot failed')).toBeInTheDocument();
   });
 

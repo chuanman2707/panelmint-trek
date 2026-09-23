@@ -10,7 +10,7 @@ import { ImmichService } from './immich.service';
 import { SynologyService } from './synology.service';
 
 /**
- * The photo backends TREK can talk to, named rather than taken as a free
+ * The photo backends PanelMint can talk to, named rather than taken as a free
  * string. `trek_photos.provider` stores whatever it is handed, so a typo would
  * persist a row no resolver can ever match to a backend.
  */

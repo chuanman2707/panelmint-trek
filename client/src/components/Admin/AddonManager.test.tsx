@@ -269,7 +269,7 @@ describe('AddonManager', () => {
     render(<AddonManager />);
 
     await screen.findByText('No addons available');
-    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg');
+    expect(screen.getByAltText('PanelMint')).toHaveAttribute('src', '/text-light.svg');
   });
 
   it('FE-ADMIN-ADDON-014: photo-flavoured trip addons are hidden from the trip section', async () => {

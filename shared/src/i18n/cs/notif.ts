@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Přiřazení balení',
   'notif.packing_tagged.text': '{actor} vás přiřadil k {category} v {trip}',
   'notif.version_available.title': 'Nová verze dostupná',
-  'notif.version_available.text': 'TREK {version} je nyní dostupný',
+  'notif.version_available.text': 'PanelMint {version} je nyní dostupný',
   'notif.replica_failure.title': 'Selhání repliky úložiště',
   'notif.replica_failure.text': "Zápis do repliky '{backend}' selhal: {op} u {key} — {error}",
   'notif.replica_failure.textSuppressed': "Zápis do repliky '{backend}' selhal: {op} u {key} — {error}. Od poslední notifikace bylo potlačeno {suppressed} dalších selhání.",

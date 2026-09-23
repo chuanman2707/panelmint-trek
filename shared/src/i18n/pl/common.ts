@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Spróbuj ponownie',
   'common.errorReload': 'Odśwież stronę',
   'common.errorUpdateTitle': 'Dostępna jest nowa wersja',
-  'common.errorUpdateBody': 'TREK został zaktualizowany, gdy ta karta była otwarta. Odśwież, aby pobrać nową wersję.',
+  'common.errorUpdateBody': 'PanelMint został zaktualizowany, gdy ta karta była otwarta. Odśwież, aby pobrać nową wersję.',
   'common.errorPluginTitle': 'Nie udało się wyświetlić tej wtyczki',
 };
 export default common;

@@ -59,10 +59,10 @@ describe('MTripLoadingSplash', () => {
     expect(container.querySelector('.trek--packing')).toBeTruthy()
   })
 
-  it('FE-MOB-SPLASH-002: falls back to the TREK wordmark when the trip has no title', () => {
+  it('FE-MOB-SPLASH-002: falls back to the PanelMint wordmark when the trip has no title', () => {
     render(<MTripLoadingSplash title="" />)
 
-    expect(screen.getByText('TREK')).toBeInTheDocument()
+    expect(screen.getByText('PanelMint')).toBeInTheDocument()
   })
 
   it('FE-MOB-SPLASH-003: walks the four beats in order, one every 1400ms', () => {

@@ -18,7 +18,7 @@ import { STORAGE_CATEGORIES as CONFIGURABLE_CATEGORIES, type StorageCategory as 
 
 /**
  * Categories the byte-paths serve. `photos` is the legacy shared photo
- * directory (/uploads/photos): earlier TREK versions wrote place photos there
+ * directory (/uploads/photos): earlier PanelMint versions wrote place photos there
  * and its objects are still served and backed up, but it is NOT configurable —
  * it left STORAGE_CATEGORIES (category-labels spec) and always resolves to
  * uploads-local (following a name-override, never a category entry).

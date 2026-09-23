@@ -79,7 +79,7 @@ export interface PaperlessCreds {
 }
 
 /**
- * A failed Paperless call, carrying the reason as one of TREK's codes.
+ * A failed Paperless call, carrying the reason as one of PanelMint's codes.
  *
  * The upstream text never reaches a user: it is English, it sometimes quotes
  * the URL back, and behind an auth proxy it is an HTML login page. `detail`
@@ -186,7 +186,7 @@ export const TRIGGER_DOCUMENT_UPDATED = 3;
 export const ACTION_WEBHOOK = 4;
 /**
  * Consume folder, API upload, mail fetch, web UI: all four, or a document
- * dropped into Paperless's own interface would never reach TREK.
+ * dropped into Paperless's own interface would never reach PanelMint.
  */
 const TRIGGER_SOURCES = [1, 2, 3, 4];
 
@@ -665,7 +665,7 @@ export class PaperlessClient {
    *
    * Without `original=true` Paperless serves the archived PDF it produced
    * itself, which is a different file with a different length and a different
-   * hash. TREK would store something the user never uploaded, and every
+   * hash. PanelMint would store something the user never uploaded, and every
    * comparison against the checksum would fail.
    */
   async downloadOriginal(creds: PaperlessCreds, documentId: number): Promise<Response> {

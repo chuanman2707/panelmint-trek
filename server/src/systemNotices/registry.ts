@@ -150,7 +150,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     // Desktop-only: the support modal is suppressed on small/mobile viewports.
     desktopOnly: true,
     // Not on a centrally administered install. The body thanks the reader for
-    // installing TREK and asks them to fund it, and there the reader installed
+    // installing PanelMint and asks them to fund it, and there the reader installed
     // nothing and already pays whoever runs it. Gated rather than reworded: the
     // text is right for everyone it was written for.
     conditions: [{ kind: 'managed', is: false }],

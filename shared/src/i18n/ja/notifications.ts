@@ -17,7 +17,7 @@ const notifications: TranslationStrings = {
   'notifications.synologySessionCleared.text':
     'サーバーまたはアカウントが変更されました。設定で接続を再テストしてください。',
   'notifications.versionAvailable.title': '更新があります',
-  'notifications.versionAvailable.text': 'TREK {version} が利用可能です。',
+  'notifications.versionAvailable.text': 'PanelMint {version} が利用可能です。',
   'notifications.versionAvailable.button': '詳細を見る',
   'notifications.test.title': '{actor} からのテスト通知',
   'notifications.test.text': 'これはテスト通知です。',

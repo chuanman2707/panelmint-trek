@@ -72,7 +72,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Torna-ho a provar',
   'common.errorReload': 'Torna a carregar la pàgina',
   'common.errorUpdateTitle': 'Hi ha una versió nova disponible',
-  'common.errorUpdateBody': 'TREK s\'ha actualitzat mentre aquesta pestanya era oberta. Torna a carregar per obtenir la versió nova.',
+  'common.errorUpdateBody': 'PanelMint s\'ha actualitzat mentre aquesta pestanya era oberta. Torna a carregar per obtenir la versió nova.',
   'common.errorPluginTitle': 'No s\'ha pogut mostrar aquest connector',
 };
 export default common;

@@ -87,9 +87,9 @@ export interface PluginListItem {
   dependencies: PluginDependencies;
   /** Whether this plugin can currently activate, and why not if it can't. */
   dependencyStatus: PluginDependencyStatus;
-  /** The TREK range the plugin declares it supports; null if it declared none. */
+  /** The PanelMint range the plugin declares it supports; null if it declared none. */
   trekRange: string | null;
-  /** The running TREK, so the UI can say "needs X, you have Y" without doing semver. */
+  /** The running PanelMint, so the UI can say "needs X, you have Y" without doing semver. */
   hostVersion: string;
   /**
    * Non-null when the plugin is outside its declared range (or declared none) and only

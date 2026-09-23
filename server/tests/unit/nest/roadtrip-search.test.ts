@@ -28,7 +28,7 @@ describe('Roadtrip plugin search', () => {
     }) };
     const answer = await new RoadtripSearchService(maps as never, hooks as never).search({ categories: ['fuel'], bbox }, 7);
     expect(answer.pois).toHaveLength(1);
-    expect(answer.failedSources).toEqual(['TREK', 'plugin:broken']);
+    expect(answer.failedSources).toEqual(['PanelMint', 'plugin:broken']);
     expect(JSON.stringify(answer)).not.toContain('private');
   });
 

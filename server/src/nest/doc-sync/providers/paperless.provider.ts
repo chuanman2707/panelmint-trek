@@ -31,7 +31,7 @@ import { DOWNLOAD_MAX_BYTES, guardDownload } from './provider-http';
  * The scope is a TAG, because that is the only container Paperless has: there
  * are no folders, and a document belongs to as many tags as someone gives it.
  * A tag is also the one thing the instance's owner can see and reason about in
- * their own interface, which matters: this is their archive, and TREK is a
+ * their own interface, which matters: this is their archive, and PanelMint is a
  * guest in it.
  *
  * The tag is paired with a custom field (`trek_trip_id`) carrying the trip's
@@ -112,10 +112,10 @@ const TIKA_MIME_TYPES = [
 const ACCEPTED_MIME_TYPES: readonly string[] = [...BASE_MIME_TYPES, ...TIKA_MIME_TYPES];
 
 /**
- * The extension a Paperless document should carry in TREK.
+ * The extension a Paperless document should carry in PanelMint.
  *
  * Paperless keeps a `title` without an extension and the uploaded file name
- * separately, while TREK's file list is a list of file names. The extension is
+ * separately, while PanelMint's file list is a list of file names. The extension is
  * taken from the original name where there is one and derived from the MIME
  * type otherwise, so a document pulled twice keeps the same name.
  */
@@ -162,7 +162,7 @@ function extensionOf(name: string): string | null {
 }
 
 /**
- * The file name a document gets in TREK: the title, plus the extension it lost
+ * The file name a document gets in PanelMint: the title, plus the extension it lost
  * on the way into Paperless.
  */
 export function documentFileName(doc: PaperlessDocument): string {
@@ -179,7 +179,7 @@ export function documentFileName(doc: PaperlessDocument): string {
 /**
  * The longest title Paperless stores. `Document.title` is a 128-character
  * column, and a PATCH with more is refused with a validation error that reaches
- * TREK as a bare provider_error, on every run, for as long as the name stays
+ * PanelMint as a bare provider_error, on every run, for as long as the name stays
  * that long. The consumer trims an upload's title on its own; the rename path
  * has to do it here.
  */
@@ -223,7 +223,7 @@ function scopeOption(tag: PaperlessTag): DocumentScopeOption {
     label: tag.name,
     remoteRootId: String(tag.id),
     // The filter URL of the instance's own document list: paste it after the
-    // base URL and you are looking at exactly what TREK syncs.
+    // base URL and you are looking at exactly what PanelMint syncs.
     remoteRootPath: `/documents?tags__id__all=${tag.id}`,
   };
 }
@@ -434,7 +434,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
         tooLarge: (declared) =>
           new PaperlessError(
             'too_large',
-            'The document is larger than TREK will transfer',
+            'The document is larger than PanelMint will transfer',
             undefined,
             `content_length=${declared}`,
           ),
@@ -580,7 +580,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
   }
 
   /**
-   * Replace the bytes of a document TREK already knows.
+   * Replace the bytes of a document PanelMint already knows.
    *
    * The document id is the one that was passed in, never the one the consume
    * task reports: `update_version` files the new revision under a fresh
@@ -669,7 +669,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
 
     try {
       const workflowId = await this.client.createWorkflow(creds, {
-        name: `TREK document sync (link ${scope.linkId})`,
+        name: `PanelMint document sync (link ${scope.linkId})`,
         tagId,
         callbackUrl,
         secretHeader: { name: PAPERLESS_WEBHOOK_SECRET_HEADER, value: secret },

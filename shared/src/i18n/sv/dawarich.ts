@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'Anslut din egen Dawarich-instans för att se var du faktiskt har varit. TREK läser den och föreslår dagboksinlägg, platser och länder – ingenting läggs till förrän du bekräftar det, och ingenting skrivs tillbaka till Dawarich.',
+    'Anslut din egen Dawarich-instans för att se var du faktiskt har varit. PanelMint läser den och föreslår dagboksinlägg, platser och länder – ingenting läggs till förrän du bekräftar det, och ingenting skrivs tillbaka till Dawarich.',
   'dawarich.url': 'Instansens adress',
   'dawarich.apiKey': 'API-nyckel',
   'dawarich.apiKeyPlaceholder': 'Klistra in din Dawarich API-nyckel',
@@ -12,7 +12,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTls': 'Tillåt självsignerat certifikat',
   'dawarich.allowInsecureTlsHint': 'Behövs bara om din instans använder ett certifikat som din server inte litar på.',
   'dawarich.syncEnabled': 'Leta efter nya vistelser automatiskt',
-  'dawarich.syncEnabledHint': 'Avstängt betyder att TREK bara läser Dawarich när du ber om det.',
+  'dawarich.syncEnabledHint': 'Avstängt betyder att PanelMint bara läser Dawarich när du ber om det.',
   'dawarich.test.button': 'Testa anslutningen',
   'dawarich.test.success': 'Ansluten. {count} vistelser hittades de senaste 30 dagarna.',
   'dawarich.test.failed': 'Kunde inte nå Dawarich.',
@@ -45,18 +45,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'Den här versionen av Dawarich erbjuder inte: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'TREK kunde inte nå den adressen.',
+  'dawarich.error.unreachable': 'PanelMint kunde inte nå den adressen.',
   'dawarich.error.unauthorized': 'Dawarich avvisade API-nyckeln.',
   'dawarich.error.forbidden': 'Den API-nyckeln får inte läsa det här.',
   'dawarich.error.not_found': 'Den här versionen av Dawarich har inte den ändpunkten.',
-  'dawarich.error.rate_limited': 'Dawarich bad TREK att sakta ner. Försök igen om en stund.',
+  'dawarich.error.rate_limited': 'Dawarich bad PanelMint att sakta ner. Försök igen om en stund.',
   'dawarich.error.server_error': 'Dawarich svarade med ett fel.',
   'dawarich.error.invalid_response': 'Den adressen svarade med något som inte är Dawarich.',
-  'dawarich.error.too_large': 'Dawarich skickade mer data än TREK läser på en gång.',
+  'dawarich.error.too_large': 'Dawarich skickade mer data än PanelMint läser på en gång.',
   'dawarich.error.not_connected': 'Ingen Dawarich-instans är ansluten än.',
   'dawarich.error.addon_disabled': 'Dawarich-tillägget är avstängt för den här instansen.',
-  'dawarich.error.offline': 'Det här kräver en anslutning — TREK är offline just nu.',
-  'dawarich.error.invalid_url': 'TREK kan inte använda den adressen.',
+  'dawarich.error.offline': 'Det här kräver en anslutning — PanelMint är offline just nu.',
+  'dawarich.error.invalid_url': 'PanelMint kan inte använda den adressen.',
   'dawarich.warning.private_ip': 'Adressen pekar på en privat IP ({ip}). Kontrollera att det är meningen — servern kan behöva ALLOW_INTERNAL_NETWORK=true för att nå den.',
   'dawarich.error.unknown': 'Något gick fel i kommunikationen med Dawarich.',
 
@@ -96,9 +96,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'I dagboken',
   'dawarich.suggestions.acceptedAs.bucket_list': 'Önskningen avbockad',
   'dawarich.suggestions.sourceChanged':
-    'Den här vistelsen har ändrats i Dawarich sedan du använde den. Det du skrev i TREK är orört.',
+    'Den här vistelsen har ändrats i Dawarich sedan du använde den. Det du skrev i PanelMint är orört.',
   'dawarich.suggestions.sourceMissing':
-    'Den här vistelsen finns inte längre i Dawarich. Det du skrev i TREK är orört.',
+    'Den här vistelsen finns inte längre i Dawarich. Det du skrev i PanelMint är orört.',
   'dawarich.sourceStatus.suggested': 'Upptäckt, obekräftad',
   'dawarich.confidence.high': 'Säker upptäckt',
   'dawarich.confidence.medium': 'Ganska säker upptäckt',
@@ -153,12 +153,12 @@ const dawarich: TranslationStrings = {
     'Länder som dina inspelningar säger att du har varit i. Bekräfta dem du vill ha i din Atlas – ingenting läggs till av sig självt, och det du markerat för hand förblir ditt.',
   'dawarich.atlas.load': 'Leta efter länder',
   'dawarich.atlas.loading': 'Läser dina inspelningar…',
-  'dawarich.atlas.empty': 'Dina inspelningar visar inga länder som TREK inte redan har.',
+  'dawarich.atlas.empty': 'Dina inspelningar visar inga länder som PanelMint inte redan har.',
   'dawarich.atlas.cities': '{count} städer',
   'dawarich.atlas.citiesOne': '1 stad',
   'dawarich.atlas.accept': 'Lägg till {count} länder',
   'dawarich.atlas.accepted': '{count} länder tillagda',
-  'dawarich.atlas.unresolved': 'TREK kunde inte matcha dessa mot ett land: {names}.',
+  'dawarich.atlas.unresolved': 'PanelMint kunde inte matcha dessa mot ett land: {names}.',
   'dawarich.atlas.source': 'Från Dawarich',
   'dawarich.atlas.range': 'Tittade på {from} till {to}',
 

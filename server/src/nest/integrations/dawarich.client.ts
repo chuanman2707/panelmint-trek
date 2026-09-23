@@ -15,7 +15,7 @@ import { mergeVisitedCountries, splitWindow, VISITED_CITIES_WINDOW_DAYS } from '
  *    never uses — a key in a query string ends up in every access log between
  *    here and there). `User.find_by(api_key:)` means one key per user and no
  *    scopes: the key reads that user's whole archive. Granular Dawarich tokens
- *    were discussed and have not shipped, so TREK must not depend on them.
+ *    were discussed and have not shipped, so PanelMint must not depend on them.
  *  - **Version**: every response carries `X-Dawarich-Version`. That is the
  *    instance's own word on what it is, which beats guessing from behaviour.
  *  - `GET /api/v1/health` skips authentication, so it proves reachability and
@@ -94,7 +94,7 @@ export interface DawarichVisitRaw {
   user_id?: number;
   started_at: string;
   ended_at: string;
-  /** Seconds in current builds; TREK normalises rather than trusting the unit. */
+  /** Seconds in current builds; PanelMint normalises rather than trusting the unit. */
   duration: number | string | null;
   name: string | null;
   status: string | null;
@@ -213,7 +213,7 @@ export class DawarichClient {
   /**
    * One authenticated GET, size-capped and parsed.
    *
-   * Returns the headers alongside the body because two things TREK needs are
+   * Returns the headers alongside the body because two things PanelMint needs are
    * only in them: the version banner and the page count.
    */
   private async get<T>(

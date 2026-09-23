@@ -4,7 +4,7 @@ import type Database from 'better-sqlite3';
  * Signature/trust status shared between the registry installer, the read-side
  * plugin service and the admin controller (#plugins).
  *
- * TREK verifies an author's Ed25519 signature and TOFU-pins the key on first
+ * PanelMint verifies an author's Ed25519 signature and TOFU-pins the key on first
  * install, but until now none of that was ever surfaced: a successfully-installed
  * UNSIGNED plugin looked identical to a signed one, and a signature-refused update
  * left the plugin quietly pinned at its old version with the reason in a toast.

@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Údaje o jízdě',
   'mobileTrip.rtDesktopNote':
     'Tyto údaje se nastavují na počítači, kde také můžete porovnávat jiné trasy a nechat den sledovat importovanou stopu.',
-  'mobileTrip.rtPlanOnDesktop': 'Plánování probíhá na počítači. Jakmile má den dvě místa, TREK jízdu spočítá.',
+  'mobileTrip.rtPlanOnDesktop': 'Plánování probíhá na počítači. Jakmile má den dvě místa, PanelMint jízdu spočítá.',
   'mobileTrip.rtSearchOffline': 'Vyžaduje připojení: hledání čte trasu před vámi.',
   'mobileTrip.rtBehind': 'o {time} za plánem',
   'mobileTrip.rtStart': 'Začátek',

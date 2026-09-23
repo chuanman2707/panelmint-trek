@@ -34,7 +34,7 @@ const trip: TranslationStrings = {
   'trip.toast.placesDeleted': '{count} tempat dihapus',
   'trip.invite.linkTitle': 'Tautan undangan perjalanan',
   'trip.invite.linkHint':
-    'Siapa pun yang punya akun TREK dan membuka tautan ini akan bergabung ke perjalanan sebagai anggota. Buat ulang untuk membatalkan tautan lama.',
+    'Siapa pun yang punya akun PanelMint dan membuka tautan ini akan bergabung ke perjalanan sebagai anggota. Buat ulang untuk membatalkan tautan lama.',
   'trip.invite.create': 'Buat tautan undangan',
   'trip.invite.regenerate': 'Buat ulang',
   'trip.invite.disable': 'Nonaktifkan',

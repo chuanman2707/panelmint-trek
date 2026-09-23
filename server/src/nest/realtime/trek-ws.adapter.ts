@@ -69,9 +69,9 @@ function withinBurst(socket: TrekWebSocket): boolean {
 }
 
 /**
- * TREK's wire protocol, on Nest's gateway plumbing.
+ * PanelMint's wire protocol, on Nest's gateway plumbing.
  *
- * The stock WsAdapter dispatches on `{ event, data }`. TREK's client has always
+ * The stock WsAdapter dispatches on `{ event, data }`. PanelMint's client has always
  * sent `{ type: 'join', tripId }` and expects `{ type: 'joined' }` back, and
  * changing that would break every deployed client and every offline queue that
  * has a frame parked in it. So the adapter translates: `type` names the handler,
@@ -201,7 +201,7 @@ export class TrekWsAdapter extends WsAdapter {
       const handler = handlers.find((h) => h.message === message.type);
       if (!handler) return; // An unknown type is ignored, not an error frame.
 
-      // The whole message is the payload: TREK's frames are flat, so `tripId`
+      // The whole message is the payload: PanelMint's frames are flat, so `tripId`
       // sits beside `type` rather than under a `data` key.
       transform(handler.callback(message, socket)).subscribe({
         next: (response) => {

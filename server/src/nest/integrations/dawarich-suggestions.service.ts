@@ -169,7 +169,7 @@ export class DawarichSuggestionsService {
   }
 
   /**
-   * Accept a suggestion into TREK.
+   * Accept a suggestion into PanelMint.
    *
    * Throws `AcceptError` rather than an HttpException so the controller, the
    * MCP tool and any future caller each shape the failure their own way — the
@@ -566,12 +566,12 @@ export class DawarichSuggestionsService {
    * Offered, never applied. The Atlas is a thing people curate — it has
    * tombstones precisely so a country somebody removed stays removed — and a
    * background job that ticked countries off would fight that. `alreadyVisited`
-   * marks the ones TREK already counts, so the list reads as "these are new"
+   * marks the ones PanelMint already counts, so the list reads as "these are new"
    * rather than as a wall of things the user has known for years.
    *
    * Dawarich names countries rather than coding them, so the name is mapped
    * through the Atlas's own table. Anything that does not resolve is listed by
-   * name instead of being dropped: a country TREK cannot code is still a
+   * name instead of being dropped: a country PanelMint cannot code is still a
    * country the user went to, and silently losing it would be the worse bug.
    */
   async atlasSuggestions(userId: number, from: Date, to: Date): Promise<DawarichAtlasSuggestions> {

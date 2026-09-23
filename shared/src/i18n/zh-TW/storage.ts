@@ -17,7 +17,7 @@ const storage: TranslationStrings = {
   'storage.field.primary': '主要後端',
   'storage.field.replicas': '複本',
   'storage.title': '儲存',
-  'storage.description': 'TREK 存放上傳檔案、照片和備份的位置。儲存前不會有任何變更。',
+  'storage.description': 'PanelMint 存放上傳檔案、照片和備份的位置。儲存前不會有任何變更。',
   'storage.loading': '載入中…',
   'storage.saved': '儲存設定已儲存',
   'storage.save': '儲存變更',
@@ -62,7 +62,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': '個人大頭貼',
   'storage.category.places': '地點圖片',
   'storage.category.photos-google': 'Google 相片快取',
-  'storage.category.photos-trek': 'TREK 相片快取',
+  'storage.category.photos-trek': 'PanelMint 相片快取',
   'storage.category.backups': '備份',
 
   // What each category stores — rendered under the label in the category map.
@@ -73,7 +73,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.places': '附加到地點與收藏地點的圖片 — 上傳或匯入的。',
   'storage.categoryDesc.photos-google': 'Google Places 相片的快取副本 — 可重新取得，遺失也無妨。',
   'storage.categoryDesc.photos-trek':
-    '「照片」（Memories）功能所使用的 TREK 相片服務快取相片 — 可重新取得，遺失也無妨。',
+    '「照片」（Memories）功能所使用的 PanelMint 相片服務快取相片 — 可重新取得，遺失也無妨。',
   'storage.categoryDesc.backups': '由備份面板或排程建立的伺服器備份封存檔。',
   'storage.health.title': '健康狀態',
   'storage.health.allClear': '未記錄任何複本失敗。',

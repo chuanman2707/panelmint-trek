@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'Συνδέστε τη δική σας εγκατάσταση Dawarich για να δείτε πού βρεθήκατε πραγματικά. Το TREK τη διαβάζει και προτείνει καταχωρήσεις ημερολογίου, τοποθεσίες και χώρες — τίποτα δεν προστίθεται πριν το επιβεβαιώσετε και τίποτα δεν γράφεται πίσω στο Dawarich.',
+    'Συνδέστε τη δική σας εγκατάσταση Dawarich για να δείτε πού βρεθήκατε πραγματικά. Το PanelMint τη διαβάζει και προτείνει καταχωρήσεις ημερολογίου, τοποθεσίες και χώρες — τίποτα δεν προστίθεται πριν το επιβεβαιώσετε και τίποτα δεν γράφεται πίσω στο Dawarich.',
   'dawarich.url': 'Διεύθυνση εγκατάστασης',
   'dawarich.apiKey': 'Κλειδί API',
   'dawarich.apiKeyPlaceholder': 'Επικολλήστε το κλειδί API του Dawarich',
@@ -15,7 +15,7 @@ const dawarich: TranslationStrings = {
     'Χρειάζεται μόνο αν η εγκατάστασή σας χρησιμοποιεί πιστοποιητικό που δεν εμπιστεύεται ο διακομιστής σας.',
   'dawarich.syncEnabled': 'Αυτόματος έλεγχος για νέες στάσεις',
   'dawarich.syncEnabledHint':
-    'Απενεργοποιημένο σημαίνει ότι το TREK διαβάζει το Dawarich μόνο όταν του το ζητήσετε.',
+    'Απενεργοποιημένο σημαίνει ότι το PanelMint διαβάζει το Dawarich μόνο όταν του το ζητήσετε.',
   'dawarich.test.button': 'Δοκιμή σύνδεσης',
   'dawarich.test.success': 'Συνδέθηκε. Βρέθηκαν {count} στάσεις τις τελευταίες 30 ημέρες.',
   'dawarich.test.failed': 'Δεν ήταν δυνατή η επικοινωνία με το Dawarich.',
@@ -48,18 +48,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'Αυτή η έκδοση του Dawarich δεν προσφέρει: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'Το TREK δεν μπόρεσε να επικοινωνήσει με αυτή τη διεύθυνση.',
+  'dawarich.error.unreachable': 'Το PanelMint δεν μπόρεσε να επικοινωνήσει με αυτή τη διεύθυνση.',
   'dawarich.error.unauthorized': 'Το Dawarich απέρριψε το κλειδί API.',
   'dawarich.error.forbidden': 'Αυτό το κλειδί API δεν επιτρέπεται να διαβάσει κάτι τέτοιο.',
   'dawarich.error.not_found': 'Αυτή η έκδοση του Dawarich δεν διαθέτει αυτό το σημείο πρόσβασης.',
-  'dawarich.error.rate_limited': 'Το Dawarich ζήτησε από το TREK να επιβραδύνει. Δοκιμάστε ξανά σε λίγο.',
+  'dawarich.error.rate_limited': 'Το Dawarich ζήτησε από το PanelMint να επιβραδύνει. Δοκιμάστε ξανά σε λίγο.',
   'dawarich.error.server_error': 'Το Dawarich απάντησε με σφάλμα.',
   'dawarich.error.invalid_response': 'Αυτή η διεύθυνση απάντησε με κάτι που δεν είναι Dawarich.',
-  'dawarich.error.too_large': 'Το Dawarich έστειλε περισσότερα δεδομένα από όσα διαβάζει το TREK με τη μία.',
+  'dawarich.error.too_large': 'Το Dawarich έστειλε περισσότερα δεδομένα από όσα διαβάζει το PanelMint με τη μία.',
   'dawarich.error.not_connected': 'Δεν έχει συνδεθεί ακόμα καμία εγκατάσταση Dawarich.',
   'dawarich.error.addon_disabled': 'Το πρόσθετο Dawarich είναι απενεργοποιημένο σε αυτή την εγκατάσταση.',
-  'dawarich.error.offline': 'Αυτό χρειάζεται σύνδεση — το TREK είναι εκτός σύνδεσης αυτή τη στιγμή.',
-  'dawarich.error.invalid_url': 'Το TREK δεν μπορεί να χρησιμοποιήσει αυτή τη διεύθυνση.',
+  'dawarich.error.offline': 'Αυτό χρειάζεται σύνδεση — το PanelMint είναι εκτός σύνδεσης αυτή τη στιγμή.',
+  'dawarich.error.invalid_url': 'Το PanelMint δεν μπορεί να χρησιμοποιήσει αυτή τη διεύθυνση.',
   'dawarich.warning.private_ip': 'Αυτή η διεύθυνση οδηγεί σε ιδιωτική IP ({ip}). Βεβαιωθείτε ότι αυτό εννοούσατε — ο διακομιστής ίσως χρειάζεται ALLOW_INTERNAL_NETWORK=true.',
   'dawarich.error.unknown': 'Κάτι πήγε στραβά στην επικοινωνία με το Dawarich.',
 
@@ -100,9 +100,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'Στο ημερολόγιο',
   'dawarich.suggestions.acceptedAs.bucket_list': 'Η επιθυμία σημειώθηκε ως εκπληρωμένη',
   'dawarich.suggestions.sourceChanged':
-    'Αυτή η στάση έχει αλλάξει στο Dawarich από τότε που τη χρησιμοποιήσατε. Ό,τι γράψατε στο TREK παραμένει ανέπαφο.',
+    'Αυτή η στάση έχει αλλάξει στο Dawarich από τότε που τη χρησιμοποιήσατε. Ό,τι γράψατε στο PanelMint παραμένει ανέπαφο.',
   'dawarich.suggestions.sourceMissing':
-    'Αυτή η στάση δεν υπάρχει πλέον στο Dawarich. Ό,τι γράψατε στο TREK παραμένει ανέπαφο.',
+    'Αυτή η στάση δεν υπάρχει πλέον στο Dawarich. Ό,τι γράψατε στο PanelMint παραμένει ανέπαφο.',
   'dawarich.sourceStatus.suggested': 'Εντοπίστηκε, χωρίς επιβεβαίωση',
   'dawarich.confidence.high': 'Εντοπισμός με βεβαιότητα',
   'dawarich.confidence.medium': 'Εντοπισμός με σχετική βεβαιότητα',
@@ -158,12 +158,12 @@ const dawarich: TranslationStrings = {
     'Χώρες στις οποίες βρεθήκατε σύμφωνα με τις καταγραφές σας. Επιβεβαιώστε όσες θέλετε στο Atlas σας — τίποτα δεν προστίθεται από μόνο του και όσα σημειώσατε χειροκίνητα παραμένουν δικά σας.',
   'dawarich.atlas.load': 'Αναζήτηση χωρών',
   'dawarich.atlas.loading': 'Ανάγνωση των καταγραφών σας…',
-  'dawarich.atlas.empty': 'Οι καταγραφές σας δεν δείχνουν χώρες που δεν έχει ήδη το TREK.',
+  'dawarich.atlas.empty': 'Οι καταγραφές σας δεν δείχνουν χώρες που δεν έχει ήδη το PanelMint.',
   'dawarich.atlas.cities': '{count} πόλεις',
   'dawarich.atlas.citiesOne': '1 πόλη',
   'dawarich.atlas.accept': 'Προσθήκη {count} χωρών',
   'dawarich.atlas.accepted': '{count} χώρες προστέθηκαν',
-  'dawarich.atlas.unresolved': 'Το TREK δεν μπόρεσε να τα αντιστοιχίσει σε χώρα: {names}.',
+  'dawarich.atlas.unresolved': 'Το PanelMint δεν μπόρεσε να τα αντιστοιχίσει σε χώρα: {names}.',
   'dawarich.atlas.source': 'Από το Dawarich',
   'dawarich.atlas.range': 'Εξετάστηκε το διάστημα {from} έως {to}',
 

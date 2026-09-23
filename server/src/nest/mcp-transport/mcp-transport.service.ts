@@ -102,7 +102,7 @@ export function setAuthChallenge(res: Response, error = 'invalid_token'): void {
   const base = trimTrailingSlashes(getMcpSafeUrl() || '');
   // RFC 9728 §5: resource with path component /mcp → PRM URL must include the path
   res.set('WWW-Authenticate',
-      `Bearer realm="TREK MCP", resource_metadata="${base}/.well-known/oauth-protected-resource/mcp", error="${error}"`);
+      `Bearer realm="PanelMint MCP", resource_metadata="${base}/.well-known/oauth-protected-resource/mcp", error="${error}"`);
 }
 
 export interface VerifyTokenResult {
@@ -152,7 +152,7 @@ export class McpTransportService {
       return { user, scopes: null, clientId: null, isStaticToken: true };
     }
 
-    // Short-lived JWT (TREK web session used directly) — full access, no notice
+    // Short-lived JWT (PanelMint web session used directly) — full access, no notice
     const user = this.auth.verifyJwtToken(token);
     if (!user) return null;
     return { user, scopes: null, clientId: null, isStaticToken: false };
@@ -249,7 +249,7 @@ export class McpTransportService {
     // Create a new per-user MCP server and session
     const server = new McpServer(
         {
-          name: 'TREK MCP',
+          name: 'PanelMint MCP',
           version: '1.0.0',
         },
         {

@@ -47,7 +47,7 @@ import {
  *   are none".
  *
  * The whole group is gated on the `dawarich` addon, with `AddonGuard` ahead of
- * `JwtAuthGuard` — the order every addon-gated controller in TREK uses, so that
+ * `JwtAuthGuard` — the order every addon-gated controller in PanelMint uses, so that
  * a switched-off addon answers the same 404 to everyone rather than 401 to some
  * callers and 404 to others. It does mean an unauthenticated caller can learn
  * whether the addon is on; that is true of every addon here and is not a secret
@@ -244,7 +244,7 @@ export class DawarichController {
    * `DawarichError` keeps its own code in the body: the client renders these
    * through i18n, and the upstream sentence would otherwise reach a German
    * install in English. 502 rather than 500, because the failure is a server
-   * TREK called, not TREK itself.
+   * PanelMint called, not PanelMint itself.
    */
   private guard<T>(run: () => T): T {
     try {

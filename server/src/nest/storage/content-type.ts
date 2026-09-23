@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 /**
- * Extension → mime for the types TREK stores (backfill/migration copies need
+ * Extension → mime for the types PanelMint stores (backfill/migration copies need
  * a contentType for S3 puts; the upload path gets it from the request, copy
  * paths must derive it). Deliberately tiny — no dependency.
  */

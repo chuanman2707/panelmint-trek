@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'مهمة التعبئة',
   'notif.packing_tagged.text': '{actor} عيّنك في {category} في {trip}',
   'notif.version_available.title': 'إصدار جديد متاح',
-  'notif.version_available.text': 'TREK {version} متاح الآن',
+  'notif.version_available.text': 'PanelMint {version} متاح الآن',
   'notif.replica_failure.title': 'فشل النسخة المتماثلة للتخزين',
   'notif.replica_failure.text': "فشلت الكتابة على النسخة المتماثلة '{backend}': {op} لـ {key} — {error}",
   'notif.replica_failure.textSuppressed': "فشلت الكتابة على النسخة المتماثلة '{backend}': {op} لـ {key} — {error}. تم تجاهل {suppressed} فشل إضافي منذ آخر إشعار.",

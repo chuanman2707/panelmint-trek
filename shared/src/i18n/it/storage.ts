@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.primary': 'Backend primario',
   'storage.field.replicas': 'Repliche',
   'storage.title': 'Archiviazione',
-  'storage.description': 'Dove TREK conserva i file caricati, le foto e i backup. Nulla cambia finché non salvi.',
+  'storage.description': 'Dove PanelMint conserva i file caricati, le foto e i backup. Nulla cambia finché non salvi.',
   'storage.loading': 'Caricamento…',
   'storage.saved': 'Configurazione di archiviazione salvata',
   'storage.save': 'Salva modifiche',
@@ -67,7 +67,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Foto profilo',
   'storage.category.places': 'Immagini dei luoghi',
   'storage.category.photos-google': 'Cache foto di Google',
-  'storage.category.photos-trek': 'Cache foto TREK',
+  'storage.category.photos-trek': 'Cache foto PanelMint',
   'storage.category.backups': 'Backup',
 
   // What each category stores — rendered under the label in the category map.
@@ -80,7 +80,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Copie in cache delle foto di Google Places — recuperabili di nuovo, perderle è sicuro.',
   'storage.categoryDesc.photos-trek':
-    'Foto in cache dal servizio foto TREK usato da Foto (Memories) — recuperabili di nuovo, perderle è sicuro.',
+    'Foto in cache dal servizio foto PanelMint usato da Foto (Memories) — recuperabili di nuovo, perderle è sicuro.',
   'storage.categoryDesc.backups': 'Archivi di backup del server creati dal pannello Backup o dalla pianificazione.',
   'storage.health.title': 'Stato',
   'storage.health.allClear': 'Nessun errore di replica registrato.',

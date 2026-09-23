@@ -9,7 +9,7 @@ import { METHOD_PERMISSION } from '../protocol/envelope';
  * HOST-bound acting user (not a value the plugin supplies) and a per-plugin hash
  * chain (hash = sha256(prev_hash + row)). That makes wide data grants
  * attributable, tamper-evident, and user-visible, which is exactly what lets
- * TREK grant broad reads to large addons without raising risk.
+ * PanelMint grant broad reads to large addons without raising risk.
  */
 
 interface AuditDb {

@@ -13,16 +13,16 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': 'اسم المجلد الجديد',
   'docsync.syncNow': 'زامن الآن',
   'docsync.unlink': 'قطع الاتصال',
-  'docsync.confirmUnlink': 'تبقى المستندات في TREK وفي المخزن. يزول الاقتران بينهما فقط.',
+  'docsync.confirmUnlink': 'تبقى المستندات في PanelMint وفي المخزن. يزول الاقتران بينهما فقط.',
   'docsync.syncEnabled': 'المزامنة تلقائياً',
   'docsync.deletePolicy': 'عند حذف مستند',
   'docsync.deleteUnlink': 'الإبقاء على النسختين',
   'docsync.deleteTrash': 'النقل إلى سلة المهملات',
   'docsync.conflictPolicy': 'عند تغيير الجانبين',
   'docsync.onConflict.manual': 'اسألني',
-  'docsync.onConflict.trek_wins': 'الاحتفاظ بنسخة TREK',
+  'docsync.onConflict.trek_wins': 'الاحتفاظ بنسخة PanelMint',
   'docsync.onConflict.provider_wins': 'الاحتفاظ بنسخة المخزن',
-  'docsync.webhookHint': 'الصق هذا الـ URL في المزوّد لتصل التغييرات فوراً. بدونه يتحقق TREK على فترات زمنية.',
+  'docsync.webhookHint': 'الصق هذا الـ URL في المزوّد لتصل التغييرات فوراً. بدونه يتحقق PanelMint على فترات زمنية.',
 
   // حقول نموذج الاتصال. تطابق المفاتيح عمود `label` في
   // document_provider_fields، وهو يخزّن لاحقة مفتاح لا نصاً.
@@ -45,7 +45,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudAppPassword':
     'الإعدادات ← الأمان ← إنشاء كلمة مرور تطبيق جديدة. لا تستخدم كلمة مرور حسابك أبداً.',
   'docsync.hintOpenCloudToken': 'يُنشأ في OpenCloud ضمن رموز التطبيقات.',
-  'docsync.hintBasePath': 'المكان الذي يبحث فيه TREK عن مجلدات الرحلات. الافتراضي /TREK.',
+  'docsync.hintBasePath': 'المكان الذي يبحث فيه PanelMint عن مجلدات الرحلات. الافتراضي /TREK.',
   'docsync.hintSynologyUrl': 'أدرج المنفذ، مثال https://nas.example.com:5001',
   'docsync.hintSynologyUser': 'يُفضّل حساب DSM مخصّص لا يصل إلا إلى هذا المجلد المشترك.',
   'docsync.hintSynologyOtp': 'مطلوب مرة واحدة فقط، إذا كان الحساب يستخدم المصادقة الثنائية.',
@@ -65,13 +65,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': 'كبير جداً',
   'docsync.state.error': 'خطأ',
   'docsync.state.remote_missing': 'غير موجود لدى المزوّد',
-  'docsync.state.local_deleted': 'محذوف في TREK',
+  'docsync.state.local_deleted': 'محذوف في PanelMint',
   'docsync.state.scope_drift': 'نُقل خارج المجلد',
 
   'docsync.conflict.resolve': "حلّ {count}",
 
   'docsync.conflict.title': 'تغيّرت النسختان',
-  'docsync.conflict.keepTrek': 'الإبقاء على نسخة TREK',
+  'docsync.conflict.keepTrek': 'الإبقاء على نسخة PanelMint',
   'docsync.conflict.keepProvider': 'الإبقاء على نسخة المزوّد',
   'docsync.conflict.keepBoth': 'الإبقاء على النسختين',
 
@@ -83,7 +83,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'هذا الحساب لا يملك صلاحية القيام بذلك.',
   'docsync.error.not_found': 'غير موجود لدى المزوّد.',
   'docsync.error.scope_missing': 'المجلد المرتبط لم يعد موجوداً.',
-  'docsync.error.rate_limited': 'المزوّد يحدّ من عدد طلباتنا. سيعيد TREK المحاولة لاحقاً.',
+  'docsync.error.rate_limited': 'المزوّد يحدّ من عدد طلباتنا. سيعيد PanelMint المحاولة لاحقاً.',
   'docsync.error.too_large': 'حجم الملف أكبر مما يقبله المزوّد.',
   'docsync.error.unsupported_type': 'المزوّد لا يقبل هذا النوع من الملفات.',
   'docsync.error.quota_exceeded': 'لم تعد لدى المزوّد مساحة.',
@@ -104,8 +104,8 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': 'لا شيء مرتبط بعد',
   'docsync.empty.hintOwner':
-    'اختر مخزناً من القائمة الجانبية. يحتفظ TREK بنسخته الخاصة من كل شيء، فلا يضيع شيء إذا اختفى المخزن.',
-  'docsync.empty.hintMember': 'يتولى مالك الرحلة إعداد هذا. تبقى المستندات في TREK في الحالتين.',
+    'اختر مخزناً من القائمة الجانبية. يحتفظ PanelMint بنسخته الخاصة من كل شيء، فلا يضيع شيء إذا اختفى المخزن.',
+  'docsync.empty.hintMember': 'يتولى مالك الرحلة إعداد هذا. تبقى المستندات في PanelMint في الحالتين.',
 
   // كيف يرتّب كل منتج الملفات. يظهر قبل أي ربط، لأنه ما ستطلبه الشاشة التالية.
   'docsync.model.paperless': 'التصنيف بالوسوم',
@@ -115,7 +115,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'التصنيف في مجلد على جهاز NAS',
 
   // ── شريط التدفق ────────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'PanelMint',
   'docsync.flow.toProvider': 'إلى المخزن',
   'docsync.flow.toTrek': 'من المخزن',
   'docsync.flow.documents': 'مستندات',
@@ -144,16 +144,16 @@ const docsync: TranslationStrings = {
   'docsync.connect.testing': 'جارٍ محاولة الوصول',
   'docsync.connect.okAs': 'تم الوصول، وسُجّل الدخول باسم {account}',
   'docsync.connect.insecureHint': 'لخادم على شبكتك الخاصة بشهادة موقّعة ذاتياً.',
-  'docsync.connect.about.paperless': 'يحفظ TREK هذه الرحلة تحت وسم خاص بها ولا يمسّ بقية أرشيفك.',
-  'docsync.connect.about.papra': 'اختر المؤسسة التي تنتمي إليها هذه الرحلة. يحفظها TREK داخلها تحت وسم خاص بها.',
+  'docsync.connect.about.paperless': 'يحفظ PanelMint هذه الرحلة تحت وسم خاص بها ولا يمسّ بقية أرشيفك.',
+  'docsync.connect.about.papra': 'اختر المؤسسة التي تنتمي إليها هذه الرحلة. يحفظها PanelMint داخلها تحت وسم خاص بها.',
   'docsync.connect.about.nextcloud':
     'استخدم كلمة مرور تطبيق لا كلمة مرور حسابك: فهي تعمل مع المصادقة الثنائية ويمكنك إبطالها وحدها.',
-  'docsync.connect.about.opencloud': 'يحصل TREK على مساحة خاصة بهذه الرحلة، منفصلة عن كل ما عداها.',
+  'docsync.connect.about.opencloud': 'يحصل PanelMint على مساحة خاصة بهذه الرحلة، منفصلة عن كل ما عداها.',
   'docsync.connect.about.synologydrive': 'يُفضّل حساب DSM لا يصل إلا إلى المجلد المشترك المخصّص لهذه الرحلة.',
 
   // ── اختيار الحاوية ─────────────────────────────────────────────────────────
   'docsync.scope.title': 'أين تُحفظ هذه الرحلة في {provider}؟',
-  'docsync.scope.intro': 'يُزامَن ما بداخله فقط. كل ما عداه في مخزنك يبقى خارج TREK.',
+  'docsync.scope.intro': 'يُزامَن ما بداخله فقط. كل ما عداه في مخزنك يبقى خارج PanelMint.',
   'docsync.scope.createTitle': 'إنشاء واحد جديد',
   'docsync.scope.createAction': 'إنشاء',
   'docsync.scope.pickTitle': 'أو استخدم واحداً موجوداً لديك',
@@ -163,7 +163,7 @@ const docsync: TranslationStrings = {
   // ── أمور تحتاج قراراً من المستخدم ──────────────────────────────────────────
   'docsync.issues.title': 'يحتاج إلى مراجعة',
   'docsync.issues.conflict': 'تغيّر في الجهتين. اختر النسخة التي تبقى.',
-  'docsync.issues.remote_missing': 'اختفى من المخزن. نسخة TREK لا تزال هنا.',
+  'docsync.issues.remote_missing': 'اختفى من المخزن. نسخة PanelMint لا تزال هنا.',
   'docsync.issues.rejected_type': 'نوع الملف هذا غير مسموح به هنا.',
   'docsync.issues.too_large': 'أكبر من الحد المسموح.',
   'docsync.issues.error': 'لم يتم النقل.',

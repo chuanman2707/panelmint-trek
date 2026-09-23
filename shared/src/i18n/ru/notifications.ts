@@ -30,7 +30,7 @@ const notifications: TranslationStrings = {
   'notifications.test.tripTitle': '{actor} написал в вашей поездке',
   'notifications.test.tripText': 'Тестовое уведомление для поездки "{trip}".',
   'notifications.versionAvailable.title': 'Доступно обновление',
-  'notifications.versionAvailable.text': 'TREK {version} теперь доступен.',
+  'notifications.versionAvailable.text': 'PanelMint {version} теперь доступен.',
   'notifications.versionAvailable.button': 'Подробнее',
 };
 export default notifications;

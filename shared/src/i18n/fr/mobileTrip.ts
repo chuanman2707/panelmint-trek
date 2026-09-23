@@ -51,7 +51,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtDesktopNote':
     'Ces chiffres se règlent sur ordinateur, où vous pouvez aussi comparer d’autres itinéraires et faire suivre à un jour une trace importée.',
   'mobileTrip.rtPlanOnDesktop':
-    'La planification se fait sur ordinateur. TREK calcule le trajet dès qu’un jour compte deux lieux.',
+    'La planification se fait sur ordinateur. PanelMint calcule le trajet dès qu’un jour compte deux lieux.',
   'mobileTrip.rtSearchOffline': 'Connexion nécessaire : la recherche lit l’itinéraire à venir.',
   'mobileTrip.rtBehind': '{time} de retard sur le programme',
   'mobileTrip.rtStart': 'Début',

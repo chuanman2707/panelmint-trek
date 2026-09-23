@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Реплики',
   'storage.title': 'Хранилище',
   'storage.description':
-    'Где TREK хранит загруженные файлы, фото и резервные копии. Ничего не изменится, пока вы не сохраните.',
+    'Где PanelMint хранит загруженные файлы, фото и резервные копии. Ничего не изменится, пока вы не сохраните.',
   'storage.loading': 'Загрузка…',
   'storage.saved': 'Конфигурация хранилища сохранена',
   'storage.save': 'Сохранить изменения',
@@ -66,7 +66,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Фото профиля',
   'storage.category.places': 'Изображения мест',
   'storage.category.photos-google': 'Кэш фото Google',
-  'storage.category.photos-trek': 'Кэш фото TREK',
+  'storage.category.photos-trek': 'Кэш фото PanelMint',
   'storage.category.backups': 'Резервные копии',
 
   // What each category stores — rendered under the label in the category map.
@@ -80,7 +80,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Кэшированные копии фото Google Places — их можно получить заново, потеря безопасна.',
   'storage.categoryDesc.photos-trek':
-    'Кэшированные фото из фотосервиса TREK, используемого функцией Фото (Memories) — их можно получить заново, потеря безопасна.',
+    'Кэшированные фото из фотосервиса PanelMint, используемого функцией Фото (Memories) — их можно получить заново, потеря безопасна.',
   'storage.categoryDesc.backups':
     'Архивы резервных копий сервера, созданные панелью резервного копирования или по расписанию.',
   'storage.health.title': 'Состояние',

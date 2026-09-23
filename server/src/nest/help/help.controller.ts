@@ -12,7 +12,7 @@ import {
 } from './wiki';
 
 /**
- * /api/help — embedded TREK wiki, served from the `wiki/` directory that ships
+ * /api/help — embedded PanelMint wiki, served from the `wiki/` directory that ships
  * with the app (see wiki.ts for the GitHub fallback). Content is public docs,
  * so these endpoints are unauthenticated; that also lets <img> tags load the
  * proxied assets without sending credentials.

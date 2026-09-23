@@ -51,7 +51,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtDesktopNote':
     'Esses dados são definidos no computador, onde você também pode comparar rotas alternativas e fazer um dia seguir uma trilha importada.',
   'mobileTrip.rtPlanOnDesktop':
-    'O planejamento acontece no computador. O TREK calcula o trajeto assim que um dia tem dois locais.',
+    'O planejamento acontece no computador. O PanelMint calcula o trajeto assim que um dia tem dois locais.',
   'mobileTrip.rtSearchOffline': 'Precisa de conexão: a busca lê a rota à frente.',
   'mobileTrip.rtBehind': '{time} de atraso em relação ao plano',
   'mobileTrip.rtStart': 'Início',

@@ -114,7 +114,7 @@ export class WebauthnConfigService {
     }
     if (origins.length === 0) return null;
 
-    return { rpID, rpName: 'TREK', origins, explicitOrigins: explicitOrigins.length > 0 };
+    return { rpID, rpName: 'PanelMint', origins, explicitOrigins: explicitOrigins.length > 0 };
   }
 
   /** True when a usable RP ID resolves for this deployment (exposed as a pure boolean on app-config). */

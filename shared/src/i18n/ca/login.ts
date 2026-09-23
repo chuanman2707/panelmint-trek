@@ -10,7 +10,7 @@ const login: TranslationStrings = {
   'login.signingIn': 'Iniciant la sessió…',
   'login.signIn': 'Entra',
   'login.createAdmin': "Crea un compte d'administrador",
-  'login.createAdminHint': 'Configura el primer compte administrador de TREK.',
+  'login.createAdminHint': 'Configura el primer compte administrador de PanelMint.',
   'login.setNewPassword': 'Estableix una contrasenya nova',
   'login.setNewPasswordHint': 'Has de canviar la teva contrasenya abans de continuar.',
   'login.createAccount': 'Crea un compte',
@@ -73,7 +73,7 @@ const login: TranslationStrings = {
   'login.rememberMe': "Recorda'm",
   'login.insecureCookie.title': "L'inici de sessió no es mantindrà sota HTTP",
   'login.insecureCookie.body':
-    'T\'estàs connectant mitjançant HTTP ordinari, de manera que el teu navegador rebutja la galeta de sessió segura de TREK — la següent petició fallarà amb "Access token required". Solució: utilitza HTTPS, o per a entorns locals (home-lab) defineix COOKIE_SECURE=false.',
+    'T\'estàs connectant mitjançant HTTP ordinari, de manera que el teu navegador rebutja la galeta de sessió segura de PanelMint — la següent petició fallarà amb "Access token required". Solució: utilitza HTTPS, o per a entorns locals (home-lab) defineix COOKIE_SECURE=false.',
   'login.insecureCookie.link': 'Obre la guia de resolució de problemes',
 };
 export default login;

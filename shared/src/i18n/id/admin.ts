@@ -129,13 +129,13 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Pengguna tanpa 2FA harus menyelesaikan pengaturan di Pengaturan sebelum menggunakan aplikasi.',
   'admin.apiKeys': 'Kunci API',
-  'admin.apiKeysHint': 'Dari mana data tempat berasal. Indeks TREK tidak butuh kunci; dua penyedia di bawah bersifat opsional.',
+  'admin.apiKeysHint': 'Dari mana data tempat berasal. Indeks PanelMint tidak butuh kunci; dua penyedia di bawah bersifat opsional.',
   'admin.trekApi.badgeDefault': 'Sumber baku yang disarankan',
   'admin.googleCaveat.badge': 'Tidak disarankan',
   'admin.googleCaveat.body':
-    'TREK adalah perangkat lunak sumber terbuka dan di sini kami tidak netral. Pada skala ini ulasan dan foto usaha biasa hanya ada di Google, dan itulah monopoli. Kolom ini ada karena tidak ada penggantinya, bukan karena kami menyarankan. Lalu setiap pencarian pergi ke Google.',
+    'PanelMint adalah perangkat lunak sumber terbuka dan di sini kami tidak netral. Pada skala ini ulasan dan foto usaha biasa hanya ada di Google, dan itulah monopoli. Kolom ini ada karena tidak ada penggantinya, bukan karena kami menyarankan. Lalu setiap pencarian pergi ke Google.',
   'admin.trekApi.tagline':
-    'Indeks tempat milik TREK sendiri. Mencari tanpa kunci Google, tanpa kuota, dan tanpa ada yang menghitung pencarian Anda.',
+    'Indeks tempat milik PanelMint sendiri. Mencari tanpa kunci Google, tanpa kuota, dan tanpa ada yang menghitung pencarian Anda.',
   'admin.trekApi.factPlaces':
     '73,6 juta tempat di seluruh dunia',
   'admin.trekApi.factNoKey':
@@ -180,12 +180,12 @@ const admin: TranslationStrings = {
     'Untuk pencarian tempat di Tiongkok daratan, tempat Google tidak dapat diakses dan data OpenStreetMap sangat sedikit. Perlu kunci jenis "Web 服务" (layanan web), bukan kunci JS API. Dapatkan di console.amap.com.',
   'admin.placesProvider.title': 'Penyedia pencarian tempat',
   'admin.placesProvider.subtitle':
-    'Indeks milik TREK dan OpenStreetMap menjawab setiap pencarian. Di sini dipilih siapa lagi yang ditanya bila keduanya tidak menemukan apa pun: Otomatis memilih Google bila ada kunci, lalu Amap.',
+    'Indeks milik PanelMint dan OpenStreetMap menjawab setiap pencarian. Di sini dipilih siapa lagi yang ditanya bila keduanya tidak menemukan apa pun: Otomatis memilih Google bila ada kunci, lalu Amap.',
   'admin.placesProvider.auto': 'Otomatis',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Penyedia yang dipilih belum punya kunci API, jadi pencarian tempat hanya dijawab oleh indeks TREK dan OpenStreetMap.',
+  'admin.placesProvider.missingKey': 'Penyedia yang dipilih belum punya kunci API, jadi pencarian tempat hanya dijawab oleh indeks PanelMint dan OpenStreetMap.',
   'admin.placesProvider.saved': 'Penyedia pencarian tempat disimpan',
   'admin.validateKey': 'Uji',
   'admin.keyValid': 'Terhubung',
@@ -220,8 +220,8 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Menampilkan gambar dan deskripsi saat menambahkan tempat. Wikipedia dan OpenStreetMap selalu digunakan; Google ditambahkan bila Foto Tempat atau Detail Tempat aktif.',
   'admin.placesGoogleOnly.title': 'Cari hanya dengan Google',
-  'admin.placesGoogleOnly.subtitle': 'Setiap pencarian dan setiap saran dikirim ke Google Places. Nonaktif, indeks TREK dan OpenStreetMap menjawab lebih dulu, dan Google hanya ditanya jika keduanya tidak menemukan apa pun.',
-  'admin.placesGoogleOnly.missingKey': 'Memerlukan kunci API Google Maps. Tanpa kunci, pencarian memakai indeks TREK dan OpenStreetMap, apa pun posisi sakelar ini.',
+  'admin.placesGoogleOnly.subtitle': 'Setiap pencarian dan setiap saran dikirim ke Google Places. Nonaktif, indeks PanelMint dan OpenStreetMap menjawab lebih dulu, dan Google hanya ditanya jika keduanya tidak menemukan apa pun.',
+  'admin.placesGoogleOnly.missingKey': 'Memerlukan kunci API Google Maps. Tanpa kunci, pencarian memakai indeks PanelMint dan OpenStreetMap, apa pun posisi sakelar ini.',
   'admin.placesGoogleOnly.otherProvider': 'Membutuhkan Google sebagai penyedia tempat. Dengan Amap atau OpenStreetMap yang dipilih, tidak ada pencarian yang dikirim ke Google, apa pun posisi sakelar ini.',
   'admin.transitProvider.title': 'Penyedia transportasi umum',
   'admin.transitProvider.subtitle': 'Layanan mana yang menjawab pencarian transportasi umum.',
@@ -356,7 +356,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Repositori sumber',
   'admin.plugins.reportIssue': 'Laporkan masalah',
   'admin.plugins.homepage': 'Beranda',
-  'admin.plugins.requiresTrek': 'Memerlukan TREK {version}+',
+  'admin.plugins.requiresTrek': 'Memerlukan PanelMint {version}+',
   'admin.plugins.reviewedOn': 'Ditinjau {date}',
   'admin.plugins.perm.db:own': 'Menyimpan datanya sendiri di database terisolasi',
   'admin.plugins.perm.db:read:trips': 'Membaca perjalanan yang dapat diakses oleh pengguna yang bersangkutan',
@@ -432,7 +432,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Menyediakan acara untuk kalender',
   'admin.plugins.perm.hook:place-detail-provider':
     'Menyumbangkan detail tambahan (ulasan, peringkat, tautan) untuk suatu tempat',
-  'admin.plugins.perm.hook:search-provider': 'Menjawab pencarian tempat dari indeks sendiri, di samping hasil TREK',
+  'admin.plugins.perm.hook:search-provider': 'Menjawab pencarian tempat dari indeks sendiri, di samping hasil PanelMint',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Munculkan peringatan validasi pada perjalanan (ditampilkan di perencana)',
   'admin.plugins.perm.hook:table-contributor':
@@ -452,7 +452,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     'Menerbitkan alat yang dapat dijalankan asisten AI atas nama Anda (bertindak dengan akses yang Anda berikan ke plugin di sini, bukan milik asisten)',
   'admin.plugins.perm.geolocation:read':
-    'Meminta lokasi terkinimu selama salah satu tampilannya terbuka (TREK membacanya dengan izin lokasi situs ini, bukan izin milik plugin sendiri)',
+    'Meminta lokasi terkinimu selama salah satu tampilannya terbuka (PanelMint membacanya dengan izin lokasi situs ini, bukan izin milik plugin sendiri)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Menambahkan bagian teks ke ekspor PDF perjalanan',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Menyorot negara di peta dunia Atlas (mis. daftar keinginan atau peringatan perjalanan)',
@@ -479,26 +479,26 @@ const admin: TranslationStrings = {
   'admin.plugins.updateLater': 'Biarkan nonaktif dulu',
   'admin.plugins.updateKeptOff': 'Pembaruan terpasang — dibiarkan nonaktif sampai kamu menyetujui izin baru',
   'admin.plugins.reviewedMeaning':
-    '"Ditinjau" berarti seorang maintainer TREK memindai plugin ini dari malware pada setiap versi — bukan untuk kualitas atau apakah plugin ini berfungsi. Ini bukan jaminan bahwa sebuah plugin tidak berbahaya.',
+    '"Ditinjau" berarti seorang maintainer PanelMint memindai plugin ini dari malware pada setiap versi — bukan untuk kualitas atau apakah plugin ini berfungsi. Ini bukan jaminan bahwa sebuah plugin tidak berbahaya.',
   'admin.plugins.security.title': 'Bagaimana plugin dikungkung — dan batasannya',
   'admin.plugins.security.isolationTitle': 'Setiap plugin berjalan dalam kotak terisolasi',
   'admin.plugins.security.isolationBody':
-    'Sebuah plugin berjalan sebagai prosesnya sendiri yang terkunci dan hanya bisa membaca file-nya sendiri. Ia tidak bisa membaca database kamu, rahasia login kamu, atau kunci enkripsi kamu, tidak bisa menjalankan program lain, dan tidak bisa menulis file di mana pun. Antarmukanya berjalan dalam frame browser tersegel yang tidak bisa membaca cookie sesi kamu atau menyentuh halaman TREK di sekitarnya.',
+    'Sebuah plugin berjalan sebagai prosesnya sendiri yang terkunci dan hanya bisa membaca file-nya sendiri. Ia tidak bisa membaca database kamu, rahasia login kamu, atau kunci enkripsi kamu, tidak bisa menjalankan program lain, dan tidak bisa menulis file di mana pun. Antarmukanya berjalan dalam frame browser tersegel yang tidak bisa membaca cookie sesi kamu atau menyentuh halaman PanelMint di sekitarnya.',
   'admin.plugins.security.permsTitle': 'Apa arti izin-izin ini',
   'admin.plugins.security.permsBody':
-    'Izin yang ditampilkan sebelum kamu memasang adalah batas keras yang diberlakukan TREK selama plugin berjalan — secara harfiah plugin tidak bisa melakukan apa pun yang tidak ada dalam daftar. Namun izin itu memberitahumu apa yang bisa dilakukan sebuah plugin, bukan apa yang sebenarnya dilakukannya. Plugin yang diizinkan membaca perjalananmu dan menjangkau sebuah server bisa mengirimkan perjalananmu ke server itu, jadi baca izin dan host keluarnya, bukan hanya deskripsinya.',
+    'Izin yang ditampilkan sebelum kamu memasang adalah batas keras yang diberlakukan PanelMint selama plugin berjalan — secara harfiah plugin tidak bisa melakukan apa pun yang tidak ada dalam daftar. Namun izin itu memberitahumu apa yang bisa dilakukan sebuah plugin, bukan apa yang sebenarnya dilakukannya. Plugin yang diizinkan membaca perjalananmu dan menjangkau sebuah server bisa mengirimkan perjalananmu ke server itu, jadi baca izin dan host keluarnya, bukan hanya deskripsinya.',
   'admin.plugins.security.limitsTitle': 'Apa yang tidak bisa kami janjikan',
   'admin.plugins.security.limitsBody':
-    'Isolasi ini adalah batas perangkat lunak yang kuat, bukan batas yang mutlak. Sebuah plugin bertindak persis dengan hak yang kamu setujui, jadi dalam batas hak itu ia bisa berperilaku berbeda dari yang disiratkan deskripsinya, dan ia bisa mengirim data yang memang dimilikinya secara sah ke host yang telah dideklarasikannya. TREK tidak membaca atau menilai apa yang sebenarnya dilakukan oleh kode sebuah plugin.',
+    'Isolasi ini adalah batas perangkat lunak yang kuat, bukan batas yang mutlak. Sebuah plugin bertindak persis dengan hak yang kamu setujui, jadi dalam batas hak itu ia bisa berperilaku berbeda dari yang disiratkan deskripsinya, dan ia bisa mengirim data yang memang dimilikinya secara sah ke host yang telah dideklarasikannya. PanelMint tidak membaca atau menilai apa yang sebenarnya dilakukan oleh kode sebuah plugin.',
   'admin.plugins.security.worstTitle': 'Skenario terburuk',
   'admin.plugins.security.worstBody':
     'Plugin berbahaya yang kamu aktifkan bisa menyalahgunakan data dan koneksi yang kamu berikan padanya — misalnya, membocorkan perjalanan yang boleh dibacanya. Ia tidak bisa mencuri kata sandi, memalsukan login admin, menjalankan perintah di servermu, atau menjangkau data yang tidak kamu berikan. Kerusakannya tetap dalam batas yang kamu setujui, dan menonaktifkan plugin akan menghentikannya.',
   'admin.plugins.security.reviewedTitle': 'Apa arti "Ditinjau"',
   'admin.plugins.security.reviewedBody':
-    'Plugin yang ditinjau telah dipindai secara manual dari malware oleh seorang maintainer TREK pada setiap versi — diperiksa untuk kode berbahaya, bukan untuk apakah plugin berfungsi dengan baik. Ini bukan janji bahwa plugin tidak berbahaya.',
+    'Plugin yang ditinjau telah dipindai secara manual dari malware oleh seorang maintainer PanelMint pada setiap versi — diperiksa untuk kode berbahaya, bukan untuk apakah plugin berfungsi dengan baik. Ini bukan janji bahwa plugin tidak berbahaya.',
   'admin.plugins.security.signedTitle': 'Apa arti "Ditandatangani"',
   'admin.plugins.security.signedBody':
-    'Checksum yang diverifikasi TREK pada setiap pemasangan membuktikan bahwa file-nya persis seperti yang dijamin registri. Tanda tangan membuktikan hal yang berbeda: bahwa file itu datang dari pembuatnya, ditandatangani dengan kunci yang hanya dia miliki. Plugin yang ditandatangani punya keduanya. Plugin tanpa tanda tangan bukan berarti tidak aman — ia hanya membawa satu jaminan lebih sedikit, dan sebagian besar plugin di registri saat ini memang belum ditandatangani.',
+    'Checksum yang diverifikasi PanelMint pada setiap pemasangan membuktikan bahwa file-nya persis seperti yang dijamin registri. Tanda tangan membuktikan hal yang berbeda: bahwa file itu datang dari pembuatnya, ditandatangani dengan kunci yang hanya dia miliki. Plugin yang ditandatangani punya keduanya. Plugin tanpa tanda tangan bukan berarti tidak aman — ia hanya membawa satu jaminan lebih sedikit, dan sebagian besar plugin di registri saat ini memang belum ditandatangani.',
   'admin.plugins.signed': 'Ditandatangani',
   'admin.plugins.signedHint': 'Diverifikasi dengan kunci tanda tangan pembuatnya saat dipasang',
   'admin.plugins.unsigned': 'Tanpa tanda tangan',
@@ -513,20 +513,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     'File-nya tidak cocok dengan tanda tangan pembuatnya. File itu bukan yang ditandatangani pembuatnya — entah rusak, entah diutak-atik. Ini tidak bisa dilewati.',
   'admin.plugins.sig.missingBody':
-    'Plugin ini ditandatangani saat kamu memasangnya, tetapi versi barunya tidak menyertakan tanda tangan. TREK tidak akan diam-diam menerima kemunduran itu. Ini tidak bisa dilewati.',
+    'Plugin ini ditandatangani saat kamu memasangnya, tetapi versi barunya tidak menyertakan tanda tangan. PanelMint tidak akan diam-diam menerima kemunduran itu. Ini tidak bisa dilewati.',
   'admin.plugins.sig.incompleteBody':
     'Entri registrinya setengah ditandatangani: ia mendeklarasikan kunci pembuat tetapi versinya tidak membawa tanda tangan (atau sebaliknya). Itu kesalahan di sisi plugin. Ini tidak bisa dilewati.',
   'admin.plugins.sig.pinnedKey': 'Kunci saat dipasang',
   'admin.plugins.sig.newKey': 'Kunci yang ditawarkan sekarang',
   'admin.plugins.sig.confirmOutOfBand':
-    'TREK tidak bisa membedakan pergantian kunci yang sah dari pengambilalihan — dari sini keduanya terlihat sama persis. Pastikan dulu kunci baru itu ke pembuatnya lewat saluran yang sudah kamu percaya sebelum kamu menerimanya. Setelah kamu menerimanya, plugin diperbarui dan kunci barunya diingat.',
+    'PanelMint tidak bisa membedakan pergantian kunci yang sah dari pengambilalihan — dari sini keduanya terlihat sama persis. Pastikan dulu kunci baru itu ke pembuatnya lewat saluran yang sudah kamu percaya sebelum kamu menerimanya. Setelah kamu menerimanya, plugin diperbarui dan kunci barunya diingat.',
   'admin.plugins.sig.retrustConfirm': 'Percayai kunci baru & perbarui',
   'admin.plugins.sig.cancel': 'Jangan percayai',
   'admin.plugins.sig.consentUnsigned':
     'Tidak ada yang mengaitkan versi ini dengan pembuatnya — file-nya cocok dengan registri, tetapi tidak membawa tanda tangan pembuat.',
   'admin.plugins.security.trustTitle': 'Intinya',
   'admin.plugins.security.trustBody':
-    'Memasang plugin sama seperti memasang aplikasi pihak ketiga mana pun: hanya tambahkan kode dari pembuat yang kamu percaya, dan jika ragu, periksa sendiri terlebih dahulu. TREK tidak bertanggung jawab atas plugin pihak ketiga.',
+    'Memasang plugin sama seperti memasang aplikasi pihak ketiga mana pun: hanya tambahkan kode dari pembuat yang kamu percaya, dan jika ragu, periksa sendiri terlebih dahulu. PanelMint tidak bertanggung jawab atas plugin pihak ketiga.',
   'admin.plugins.runtimeOn': 'Runtime aktif',
   'admin.plugins.tabDiscover': 'Jelajahi',
   'admin.plugins.searchPlaceholder': 'Cari plugin…',
@@ -542,11 +542,11 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Pembaruan dulu',
   'admin.plugins.sortDownloads': 'Paling banyak diunduh',
   'admin.plugins.updatesAvailable': '{count} pembaruan tersedia untuk plugin kamu.',
-  'admin.plugins.newerNeedsTrek': 'v{version} tersedia — membutuhkan TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'v{version} tersedia — membutuhkan PanelMint {range}',
   'admin.plugins.versionsTitle': 'Versi',
   'admin.plugins.versionPickerTitle': 'Ubah versi — {name}',
   'admin.plugins.versionSwitch': 'Beralih ke {version}',
-  'admin.plugins.versionNeedsTrek': 'membutuhkan TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'membutuhkan PanelMint {range}',
   'admin.plugins.changeVersion': 'Ubah versi…',
   'admin.plugins.noVersions': 'Tidak ada versi terpublikasi yang ditemukan di registri.',
   'admin.plugins.downgradeTitle': 'Kembalikan plugin ini?',
@@ -609,22 +609,22 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Unduh',
   'admin.plugins.dep.update': 'Perbarui',
   'admin.plugins.dep.resolveHint': 'Mengunduh versi kompatibel terbaru, termasuk dependensinya sendiri.',
-  'admin.plugins.dep.trekIncompatible': 'Membutuhkan TREK {range} — server ini menjalankan {host}',
-  'admin.plugins.dep.trekUnknown': 'Tidak menyatakan versi TREK mana yang didukung',
+  'admin.plugins.dep.trekIncompatible': 'Membutuhkan PanelMint {range} — server ini menjalankan {host}',
+  'admin.plugins.dep.trekUnknown': 'Tidak menyatakan versi PanelMint mana yang didukung',
   'admin.plugins.installCompatible': 'Instal {version}',
   'admin.plugins.installAnyway': 'Tetap pasang',
   'admin.plugins.rangeBypass.pill': 'Pemeriksaan versi nonaktif',
   'admin.plugins.rangeBypass.pillHint':
     'TREK_PLUGINS_IGNORE_TREK_RANGE disetel — plugin dapat dipasang dan dijalankan di luar versi TREK yang dinyatakan penulisnya',
-  'admin.plugins.rangeBypass.title': 'Di luar versi TREK yang didukung',
-  'admin.plugins.rangeBypass.noticeTitle': 'Dipasang di luar versi TREK yang didukung',
+  'admin.plugins.rangeBypass.title': 'Di luar versi PanelMint yang didukung',
+  'admin.plugins.rangeBypass.noticeTitle': 'Dipasang di luar versi PanelMint yang didukung',
   'admin.plugins.rangeBypass.body':
     '“{name}” menyatakan dukungan untuk TREK {range}, sedangkan server ini menjalankan {host}. TREK meloloskannya hanya karena TREK_PLUGINS_IGNORE_TREK_RANGE disetel. Penulisnya belum memperbarui rentang versi plugin untuk TREK ini, jadi tidak ada jaminan plugin ini berfungsi — dan dalam kasus yang jarang, plugin yang tidak cocok dapat merusak data TREK. Lanjutkan hanya jika Anda menerima risiko itu.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '“{name}” tidak menyatakan versi TREK mana yang didukungnya; server ini menjalankan {host}. TREK meloloskannya hanya karena TREK_PLUGINS_IGNORE_TREK_RANGE disetel. Tidak ada tanda bahwa penulisnya mengujinya di TREK ini, jadi tidak ada jaminan plugin ini berfungsi — dan dalam kasus yang jarang, plugin yang tidak cocok dapat merusak data TREK. Lanjutkan hanya jika Anda menerima risiko itu.',
   'admin.plugins.dep.trekBypassed':
-    'Di luar rentang TREK-nya ({range}) — pemeriksaan versi nonaktif',
-  'admin.plugins.dep.trekBypassedUnknown': 'Tidak menyatakan rentang TREK — pemeriksaan versi nonaktif',
+    'Di luar rentang PanelMint-nya ({range}) — pemeriksaan versi nonaktif',
+  'admin.plugins.dep.trekBypassedUnknown': 'Tidak menyatakan rentang PanelMint — pemeriksaan versi nonaktif',
   'admin.plugins.incompatible': 'Tidak kompatibel',
   'admin.plugins.accessTitle': 'Yang bisa diaksesnya',
   'admin.plugins.connectsTitle': 'Terhubung ke',
@@ -636,7 +636,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Ditinjau pada',
   'admin.plugins.downloads': 'Unduhan',
   'admin.addons.title': 'Addon',
-  'admin.addons.subtitle': 'Aktifkan atau nonaktifkan fitur untuk menyesuaikan pengalaman TREK kamu.',
+  'admin.addons.subtitle': 'Aktifkan atau nonaktifkan fitur untuk menyesuaikan pengalaman PanelMint kamu.',
   'admin.addons.catalog.packing.name': 'Daftar',
   'admin.addons.catalog.packing.description': 'Daftar packing dan tugas to-do untuk perjalananmu',
   'admin.addons.catalog.budget.name': 'Biaya',
@@ -681,7 +681,7 @@ const admin: TranslationStrings = {
   'admin.weather.title': 'Data Cuaca',
   'admin.weather.badge': 'Sejak 24 Maret 2026',
   'admin.weather.description':
-    'TREK menggunakan Open-Meteo sebagai sumber data cuaca. Open-Meteo adalah layanan cuaca gratis dan open-source — tidak perlu kunci API.',
+    'PanelMint menggunakan Open-Meteo sebagai sumber data cuaca. Open-Meteo adalah layanan cuaca gratis dan open-source — tidak perlu kunci API.',
   'admin.weather.forecast': 'Prakiraan 16 hari',
   'admin.weather.forecastDesc': 'Sebelumnya 5 hari (OpenWeatherMap)',
   'admin.weather.climate': 'Data iklim historis',
@@ -739,14 +739,14 @@ const admin: TranslationStrings = {
   'admin.github.loading': 'Memuat...',
   'admin.github.error': 'Gagal memuat rilis',
   'admin.github.by': 'oleh',
-  'admin.github.support': 'Bantu saya terus mengembangkan TREK',
+  'admin.github.support': 'Bantu saya terus mengembangkan PanelMint',
   'admin.update.available': 'Pembaruan tersedia',
-  'admin.update.text': 'TREK {version} tersedia. Kamu menggunakan {current}.',
+  'admin.update.text': 'PanelMint {version} tersedia. Kamu menggunakan {current}.',
   'admin.update.button': 'Lihat di GitHub',
   'admin.update.install': 'Pasang Pembaruan',
   'admin.update.confirmTitle': 'Pasang Pembaruan?',
   'admin.update.confirmText':
-    'TREK akan diperbarui dari {current} ke {version}. Server akan restart otomatis setelahnya.',
+    'PanelMint akan diperbarui dari {current} ke {version}. Server akan restart otomatis setelahnya.',
   'admin.update.dataInfo':
     'Semua datamu (perjalanan, pengguna, kunci API, unggahan, Vacay, Atlas, anggaran) akan dipertahankan.',
   'admin.update.warning': 'Aplikasi akan tidak tersedia sebentar selama restart.',
@@ -758,9 +758,9 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Pergi ke Backup',
   'admin.update.howTo': 'Cara Memperbarui',
   'admin.update.dockerText':
-    'Instans TREK kamu berjalan di Docker. Untuk memperbarui ke {version}, jalankan perintah berikut di servermu:',
+    'Instans PanelMint kamu berjalan di Docker. Untuk memperbarui ke {version}, jalankan perintah berikut di servermu:',
   'admin.update.nonDockerText':
-    'Instans TREK ini tidak berjalan di Docker. Untuk memperbarui ke {version}, jalankan ulang metode instalasi atau pembaruan yang kamu gunakan — misalnya, pada Proxmox Community Scripts jalankan pembaruan dari konsol LXC:',
+    'Instans PanelMint ini tidak berjalan di Docker. Untuk memperbarui ke {version}, jalankan ulang metode instalasi atau pembaruan yang kamu gunakan — misalnya, pada Proxmox Community Scripts jalankan pembaruan dari konsol LXC:',
   'admin.update.wikiLink': 'Buka panduan pembaruan',
   'admin.update.reloadHint': 'Muat ulang halaman dalam beberapa detik.',
   'admin.tabs.permissions': 'Izin',

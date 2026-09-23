@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Assegnazione bagagli',
   'notif.packing_tagged.text': '{actor} ti ha assegnato a {category} in {trip}',
   'notif.version_available.title': 'Nuova versione disponibile',
-  'notif.version_available.text': 'TREK {version} è ora disponibile',
+  'notif.version_available.text': 'PanelMint {version} è ora disponibile',
   'notif.replica_failure.title': "Errore di replica dell'archiviazione",
   'notif.replica_failure.text': "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}",
   'notif.replica_failure.textSuppressed': "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}. Altri {suppressed} errori sono stati soppressi dall'ultima notifica.",

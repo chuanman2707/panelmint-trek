@@ -20,7 +20,7 @@ export function entityCode(e: AirtrailNamedCode | null | undefined): string | nu
 
 /**
  * Human-readable name for an airline/aircraft (e.g. "Lufthansa"), falling back to the
- * code when AirTrail doesn't provide a name. Used for what TREK displays/stores; the
+ * code when AirTrail doesn't provide a name. Used for what PanelMint displays/stores; the
  * raw code stays available via entityCode for the writeback payload (#1334).
  */
 export function entityName(e: AirtrailNamedCode | null | undefined): string | null {
@@ -75,7 +75,7 @@ function hasCoords(a: AirtrailAirport | null): a is AirtrailAirport & { lat: num
 
 /** Raw AirTrail flight → the data createReservation() expects (type:'flight'). */
 export function mapFlightToReservation(raw: AirtrailFlightRaw): MappedReservation {
-  // Prefer the scheduled (booked) time TREK plans against, but fall back to the
+  // Prefer the scheduled (booked) time PanelMint plans against, but fall back to the
   // primary departure/arrival instant when AirTrail has no scheduled time. Manually
   // entered flights only set `departure`/`arrival` (the `*Scheduled` columns stay
   // null), so reading scheduled alone dropped the clock — and the whole arrival —
@@ -288,7 +288,7 @@ export function mapFlightsToMultiLegReservation(
 
 /**
  * Stable snapshot hash of an AirTrail flight, used by the sync engine to detect
- * remote changes (AirTrail exposes no updated_at/etag) and to suppress TREK's own
+ * remote changes (AirTrail exposes no updated_at/etag) and to suppress PanelMint's own
  * writes from re-triggering a pull. Only fields that can meaningfully change are
  * included, in a fixed key order.
  */
@@ -299,7 +299,7 @@ export function canonicalHash(raw: AirtrailFlightRaw): string {
     date: raw.date ?? null,
     datePrecision: raw.datePrecision ?? 'day',
     // Hash the same instant the import uses (scheduled, else primary) so a change to
-    // whichever time TREK actually shows triggers a re-sync — and existing flights
+    // whichever time PanelMint actually shows triggers a re-sync — and existing flights
     // imported without a scheduled time re-sync once to pick up their clock (#1336).
     departureScheduled: raw.departureScheduled ?? raw.departure ?? null,
     arrivalScheduled: raw.arrivalScheduled ?? raw.arrival ?? null,

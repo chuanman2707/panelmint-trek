@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Ανάθεση Αποσκευών',
   'notif.packing_tagged.text': 'Ο/Η {actor} σας ανέθεσε στο {category} του {trip}',
   'notif.version_available.title': 'Νέα Έκδοση Διαθέσιμη',
-  'notif.version_available.text': 'Το TREK {version} είναι τώρα διαθέσιμο',
+  'notif.version_available.text': 'Το PanelMint {version} είναι τώρα διαθέσιμο',
   'notif.replica_failure.title': 'Αποτυχία αντιγράφου αποθήκευσης',
   'notif.replica_failure.text': "Η εγγραφή στο αντίγραφο '{backend}' απέτυχε: {op} του {key} — {error}",
   'notif.replica_failure.textSuppressed': "Η εγγραφή στο αντίγραφο '{backend}' απέτυχε: {op} του {key} — {error}. {suppressed} επιπλέον αποτυχίες αποκρύφθηκαν από την τελευταία ειδοποίηση.",

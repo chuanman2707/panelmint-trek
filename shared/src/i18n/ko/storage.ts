@@ -18,7 +18,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': '복제본',
   'storage.title': '스토리지',
   'storage.description':
-    'TREK이 업로드된 파일, 사진, 백업을 보관하는 곳입니다. 저장하기 전까지는 아무것도 변경되지 않습니다.',
+    'PanelMint이 업로드된 파일, 사진, 백업을 보관하는 곳입니다. 저장하기 전까지는 아무것도 변경되지 않습니다.',
   'storage.loading': '로딩 중…',
   'storage.saved': '스토리지 설정이 저장되었습니다',
   'storage.save': '변경 사항 저장',
@@ -64,7 +64,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': '프로필 사진',
   'storage.category.places': '장소 이미지',
   'storage.category.photos-google': 'Google 사진 캐시',
-  'storage.category.photos-trek': 'TREK 사진 캐시',
+  'storage.category.photos-trek': 'PanelMint 사진 캐시',
   'storage.category.backups': '백업',
 
   // What each category stores — rendered under the label in the category map.
@@ -76,7 +76,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Google Places 사진의 캐시된 사본 — 다시 가져올 수 있으므로 손실되어도 안전합니다.',
   'storage.categoryDesc.photos-trek':
-    '사진(Memories) 기능이 사용하는 TREK 사진 서비스의 캐시된 사진 — 다시 가져올 수 있으므로 손실되어도 안전합니다.',
+    '사진(Memories) 기능이 사용하는 PanelMint 사진 서비스의 캐시된 사진 — 다시 가져올 수 있으므로 손실되어도 안전합니다.',
   'storage.categoryDesc.backups': '백업 패널 또는 일정에 의해 생성된 서버 백업 아카이브.',
   'storage.health.title': '상태',
   'storage.health.allClear': '기록된 복제본 오류가 없습니다.',

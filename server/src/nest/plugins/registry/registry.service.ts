@@ -20,7 +20,7 @@ import { MCP_TOOLS_MAX, TOOL_DESCRIPTION_MAX, TOOL_TITLE_MAX } from '../mcp-tool
 import { sanitiseAssistantText } from '../text-sanitize';
 
 /**
- * TREK-side of the plugin registry (#plugins, M5). Fetches the single aggregated
+ * PanelMint-side of the plugin registry (#plugins, M5). Fetches the single aggregated
  * dist/index.json (never per-plugin GitHub API calls — the HACS rate-limit
  * lesson), caches it briefly + soft-fails, and installs a pinned version through
  * the M4 pipeline: SSRF-safe download -> sha256 verify -> zip/tar-slip-safe
@@ -42,7 +42,7 @@ interface RegistryVersion {
   downloadUrl: string;
   sha256: string;
   /**
-   * The version's declared TREK range, mirroring its manifest's `trek`. Authoritative
+   * The version's declared PanelMint range, mirroring its manifest's `trek`. Authoritative
    * when present. `minTrekVersion`/`maxTrekVersion` are the legacy shape — a lower bound
    * plus an optional INCLUSIVE upper bound, which cannot express the exclusive `<4.0.0`
    * that a manifest actually declares — and stay only so entries published before this
@@ -94,12 +94,12 @@ interface Registry {
   plugins: RegistryEntry[];
 }
 
-/** A registry entry's standing against the running TREK, resolved server-side. */
+/** A registry entry's standing against the running PanelMint, resolved server-side. */
 export interface HostCompat {
-  /** The latest version's declared TREK range, or null for a legacy (min/max-only) entry. */
+  /** The latest version's declared PanelMint range, or null for a legacy (min/max-only) entry. */
   trek: string | null;
   hostVersion: string;
-  /** Whether the LATEST version can be installed on this TREK. */
+  /** Whether the LATEST version can be installed on this PanelMint. */
   compatible: boolean;
   /** Newest installable version — the latest one, or an older fallback, or null if none fits. */
   latestCompatible: string | null;
@@ -248,11 +248,11 @@ export class PluginRegistryService {
   }
 
   /**
-   * How this entry stands against the running TREK, computed SERVER-side. The client has
+   * How this entry stands against the running PanelMint, computed SERVER-side. The client has
    * no semver dependency and must never grow a second implementation of range logic — a
    * UI that disagreed with the install gate would show an enabled button that 400s.
    *
-   * `latestCompatible` is the useful half: when the newest version has outrun this TREK,
+   * `latestCompatible` is the useful half: when the newest version has outrun this PanelMint,
    * an older one often still fits, so the UI can offer it instead of a dead grey button.
    */
   private hostCompat(entry: RegistryEntry): HostCompat {
@@ -341,7 +341,7 @@ export class PluginRegistryService {
 
   /**
    * Resolve which registry version of `id` to install: the highest that satisfies
-   * `constraint` (any version if omitted) AND is compatible with the running TREK
+   * `constraint` (any version if omitted) AND is compatible with the running PanelMint
    * version (`minTrekVersion`/`maxTrekVersion`). Throws if the plugin isn't in the
    * registry or nothing qualifies. Backs "download the latest compatible version".
    */
@@ -353,8 +353,8 @@ export class PluginRegistryService {
     if (!v) {
       throw new RegistryError(
         constraint
-          ? `no version of ${id} satisfies "${constraint}" and TREK ${hostVersion()}`
-          : `no version of ${id} is compatible with TREK ${hostVersion()}`,
+          ? `no version of ${id} satisfies "${constraint}" and PanelMint ${hostVersion()}`
+          : `no version of ${id} is compatible with PanelMint ${hostVersion()}`,
         'TREK_VERSION_INCOMPATIBLE',
       );
     }
@@ -362,7 +362,7 @@ export class PluginRegistryService {
   }
 
   /**
-   * The newest version of `entry` that satisfies `constraint` AND admits the running TREK.
+   * The newest version of `entry` that satisfies `constraint` AND admits the running PanelMint.
    * `admits` defaults to the picker's rule (which honours TREK_PLUGINS_IGNORE_TREK_RANGE);
    * the UI verdict passes the strict {@link hostCompatible} instead.
    */
@@ -385,7 +385,7 @@ export class PluginRegistryService {
    * path, which is the whole point. An explicit `version` and the bare "install latest"
    * both used to bypass the compat check entirely (only the `constraint` path went
    * through resolveVersion), so the admin UI's own Install button — which sends neither —
-   * happily installed a plugin that declared it doesn't support this TREK.
+   * happily installed a plugin that declared it doesn't support this PanelMint.
    */
   private selectVersion(entry: RegistryEntry, opts?: { version?: string; constraint?: string }): RegistryVersion {
     if (opts?.version) {
@@ -393,7 +393,7 @@ export class PluginRegistryService {
       if (!ver) throw new RegistryError(`version ${opts.version} not found for ${entry.id}`);
       if (!installable(ver, normalizedHost())) {
         throw new RegistryError(
-          `${entry.id} ${ver.version} requires TREK ${trekRequirement(ver)} — this is TREK ${hostVersion()}`,
+          `${entry.id} ${ver.version} requires PanelMint ${trekRequirement(ver)} — this is PanelMint ${hostVersion()}`,
           'TREK_VERSION_INCOMPATIBLE',
         );
       }
@@ -402,18 +402,18 @@ export class PluginRegistryService {
     const ver = this.latestCompatible(entry, opts?.constraint);
     if (ver) return ver;
     // Nothing compatible. Say WHY against the newest version the admin was actually
-    // shown, rather than a bare "not found" — the fix is a TREK upgrade, not a retry.
+    // shown, rather than a bare "not found" — the fix is a PanelMint upgrade, not a retry.
     const latest = entry.versions[0];
     if (latest && !opts?.constraint) {
       throw new RegistryError(
-        `${entry.id} ${latest.version} requires TREK ${trekRequirement(latest)} — this is TREK ${hostVersion()}`,
+        `${entry.id} ${latest.version} requires PanelMint ${trekRequirement(latest)} — this is PanelMint ${hostVersion()}`,
         'TREK_VERSION_INCOMPATIBLE',
       );
     }
     throw new RegistryError(
       opts?.constraint
-        ? `no version of ${entry.id} satisfies "${opts.constraint}" and TREK ${hostVersion()}`
-        : `no version of ${entry.id} is compatible with TREK ${hostVersion()}`,
+        ? `no version of ${entry.id} satisfies "${opts.constraint}" and PanelMint ${hostVersion()}`
+        : `no version of ${entry.id} is compatible with PanelMint ${hostVersion()}`,
       'TREK_VERSION_INCOMPATIBLE',
     );
   }
@@ -468,7 +468,7 @@ export class PluginRegistryService {
       // The artifact's OWN range is the authoritative compat check. The index metadata
       // gated above is only what the registry says about this version, and it is weaker:
       // published entries usually carry a lower bound and no upper one at all, so a
-      // plugin that declares "<4.0.0" passes the pre-download filter on TREK 4 and is
+      // plugin that declares "<4.0.0" passes the pre-download filter on PanelMint 4 and is
       // caught only here.
       const trekRangeBypassed = assertHostCompatible(manifest.trekRange, id);
       if (scanForNativeBinaries(pluginRoot).length) throw new RegistryError('artifact contains native binaries');
@@ -551,7 +551,7 @@ export class PluginRegistryService {
    *
    * The hold exists so a DELIBERATE rollback isn't immediately nagged away by the
    * update banner. It is set only when `explicit` (the admin picked this exact
-   * version) AND a newer TREK-compatible version exists; every other outcome writes
+   * version) AND a newer PanelMint-compatible version exists; every other outcome writes
    * 0, so landing back on the newest compatible version — by any path — releases a
    * stale hold. An unresolvable registry never sets a hold: refusing to pin on
    * missing information beats silently muting future updates.
@@ -744,7 +744,7 @@ function rawFileUrl(repo: string, commitSha: string, file: string): string {
 }
 
 /**
- * Whether a registry version admits the running TREK.
+ * Whether a registry version admits the running PanelMint.
  *
  * The version's `trek` range is authoritative when the entry carries one. Entries
  * published before that field existed only carry min/max bounds, so those remain the
@@ -772,7 +772,7 @@ function installable(v: RegistryVersion, host: string | null): boolean {
 }
 
 /**
- * Refuse an artifact whose declared TREK range doesn't admit the running host. Shared by
+ * Refuse an artifact whose declared PanelMint range doesn't admit the running host. Shared by
  * every install front door (registry, sideload, dev-link) so they all fail the same way,
  * with a code the admin UI can act on rather than prose it would have to string-match.
  *
@@ -791,7 +791,7 @@ export function assertHostCompatible(range: string | null, id: string): TrekRang
 }
 
 /**
- * A version's declared TREK requirement as a range string, or null when the entry
+ * A version's declared PanelMint requirement as a range string, or null when the entry
  * carries no bounds at all. Each bound is optional — an entry may declare only a
  * ceiling, or (once `trek` is absent too) nothing — so this composes whatever
  * bounds exist rather than interpolating a missing one as "null".
@@ -805,7 +805,7 @@ function trekRequirementOrNull(v: RegistryVersion): string | null {
   return bounds.length ? bounds.join(' ') : null;
 }
 
-/** How a version's TREK requirement reads in an error/UI string. */
+/** How a version's PanelMint requirement reads in an error/UI string. */
 function trekRequirement(v: RegistryVersion): string {
   return trekRequirementOrNull(v) ?? 'any version';
 }

@@ -113,7 +113,7 @@ describe('apiVersion', () => {
   });
   it('refuses a future apiVersion on install paths (requireTrek)', () => {
     expect(() => parseManifest(withApi(2), { requireTrek: true }))
-      .toThrow('plugin requires plugin-API v2; this TREK supports v1');
+      .toThrow('plugin requires plugin-API v2; this PanelMint supports v1');
   });
 });
 

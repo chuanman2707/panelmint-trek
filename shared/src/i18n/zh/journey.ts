@@ -215,7 +215,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': '分享自',
   'journey.public.madeWith': '由',
   'journey.pdf.journeyBook': '旅程手册',
-  'journey.pdf.madeWith': '由 TREK 制作',
+  'journey.pdf.madeWith': '由 PanelMint 制作',
   'journey.pdf.day': '第',
   'journey.pdf.theEnd': '终',
   'journey.pdf.saveAsPdf': '保存为 PDF',
@@ -245,7 +245,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -287,7 +287,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': '将此跨页的设计保存为文件（不含照片），便于分享或再次使用',
   'journey.studio.importSpread': '导入',
   'journey.studio.importSpreadHint': '从下载的设计文件添加一个跨页',
-  'journey.studio.importSpreadFailed': '该文件不是 TREK Studio 的跨页',
+  'journey.studio.importSpreadFailed': '该文件不是 PanelMint Studio 的跨页',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': '排一本书需要足够的地方，所以 Studio 只在电脑上使用，生成 PDF 也是。旅程的其他功能在这里照常可用。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

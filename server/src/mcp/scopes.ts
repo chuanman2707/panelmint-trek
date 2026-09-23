@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// OAuth 2.1 scope definitions for TREK MCP
+// OAuth 2.1 scope definitions for PanelMint MCP
 // ---------------------------------------------------------------------------
 
 export const SCOPES = {

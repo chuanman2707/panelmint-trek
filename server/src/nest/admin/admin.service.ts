@@ -601,7 +601,7 @@ export class AdminService {
     // Document providers are the Documents addon's shelf rows, the same way
     // photo providers are Journey's. Hidden on a managed instance for the same
     // reason: Paperless, Papra, Nextcloud, OpenCloud and a Synology NAS are all
-    // servers the admin runs at home, and a hosted TREK has no route to one.
+    // servers the admin runs at home, and a hosted PanelMint has no route to one.
     //
     // They carry no `config` routes, unlike photo providers: the credentials do
     // not belong to a user here but to a trip, so they are entered in the trip

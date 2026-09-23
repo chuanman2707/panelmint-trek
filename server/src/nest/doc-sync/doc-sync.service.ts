@@ -69,7 +69,7 @@ const FOUND_AGAIN = `remote_missing_at = NULL,
  *   1. A document that disappears upstream is RECORDED as missing. It is never
  *      deleted locally as a side effect. An unmounted share answers with an
  *      empty listing, and a trip is not a cache.
- *   2. TREK's own writes must not come back as foreign changes. That is what
+ *   2. PanelMint's own writes must not come back as foreign changes. That is what
  *      `pushed_sha256` is for, and why the comparison is over content rather
  *      than over timestamps.
  */
@@ -207,7 +207,7 @@ export class DocSyncService {
     }
 
     // Read before the listing because they decide how much of it is needed: a
-    // file restored in TREK waits for a listing that shows its copy.
+    // file restored in PanelMint waits for a listing that shows its copy.
     const items = this.loadItems(link.id);
     const local = this.loadLocalDocuments(link);
     if (opts.full || needsFullListing(items, local)) scope.cursor = null;
@@ -270,10 +270,10 @@ export class DocSyncService {
      * handed on while that listing still describes both sides.
      *
      * Paperless, Papra and Synology build theirs from what they list. A copy
-     * TREK uploaded and somebody deleted before the next run left the scope
+     * PanelMint uploaded and somebody deleted before the next run left the scope
      * exactly as this listing had it, so the cursor came back unchanged and
      * nothing flagged the copy or asked the mass-delete guard until something
-     * else moved in the scope. A copy TREK binned and somebody restored read
+     * else moved in the scope. A copy PanelMint binned and somebody restored read
      * the same way. A run that stopped short, at the transfer budget or on a
      * failed download, left part of the listing undone, and under an unchanged
      * cursor the planner never looks at the remote half again. Without one, the
@@ -367,8 +367,8 @@ export class DocSyncService {
         }
         // The policy is applied here and never again: the planner leaves a
         // `local_deleted` row alone, so a policy changed later cannot reach
-        // back. Whether TREK binned the copy is written down with it, because a
-        // restore in TREK later has to know whether the gap upstream is TREK's.
+        // back. Whether PanelMint binned the copy is written down with it, because a
+        // restore in PanelMint later has to know whether the gap upstream is PanelMint's.
         // A copy on record as gone stays on record: the holdings count reads
         // the mark, and the copy is no more at the store than it was before.
         this.db.connection
@@ -398,7 +398,7 @@ export class DocSyncService {
         return 'ok';
       }
       case 'detach': {
-        // The trek_doc_uid stays: it is the same document to TREK, only the
+        // The trek_doc_uid stays: it is the same document to PanelMint, only the
         // provider copy is new. The push the planner queued after this fills
         // the pairing in again, and if that push fails the row is an ordinary
         // unpaired file that the next run retries.
@@ -449,7 +449,7 @@ export class DocSyncService {
     }
   }
 
-  /** Download a remote document into TREK as an ordinary trip file. */
+  /** Download a remote document into PanelMint as an ordinary trip file. */
   private async pull(
     remote: RemoteDocument,
     itemId: number | null,
@@ -458,7 +458,7 @@ export class DocSyncService {
     const name = sanitizeIncomingName(remote.name);
 
     // The same defences an upload goes through. A provider folder routinely
-    // holds .svg and .html, and TREK serves downloads inline with a
+    // holds .svg and .html, and PanelMint serves downloads inline with a
     // Content-Type derived from the extension: letting those through would be
     // stored XSS. Rejected documents become a visible row, never a silent skip.
     // Video is admitted the way the upload admits it, whatever the operator's
@@ -511,7 +511,7 @@ export class DocSyncService {
     const sha256 = hash.digest('hex');
 
     // What this row pointed at before, if anything: a pull_update replaces a
-    // document TREK already holds, and `createFile` only ever inserts.
+    // document PanelMint already holds, and `createFile` only ever inserts.
     const pairing = itemId === null
       ? undefined
       : (this.db.connection
@@ -520,13 +520,13 @@ export class DocSyncService {
     const supersededId = pairing?.file_id ?? null;
     const superseded = supersededId === null ? undefined : this.files.getFileById(supersededId, ctx.link.trip_id);
 
-    // The bytes TREK already holds, under a version marker that moved on
+    // The bytes PanelMint already holds, under a version marker that moved on
     // metadata: Paperless bumps it for a tag or a correspondent as much as for
     // a new revision, and not every listing carries a hash the planner could
     // have read this off. Nothing to replace, so the file stays, and with it
     // the booking it hangs on. The agreed name stays too: a rename that came
     // with the edit is the planner's business next run, and moving the arbiter
-    // here would read it as TREK's own and send the old name back up.
+    // here would read it as PanelMint's own and send the old name back up.
     if (superseded && !superseded.deleted_at && pairing?.content_sha256 === sha256) {
       await fs.promises.rm(tmpPath, { force: true });
       this.upsertItem(ctx.link, {
@@ -551,11 +551,11 @@ export class DocSyncService {
      * The file row, the retirement of the copy it replaces and the pairing are
      * one fact, so they are one transaction. Written separately, a crash
      * between them leaves a trip file with no sync item, which the next run
-     * reads as a document TREK gained and pushes straight back up, turning one
+     * reads as a document PanelMint gained and pushes straight back up, turning one
      * upstream edit into two documents on both sides.
      *
      * The superseded copy goes to the trash rather than out of existence: the
-     * bytes it holds are a version somebody may still want, and TREK's own
+     * bytes it holds are a version somebody may still want, and PanelMint's own
      * delete works the same way. What it was attached to goes to the new row:
      * a new revision is the same document to the trip, and without this every
      * edit in the store quietly took the attachment off its booking.
@@ -565,7 +565,7 @@ export class DocSyncService {
         ctx.link.trip_id,
         { filename: storageKey, originalname: name, size: bytes, mimetype: remote.mimeType || 'application/octet-stream' },
         // Attributed to the person whose connection brought it in, which is the
-        // only honest answer: nobody in TREK uploaded it.
+        // only honest answer: nobody in PanelMint uploaded it.
         this.config.getConnection(ctx.link.connection_id)?.owner_user_id ?? 0,
         {
           place_id: superseded?.place_id ?? null,
@@ -603,7 +603,7 @@ export class DocSyncService {
     return 'pulled';
   }
 
-  /** Upload a TREK document to the provider. */
+  /** Upload a PanelMint document to the provider. */
   private async push(
     local: LocalDocument,
     itemId: number | null,
@@ -693,7 +693,7 @@ export class DocSyncService {
       // The name both sides now agree on. Leaving it null meant the first
       // `touch` filled the arbiter with whatever the provider had made of the
       // name (Paperless stores a title and keeps its own filename), and the
-      // run after that read the difference as TREK having renamed the document
+      // run after that read the difference as PanelMint having renamed the document
       // and renamed the provider's copy to match, unasked.
       remoteNameOverride: local.name,
       // What the copy looks like at the provider, for the same reason as the
@@ -784,7 +784,7 @@ export class DocSyncService {
       mimeType: r.mime_type === null ? null : String(r.mime_type),
       // Deliberately null, and not the agreed hash out of document_sync_items:
       // reading that column here would compare it against itself, and
-      // `localChanged` in the planner could then never be true. TREK has no way
+      // `localChanged` in the planner could then never be true. PanelMint has no way
       // to replace a document's bytes (an upload creates a new row), so there
       // is no local change to detect, and claiming otherwise would be worse
       // than admitting it. The day the file manager grows a replace, this needs
@@ -840,7 +840,7 @@ export class DocSyncService {
   ): void {
     const failed = patch.state === 'error';
     /**
-     * A failed transfer leaves the pairing describing the copy TREK holds.
+     * A failed transfer leaves the pairing describing the copy PanelMint holds.
      *
      * The listing entry is the copy that did not arrive. Its version marker
      * written next to the old bytes meant the next run saw no upstream change,
@@ -850,7 +850,7 @@ export class DocSyncService {
      * same bytes, and a match there adopts the listing's version as well.
      *
      * A new row keeps the listing's name, size and time, because they are what
-     * pairs it and follows it to be fetched again, but no version: TREK holds
+     * pairs it and follows it to be fetched again, but no version: PanelMint holds
      * none yet, and the planner retries it for having no file.
      */
     const described = failed && patch.itemId !== null ? undefined : patch.remote;
@@ -974,7 +974,7 @@ export class DocSyncService {
   /**
    * Resolve a conflict the way a human chose.
    *
-   * `both` keeps the provider copy as a second TREK document rather than
+   * `both` keeps the provider copy as a second PanelMint document rather than
    * overwriting either side, which is the only outcome that cannot lose work
    * and is therefore what the UI offers first.
    */
@@ -1028,10 +1028,10 @@ export class DocSyncService {
      * sides changed again, and wrote the conflict straight back. Whatever the
      * owner picked, the issue reappeared within minutes, forever.
      *
-     * So each choice moves the arbiter to the side that won: keeping TREK's
-     * name makes the agreed name TREK's (the provider then reads as the one
+     * So each choice moves the arbiter to the side that won: keeping PanelMint's
+     * name makes the agreed name PanelMint's (the provider then reads as the one
      * that renamed, and gets renamed back), keeping the provider's takes the
-     * local rename back (TREK then reads as unchanged, and follows).
+     * local rename back (PanelMint then reads as unchanged, and follows).
      */
     const localName = item.file_id === null
       ? null
@@ -1041,14 +1041,14 @@ export class DocSyncService {
 
     if (keep === 'trek') {
       // Forget the provider's version marker, so the next run sees no upstream
-      // change and pushes TREK's copy. Clearing content_sha256 instead would do
-      // the opposite: it reads as "TREK never agreed to these bytes", and the
+      // change and pushes PanelMint's copy. Clearing content_sha256 instead would do
+      // the opposite: it reads as "PanelMint never agreed to these bytes", and the
       // provider's copy comes down over the one the user just chose to keep.
       this.db.connection
         .prepare("UPDATE document_sync_items SET state = 'pending', remote_version = NULL, error_code = NULL WHERE id = ?")
         .run(itemId);
       // Carry the name over as well, here rather than by moving the arbiter:
-      // TREK winning means the provider's copy takes TREK's name, and the only
+      // PanelMint winning means the provider's copy takes PanelMint's name, and the only
       // way to say that through `remote_name` would be to write the provider's
       // CURRENT name into it, which this method does not know without asking.
       if (localName && item.remote_id && localName !== item.remote_name) {
@@ -1062,7 +1062,7 @@ export class DocSyncService {
       // rename is then left standing, and the next run follows it the ordinary
       // way, through the planner, with no special case in it. Cleaned the way
       // a download cleans it: the planner compares cleaned names, so a raw one
-      // with a slash in it would read as TREK renaming the file all over again.
+      // with a slash in it would read as PanelMint renaming the file all over again.
       const agreedName = item.remote_name ? sanitizeIncomingName(String(item.remote_name)) : null;
       if (item.file_id !== null && agreedName && localName !== agreedName) {
         this.db.connection

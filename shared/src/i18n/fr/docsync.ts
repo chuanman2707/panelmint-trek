@@ -14,17 +14,17 @@ const docsync: TranslationStrings = {
   'docsync.syncNow': 'Synchroniser maintenant',
   'docsync.unlink': 'Déconnecter',
   'docsync.confirmUnlink':
-    'Les documents restent dans TREK et chez le fournisseur. Seule l’association entre les deux disparaît.',
+    'Les documents restent dans PanelMint et chez le fournisseur. Seule l’association entre les deux disparaît.',
   'docsync.syncEnabled': 'Synchroniser automatiquement',
   'docsync.deletePolicy': 'À la suppression d’un document',
   'docsync.deleteUnlink': 'Garder les deux copies',
   'docsync.deleteTrash': 'Mettre à la corbeille',
   'docsync.conflictPolicy': 'Quand les deux côtés ont changé',
   'docsync.onConflict.manual': 'Me demander',
-  'docsync.onConflict.trek_wins': 'Garder la copie TREK',
+  'docsync.onConflict.trek_wins': 'Garder la copie PanelMint',
   'docsync.onConflict.provider_wins': 'Garder la copie du stockage',
   'docsync.webhookHint':
-    'Collez cette URL chez votre fournisseur pour que les changements arrivent immédiatement. Sans cela, TREK vérifie à intervalles réguliers.',
+    'Collez cette URL chez votre fournisseur pour que les changements arrivent immédiatement. Sans cela, PanelMint vérifie à intervalles réguliers.',
 
   // Champs du formulaire de connexion. Les clés reprennent la colonne `label` de
   // document_provider_fields, qui stocke un suffixe de clé plutôt qu’un texte.
@@ -48,7 +48,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudAppPassword':
     'Paramètres, Sécurité, Créer un nouveau mot de passe d’application. Jamais le mot de passe de votre compte.',
   'docsync.hintOpenCloudToken': 'À créer dans OpenCloud sous les jetons d’application.',
-  'docsync.hintBasePath': 'Là où TREK cherche les dossiers de voyage. Par défaut /TREK.',
+  'docsync.hintBasePath': 'Là où PanelMint cherche les dossiers de voyage. Par défaut /TREK.',
   'docsync.hintSynologyUrl': 'Indiquez le port, par exemple https://nas.example.com:5001',
   'docsync.hintSynologyUser': 'De préférence un compte DSM dédié, avec accès à ce seul dossier partagé.',
   'docsync.hintSynologyOtp': 'Nécessaire une seule fois, si le compte utilise l’authentification à deux facteurs.',
@@ -68,13 +68,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': 'Trop volumineux',
   'docsync.state.error': 'Erreur',
   'docsync.state.remote_missing': 'Absent chez le fournisseur',
-  'docsync.state.local_deleted': 'Supprimé dans TREK',
+  'docsync.state.local_deleted': 'Supprimé dans PanelMint',
   'docsync.state.scope_drift': 'Sorti du dossier',
 
   'docsync.conflict.resolve': "Régler {count}",
 
   'docsync.conflict.title': 'Les deux copies ont changé',
-  'docsync.conflict.keepTrek': 'Garder la version TREK',
+  'docsync.conflict.keepTrek': 'Garder la version PanelMint',
   'docsync.conflict.keepProvider': 'Garder la version du fournisseur',
   'docsync.conflict.keepBoth': 'Garder les deux',
 
@@ -88,7 +88,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'Ce compte n’a pas le droit de faire cela.',
   'docsync.error.not_found': 'Introuvable chez le fournisseur.',
   'docsync.error.scope_missing': 'Le dossier connecté n’existe plus.',
-  'docsync.error.rate_limited': 'Le fournisseur limite nos requêtes. TREK réessaiera plus tard.',
+  'docsync.error.rate_limited': 'Le fournisseur limite nos requêtes. PanelMint réessaiera plus tard.',
   'docsync.error.too_large': 'Le fichier dépasse la taille acceptée par le fournisseur.',
   'docsync.error.unsupported_type': 'Le fournisseur n’accepte pas ce type de fichier.',
   'docsync.error.quota_exceeded': 'Le fournisseur n’a plus d’espace libre.',
@@ -109,9 +109,9 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': 'Rien de connecté pour le moment',
   'docsync.empty.hintOwner':
-    'Choisissez un fournisseur à gauche. TREK garde sa propre copie de tout, rien n’est donc perdu s’il disparaît.',
+    'Choisissez un fournisseur à gauche. PanelMint garde sa propre copie de tout, rien n’est donc perdu s’il disparaît.',
   'docsync.empty.hintMember':
-    'C’est le propriétaire du voyage qui met cela en place. Dans tous les cas, les documents restent dans TREK.',
+    'C’est le propriétaire du voyage qui met cela en place. Dans tous les cas, les documents restent dans PanelMint.',
 
   // Comment chaque produit classe les documents. Affiché avant toute connexion,
   // car c’est ce que l’écran suivant va demander.
@@ -122,7 +122,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'Classe dans un dossier sur le NAS',
 
   // ── La barre de flux ───────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'PanelMint',
   'docsync.flow.toProvider': 'Vers le fournisseur',
   'docsync.flow.toTrek': 'Depuis le fournisseur',
   'docsync.flow.documents': 'documents',
@@ -152,19 +152,19 @@ const docsync: TranslationStrings = {
   'docsync.connect.okAs': 'Contact établi, connecté en tant que {account}',
   'docsync.connect.insecureHint': 'Pour une instance sur votre propre réseau, avec un certificat auto-signé.',
   'docsync.connect.about.paperless':
-    'TREK classe ce voyage sous sa propre étiquette et ne touche jamais au reste de vos archives.',
+    'PanelMint classe ce voyage sous sa propre étiquette et ne touche jamais au reste de vos archives.',
   'docsync.connect.about.papra':
-    'Choisissez l’organisation à laquelle ce voyage appartient. TREK l’y classe sous sa propre étiquette.',
+    'Choisissez l’organisation à laquelle ce voyage appartient. PanelMint l’y classe sous sa propre étiquette.',
   'docsync.connect.about.nextcloud':
     'Utilisez un mot de passe d’application, pas celui de votre compte : il résiste à la double authentification et se révoque séparément.',
-  'docsync.connect.about.opencloud': 'TREK reçoit son propre espace pour ce voyage, séparé de tout le reste.',
+  'docsync.connect.about.opencloud': 'PanelMint reçoit son propre espace pour ce voyage, séparé de tout le reste.',
   'docsync.connect.about.synologydrive':
     'De préférence un compte DSM qui n’atteint que le dossier partagé prévu pour ce voyage.',
 
   // ── Choix du conteneur ─────────────────────────────────────────────────────
   'docsync.scope.title': 'Où ce voyage doit-il se trouver dans {provider} ?',
   'docsync.scope.intro':
-    'Seul ce qui se trouve ici est synchronisé. Tout le reste de votre fournisseur reste hors de TREK.',
+    'Seul ce qui se trouve ici est synchronisé. Tout le reste de votre fournisseur reste hors de PanelMint.',
   'docsync.scope.createTitle': 'En créer un nouveau',
   'docsync.scope.createAction': 'Créer',
   'docsync.scope.pickTitle': 'Ou en utiliser un existant',
@@ -174,7 +174,7 @@ const docsync: TranslationStrings = {
   // ── Ce qui demande une décision ────────────────────────────────────────────
   'docsync.issues.title': 'À vérifier',
   'docsync.issues.conflict': 'Modifié des deux côtés. Choisissez la version à garder.',
-  'docsync.issues.remote_missing': 'Disparu chez le fournisseur. La copie TREK est toujours là.',
+  'docsync.issues.remote_missing': 'Disparu chez le fournisseur. La copie PanelMint est toujours là.',
   'docsync.issues.rejected_type': 'Ce type de fichier n’est pas autorisé ici.',
   'docsync.issues.too_large': 'Dépasse la limite.',
   'docsync.issues.error': 'Le transfert n’a pas abouti.',

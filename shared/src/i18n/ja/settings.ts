@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': '自前の OSRM インスタンス。空欄なら公開サーバーを使いますが、毎秒 1 リクエスト程度の制限があり、1 日分には足りてもロードトリップには足りません。サーバー再起動後に反映されます。',
   'settings.valhallaBase': '自前の Valhalla インスタンス',
   'settings.valhallaBaseHint':
-    'TREKは、有料道路、高速道路、フェリーを避けるために、標準でFOSSGISの公開Valhallaを使用します。独自のValhallaを代わりに使う場合は、ここにURLを入力してください。独自のルーティングサーバーのみが設定されている場合、公開Valhallaは使用されません。独自のURLを入力した後は、サーバーを再起動し、ページを再読み込みしてください。',
+    'PanelMintは、有料道路、高速道路、フェリーを避けるために、標準でFOSSGISの公開Valhallaを使用します。独自のValhallaを代わりに使う場合は、ここにURLを入力してください。独自のルーティングサーバーのみが設定されている場合、公開Valhallaは使用されません。独自のURLを入力した後は、サーバーを再起動し、ページを再読み込みしてください。',
   'settings.mapHint': '地図タイルのURLテンプレート',
   'settings.mapProvider': '地図プロバイダー',
   'settings.mapProviderHint': '旅程プランナーと日記地図に影響します。Atlas は常に Leaflet を使用します。',
@@ -43,7 +43,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyHint': 'キーがないと CARTO のベースマップに透かしが入ります。無料でアカウントも不要、取得先:',
   'settings.mapCartoKeyLink': 'carto.com ベースマップ API キー',
   'settings.mapCartoKeyMissing':
-    'このテンプレートは CARTO のベースマップです。キーがないと CARTO はすべてのタイルに "API KEY REQUIRED" を焼き込みます。 キーを入力するまで、TREK は既定のベースマップを表示します。',
+    'このテンプレートは CARTO のベースマップです。キーがないと CARTO はすべてのタイルに "API KEY REQUIRED" を焼き込みます。 キーを入力するまで、PanelMint は既定のベースマップを表示します。',
   'settings.mapStyle': '地図スタイル',
   'settings.mapStylePlaceholder': 'Mapboxスタイルを選択',
   'settings.mapStyleHint': 'プリセットまたは mapbox://styles/USER/ID のURL',
@@ -214,9 +214,9 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': '新機能を提案',
   'settings.about.wikiHint': 'ドキュメント・ガイド',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': '月額サポーター',
   'settings.about.supporters.title': 'TREKの旅仲間',
   'settings.about.supporters.subtitle': '皆さんの支援がTREKの未来を支えています。',
@@ -227,7 +227,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.businessClassDreamer': 'ビジネスクラスの夢',
   'settings.about.supporter.tier.budgetTraveller': '節約トラベラー',
   'settings.about.supporter.tier.hostelBunkmate': 'ホステル仲間',
-  'settings.about.description': 'TREKはセルフホスト型の旅行プランナーです。',
+  'settings.about.description': 'PanelMintはセルフホスト型の旅行プランナーです。',
   'settings.about.madeWith': 'Made with',
   'settings.about.madeBy': 'by Maurice とオープンソースコミュニティ。',
   'settings.username': 'ユーザー名',
@@ -335,7 +335,7 @@ const settings: TranslationStrings = {
     '自分のネットワーク内の信頼できるインスタンスの場合にのみ有効にしてください。',
   'settings.airtrail.writeBack': '変更を AirTrail に書き戻す',
   'settings.airtrail.writeBackHint':
-    '既定ではオフ: AirTrail が信頼できる情報源で、TREK は読み取りのみを行います。TREK で行った編集を AirTrail に書き戻すにはオンにします。',
+    '既定ではオフ: AirTrail が信頼できる情報源で、PanelMint は読み取りのみを行います。PanelMint で行った編集を AirTrail に書き戻すにはオンにします。',
   'settings.airtrail.connected': '接続済み',
   'settings.airtrail.notConnected': '未接続',
   'settings.airtrail.toast.saved': 'AirTrail の接続を保存しました',
@@ -446,7 +446,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'ダッシュボード',
   'settings.startPageActiveTrip': '進行中の旅行',
   'settings.startPageHint':
-    'TREK を開くと、進行中の旅行、なければ次に始まる旅行が直接開きます。ダッシュボードで大きく表示される旅行と同じです。',
+    'PanelMint を開くと、進行中の旅行、なければ次に始まる旅行が直接開きます。ダッシュボードで大きく表示される旅行と同じです。',
   'settings.startTripTab': '起動時のタブ',
   'settings.startTripTabHint': '旅行を開くタブです。無効にしたアドオンのタブの場合は、代わりに計画が開きます。',
 

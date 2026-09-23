@@ -51,7 +51,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtDesktopNote':
     'Estas cifras se ajustan en el escritorio, donde también puedes comparar rutas alternativas y hacer que un día siga una traza importada.',
   'mobileTrip.rtPlanOnDesktop':
-    'La planificación se hace en el escritorio. TREK calcula el trayecto en cuanto un día tiene dos lugares.',
+    'La planificación se hace en el escritorio. PanelMint calcula el trayecto en cuanto un día tiene dos lugares.',
   'mobileTrip.rtSearchOffline': 'Hace falta conexión: la búsqueda lee la ruta que queda por delante.',
   'mobileTrip.rtBehind': '{time} de retraso sobre lo previsto',
   'mobileTrip.rtStart': 'Inicio',

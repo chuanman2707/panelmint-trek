@@ -47,6 +47,6 @@ describe('entrypoint script', () => {
   });
 
   it('keeps the volume-over-/app preflight wording the wiki quotes', () => {
-    expect(source).toContain('FATAL: TREK application files are missing from the image.');
+    expect(source).toContain('FATAL: PanelMint application files are missing from the image.');
   });
 });

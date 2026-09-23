@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'Собственный экземпляр OSRM. Пусто — используются публичные серверы с ограничением около одного запроса в секунду: на день хватает, для автопутешествия мало. Вступает в силу после перезапуска сервера.',
   'settings.valhallaBase': 'Свой сервер Valhalla',
   'settings.valhallaBaseHint':
-    'По умолчанию TREK использует публичную Valhalla FOSSGIS для объезда платных дорог, автомагистралей и паромов. Введите здесь URL собственной Valhalla, чтобы использовать её вместо публичной. Если настроен только собственный сервер маршрутизации, публичная Valhalla не используется. После ввода собственного URL перезапустите сервер и обновите страницу.',
+    'По умолчанию PanelMint использует публичную Valhalla FOSSGIS для объезда платных дорог, автомагистралей и паромов. Введите здесь URL собственной Valhalla, чтобы использовать её вместо публичной. Если настроен только собственный сервер маршрутизации, публичная Valhalla не используется. После ввода собственного URL перезапустите сервер и обновите страницу.',
   'settings.mapHint': 'URL-шаблон для тайлов карты',
   'settings.mapProvider': 'Провайдер карты',
   'settings.mapProviderHint': 'Применяется к Trip Planner и Journey. Atlas всегда использует Leaflet.',
@@ -44,7 +44,7 @@ const settings: TranslationStrings = {
     'Без ключа на базовых картах CARTO появляется водяной знак. Бесплатно и без учётной записи, на',
   'settings.mapCartoKeyLink': 'ключ API базовых карт carto.com',
   'settings.mapCartoKeyMissing':
-    'Этот шаблон является базовой картой CARTO. Без ключа CARTO наносит "API KEY REQUIRED" на каждый тайл. Пока ключ не указан, TREK показывает базовую карту по умолчанию.',
+    'Этот шаблон является базовой картой CARTO. Без ключа CARTO наносит "API KEY REQUIRED" на каждый тайл. Пока ключ не указан, PanelMint показывает базовую карту по умолчанию.',
   'settings.mapStyle': 'Стиль карты',
   'settings.mapStylePlaceholder': 'Выберите стиль Mapbox',
   'settings.mapStyleHint': 'Preset или собственный URL mapbox://styles/USER/ID',
@@ -196,13 +196,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Предложите новую функцию',
   'settings.about.wikiHint': 'Документация и руководства',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Ежемесячные спонсоры',
   'settings.about.supporters.title': 'Спутники TREK',
   'settings.about.supporters.subtitle':
-    'Пока ты планируешь следующий маршрут, эти люди планируют вместе со мной будущее TREK. Их ежемесячный взнос идёт напрямую в разработку и реально потраченные часы — чтобы TREK оставался Open Source.',
+    'Пока ты планируешь следующий маршрут, эти люди планируют вместе со мной будущее PanelMint. Их ежемесячный взнос идёт напрямую в разработку и реально потраченные часы — чтобы PanelMint оставался Open Source.',
   'settings.about.supporters.since': 'спонсор с {date}',
   'settings.about.supporters.tierEmpty': 'Стань первым',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
@@ -211,7 +211,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    'TREK — это самостоятельно размещаемый планировщик путешествий, который помогает организовать поездки от первой идеи до последнего воспоминания. Планирование по дням, бюджет, списки вещей, фото и многое другое — всё в одном месте, на вашем собственном сервере.',
+    'PanelMint — это самостоятельно размещаемый планировщик путешествий, который помогает организовать поездки от первой идеи до последнего воспоминания. Планирование по дням, бюджет, списки вещей, фото и многое другое — всё в одном месте, на вашем собственном сервере.',
   'settings.about.madeWith': 'Сделано с',
   'settings.about.madeBy': 'Морисом и растущим open-source сообществом.',
   'settings.username': 'Имя пользователя',
@@ -360,7 +360,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Включайте только для доверенного экземпляра в вашей собственной сети.',
   'settings.airtrail.writeBack': 'Записывать изменения обратно в AirTrail',
   'settings.airtrail.writeBackHint':
-    'По умолчанию выключено: AirTrail является источником истины, а TREK только читает из него. Включите, чтобы отправлять изменения, сделанные в TREK, обратно в AirTrail.',
+    'По умолчанию выключено: AirTrail является источником истины, а PanelMint только читает из него. Включите, чтобы отправлять изменения, сделанные в PanelMint, обратно в AirTrail.',
   'settings.airtrail.connected': 'Подключено',
   'settings.airtrail.notConnected': 'Не подключено',
   'settings.airtrail.toast.saved': 'Подключение к AirTrail сохранено',
@@ -474,7 +474,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Панель управления',
   'settings.startPageActiveTrip': 'Активная поездка',
   'settings.startPageHint':
-    'TREK сразу открывает поездку, которая идёт сейчас, иначе ближайшую предстоящую. Это та же поездка, которую выделяет панель управления.',
+    'PanelMint сразу открывает поездку, которая идёт сейчас, иначе ближайшую предстоящую. Это та же поездка, которую выделяет панель управления.',
   'settings.startTripTab': 'Стартовая вкладка',
   'settings.startTripTabHint':
     'Вкладка, с которой открывается поездка. Если она относится к отключённому дополнению, откроется план.',

@@ -41,7 +41,7 @@ const texts: Record<string, DemoTexts> = {
   de: {
     titleBefore: 'Willkommen bei ',
     titleAfter: '',
-    title: 'Willkommen zur TREK Demo',
+    title: 'Willkommen zur PanelMint Demo',
     description:
       'Du kannst Reisen ansehen, bearbeiten und eigene erstellen. Alle Aenderungen werden jede Stunde automatisch zurueckgesetzt.',
     resetIn: 'Naechster Reset in',
@@ -65,7 +65,7 @@ const texts: Record<string, DemoTexts> = {
       ['Dokumente', 'Dateien an Reisen anhaengen'],
       ['Widgets', 'Waehrungsrechner & Zeitzonen'],
     ],
-    whatIs: 'Was ist TREK?',
+    whatIs: 'Was ist PanelMint?',
     whatIsDesc:
       'Ein selbst-gehosteter Reiseplaner mit Echtzeit-Kollaboration, interaktiver Karte, OIDC Login und Dark Mode.',
     selfHost: 'Open Source — ',
@@ -75,7 +75,7 @@ const texts: Record<string, DemoTexts> = {
   en: {
     titleBefore: 'Welcome to ',
     titleAfter: '',
-    title: 'Welcome to the TREK Demo',
+    title: 'Welcome to the PanelMint Demo',
     description: 'You can view, edit and create trips. All changes are automatically reset every hour.',
     resetIn: 'Next reset in',
     minutes: 'minutes',
@@ -98,7 +98,7 @@ const texts: Record<string, DemoTexts> = {
       ['Documents', 'Attach files to trips'],
       ['Widgets', 'Currency converter & timezones'],
     ],
-    whatIs: 'What is TREK?',
+    whatIs: 'What is PanelMint?',
     whatIsDesc:
       'A self-hosted travel planner with real-time collaboration, interactive maps, OIDC login and dark mode.',
     selfHost: 'Open source — ',
@@ -108,7 +108,7 @@ const texts: Record<string, DemoTexts> = {
   es: {
     titleBefore: 'Bienvenido a ',
     titleAfter: '',
-    title: 'Bienvenido a la demo de TREK',
+    title: 'Bienvenido a la demo de PanelMint',
     description: 'Puedes ver, editar y crear viajes. Todos los cambios se restablecen automáticamente cada hora.',
     resetIn: 'Próximo reinicio en',
     minutes: 'minutos',
@@ -131,7 +131,7 @@ const texts: Record<string, DemoTexts> = {
       ['Documentos', 'Adjunta archivos a los viajes'],
       ['Widgets', 'Conversor de divisas y zonas horarias'],
     ],
-    whatIs: '¿Qué es TREK?',
+    whatIs: '¿Qué es PanelMint?',
     whatIsDesc:
       'Un planificador de viajes autohospedado con colaboración en tiempo real, mapas interactivos, inicio de sesión OIDC y modo oscuro.',
     selfHost: 'Código abierto — ',
@@ -141,7 +141,7 @@ const texts: Record<string, DemoTexts> = {
   zh: {
     titleBefore: '欢迎来到 ',
     titleAfter: '',
-    title: '欢迎来到 TREK 演示版',
+    title: '欢迎来到 PanelMint 演示版',
     description: '你可以查看、编辑和创建旅行。所有更改都会在每小时自动重置。',
     resetIn: '下次重置将在',
     minutes: '分钟后',
@@ -164,7 +164,7 @@ const texts: Record<string, DemoTexts> = {
       ['Documents', '将文件附加到旅行'],
       ['Widgets', '货币换算和时区工具'],
     ],
-    whatIs: '什么是 TREK？',
+    whatIs: '什么是 PanelMint？',
     whatIsDesc: '一个支持实时协作、交互式地图、OIDC 登录和深色模式的自托管旅行规划器。',
     selfHost: '开源项目 - ',
     selfHostLink: '自行部署',
@@ -173,7 +173,7 @@ const texts: Record<string, DemoTexts> = {
   'zh-TW': {
     titleBefore: '歡迎來到 ',
     titleAfter: '',
-    title: '歡迎來到 TREK 展示版',
+    title: '歡迎來到 PanelMint 展示版',
     description: '你可以檢視、編輯和建立行程。所有變更都會在每小時自動重設。',
     resetIn: '下次重設將在',
     minutes: '分鐘後',
@@ -196,7 +196,7 @@ const texts: Record<string, DemoTexts> = {
       ['Documents', '將檔案附加到行程'],
       ['Widgets', '貨幣換算與時區工具'],
     ],
-    whatIs: 'TREK 是什麼？',
+    whatIs: 'PanelMint 是什麼？',
     whatIsDesc: '一個支援即時協作、互動式地圖、OIDC 登入和深色模式的自架旅行規劃器。',
     selfHost: '開源專案 - ',
     selfHostLink: '自行架設',
@@ -205,7 +205,7 @@ const texts: Record<string, DemoTexts> = {
   ar: {
     titleBefore: 'مرحبًا بك في ',
     titleAfter: '',
-    title: 'مرحبًا بك في النسخة التجريبية من TREK',
+    title: 'مرحبًا بك في النسخة التجريبية من PanelMint',
     description: 'يمكنك عرض الرحلات وتعديلها وإنشاء رحلات جديدة. تتم إعادة ضبط جميع التغييرات تلقائيًا كل ساعة.',
     resetIn: 'إعادة الضبط التالية خلال',
     minutes: 'دقيقة',
@@ -228,7 +228,7 @@ const texts: Record<string, DemoTexts> = {
       ['Documents', 'إرفاق الملفات بالرحلات'],
       ['Widgets', 'محول عملات ومناطق زمنية'],
     ],
-    whatIs: 'ما هو TREK؟',
+    whatIs: 'ما هو PanelMint؟',
     whatIsDesc: 'مخطط رحلات مستضاف ذاتيًا مع تعاون لحظي وخرائط تفاعلية وتسجيل دخول OIDC ووضع داكن.',
     selfHost: 'مفتوح المصدر — ',
     selfHostLink: 'استضفه بنفسك',
@@ -237,7 +237,7 @@ const texts: Record<string, DemoTexts> = {
   id: {
     titleBefore: 'Selamat datang di ',
     titleAfter: '',
-    title: 'Selamat datang di Demo TREK',
+    title: 'Selamat datang di Demo PanelMint',
     description:
       'Anda dapat melihat, mengedit, dan membuat perjalanan. Semua perubahan akan diatur ulang secara otomatis setiap jam.',
     resetIn: 'Atur ulang berikutnya dalam',
@@ -261,7 +261,7 @@ const texts: Record<string, DemoTexts> = {
       ['Dokumen', 'Lampirkan file ke perjalanan'],
       ['Widget', 'Konverter mata uang & zona waktu'],
     ],
-    whatIs: 'Apa itu TREK?',
+    whatIs: 'Apa itu PanelMint?',
     whatIsDesc:
       'Perencana perjalanan yang di-host sendiri dengan kolaborasi real-time, peta interaktif, login OIDC, dan mode gelap.',
     selfHost: 'Buka sumber — ',
@@ -401,7 +401,7 @@ export default function DemoBanner(): React.ReactElement | null {
           </div>
         </div>
 
-        {/* What is TREK */}
+        {/* What is PanelMint */}
         <div
           style={{
             background: '#f8fafc',

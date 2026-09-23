@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'Collega la tua istanza Dawarich per vedere dove sei stato davvero. TREK la legge e propone voci di diario, luoghi e paesi — nulla viene aggiunto finché non lo confermi e nulla viene riscritto su Dawarich.',
+    'Collega la tua istanza Dawarich per vedere dove sei stato davvero. PanelMint la legge e propone voci di diario, luoghi e paesi — nulla viene aggiunto finché non lo confermi e nulla viene riscritto su Dawarich.',
   'dawarich.url': 'Indirizzo dell’istanza',
   'dawarich.apiKey': 'Chiave API',
   'dawarich.apiKeyPlaceholder': 'Incolla la tua chiave API di Dawarich',
@@ -14,7 +14,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTlsHint':
     'Serve solo se la tua istanza usa un certificato di cui il tuo server non si fida.',
   'dawarich.syncEnabled': 'Cerca automaticamente nuove soste',
-  'dawarich.syncEnabledHint': 'Se disattivato, TREK legge Dawarich solo quando glielo chiedi.',
+  'dawarich.syncEnabledHint': 'Se disattivato, PanelMint legge Dawarich solo quando glielo chiedi.',
   'dawarich.test.button': 'Prova la connessione',
   'dawarich.test.success': 'Connesso. {count} soste trovate negli ultimi 30 giorni.',
   'dawarich.test.failed': 'Impossibile raggiungere Dawarich.',
@@ -47,18 +47,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'Questa versione di Dawarich non offre: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'TREK non è riuscito a raggiungere quell’indirizzo.',
+  'dawarich.error.unreachable': 'PanelMint non è riuscito a raggiungere quell’indirizzo.',
   'dawarich.error.unauthorized': 'Dawarich ha rifiutato la chiave API.',
   'dawarich.error.forbidden': 'Quella chiave API non è autorizzata a leggere questi dati.',
   'dawarich.error.not_found': 'Questa versione di Dawarich non ha quell’endpoint.',
-  'dawarich.error.rate_limited': 'Dawarich ha chiesto a TREK di rallentare. Riprova tra poco.',
+  'dawarich.error.rate_limited': 'Dawarich ha chiesto a PanelMint di rallentare. Riprova tra poco.',
   'dawarich.error.server_error': 'Dawarich ha risposto con un errore.',
   'dawarich.error.invalid_response': 'Quell’indirizzo ha risposto con qualcosa che non è Dawarich.',
-  'dawarich.error.too_large': 'Dawarich ha inviato più dati di quanti TREK ne legga in una volta.',
+  'dawarich.error.too_large': 'Dawarich ha inviato più dati di quanti PanelMint ne legga in una volta.',
   'dawarich.error.not_connected': 'Nessuna istanza Dawarich è ancora collegata.',
   'dawarich.error.addon_disabled': 'Il componente aggiuntivo Dawarich è disattivato su questa istanza.',
-  'dawarich.error.offline': 'Serve una connessione: TREK al momento è offline.',
-  'dawarich.error.invalid_url': 'TREK non può usare questo indirizzo.',
+  'dawarich.error.offline': 'Serve una connessione: PanelMint al momento è offline.',
+  'dawarich.error.invalid_url': 'PanelMint non può usare questo indirizzo.',
   'dawarich.warning.private_ip': 'Questo indirizzo punta a un IP privato ({ip}). Verifica che sia voluto: il server potrebbe richiedere ALLOW_INTERNAL_NETWORK=true per raggiungerlo.',
   'dawarich.error.unknown': 'Qualcosa è andato storto nella comunicazione con Dawarich.',
 
@@ -99,9 +99,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'Nel diario',
   'dawarich.suggestions.acceptedAs.bucket_list': 'Desiderio spuntato',
   'dawarich.suggestions.sourceChanged':
-    'Questa sosta è cambiata in Dawarich da quando l’hai usata. Quello che hai scritto in TREK resta intatto.',
+    'Questa sosta è cambiata in Dawarich da quando l’hai usata. Quello che hai scritto in PanelMint resta intatto.',
   'dawarich.suggestions.sourceMissing':
-    'Questa sosta non esiste più in Dawarich. Quello che hai scritto in TREK resta intatto.',
+    'Questa sosta non esiste più in Dawarich. Quello che hai scritto in PanelMint resta intatto.',
   'dawarich.sourceStatus.suggested': 'Rilevata, non confermata',
   'dawarich.confidence.high': 'Rilevamento sicuro',
   'dawarich.confidence.medium': 'Rilevamento abbastanza sicuro',
@@ -157,12 +157,12 @@ const dawarich: TranslationStrings = {
     'I paesi in cui, secondo le tue registrazioni, sei stato. Conferma quelli che vuoi nel tuo Atlante — nulla viene aggiunto da solo e ciò che hai segnato a mano resta tuo.',
   'dawarich.atlas.load': 'Cerca i paesi',
   'dawarich.atlas.loading': 'Lettura delle tue registrazioni…',
-  'dawarich.atlas.empty': 'Le tue registrazioni non mostrano paesi che TREK non abbia già.',
+  'dawarich.atlas.empty': 'Le tue registrazioni non mostrano paesi che PanelMint non abbia già.',
   'dawarich.atlas.cities': '{count} città',
   'dawarich.atlas.citiesOne': '1 città',
   'dawarich.atlas.accept': 'Aggiungi {count} paesi',
   'dawarich.atlas.accepted': '{count} paesi aggiunti',
-  'dawarich.atlas.unresolved': 'TREK non è riuscito ad abbinare questi a un paese: {names}.',
+  'dawarich.atlas.unresolved': 'PanelMint non è riuscito ad abbinare questi a un paese: {names}.',
   'dawarich.atlas.source': 'Da Dawarich',
   'dawarich.atlas.range': 'Esaminato dal {from} al {to}',
 

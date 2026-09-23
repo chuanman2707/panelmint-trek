@@ -1,5 +1,5 @@
 /**
- * Global binding of @nestjs/config onto TREK's app-config layer.
+ * Global binding of @nestjs/config onto PanelMint's app-config layer.
  *
  * INVARIANTS — breaking either silently breaks ~60 env-mutating tests:
  *  - `cache: false`, always. `cache: true` would freeze ConfigService lookups

@@ -18,12 +18,12 @@ export type RememberOption = boolean | undefined;
  *
  * We previously only derived this from `NODE_ENV=production` or
  * `FORCE_HTTPS=true`. That left behind a common self-host setup:
- * TREK running behind Traefik / Caddy / Cloudflare Tunnel with
+ * PanelMint running behind Traefik / Caddy / Cloudflare Tunnel with
  * `NODE_ENV=development` locally and no `FORCE_HTTPS` — the cookie
  * went out without `Secure`, even though the public leg was https.
  *
  * Now we also honour `req.secure`, which Express derives from
- * `X-Forwarded-Proto` once `trust proxy` is set (TREK sets it to `1`
+ * `X-Forwarded-Proto` once `trust proxy` is set (PanelMint sets it to `1`
  * in production automatically). If Express sees the request was TLS
  * on the outermost hop, the cookie is `Secure`. `COOKIE_SECURE=false`
  * remains the explicit escape hatch for plain-HTTP LAN testing.

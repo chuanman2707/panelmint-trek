@@ -85,16 +85,16 @@ export class PluginConsentRequired extends Error {
 export type PluginDependencyCode =
   | 'ADDON_DISABLED'
   | 'DEPENDENCY_MISSING'
-  /** The plugin's declared TREK range doesn't admit the running host. */
+  /** The plugin's declared PanelMint range doesn't admit the running host. */
   | 'TREK_VERSION_INCOMPATIBLE'
   /** The plugin never declared a range, so we can't know that it does. */
   | 'TREK_VERSION_UNKNOWN'
-  /** The plugin's manifest apiVersion is newer than this TREK's plugin-API surface. */
+  /** The plugin's manifest apiVersion is newer than this PanelMint's plugin-API surface. */
   | 'API_VERSION_INCOMPATIBLE';
 
 /**
  * Thrown when a plugin can't activate because a required addon is disabled, a declared
- * plugin dependency is missing / version-mismatched, or it doesn't support this TREK.
+ * plugin dependency is missing / version-mismatched, or it doesn't support this PanelMint.
  * The controller maps it to a 409 carrying `code` + `detail` so the admin UI can offer
  * the right fix.
  *
@@ -380,7 +380,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       }
     }
 
-    // Fold in the host-side per-user data TREK stores itself (what erasePluginUserData
+    // Fold in the host-side per-user data PanelMint stores itself (what erasePluginUserData
     // deletes) so an access request isn't asymmetric with erasure: the user's plugin
     // settings (secret fields masked) and which plugins they OAuth-linked. Raw tokens
     // are never exported. This is supplementary to each plugin's own-this.db export above, so
@@ -490,7 +490,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
 
   /**
    * Read-only activation gate for one plugin — throws (without mutating) if it may
-   * not activate. Checks run most- to least-severe: TREK-version compatibility →
+   * not activate. Checks run most- to least-severe: PanelMint-version compatibility →
    * plugin-API version compatibility → permission re-consent → required addon disabled →
    * missing/mismatched plugin dependency.
    */
@@ -501,9 +501,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     if (!row) throw new Error(`plugin ${id} not found`);
 
     // This runs FIRST, and before the consent check in particular: a plugin that cannot
-    // run on this TREK must never be offered a permission dialog, because consenting to
+    // run on this PanelMint must never be offered a permission dialog, because consenting to
     // it would not make the plugin start. It is also the gate that catches the case
-    // install can't — TREK was upgraded PAST the plugin's declared upper bound, so code
+    // install can't — PanelMint was upgraded PAST the plugin's declared upper bound, so code
     // that was legitimately installed no longer supports the host it's sitting on.
     const bypass = bypassedRange(row.trek_range);
     if (bypass) {
@@ -512,24 +512,24 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       warnRangeBypass(id, bypass);
     } else if (!row.trek_range) {
       throw new PluginDependencyError(
-        `plugin ${id} does not declare which TREK versions it supports`,
+        `plugin ${id} does not declare which PanelMint versions it supports`,
         'TREK_VERSION_UNKNOWN',
         { trekRange: null, hostVersion: hostVersion() },
       );
     } else if (!hostSatisfies(row.trek_range)) {
       throw new PluginDependencyError(
-        `plugin ${id} requires TREK ${row.trek_range} — this is TREK ${hostVersion()}`,
+        `plugin ${id} requires PanelMint ${row.trek_range} — this is PanelMint ${hostVersion()}`,
         'TREK_VERSION_INCOMPATIBLE',
         { trekRange: row.trek_range, hostVersion: hostVersion() },
       );
     }
-    // Same reasoning as the TREK-version gate above: a plugin whose manifest apiVersion
-    // outpaces this TREK's plugin-API surface can never run correctly, so it must be
+    // Same reasoning as the PanelMint-version gate above: a plugin whose manifest apiVersion
+    // outpaces this PanelMint's plugin-API surface can never run correctly, so it must be
     // refused before any consent dialog is offered.
     const apiVersion = row.api_version ?? 1;
     if (apiVersion > PLUGIN_API_VERSION) {
       throw new PluginDependencyError(
-        `plugin requires plugin-API v${apiVersion}; this TREK supports v${PLUGIN_API_VERSION}`,
+        `plugin requires plugin-API v${apiVersion}; this PanelMint supports v${PLUGIN_API_VERSION}`,
         'API_VERSION_INCOMPATIBLE',
       );
     }
@@ -696,7 +696,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     const wasEnabled = before.enabled === 1;
     const granted = new Set(parseArray(before.granted_permissions));
 
-    // Pick the newest version that this TREK can actually run, not simply the newest one
+    // Pick the newest version that this PanelMint can actually run, not simply the newest one
     // published. Taking the latest blindly is how an update BREAKS a working plugin: the
     // new release drops support for this host, the swap succeeds, and the activation gate
     // then refuses to restart it — leaving the admin worse off than not updating. Refusing
@@ -724,7 +724,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   }
 
   /**
-   * The version an "update" should install: the newest one compatible with this TREK.
+   * The version an "update" should install: the newest one compatible with this PanelMint.
    * Refuses when that is not actually newer than what's installed — a compatible-but-older
    * artifact is a DOWNGRADE, and silently rolling a plugin back under the word "update"
    * would be worse than doing nothing.
@@ -734,7 +734,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     const target = await this.registry.resolveVersion(id); // throws TREK_VERSION_INCOMPATIBLE if nothing fits
     if (installedVersion && semver.valid(installedVersion) && !semver.gt(target.version, installedVersion)) {
       throw new RegistryError(
-        `no update available for ${id} on TREK ${hostVersion()} — ${installedVersion} is already the newest compatible version`,
+        `no update available for ${id} on PanelMint ${hostVersion()} — ${installedVersion} is already the newest compatible version`,
         'NO_COMPATIBLE_UPDATE',
       );
     }
@@ -927,7 +927,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // a scheduled callback for a plugin that no longer exists must never fire.
     this.db.prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ?').run(id);
     // If it was a notification channel, retire the channel too. Unconditional, for the
-    // same reason as the settings fields: these are TREK's config ABOUT the plugin, and
+    // same reason as the settings fields: these are PanelMint's config ABOUT the plugin, and
     // leaving them means a later plugin that reuses this id silently inherits every
     // user's opt-outs and the admin's enablement.
     this.retireNotificationChannel(id);

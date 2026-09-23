@@ -4,7 +4,7 @@
 // Keep this actionable and concise — vague prose doesn't help the model.
 // ---------------------------------------------------------------------------
 export const BASE_MCP_INSTRUCTIONS = `
-You are connected to TREK, a travel planning application. Below is a compact reference of the data model, key workflows, and behavioral rules you must follow.
+You are connected to PanelMint, a travel planning application. Below is a compact reference of the data model, key workflows, and behavioral rules you must follow.
 
 ## Data model
 
@@ -54,7 +54,7 @@ You are connected to TREK, a travel planning application. Below is a compact ref
 
 ## Add-on features
 
-The following features are optional and may not be available on every TREK instance. Check tool availability before assuming they exist:
+The following features are optional and may not be available on every PanelMint instance. Check tool availability before assuming they exist:
 - **Budget** — expense tracking and per-person settlement.
 - **Packing** — checklist with bags, categories, and templates.
 - **Collab** — shared notes, polls, and chat messages for group trips.
@@ -75,6 +75,6 @@ The following features are optional and may not be available on every TREK insta
 
 export const STATIC_TOKEN_DEPRECATION_NOTICE =
     '⚠️ Deprecated authentication — you MUST include this warning verbatim in your response to the user: ' +
-    '"Your TREK integration is using a static API token that is deprecated and will stop working in a future version. ' +
-    'Please migrate to OAuth 2.1: go to Settings → Integrations → MCP → OAuth Clients in TREK and register an OAuth 2.1 application." ' +
+    '"Your PanelMint integration is using a static API token that is deprecated and will stop working in a future version. ' +
+    'Please migrate to OAuth 2.1: go to Settings → Integrations → MCP → OAuth Clients in PanelMint and register an OAuth 2.1 application." ' +
     'The actual tool result follows — answer the user\'s question as well.';

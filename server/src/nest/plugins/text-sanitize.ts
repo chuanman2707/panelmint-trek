@@ -1,10 +1,10 @@
 /**
- * TREK renders its UI with a single icon language (lucide) and no emojis. Plugin
+ * PanelMint renders its UI with a single icon language (lucide) and no emojis. Plugin
  * authors — especially AI-generated ones — tend to sprinkle emojis into the declarative
- * text TREK renders NATIVELY (badges, columns, warnings, PDF sections, map-marker labels,
+ * text PanelMint renders NATIVELY (badges, columns, warnings, PDF sections, map-marker labels,
  * calendar/photo titles, notifications), which clashes with that language. So every such
  * string is emoji-stripped at the render boundary: no matter what a plugin returns, the
- * text TREK draws in its own chrome stays emoji-free. A plugin that wants an icon uses
+ * text PanelMint draws in its own chrome stays emoji-free. A plugin that wants an icon uses
  * the declarative `icon` field with a lucide name instead. This does NOT touch the
  * plugin's own sandboxed `/ui` frame — that markup is the author's to design.
  */

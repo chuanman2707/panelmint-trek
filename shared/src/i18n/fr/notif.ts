@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Affectation bagages',
   'notif.packing_tagged.text': '{actor} vous a assigné à {category} dans {trip}',
   'notif.version_available.title': 'Nouvelle version disponible',
-  'notif.version_available.text': 'TREK {version} est maintenant disponible',
+  'notif.version_available.text': 'PanelMint {version} est maintenant disponible',
   'notif.replica_failure.title': 'Échec de réplique de stockage',
   'notif.replica_failure.text': "Échec de l'écriture sur la réplique '{backend}' : {op} de {key} — {error}",
   'notif.replica_failure.textSuppressed': "Échec de l'écriture sur la réplique '{backend}' : {op} de {key} — {error}. {suppressed} erreurs supplémentaires ont été supprimées depuis la dernière notification.",

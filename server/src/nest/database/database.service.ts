@@ -7,7 +7,7 @@ import { DATABASE_CONNECTION } from './database.tokens';
 export type { PlaceWithTags, TripAccess };
 
 /**
- * Injectable wrapper around TREK's existing better-sqlite3 connection.
+ * Injectable wrapper around PanelMint's existing better-sqlite3 connection.
  *
  * The injected connection is the Proxy onto the singleton the legacy app
  * already uses (WAL enabled), so Nest modules share the exact same

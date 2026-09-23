@@ -12,7 +12,7 @@ import { ALL_SCOPES, DEFAULT_CLIENT_SCOPES } from '../../mcp/scopes';
 import { getMcpSafeUrl } from '../../app-config';
 
 /**
- * TREK's adapters behind the MCP SDK's OAuth server interfaces, wrapping the
+ * PanelMint's adapters behind the MCP SDK's OAuth server interfaces, wrapping the
  * injected OauthService. The SDK's authorizationHandler / clientRegistrationHandler
  * Express routers are built over these instances in OauthModule.configure().
  *
@@ -127,7 +127,7 @@ export class TrekOAuthProvider implements OAuthServerProvider {
         if (resource !== mcpResource) {
             const url = new URL(params.redirectUri);
             url.searchParams.set('error', 'invalid_target');
-            url.searchParams.set('error_description', 'Requested resource must be the TREK MCP endpoint');
+            url.searchParams.set('error_description', 'Requested resource must be the PanelMint MCP endpoint');
             if (params.state) url.searchParams.set('state', params.state);
             res.redirect(302, url.toString());
             return;

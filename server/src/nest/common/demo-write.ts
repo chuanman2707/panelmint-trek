@@ -4,7 +4,7 @@ import { isDemoEmail } from './demo';
 
 /** The exact 403 body the six upload endpoints have always returned. */
 export const DEMO_WRITE_ERROR = {
-  error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.',
+  error: 'Uploads are disabled in demo mode. Self-host PanelMint for full functionality.',
 } as const;
 
 /**

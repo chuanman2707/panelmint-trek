@@ -509,7 +509,7 @@ export class PackingService {
   /**
    * What each bag actually weighs (#2191).
    *
-   * Every weight TREK showed used to be a client-side sum over `listItems`,
+   * Every weight PanelMint showed used to be a client-side sum over `listItems`,
    * which is privacy-filtered — so a bag's "total" silently omitted the private
    * items of every other member, and no one but their owner could ever see the
    * real figure. That number is then measured against `weight_limit_grams`, an

@@ -105,7 +105,7 @@ export function deriveTransitStats(
  * (client/src/components/Map/transitGeometry.ts). This pair exists for a
  * different job the client never has: the Google backend receives a walk split
  * across several navigation steps, each with its own polyline, and has to
- * MERGE them into the single walk leg the rest of TREK expects — which needs an
+ * MERGE them into the single walk leg the rest of PanelMint expects — which needs an
  * encoder to put the joined path back on the wire.
  */
 export function decodePolyline(encoded: string, precision: number): [number, number][] {

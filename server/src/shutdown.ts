@@ -59,7 +59,7 @@ export const FORCED_EXIT_MS = 5_000;
 /**
  * Shut the process down in the order the runtime actually requires.
  *
- * #2193: every `docker stop` of a TREK instance with a browser attached ended
+ * #2193: every `docker stop` of a PanelMint instance with a browser attached ended
  * in SIGKILL and exit 137. `http.Server.close()` stops NEW connections and then
  * waits for the open ones to end by themselves — and a WebSocket never does.
  * Node's own `closeAllConnections()` does not help either: an upgraded socket

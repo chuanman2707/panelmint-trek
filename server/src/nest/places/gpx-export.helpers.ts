@@ -158,7 +158,7 @@ export function buildGpx(input: GpxExportInput, opts: GpxExportOptions = {}): st
     '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
     gpx: {
       '@_version': '1.1',
-      '@_creator': 'TREK',
+      '@_creator': 'PanelMint',
       '@_xmlns': 'http://www.topografix.com/GPX/1/1',
       '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
       '@_xsi:schemaLocation': 'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd',

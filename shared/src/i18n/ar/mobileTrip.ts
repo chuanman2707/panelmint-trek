@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'أرقام القيادة',
   'mobileTrip.rtDesktopNote':
     'تُضبط هذه الأرقام على سطح المكتب، حيث يمكنك أيضًا مقارنة المسارات البديلة، وجعل يوم يتبع مسارًا مستوردًا.',
-  'mobileTrip.rtPlanOnDesktop': 'يتم التخطيط على سطح المكتب. يحسب TREK القيادة بمجرد أن يضم اليوم مكانين.',
+  'mobileTrip.rtPlanOnDesktop': 'يتم التخطيط على سطح المكتب. يحسب PanelMint القيادة بمجرد أن يضم اليوم مكانين.',
   'mobileTrip.rtSearchOffline': 'يلزم اتصال بالإنترنت: يقرأ البحث المسار الذي أمامك.',
   'mobileTrip.rtBehind': '{time} تأخرًا عن الخطة',
   'mobileTrip.rtStart': 'البداية',

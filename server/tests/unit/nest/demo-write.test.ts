@@ -56,7 +56,7 @@ describe('isDemoWriteBlocked', () => {
 
   it('DEMO-WRITE-005: the 403 body is the one the six endpoints have always sent', () => {
     expect(DEMO_WRITE_ERROR).toEqual({
-      error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.',
+      error: 'Uploads are disabled in demo mode. Self-host PanelMint for full functionality.',
     });
   });
 });

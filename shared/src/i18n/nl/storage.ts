@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': "Replica's",
   'storage.title': 'Opslag',
   'storage.description':
-    "Waar TREK geüploade bestanden, foto's en back-ups bewaart. Er verandert niets totdat je opslaat.",
+    "Waar PanelMint geüploade bestanden, foto's en back-ups bewaart. Er verandert niets totdat je opslaat.",
   'storage.loading': 'Laden…',
   'storage.saved': 'Opslagconfiguratie opgeslagen',
   'storage.save': 'Wijzigingen opslaan',
@@ -67,7 +67,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': "Profielfoto's",
   'storage.category.places': 'Locatieafbeeldingen',
   'storage.category.photos-google': 'Google-fotocache',
-  'storage.category.photos-trek': 'TREK-fotocache',
+  'storage.category.photos-trek': 'PanelMint-fotocache',
   'storage.category.backups': 'Back-ups',
 
   // What each category stores — rendered under the label in the category map.
@@ -81,7 +81,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     "Gecachte kopieën van Google Places-foto's — opnieuw op te halen, veilig om te verliezen.",
   'storage.categoryDesc.photos-trek':
-    "Gecachte foto's van de TREK-fotoservice die wordt gebruikt door Foto's (Memories) — opnieuw op te halen, veilig om te verliezen.",
+    "Gecachte foto's van de PanelMint-fotoservice die wordt gebruikt door Foto's (Memories) — opnieuw op te halen, veilig om te verliezen.",
   'storage.categoryDesc.backups': 'Serverback-uparchieven aangemaakt door het back-uppaneel of de planning.',
   'storage.health.title': 'Status',
   'storage.health.allClear': 'Geen replicafouten geregistreerd.',

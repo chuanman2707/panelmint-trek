@@ -51,7 +51,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtDesktopNote':
     'Ezeket az adatokat asztali gépen adod meg, ott hasonlíthatod össze az útvonalváltozatokat, és állíthatod be, hogy egy nap importált nyomvonalat kövessen.',
   'mobileTrip.rtPlanOnDesktop':
-    'A tervezés asztali gépen történik. Amint egy napon két hely szerepel, a TREK kiszámolja az útvonalat.',
+    'A tervezés asztali gépen történik. Amint egy napon két hely szerepel, a PanelMint kiszámolja az útvonalat.',
   'mobileTrip.rtSearchOffline': 'Internetkapcsolat kell hozzá: a keresés az előtted lévő útvonalat olvassa be.',
   'mobileTrip.rtBehind': '{time} késés a tervhez képest',
   'mobileTrip.rtStart': 'Kezdés',

@@ -169,9 +169,9 @@ const collection: TranslationStrings = {
   'collections.file.doneSkipped': '{count} plekken geïmporteerd, {skipped} overgeslagen',
   'collections.file.errorTooLarge': 'Dit bestand is te groot om een lijst te zijn.',
   'collections.file.errorUnreadable': 'Dit bestand kon niet worden gelezen.',
-  'collections.file.errorNotACollection': 'Dit is geen TREK-lijstbestand.',
-  'collections.file.formatTrek': 'TREK-lijst',
-  'collections.file.formatTrekHint': 'Voor een andere TREK, met labels en status',
+  'collections.file.errorNotACollection': 'Dit is geen PanelMint-lijstbestand.',
+  'collections.file.formatTrek': 'PanelMint-lijst',
+  'collections.file.formatTrekHint': 'Voor een andere PanelMint, met labels en status',
   'collections.file.formatGpxHint': 'Waypoints voor OsmAnd, Organic Maps, Garmin en andere kaart-apps',
   'collections.file.gpxOmitted': '{count} plekken zonder coördinaten zijn niet in het GPX-bestand opgenomen',
   'collections.file.gpxNothing':

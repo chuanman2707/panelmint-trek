@@ -29,7 +29,7 @@ const notifications: TranslationStrings = {
   'notifications.test.tripTitle': '{actor} 在您的行程中发帖',
   'notifications.test.tripText': '行程"{trip}"的测试通知。',
   'notifications.versionAvailable.title': '有可用更新',
-  'notifications.versionAvailable.text': 'TREK {version} 现已可用。',
+  'notifications.versionAvailable.text': 'PanelMint {version} 现已可用。',
   'notifications.versionAvailable.button': '查看详情',
 };
 export default notifications;

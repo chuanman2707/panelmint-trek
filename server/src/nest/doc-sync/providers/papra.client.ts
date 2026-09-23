@@ -38,7 +38,7 @@ import { Readable } from 'node:stream';
  *  - **`custom-properties`, `webhooks` and the restore and hard-delete routes
  *    are session-only.** With a valid API key they answer 401; with a browser
  *    session the same request succeeds. So there is no anchor property to write
- *    and no subscription TREK can register for itself.
+ *    and no subscription PanelMint can register for itself.
  *  - `pageSize` caps at 100 (101 is a 400), `pageIndex` is 0-based, and
  *    `documentsCount` is the total rather than the length of the page. The
  *    trash listing takes those two parameters and refuses every other one.
@@ -533,7 +533,7 @@ export class PapraClient {
     return guardDownload(response, {
       maxBytes: MAX_DOWNLOAD_BYTES,
       tooLarge: () =>
-        new PapraError('too_large', 'The Papra document is larger than TREK will transfer', response.status),
+        new PapraError('too_large', 'The Papra document is larger than PanelMint will transfer', response.status),
       noBody: () => new PapraError('provider_error', 'Papra answered the document file with no body', response.status),
     });
   }

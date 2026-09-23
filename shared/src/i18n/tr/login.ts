@@ -10,7 +10,7 @@ const login: TranslationStrings = {
   'login.signingIn': 'Oturum açılıyor…',
   'login.signIn': 'Oturum Aç',
   'login.createAdmin': 'Yönetici Hesabı Oluştur',
-  'login.createAdminHint': 'TREK için ilk yönetici hesabını kurun.',
+  'login.createAdminHint': 'PanelMint için ilk yönetici hesabını kurun.',
   'login.setNewPassword': 'Yeni Şifre Belirle',
   'login.setNewPasswordHint': 'Devam etmeden önce şifrenizi değiştirmelisiniz.',
   'login.createAccount': 'Hesap Oluşturmak',
@@ -71,7 +71,7 @@ const login: TranslationStrings = {
   'login.passkey.failed': 'Passkey ile oturum açma başarısız oldu. Lütfen tekrar deneyin.',
   'login.insecureCookie.title': "Login won't stick over HTTP",
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
+    'You’re connecting over plain HTTP, so your browser drops PanelMint’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
   'login.insecureCookie.link': 'Open the Troubleshooting guide',
 };
 export default login;

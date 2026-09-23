@@ -598,7 +598,7 @@ export class JourneyController {
   }
 
   /**
-   * The figures TREK Studio prints on a page — distance, days, steps, photos,
+   * The figures PanelMint Studio prints on a page — distance, days, steps, photos,
    * countries and the route itself (#1973).
    *
    * Read-only and derived, like /tracks above it: nothing here is stored, it is

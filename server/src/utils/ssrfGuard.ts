@@ -31,7 +31,7 @@ export interface SsrfResult {
  * addresses in turn (autoSelectFamily, the default since Node 20), so an
  * unreachable family costs a quarter of a second instead of the caller's whole
  * timeout. IPv4 leads because that is the family that is reachable from the
- * containers and LXCs TREK usually runs in.
+ * containers and LXCs PanelMint usually runs in.
  */
 async function resolveAll(hostname: string): Promise<{ address: string; family: number }[]> {
   const result = await dns.lookup(hostname, { all: true });

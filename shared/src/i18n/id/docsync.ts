@@ -14,17 +14,17 @@ const docsync: TranslationStrings = {
   'docsync.syncNow': 'Sinkronkan sekarang',
   'docsync.unlink': 'Putuskan',
   'docsync.confirmUnlink':
-    'Dokumen tetap ada di TREK dan di penyimpananmu. Hanya pasangan di antara keduanya yang dilepas.',
+    'Dokumen tetap ada di PanelMint dan di penyimpananmu. Hanya pasangan di antara keduanya yang dilepas.',
   'docsync.syncEnabled': 'Sinkronkan otomatis',
   'docsync.deletePolicy': 'Saat sebuah dokumen dihapus',
   'docsync.deleteUnlink': 'Simpan kedua salinan',
   'docsync.deleteTrash': 'Pindahkan ke tempat sampah',
   'docsync.conflictPolicy': 'Saat kedua sisi berubah',
   'docsync.onConflict.manual': 'Tanya saya',
-  'docsync.onConflict.trek_wins': 'Simpan salinan TREK',
+  'docsync.onConflict.trek_wins': 'Simpan salinan PanelMint',
   'docsync.onConflict.provider_wins': 'Simpan salinan penyimpanan',
   'docsync.webhookHint':
-    'Tempelkan URL ini di penyediamu agar perubahan langsung tiba. Tanpa itu, TREK memeriksa secara berkala.',
+    'Tempelkan URL ini di penyediamu agar perubahan langsung tiba. Tanpa itu, PanelMint memeriksa secara berkala.',
 
   // Bidang formulir koneksi. Kuncinya mencerminkan kolom `label` di
   // document_provider_fields, yang menyimpan sufiks kunci, bukan teks.
@@ -48,7 +48,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudAppPassword':
     'Settings → Security → Create new app password. Jangan pernah pakai kata sandi akunmu.',
   'docsync.hintOpenCloudToken': 'Dibuat di OpenCloud pada app tokens.',
-  'docsync.hintBasePath': 'Tempat TREK mencari folder perjalanan. Default-nya /TREK.',
+  'docsync.hintBasePath': 'Tempat PanelMint mencari folder perjalanan. Default-nya /TREK.',
   'docsync.hintSynologyUrl': 'Sertakan portnya, misalnya https://nas.example.com:5001',
   'docsync.hintSynologyUser': 'Sebaiknya akun DSM khusus yang hanya punya akses ke folder bersama ini.',
   'docsync.hintSynologyOtp': 'Hanya perlu sekali, jika akun memakai autentikasi dua faktor.',
@@ -68,13 +68,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': 'Terlalu besar',
   'docsync.state.error': 'Kesalahan',
   'docsync.state.remote_missing': 'Tidak ada di penyedia',
-  'docsync.state.local_deleted': 'Dihapus di TREK',
+  'docsync.state.local_deleted': 'Dihapus di PanelMint',
   'docsync.state.scope_drift': 'Dipindahkan keluar folder',
 
   'docsync.conflict.resolve': "Selesaikan {count}",
 
   'docsync.conflict.title': 'Kedua salinan berubah',
-  'docsync.conflict.keepTrek': 'Pertahankan versi TREK',
+  'docsync.conflict.keepTrek': 'Pertahankan versi PanelMint',
   'docsync.conflict.keepProvider': 'Pertahankan versi penyedia',
   'docsync.conflict.keepBoth': 'Pertahankan keduanya',
 
@@ -88,7 +88,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'Akun ini tidak diizinkan melakukan itu.',
   'docsync.error.not_found': 'Tidak ditemukan di penyedia.',
   'docsync.error.scope_missing': 'Folder yang terhubung sudah tidak ada.',
-  'docsync.error.rate_limited': 'Penyedia membatasi laju permintaan kami. TREK akan mencoba lagi nanti.',
+  'docsync.error.rate_limited': 'Penyedia membatasi laju permintaan kami. PanelMint akan mencoba lagi nanti.',
   'docsync.error.too_large': 'File lebih besar daripada yang diterima penyedia.',
   'docsync.error.unsupported_type': 'Penyedia tidak menerima tipe file ini.',
   'docsync.error.quota_exceeded': 'Penyedia kehabisan ruang.',
@@ -109,8 +109,8 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': 'Belum ada yang terhubung',
   'docsync.empty.hintOwner':
-    'Pilih penyimpanan di sebelah kiri. TREK menyimpan salinannya sendiri untuk semuanya, jadi tidak ada yang hilang kalau penyimpanan itu lenyap.',
-  'docsync.empty.hintMember': 'Pemilik perjalanan yang mengaturnya. Dokumen tetap ada di TREK, apa pun pilihannya.',
+    'Pilih penyimpanan di sebelah kiri. PanelMint menyimpan salinannya sendiri untuk semuanya, jadi tidak ada yang hilang kalau penyimpanan itu lenyap.',
+  'docsync.empty.hintMember': 'Pemilik perjalanan yang mengaturnya. Dokumen tetap ada di PanelMint, apa pun pilihannya.',
 
   // Cara tiap produk mengarsipkan. Ditampilkan sebelum ada yang menghubungkan,
   // karena inilah yang akan ditanyakan layar berikutnya.
@@ -121,7 +121,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'Mengarsipkan di dalam folder di NAS',
 
   // ── Bilah alur ─────────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'PanelMint',
   'docsync.flow.toProvider': 'Keluar ke penyimpanan',
   'docsync.flow.toTrek': 'Masuk dari penyimpanan',
   'docsync.flow.documents': 'dokumen',
@@ -151,18 +151,18 @@ const docsync: TranslationStrings = {
   'docsync.connect.okAs': 'Terjangkau, masuk sebagai {account}',
   'docsync.connect.insecureHint': 'Untuk instans di jaringanmu sendiri dengan sertifikat yang ditandatangani sendiri.',
   'docsync.connect.about.paperless':
-    'TREK mengarsipkan perjalanan ini di bawah tag miliknya sendiri dan tidak pernah menyentuh sisa arsipmu.',
+    'PanelMint mengarsipkan perjalanan ini di bawah tag miliknya sendiri dan tidak pernah menyentuh sisa arsipmu.',
   'docsync.connect.about.papra':
-    'Pilih organisasi tempat perjalanan ini berada. TREK mengarsipkannya di bawah tag miliknya sendiri di dalamnya.',
+    'Pilih organisasi tempat perjalanan ini berada. PanelMint mengarsipkannya di bawah tag miliknya sendiri di dalamnya.',
   'docsync.connect.about.nextcloud':
     'Pakai sandi aplikasi, bukan kata sandi akunmu: sandi aplikasi tahan terhadap dua faktor dan bisa dicabut sendiri.',
-  'docsync.connect.about.opencloud': 'TREK mendapat ruang sendiri untuk perjalanan ini, terpisah dari yang lain.',
+  'docsync.connect.about.opencloud': 'PanelMint mendapat ruang sendiri untuk perjalanan ini, terpisah dari yang lain.',
   'docsync.connect.about.synologydrive':
     'Sebaiknya akun DSM yang hanya menjangkau folder bersama untuk perjalanan ini.',
 
   // ── Memilih wadahnya ───────────────────────────────────────────────────────
   'docsync.scope.title': 'Di mana perjalanan ini disimpan di {provider}?',
-  'docsync.scope.intro': 'Hanya isi di sini yang disinkronkan. Semua hal lain di penyimpananmu tetap di luar TREK.',
+  'docsync.scope.intro': 'Hanya isi di sini yang disinkronkan. Semua hal lain di penyimpananmu tetap di luar PanelMint.',
   'docsync.scope.createTitle': 'Buat yang baru',
   'docsync.scope.createAction': 'Buat',
   'docsync.scope.pickTitle': 'Atau pakai yang sudah ada',
@@ -172,7 +172,7 @@ const docsync: TranslationStrings = {
   // ── Hal yang harus diputuskan orang ────────────────────────────────────────
   'docsync.issues.title': 'Perlu dilihat',
   'docsync.issues.conflict': 'Berubah di kedua tempat. Pilih mana yang dipertahankan.',
-  'docsync.issues.remote_missing': 'Hilang dari penyimpanan. Salinan TREK masih ada.',
+  'docsync.issues.remote_missing': 'Hilang dari penyimpanan. Salinan PanelMint masih ada.',
   'docsync.issues.rejected_type': 'Tipe file ini tidak diizinkan di sini.',
   'docsync.issues.too_large': 'Lebih besar dari batas.',
   'docsync.issues.error': 'Transfer tidak berhasil.',

@@ -13,17 +13,17 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': 'Назва нової теки',
   'docsync.syncNow': 'Синхронізувати зараз',
   'docsync.unlink': 'Відключити',
-  'docsync.confirmUnlink': 'Документи залишаються і в TREK, і у сховищі. Зникає лише зв’язок між ними.',
+  'docsync.confirmUnlink': 'Документи залишаються і в PanelMint, і у сховищі. Зникає лише зв’язок між ними.',
   'docsync.syncEnabled': 'Синхронізувати автоматично',
   'docsync.deletePolicy': 'Коли документ видалено',
   'docsync.deleteUnlink': 'Залишити обидві копії',
   'docsync.deleteTrash': 'Перемістити до кошика',
   'docsync.conflictPolicy': 'Коли змінилися обидві сторони',
   'docsync.onConflict.manual': 'Запитати мене',
-  'docsync.onConflict.trek_wins': 'Залишити копію TREK',
+  'docsync.onConflict.trek_wins': 'Залишити копію PanelMint',
   'docsync.onConflict.provider_wins': 'Залишити копію сховища',
   'docsync.webhookHint':
-    'Вставте цю URL-адресу у свого постачальника, щоб зміни надходили одразу. Без цього TREK перевіряє їх за таймером.',
+    'Вставте цю URL-адресу у свого постачальника, щоб зміни надходили одразу. Без цього PanelMint перевіряє їх за таймером.',
 
   // Поля форми підключення. Ключі відповідають стовпцю `label` у таблиці
   // document_provider_fields, яка зберігає суфікс ключа, а не текст.
@@ -48,7 +48,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudAppPassword':
     'Налаштування, Безпека, Створити новий пароль додатка. Ніколи не пароль облікового запису.',
   'docsync.hintOpenCloudToken': 'Створюється в OpenCloud у розділі токенів додатків.',
-  'docsync.hintBasePath': 'Де TREK шукає теки подорожей. Типово /TREK.',
+  'docsync.hintBasePath': 'Де PanelMint шукає теки подорожей. Типово /TREK.',
   'docsync.hintSynologyUrl': 'Вкажіть і порт, наприклад https://nas.example.com:5001',
   'docsync.hintSynologyUser': 'Найкраще окремий обліковий запис DSM з доступом лише до цієї спільної теки.',
   'docsync.hintSynologyOtp': 'Потрібен лише один раз, якщо обліковий запис використовує двофакторну автентифікацію.',
@@ -68,13 +68,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': 'Завеликий',
   'docsync.state.error': 'Помилка',
   'docsync.state.remote_missing': 'Відсутній у постачальника',
-  'docsync.state.local_deleted': 'Видалено в TREK',
+  'docsync.state.local_deleted': 'Видалено в PanelMint',
   'docsync.state.scope_drift': 'Переміщено за межі теки',
 
   'docsync.conflict.resolve': "Розв'язати {count}",
 
   'docsync.conflict.title': 'Змінилися обидві копії',
-  'docsync.conflict.keepTrek': 'Залишити версію TREK',
+  'docsync.conflict.keepTrek': 'Залишити версію PanelMint',
   'docsync.conflict.keepProvider': 'Залишити версію постачальника',
   'docsync.conflict.keepBoth': 'Залишити обидві',
 
@@ -87,7 +87,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'Цей обліковий запис не має на це дозволу.',
   'docsync.error.not_found': 'Не знайдено в постачальника.',
   'docsync.error.scope_missing': 'Підключеної теки більше не існує.',
-  'docsync.error.rate_limited': 'Постачальник обмежує частоту запитів. TREK спробує ще раз пізніше.',
+  'docsync.error.rate_limited': 'Постачальник обмежує частоту запитів. PanelMint спробує ще раз пізніше.',
   'docsync.error.too_large': 'Файл більший, ніж приймає постачальник.',
   'docsync.error.unsupported_type': 'Постачальник не приймає цей тип файлу.',
   'docsync.error.quota_exceeded': 'У постачальника закінчилося місце.',
@@ -108,8 +108,8 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': 'Ще нічого не підключено',
   'docsync.empty.hintOwner':
-    'Виберіть сховище ліворуч. TREK зберігає власну копію всього, тож нічого не зникне, якщо сховища не стане.',
-  'docsync.empty.hintMember': 'Це налаштовує власник подорожі. Документи в будь-якому разі залишаються в TREK.',
+    'Виберіть сховище ліворуч. PanelMint зберігає власну копію всього, тож нічого не зникне, якщо сховища не стане.',
+  'docsync.empty.hintMember': 'Це налаштовує власник подорожі. Документи в будь-якому разі залишаються в PanelMint.',
 
   // Як кожен продукт упорядковує файли. Показується ще до підключення, бо саме
   // про це запитає наступний екран.
@@ -120,7 +120,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'Зберігає в теці на NAS',
 
   // ── Смуга напрямків ────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'PanelMint',
   'docsync.flow.toProvider': 'До сховища',
   'docsync.flow.toTrek': 'Зі сховища',
   'docsync.flow.documents': 'документів',
@@ -149,18 +149,18 @@ const docsync: TranslationStrings = {
   'docsync.connect.testing': 'Пробуємо з’єднатися',
   'docsync.connect.okAs': 'З’єднано, вхід як {account}',
   'docsync.connect.insecureHint': 'Для сервера у вашій власній мережі із самопідписаним сертифікатом.',
-  'docsync.connect.about.paperless': 'TREK зберігає цю подорож під власною міткою і не чіпає решту вашого архіву.',
+  'docsync.connect.about.paperless': 'PanelMint зберігає цю подорож під власною міткою і не чіпає решту вашого архіву.',
   'docsync.connect.about.papra':
-    'Виберіть організацію, до якої належить ця подорож. TREK зберігає її там під власною міткою.',
+    'Виберіть організацію, до якої належить ця подорож. PanelMint зберігає її там під власною міткою.',
   'docsync.connect.about.nextcloud':
     'Використовуйте пароль додатка, а не пароль облікового запису: він працює з двофакторною автентифікацією, і його можна відкликати окремо.',
-  'docsync.connect.about.opencloud': 'TREK отримує власний простір для цієї подорожі, окремо від усього іншого.',
+  'docsync.connect.about.opencloud': 'PanelMint отримує власний простір для цієї подорожі, окремо від усього іншого.',
   'docsync.connect.about.synologydrive':
     'Найкраще обліковий запис DSM, який має доступ лише до спільної теки для цієї подорожі.',
 
   // ── Вибір місця зберігання ─────────────────────────────────────────────────
   'docsync.scope.title': 'Де ця подорож має зберігатися в {provider}?',
-  'docsync.scope.intro': 'Синхронізується лише те, що всередині. Решта вашого сховища залишається поза TREK.',
+  'docsync.scope.intro': 'Синхронізується лише те, що всередині. Решта вашого сховища залишається поза PanelMint.',
   'docsync.scope.createTitle': 'Створити нову',
   'docsync.scope.createAction': 'Створити',
   'docsync.scope.pickTitle': 'Або скористайтеся наявною',
@@ -170,7 +170,7 @@ const docsync: TranslationStrings = {
   // ── Те, що має вирішити людина ─────────────────────────────────────────────
   'docsync.issues.title': 'Потребує уваги',
   'docsync.issues.conflict': 'Змінено в обох місцях. Виберіть, яку копію залишити.',
-  'docsync.issues.remote_missing': 'Зник зі сховища. Копія в TREK лишається.',
+  'docsync.issues.remote_missing': 'Зник зі сховища. Копія в PanelMint лишається.',
   'docsync.issues.rejected_type': 'Цей тип файлу тут не дозволено.',
   'docsync.issues.too_large': 'Більший за ліміт.',
   'docsync.issues.error': 'Передавання не відбулося.',

@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'Kendi OSRM sunucunuz. Boş bırakılırsa saniyede yaklaşık bir istek veren genel sunucular kullanılır: bir gün için yeter, uzun yolculuk için az. Sunucu yeniden başlatıldığında etkin olur.',
   'settings.valhallaBase': 'Kendi Valhalla sunucunuz',
   'settings.valhallaBaseHint':
-    'TREK, ücretli yolları, otoyolları ve feribotları önlemek için varsayılan olarak FOSSGIS’in herkese açık Valhalla hizmetini kullanır. Bunun yerine kendi Valhalla sunucunuzu kullanmak için URL’sini buraya girin. Yalnızca özel bir rota sunucusu yapılandırılmışsa herkese açık Valhalla kullanılmaz. Özel URL girdikten sonra sunucuyu yeniden başlatın ve sayfayı yenileyin.',
+    'PanelMint, ücretli yolları, otoyolları ve feribotları önlemek için varsayılan olarak FOSSGIS’in herkese açık Valhalla hizmetini kullanır. Bunun yerine kendi Valhalla sunucunuzu kullanmak için URL’sini buraya girin. Yalnızca özel bir rota sunucusu yapılandırılmışsa herkese açık Valhalla kullanılmaz. Özel URL girdikten sonra sunucuyu yeniden başlatın ve sayfayı yenileyin.',
   'settings.mapHint': 'Harita kutucukları için URL şablonu',
   'settings.mapProvider': 'Harita Sağlayıcısı',
   'settings.mapProviderHint': 'Seyahat planlayıcı ve Journey haritalarını etkiler. Atlas her zaman Leaflet kullanır.',
@@ -44,7 +44,7 @@ const settings: TranslationStrings = {
     'CARTO temel haritaları anahtar olmadan filigran gösterir. Ücretsiz, hesap gerekmez, kaynağı:',
   'settings.mapCartoKeyLink': 'carto.com temel harita API anahtarı',
   'settings.mapCartoKeyMissing':
-    'Bu şablon bir CARTO temel haritası. Anahtar olmadan CARTO her karoya "API KEY REQUIRED" damgası basar. Anahtar girilene kadar TREK varsayılan temel haritayı gösterir.',
+    'Bu şablon bir CARTO temel haritası. Anahtar olmadan CARTO her karoya "API KEY REQUIRED" damgası basar. Anahtar girilene kadar PanelMint varsayılan temel haritayı gösterir.',
   'settings.mapStyle': 'Harita Stili',
   'settings.mapStylePlaceholder': 'Bir Mapbox stili seçin',
   'settings.mapStyleHint': 'Ön ayar veya kendi mapbox://styles/KULLANICI/ID adresiniz',
@@ -228,9 +228,9 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Yeni bir özellik önerin',
   'settings.about.wikiHint': 'Belgeler ve kılavuzlar',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Aylık Destekçiler',
   'settings.about.supporters.title': 'TREK için seyahat Arkadaşları',
   'settings.about.supporters.subtitle':
@@ -243,7 +243,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Bütçe Gezgini',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Yatakhane Arkadaşı',
   'settings.about.description':
-    'TREK, seyahatlerinizi ilk fikirden son anıya kadar organize etmenize yardımcı olan, kendi kendine barındırılan bir seyahat planlayıcıdır. Gün planlaması, bütçe, paketleme listeleri, fotoğraflar ve çok daha fazlası; hepsi tek bir yerde, kendi sunucunuzda.',
+    'PanelMint, seyahatlerinizi ilk fikirden son anıya kadar organize etmenize yardımcı olan, kendi kendine barındırılan bir seyahat planlayıcıdır. Gün planlaması, bütçe, paketleme listeleri, fotoğraflar ve çok daha fazlası; hepsi tek bir yerde, kendi sunucunuzda.',
   'settings.about.madeWith': 'İle yapıldı',
   'settings.about.madeBy': 'Maurice ve büyüyen bir açık kaynak topluluğu tarafından.',
   'settings.username': 'Kullanıcı adı',
@@ -357,7 +357,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Yalnızca kendi ağınızdaki güvenilir bir örnek için etkinleştirin.',
   'settings.airtrail.writeBack': 'Değişiklikleri AirTrail’e geri yaz',
   'settings.airtrail.writeBackHint':
-    'Varsayılan olarak kapalı: AirTrail asıl kaynaktır ve TREK yalnızca okur. TREK’te yapılan değişiklikleri AirTrail’e geri göndermek için açın.',
+    'Varsayılan olarak kapalı: AirTrail asıl kaynaktır ve PanelMint yalnızca okur. PanelMint’te yapılan değişiklikleri AirTrail’e geri göndermek için açın.',
   'settings.airtrail.connected': 'Bağlandı',
   'settings.airtrail.notConnected': 'Bağlı değil',
   'settings.airtrail.toast.saved': 'AirTrail bağlantısı kaydedildi',
@@ -470,7 +470,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Pano',
   'settings.startPageActiveTrip': 'Aktif seyahat',
   'settings.startPageHint':
-    'TREK doğrudan devam eden seyahati, yoksa sıradaki seyahati açar. Panonun öne çıkardığı seyahatin aynısı.',
+    'PanelMint doğrudan devam eden seyahati, yoksa sıradaki seyahati açar. Panonun öne çıkardığı seyahatin aynısı.',
   'settings.startTripTab': 'Başlangıç sekmesi',
   'settings.startTripTabHint':
     'Seyahatin açılacağı sekme. Kapalı bir eklentiye aitse onun yerine plan görünümü açılır.',

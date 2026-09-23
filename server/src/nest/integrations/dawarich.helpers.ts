@@ -90,7 +90,7 @@ export function syncWindow(
 // ── Change detection ─────────────────────────────────────────────────────────
 
 /**
- * A stable fingerprint of the fields TREK shows for a visit.
+ * A stable fingerprint of the fields PanelMint shows for a visit.
  *
  * Dawarich sends no `updated_at`, so this is the whole of change detection: a
  * renamed, re-timed or re-placed visit hashes differently, and everything else
@@ -114,7 +114,7 @@ export function visitHash(visit: DawarichVisitRaw): string {
   return createHash('sha256').update(parts.join('\u0000')).digest('hex');
 }
 
-/** Numbers reach TREK as numbers or as strings depending on the endpoint. */
+/** Numbers reach PanelMint as numbers or as strings depending on the endpoint. */
 export function toNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'string' && value.trim() !== '') {
@@ -125,7 +125,7 @@ export function toNumber(value: unknown): number | null {
 }
 
 /**
- * A visit reduced to what TREK stores.
+ * A visit reduced to what PanelMint stores.
  *
  * `status` is normalised rather than trusted: "declined" stopped existing in
  * Dawarich 1.12.0 and anything unrecognised is treated as a suggestion, which
@@ -160,7 +160,7 @@ export function normalizeVisit(visit: DawarichVisitRaw): {
 
   // An `ended_at` that does not parse is repaired rather than passed through:
   // kept as-is it renders as "Invalid Date" next to a perfectly good arrival
-  // time, which looks like TREK lost the data rather than the source sending
+  // time, which looks like PanelMint lost the data rather than the source sending
   // something odd. The reported duration is the better source for the end, and
   // the arrival itself is the honest fallback when there is none.
   const endParses = Number.isFinite(Date.parse(visit.ended_at));
@@ -286,7 +286,7 @@ export function capPoints(points: Array<[number, number]>, max: number): Array<[
   return out;
 }
 
-/** `[lng, lat]` GeoJSON pairs → TREK's `[lat, lng]`, skipping anything unusable. */
+/** `[lng, lat]` GeoJSON pairs → PanelMint's `[lat, lng]`, skipping anything unusable. */
 export function geoJsonToLatLng(coordinates: unknown): Array<[number, number]> {
   if (!Array.isArray(coordinates)) return [];
   const out: Array<[number, number]> = [];

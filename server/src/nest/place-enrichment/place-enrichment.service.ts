@@ -297,7 +297,7 @@ export function collectRating(details: Record<string, unknown> | null): PlaceRat
  * Photos and a description for a place the user is looking at but has not saved
  * yet — the detail column next to the search field in the add-place dialog.
  *
- * Two things shape this service. First, most TREK instances have no Google key,
+ * Two things shape this service. First, most PanelMint instances have no Google key,
  * so the free path (OpenStreetMap tags, Wikimedia Commons, Wikipedia) is the
  * normal case and has to stand on its own; Google is an addition an admin opts
  * into, not the design centre. Second, every picture shown here is somebody
@@ -606,10 +606,10 @@ export class PlaceEnrichmentService {
   // ── Description ────────────────────────────────────────────────────────────
 
   /**
-   * The description the place publishes on its own site, served from the TREK
+   * The description the place publishes on its own site, served from the PanelMint
    * Places API rather than fetched here.
    *
-   * TREK never opens the business's website itself: that would be one request
+   * PanelMint never opens the business's website itself: that would be one request
    * per instance per place, against small servers, from hundreds of homelabs.
    * The API fetches each page once, keeps the summary, and every instance reads
    * it from there. Only places carrying a GERS id can be looked up, which is

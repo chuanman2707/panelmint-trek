@@ -18,7 +18,7 @@ import { safeFetch } from '../../utils/ssrfGuard';
  *  - AirTrail 3.12.0 renamed that list from `seats` to `passengers` and moved
  *    flightReason from the flight onto each passenger, with no alias on either
  *    side (verified against running 3.11.1 and 3.12.0 instances: each returns
- *    its own key and null for the other). TREK reads and writes both shapes so
+ *    its own key and null for the other). PanelMint reads and writes both shapes so
  *    one build works against either version.
  *  - There is no webhook and no updated_at on a flight, so change detection is
  *    snapshot-hash based (see airtrailSync).
@@ -78,7 +78,7 @@ export interface AirtrailNamedCode {
   name?: string | null;
 }
 
-/** A flight as returned by list/get (the fields TREK consumes). */
+/** A flight as returned by list/get (the fields PanelMint consumes). */
 export interface AirtrailFlightRaw {
   id: number;
   from: AirtrailAirport | null;

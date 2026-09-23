@@ -80,10 +80,10 @@ const oauth: TranslationStrings = {
   'oauth.authorize.errorTitle': "Error d'autorització",
   'oauth.authorize.loginTitle': 'Inicia la sessió per continuar',
   'oauth.authorize.loginDescription':
-    '{client} vol accedir al teu compte de TREK. Si us plau, inicia la sessió primer.',
-  'oauth.authorize.loginButton': 'Inicia la sessió a TREK',
+    '{client} vol accedir al teu compte de PanelMint. Si us plau, inicia la sessió primer.',
+  'oauth.authorize.loginButton': 'Inicia la sessió a PanelMint',
   'oauth.authorize.requestLabel': "Sol·licitud d'autorització",
-  'oauth.authorize.requestDescription': 'Aquesta aplicació està sol·licitant accés al teu compte de TREK.',
+  'oauth.authorize.requestDescription': 'Aquesta aplicació està sol·licitant accés al teu compte de PanelMint.',
   'oauth.authorize.trustNote':
     'Només atorga accés a aplicacions de confiança. Les teves dades es mantenen al teu servidor.',
   'oauth.authorize.selectScope': 'Selecciona almenys un àmbit',

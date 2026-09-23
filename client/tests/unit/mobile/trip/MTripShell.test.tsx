@@ -154,7 +154,7 @@ describe('MTripShell', () => {
 
   it('FE-MOB-SHELL-003b: the splash falls back to the brand name before the trip arrives', () => {
     renderShell({ isLoading: true, trip: null } as Partial<TripPlanner>)
-    expect(screen.getByText('TREK')).toBeInTheDocument()
+    expect(screen.getByText('PanelMint')).toBeInTheDocument()
   })
 
   it('FE-MOB-SHELL-004: seeds the running trip on today rather than on day one', () => {

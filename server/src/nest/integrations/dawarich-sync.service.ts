@@ -26,7 +26,7 @@ export interface DawarichSyncOutcome {
 }
 
 /**
- * Pulls Dawarich visits into TREK as reviewable suggestions.
+ * Pulls Dawarich visits into PanelMint as reviewable suggestions.
  *
  * Three rules run through everything here, and they are the whole reason this
  * is a sync rather than an import:
@@ -38,7 +38,7 @@ export interface DawarichSyncOutcome {
  * 2. **Repeating a sync is free.** Identity is (user, Dawarich visit id) with a
  *    UNIQUE behind it, so the tenth run over the same window produces the same
  *    rows as the first.
- * 3. **The source is allowed to change its mind; TREK is not allowed to act on
+ * 3. **The source is allowed to change its mind; PanelMint is not allowed to act on
  *    that alone.** A visit whose content hash moved is flagged `source_changed`
  *    and one that vanished from a full re-read is flagged `source_missing` —
  *    both visible, neither applied. A suggestion the user already accepted and
@@ -232,7 +232,7 @@ export class DawarichSyncService {
    * and that is not laziness. Dawarich sends no `updated_at` to build a delta
    * from, and deleting a visit removes it from the list rather than tombstoning
    * it — so a changed-since filter, even if one existed, could never see a
-   * deletion. Comparing the whole window against what TREK already holds is the
+   * deletion. Comparing the whole window against what PanelMint already holds is the
    * only thing that can.
    *
    * `trips` is every trip this run walks. A window reaches past its own trip
@@ -360,7 +360,7 @@ export class DawarichSyncService {
   }
 
   /**
-   * Mark everything TREK holds for this window that the source no longer lists.
+   * Mark everything PanelMint holds for this window that the source no longer lists.
    *
    * Untouched suggestions are removed outright — nobody has seen them, and a
    * list of stays that no longer exist is worse than an empty list. Anything the

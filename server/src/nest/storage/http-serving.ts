@@ -10,7 +10,7 @@ import type { ObjectStat } from './storage.types';
  * suffix ranges, the degraded no-validator case) is provable in isolation.
  *
  * Deliberately out of scope: If-Match / If-Unmodified-Since (and therefore
- * 412). No TREK caller sends a precondition on a GET, and answering one
+ * 412). No PanelMint caller sends a precondition on a GET, and answering one
  * half-heartedly is worse than not advertising it.
  */
 
@@ -72,7 +72,7 @@ export function isNotModified(headers: ServingHeaders, validators: Validators): 
 
 /**
  * Single-range only: a multi-range request would need a
- * `multipart/byteranges` body, which no TREK client asks for and which is
+ * `multipart/byteranges` body, which no PanelMint client asks for and which is
  * never wrong to answer with the full entity (RFC 9110 §14.2 — a server MAY
  * ignore Range). Anything that isn't exactly one `bytes=<n>-<n>` spec —
  * commas, another unit, trailing junk — takes the same 200 path.

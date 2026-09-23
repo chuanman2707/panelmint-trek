@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Repliken',
   'storage.title': 'Speicher',
   'storage.description':
-    'Wo TREK hochgeladene Dateien, Fotos und Backups aufbewahrt. Es ändert sich nichts, bis du speicherst.',
+    'Wo PanelMint hochgeladene Dateien, Fotos und Backups aufbewahrt. Es ändert sich nichts, bis du speicherst.',
   'storage.loading': 'Wird geladen…',
   'storage.saved': 'Speicherkonfiguration gespeichert',
   'storage.save': 'Änderungen speichern',
@@ -67,7 +67,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Profilbilder',
   'storage.category.places': 'Ortsbilder',
   'storage.category.photos-google': 'Google-Fotocache',
-  'storage.category.photos-trek': 'TREK-Fotocache',
+  'storage.category.photos-trek': 'PanelMint-Fotocache',
   'storage.category.backups': 'Backups',
 
   // What each category stores — rendered under the label in the category map.
@@ -80,7 +80,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Zwischengespeicherte Kopien von Google-Places-Fotos — können erneut abgerufen werden, ein Verlust ist unbedenklich.',
   'storage.categoryDesc.photos-trek':
-    'Zwischengespeicherte Fotos vom TREK-Fotodienst, der von Fotos (Memories) verwendet wird — können erneut abgerufen werden, ein Verlust ist unbedenklich.',
+    'Zwischengespeicherte Fotos vom PanelMint-Fotodienst, der von Fotos (Memories) verwendet wird — können erneut abgerufen werden, ein Verlust ist unbedenklich.',
   'storage.categoryDesc.backups': 'Server-Backup-Archive, erstellt vom Backup-Panel oder nach Zeitplan.',
   'storage.health.title': 'Zustand',
   'storage.health.allClear': 'Keine Replikatfehler aufgezeichnet.',

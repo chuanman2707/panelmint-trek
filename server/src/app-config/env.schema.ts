@@ -1,5 +1,5 @@
 /**
- * The single Zod catalog of TREK's environment surface, validated ONCE at boot
+ * The single Zod catalog of PanelMint's environment surface, validated ONCE at boot
  * (see env.ts / boot-validate.ts) — never per-request and never inside
  * buildApp(), so the test harness (which boots dozens of apps per run with a
  * minimal env) is unaffected.
@@ -124,7 +124,7 @@ export const envSchema = z.object({
   // boot rather than degrading into a timeout of zero.
   LLM_TIMEOUT_MS: integer(1, 2_147_483_647, 'must be a whole number of milliseconds between 1 and 2147483647'),
   KITINERARY_EXTRACTOR_PATH: anyString,
-  // The OS search path. Not configuration anybody sets for TREK — it is here so
+  // The OS search path. Not configuration anybody sets for PanelMint — it is here so
   // the kitinerary probe can resolve its binary to an absolute path itself
   // instead of handing an unqualified name to exec, which would re-resolve
   // through whatever PATH held at that moment.

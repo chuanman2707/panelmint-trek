@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Sürüş değerleri',
   'mobileTrip.rtDesktopNote':
     'Bu değerler masaüstünde ayarlanır; orada başka yolları karşılaştırabilir ve bir günü içe aktarılmış bir izi takip ettirebilirsiniz.',
-  'mobileTrip.rtPlanOnDesktop': 'Planlama masaüstünde yapılır. Bir günde iki yer olduğunda TREK sürüşü hesaplar.',
+  'mobileTrip.rtPlanOnDesktop': 'Planlama masaüstünde yapılır. Bir günde iki yer olduğunda PanelMint sürüşü hesaplar.',
   'mobileTrip.rtSearchOffline': 'Bağlantı gerekir: arama, ileride kalan rotayı okur.',
   'mobileTrip.rtBehind': 'plandan {time} geride',
   'mobileTrip.rtStart': 'Başlangıç',

@@ -18,7 +18,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'Una instància pròpia d’OSRM. Buit fa servir els servidors públics, que permeten aproximadament una petició per segon: prou per a un dia, just per a un viatge llarg. Té efecte després de reiniciar el servidor.',
   'settings.valhallaBase': 'Instància Valhalla pròpia',
   'settings.valhallaBaseHint':
-    'TREK utilitza per defecte la Valhalla pública de FOSSGIS per evitar peatges, autopistes i ferris. Introdueix aquí l’URL de la teva Valhalla per utilitzar-la en lloc de la pública. Si només hi ha una instància d’encaminament pròpia configurada, no s’utilitza la Valhalla pública. Després d’introduir una URL pròpia, reinicia el servidor i torna a carregar la pàgina.',
+    'PanelMint utilitza per defecte la Valhalla pública de FOSSGIS per evitar peatges, autopistes i ferris. Introdueix aquí l’URL de la teva Valhalla per utilitzar-la en lloc de la pública. Si només hi ha una instància d’encaminament pròpia configurada, no s’utilitza la Valhalla pública. Després d’introduir una URL pròpia, reinicia el servidor i torna a carregar la pàgina.',
   'settings.mapHint': "Plantilla d'URL per als mosaics del mapa",
   'settings.mapProvider': 'Proveïdor de mapa',
   'settings.mapProviderHint': 'Afecta els mapes de Trip Planner i Journey. Atles sempre utilitza Leaflet.',
@@ -33,7 +33,7 @@ const settings: TranslationStrings = {
     "Els mapes base de CARTO mostren una marca d'aigua sense clau. Gratuïta i sense compte, des de",
   'settings.mapCartoKeyLink': "clau d'API de mapes base de carto.com",
   'settings.mapCartoKeyMissing':
-    'Aquesta plantilla és un mapa base de CARTO. Sense clau, CARTO estampa "API KEY REQUIRED" a cada tessel·la. Mentre no hi hagi clau, TREK mostra el mapa base per defecte.',
+    'Aquesta plantilla és un mapa base de CARTO. Sense clau, CARTO estampa "API KEY REQUIRED" a cada tessel·la. Mentre no hi hagi clau, PanelMint mostra el mapa base per defecte.',
   'settings.mapStyle': 'Estil de mapa',
   'settings.mapStylePlaceholder': 'Selecciona un estil de Mapbox',
   'settings.mapStyleHint': 'Predefinit o la teva pròpia URL mapbox://styles/USUARI/ID',
@@ -181,13 +181,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Suggereix una funció nova',
   'settings.about.wikiHint': 'Documentació i guies',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Patrocinadors Mensuals',
   'settings.about.supporters.title': 'Companyia de viatge per a TREK',
   'settings.about.supporters.subtitle':
-    'Mentre planifiques la teva pròxima ruta, aquestes persones ajuden a planificar el futur de TREK. La seva aportació mensual va directa al desenvolupament i a les hores reals invertides — perquè TREK continuï sent Open Source.',
+    'Mentre planifiques la teva pròxima ruta, aquestes persones ajuden a planificar el futur de PanelMint. La seva aportació mensual va directa al desenvolupament i a les hores reals invertides — perquè PanelMint continuï sent Open Source.',
   'settings.about.supporters.since': 'patrocinador des de {date}',
   'settings.about.supporters.tierEmpty': 'Sigues el primer',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
@@ -196,7 +196,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    "TREK és un planificador de viatges autoallotjat que t'ajuda a organitzar els teus viatges des de la primera idea fins al darrer record. Planificació diària, pressupost, llistes d'equipatge, fotos i molt més — tot en un sol lloc, al teu propi servidor.",
+    "PanelMint és un planificador de viatges autoallotjat que t'ajuda a organitzar els teus viatges des de la primera idea fins al darrer record. Planificació diària, pressupost, llistes d'equipatge, fotos i molt més — tot en un sol lloc, al teu propi servidor.",
   'settings.about.madeWith': 'Fet amb',
   'settings.about.madeBy': 'per Maurice i una creixent comunitat de codi obert.',
   'settings.username': 'Usuari',
@@ -455,7 +455,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Tauler',
   'settings.startPageActiveTrip': 'Viatge actiu',
   'settings.startPageHint':
-    'TREK obre directament el viatge que està en curs, o el següent que comença. És el mateix viatge que destaca el tauler.',
+    'PanelMint obre directament el viatge que està en curs, o el següent que comença. És el mateix viatge que destaca el tauler.',
   'settings.startTripTab': "Pestanya d'inici",
   'settings.startTripTabHint':
     "La pestanya amb què s'obre el viatge. Si pertany a un complement desactivat, s'obre la vista de planificació.",

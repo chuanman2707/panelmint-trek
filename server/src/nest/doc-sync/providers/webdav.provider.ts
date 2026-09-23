@@ -61,7 +61,7 @@ const WEBHOOK_EVENTS = [
  * Header the subscription carries the shared secret in.
  *
  * It has to be the one the endpoint reads: `doc-sync-webhook.controller.ts`
- * looks for `x-trek-docsync-secret`. It used to say `X-TREK-Docsync-Signature`
+ * looks for `x-trek-docsync-secret`. It used to say `X-PanelMint-Docsync-Signature`
  * here, so every webhook Nextcloud actually sent arrived without a secret the
  * controller could find and was silently dropped: the subscription existed, the
  * calls arrived, and nothing ever came of them.
@@ -250,7 +250,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
       // upgrades this to `webhook-self-registered` once it has asked the
       // instance. OpenCloud has no HTTP subscription API at all (its change
       // events live on an internal NATS bus that no trip admin can point at
-      // TREK), so it is `none` rather than a `webhook-manual` that would send
+      // PanelMint), so it is `none` rather than a `webhook-manual` that would send
       // someone looking for a settings page that does not exist.
       push: flavorOf(conn) === 'nextcloud' ? 'webhook-manual' : 'none',
       stableId: true,
@@ -569,7 +569,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
       const result = await this.client.put(creds, target, req.body, {
         size: req.size,
         mimeType: req.mimeType,
-        // Without this the file TREK just uploaded looks freshly changed
+        // Without this the file PanelMint just uploaded looks freshly changed
         // upstream on the next run, and the two sides push it back and forth.
         mtimeSeconds: req.mtimeSeconds,
         sha256: req.sha256,
@@ -824,7 +824,7 @@ export class WebdavDocumentProvider implements DocumentProvider {
     if (remoteId.startsWith(PATH_ID_PREFIX)) {
       const relative = remoteId.slice(PATH_ID_PREFIX.length);
       // The path comes out of a listing, which is the provider's word and not
-      // TREK's. A `..` in it would address a file outside the folder the trip is
+      // PanelMint's. A `..` in it would address a file outside the folder the trip is
       // bound to. Every other id here is opaque, this one is a path and has to
       // be treated like one.
       if (!relative || relative.split('/').some(seg => seg === '..' || seg === '.')) return null;

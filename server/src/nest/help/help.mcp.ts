@@ -33,7 +33,7 @@ export class HelpMcp {
   @Tool({
     name: 'list_help_topics',
     description:
-      'List the table of contents of the TREK user manual bundled with this instance: sections, page titles, and the slugs get_help_page takes. Start here when the user asks how something in TREK works or how to do something in the app, then read the matching page. This is documentation about the product, never the user\'s own data: for that use list_trips or get_trip_summary.',
+      'List the table of contents of the PanelMint user manual bundled with this instance: sections, page titles, and the slugs get_help_page takes. Start here when the user asks how something in PanelMint works or how to do something in the app, then read the matching page. This is documentation about the product, never the user\'s own data: for that use list_trips or get_trip_summary.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
   })
@@ -52,7 +52,7 @@ export class HelpMcp {
   @Tool({
     name: 'get_help_page',
     description:
-      'Read one page of the bundled TREK user manual as markdown, addressed by a slug from list_help_topics. Prefer it over answering from memory whenever the user asks how a TREK feature behaves: the pages ship with the running version, so they describe this instance rather than some other release. Long pages arrive in chunks, so when the result says truncated, call again with next_offset.',
+      'Read one page of the bundled PanelMint user manual as markdown, addressed by a slug from list_help_topics. Prefer it over answering from memory whenever the user asks how a PanelMint feature behaves: the pages ship with the running version, so they describe this instance rather than some other release. Long pages arrive in chunks, so when the result says truncated, call again with next_offset.',
     inputSchema: {
       slug: z.string().min(1).max(120).describe('Page slug as reported by list_help_topics, e.g. "Quick-Start"'),
       offset: z

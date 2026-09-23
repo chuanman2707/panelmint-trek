@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Zkusit znovu',
   'common.errorReload': 'Načíst stránku znovu',
   'common.errorUpdateTitle': 'Je dostupná nová verze',
-  'common.errorUpdateBody': 'TREK byl aktualizován, zatímco byla tato karta otevřená. Načtěte znovu pro novou verzi.',
+  'common.errorUpdateBody': 'PanelMint byl aktualizován, zatímco byla tato karta otevřená. Načtěte znovu pro novou verzi.',
   'common.errorPluginTitle': 'Tento plugin se nepodařilo zobrazit',
 };
 export default common;

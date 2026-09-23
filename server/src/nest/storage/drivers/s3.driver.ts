@@ -299,7 +299,7 @@ export class S3Driver implements StorageDriver {
     // rejects it with 400 MalformedXML ("XML syntax error on line 0: EOF" —
     // confirmed live against MinIO AIStor; any S3 would refuse the same).
     // Dropping ContentType here means multipart objects are stored without
-    // it, which TREK never reads back — sendToResponse derives Content-Type
+    // it, which PanelMint never reads back — sendToResponse derives Content-Type
     // from the key/caller, never from object metadata. The single-request
     // PutObject paths keep ContentType. Delete this (and pass `base`
     // through) once Upload stops leaking params into its Complete headers.

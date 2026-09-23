@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'En egen OSRM-instans. Tomt använder de publika servrarna, som tillåter ungefär en förfrågan per sekund – nog för en dag, knappt för en bilresa. Träder i kraft efter omstart av servern.',
   'settings.valhallaBase': 'Egen Valhalla-instans',
   'settings.valhallaBaseHint':
-    'TREK använder som standard FOSSGIS publika Valhalla för att undvika vägtullar, motorvägar och färjor. Ange URL:en till din egen Valhalla här för att använda den i stället. Om bara en egen ruttserver är konfigurerad används inte den publika Valhalla. Starta om servern och ladda om sidan efter att du angett en egen URL.',
+    'PanelMint använder som standard FOSSGIS publika Valhalla för att undvika vägtullar, motorvägar och färjor. Ange URL:en till din egen Valhalla här för att använda den i stället. Om bara en egen ruttserver är konfigurerad används inte den publika Valhalla. Starta om servern och ladda om sidan efter att du angett en egen URL.',
   'settings.mapHint': 'URL-mall för kartrutor',
   'settings.mapProvider': 'Kartleverantör',
   'settings.mapProviderHint': 'Påverkar resplaneraren och resedagbokens kartor. Atlas använder alltid Leaflet.',
@@ -46,7 +46,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyHint': 'CARTO-bakgrundskartor visar en vattenstämpel utan nyckel. Gratis och utan konto, från',
   'settings.mapCartoKeyLink': 'API-nyckel för bakgrundskartor på carto.com',
   'settings.mapCartoKeyMissing':
-    'Den här mallen är en CARTO-bakgrundskarta. Utan nyckel stämplar CARTO "API KEY REQUIRED" på varje ruta. Tills en nyckel anges visar TREK standardbakgrundskartan.',
+    'Den här mallen är en CARTO-bakgrundskarta. Utan nyckel stämplar CARTO "API KEY REQUIRED" på varje ruta. Tills en nyckel anges visar PanelMint standardbakgrundskartan.',
   'settings.mapStyle': 'Kartstil',
   'settings.mapStylePlaceholder': 'Välj en Mapbox-stil',
   'settings.mapStyleHint': 'Förinställda eller egna mapbox://styles/USER/ID länk',
@@ -240,13 +240,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Föreslå en ny funktion',
   'settings.about.wikiHint': 'Dokumentation och handledningar',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Månatliga bidragsgivare',
   'settings.about.supporters.title': 'Resekompisar för TREK',
   'settings.about.supporters.subtitle':
-    'Medan du planerar din nästa rutt bidrar dessa personer till att forma TREK:s framtid. Deras månatliga bidrag går direkt till utveckling och faktisk arbetstid – så att TREK förblir öppen källkod.',
+    'Medan du planerar din nästa rutt bidrar dessa personer till att forma PanelMint:s framtid. Deras månatliga bidrag går direkt till utveckling och faktisk arbetstid – så att PanelMint förblir öppen källkod.',
   'settings.about.supporters.since': 'bidragsgivare sedan {date}',
   'settings.about.supporters.tierEmpty': 'Var först',
   'settings.about.supporter.tier.noReturnTicket': 'Ingen returbiljett',
@@ -255,7 +255,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budgetresenären',
   'settings.about.supporter.tier.hostelBunkmate': 'Rumskamrat på vandrarhem',
   'settings.about.description':
-    'TREK är en resplanerare som du själv kan driva och som hjälper dig att organisera dina resor från den första idén till det sista minnet. Dagsplanering, budget, packlistor, foton och mycket mer – allt på ett och samma ställe, på din egen server.',
+    'PanelMint är en resplanerare som du själv kan driva och som hjälper dig att organisera dina resor från den första idén till det sista minnet. Dagsplanering, budget, packlistor, foton och mycket mer – allt på ett och samma ställe, på din egen server.',
   'settings.about.madeWith': 'Gjord med',
   'settings.about.madeBy': 'av Maurice och en växande open source-gemenskap.',
   'settings.username': 'Användarnamn',
@@ -359,7 +359,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Aktivera endast för en betrodd instans i ditt eget nätverk.',
   'settings.airtrail.writeBack': 'Skriv tillbaka ändringarna till AirTrail',
   'settings.airtrail.writeBackHint':
-    'Avstängt som standard: AirTrail är den primära källan och TREK läser endast från den. Aktivera funktionen för att skicka ändringar som gjorts i TREK tillbaka till AirTrail.',
+    'Avstängt som standard: AirTrail är den primära källan och PanelMint läser endast från den. Aktivera funktionen för att skicka ändringar som gjorts i PanelMint tillbaka till AirTrail.',
   'settings.airtrail.connected': 'Ansluten',
   'settings.airtrail.notConnected': 'Inte ansluten',
   'settings.airtrail.toast.saved': 'AirTrail anslutning sparad',
@@ -471,7 +471,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Översikt',
   'settings.startPageActiveTrip': 'Aktiv resa',
   'settings.startPageHint':
-    'TREK öppnar direkt i resan som pågår, annars i nästa som börjar. Det är samma resa som översikten lyfter fram.',
+    'PanelMint öppnar direkt i resan som pågår, annars i nästa som börjar. Det är samma resa som översikten lyfter fram.',
   'settings.startTripTab': 'Startflik',
   'settings.startTripTabHint':
     'Fliken som resan öppnas med. Hör den till ett avstängt tillägg öppnas planvyn i stället.',

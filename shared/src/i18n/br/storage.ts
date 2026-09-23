@@ -18,7 +18,7 @@ const storage: TranslationStrings = {
   'storage.field.primary': 'Backend primário',
   'storage.field.replicas': 'Réplicas',
   'storage.title': 'Armazenamento',
-  'storage.description': 'Onde o TREK guarda arquivos, fotos e backups enviados. Nada muda até você salvar.',
+  'storage.description': 'Onde o PanelMint guarda arquivos, fotos e backups enviados. Nada muda até você salvar.',
   'storage.loading': 'Carregando…',
   'storage.saved': 'Configuração de armazenamento salva',
   'storage.save': 'Salvar alterações',
@@ -65,7 +65,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Fotos de perfil',
   'storage.category.places': 'Imagens de locais',
   'storage.category.photos-google': 'Cache de fotos do Google',
-  'storage.category.photos-trek': 'Cache de fotos do TREK',
+  'storage.category.photos-trek': 'Cache de fotos do PanelMint',
   'storage.category.backups': 'Backups',
 
   // What each category stores — rendered under the label in the category map.
@@ -78,7 +78,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Cópias em cache de fotos do Google Places — podem ser buscadas novamente, seguro perdê-las.',
   'storage.categoryDesc.photos-trek':
-    'Fotos em cache do serviço de fotos do TREK usado pelas Fotos (Memórias) — podem ser buscadas novamente, seguro perdê-las.',
+    'Fotos em cache do serviço de fotos do PanelMint usado pelas Fotos (Memórias) — podem ser buscadas novamente, seguro perdê-las.',
   'storage.categoryDesc.backups': 'Arquivos de backup do servidor criados pelo painel de Backup ou pela agenda.',
   'storage.health.title': 'Integridade',
   'storage.health.allClear': 'Nenhuma falha de réplica registrada.',

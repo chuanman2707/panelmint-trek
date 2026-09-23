@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Nhiệm vụ đóng gói',
   'notif.packing_tagged.text': '{actor} đã giao cho bạn {category} trong {trip}',
   'notif.version_available.title': 'Phiên bản mới có sẵn',
-  'notif.version_available.text': 'TREK {version} hiện có sẵn',
+  'notif.version_available.text': 'PanelMint {version} hiện có sẵn',
   'notif.replica_failure.title': 'Lỗi bản sao lưu trữ',
   'notif.replica_failure.text': "Ghi vào bản sao '{backend}' thất bại: {op} của {key} — {error}",
   'notif.replica_failure.textSuppressed': "Ghi vào bản sao '{backend}' thất bại: {op} của {key} — {error}. {suppressed} lỗi khác đã bị bỏ qua kể từ thông báo trước đó.",

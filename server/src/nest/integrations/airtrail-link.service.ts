@@ -13,7 +13,7 @@ import { buildSavePayload } from './airtrail-sync.helpers';
 
 /**
  * The AirTrail link lifecycle — the enablement gate, the detach policy, the
- * multi-leg guard (#1535) and the TREK → AirTrail write-back (#1240) — split
+ * multi-leg guard (#1535) and the PanelMint → AirTrail write-back (#1240) — split
  * out of AirtrailSyncService so ReservationsModule can inject it: it reads
  * reservations through the leaf ReservationsReadRepository, never through
  * ReservationsService, so AirtrailCoreModule stays off the

@@ -11,12 +11,12 @@ import { canonicalHash, mapFlightToReservation } from './airtrail.mapper';
 export { buildSavePayload } from './airtrail-sync.helpers';
 
 /**
- * The AirTrail → TREK pull: the background poll that reconciles linked
+ * The AirTrail → PanelMint pull: the background poll that reconciles linked
  * reservations against the owner's current flights. Remote changes apply
  * through the REAL reservation update path (endpoint restamping and all),
  * which is why this service injects ReservationsService and lives in
  * AirtrailModule. The shared link lifecycle — enablement gate, detach policy,
- * multi-leg guard — and the TREK → AirTrail push moved to AirtrailLinkService
+ * multi-leg guard — and the PanelMint → AirTrail push moved to AirtrailLinkService
  * (AirtrailCoreModule) so the reservations controller can inject the write-back
  * trigger without a module cycle; this class delegates to it.
  *
@@ -42,12 +42,12 @@ export class AirtrailSyncService {
     return this.link.syncGloballyEnabled();
   }
 
-  // ── AirTrail → TREK (poll) ───────────────────────────────────────────────────
+  // ── AirTrail → PanelMint (poll) ───────────────────────────────────────────────────
 
   /**
    * Reconcile one owner's linked reservations against their current AirTrail
    * flights: apply field changes (detected by snapshot hash, since AirTrail has no
-   * updated_at) and, when a flight is gone from AirTrail, keep the TREK row but
+   * updated_at) and, when a flight is gone from AirTrail, keep the PanelMint row but
    * stop syncing it. Only already-imported flights are touched — new AirTrail
    * flights are never auto-added to a trip. Returns how many rows changed.
    */

@@ -35,7 +35,7 @@ export const UA = buildUserAgent(getAppUrl());
 export const SEARCH_TEXT_FIELD_MASK =
   'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types,places.googleMapsUri,places.businessStatus';
 
-// TREK's internal language codes mostly coincide with valid BCP-47 codes, but a
+// PanelMint's internal language codes mostly coincide with valid BCP-47 codes, but a
 // couple don't: 'br' is Brazilian Portuguese here (BCP-47 'pt-BR'; bare 'br' is
 // Breton) and 'gr' is Greek (BCP-47 'el'). Outbound geo APIs (Google Places,
 // Nominatim) expect BCP-47, so normalise before sending — otherwise names and
@@ -54,9 +54,9 @@ export function toApiLang(lang: string | undefined, fallback = 'en'): string {
 }
 
 /**
- * A wiki subdomain out of a TREK language code.
+ * A wiki subdomain out of a PanelMint language code.
  *
- * Not the same normalisation as `toApiLang`, and the difference bites: TREK
+ * Not the same normalisation as `toApiLang`, and the difference bites: PanelMint
  * calls Brazilian Portuguese `br`, but `br.wikipedia.org` exists and is the
  * BRETON Wikipedia. Passing the raw code through would not fail — it would
  * quietly return Breton articles. `pt-br.wikipedia.org` does not resolve at
@@ -87,7 +87,7 @@ export { haversineMetres };
  *
  * One shared word is enough only when it carries some weight — four letters or
  * more. Otherwise two have to match. A single short word is almost always an
- * article or a generic noun, and TREK speaks 23 languages, so "Der Kiosk" and
+ * article or a generic noun, and PanelMint speaks 23 languages, so "Der Kiosk" and
  * "Der Bahnhof" would sail through a plain word-overlap test while a stopword
  * list for all of them is its own maintenance problem. Anything the pair rule
  * lets through has already survived the distance check.
@@ -405,7 +405,7 @@ const DEFAULT_OVERPASS_MIRRORS = [
   'https://overpass.private.coffee/api/interpreter',
 ];
 
-// Operators behind locked-down egress — or running their own Overpass — can point TREK
+// Operators behind locked-down egress — or running their own Overpass — can point PanelMint
 // at one or more custom endpoints via OVERPASS_URL (comma-separated). When set it
 // REPLACES the public mirrors, so a firewalled cluster never reaches out to them and a
 // self-hosted instance is used exclusively (see #1309). Non-http(s) entries are dropped.

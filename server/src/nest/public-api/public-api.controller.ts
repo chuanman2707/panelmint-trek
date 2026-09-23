@@ -63,7 +63,7 @@ export class PublicApiController {
    *
    * Its own endpoint rather than an `include`, because it hangs off the user and
    * not off any trip. For a consumer that knows where someone has actually been,
-   * this is the one list in TREK it can answer questions about.
+   * this is the one list in PanelMint it can answer questions about.
    */
   @Get('bucket-list')
   listBucketList(@Req() req: Request): PublicApiBucketList {

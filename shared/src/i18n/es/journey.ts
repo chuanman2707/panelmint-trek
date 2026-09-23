@@ -217,7 +217,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': 'Compartido mediante',
   'journey.public.madeWith': 'Hecho con',
   'journey.pdf.journeyBook': 'Libro de travesía',
-  'journey.pdf.madeWith': 'Hecho con TREK',
+  'journey.pdf.madeWith': 'Hecho con PanelMint',
   'journey.pdf.day': 'Día',
   'journey.pdf.theEnd': 'Fin',
   'journey.pdf.saveAsPdf': 'Guardar como PDF',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'Guarda el diseño de esta doble página como archivo, sin las fotos, para compartirlo o reutilizarlo',
   'journey.studio.importSpread': 'Importar',
   'journey.studio.importSpreadHint': 'Añade una doble página desde un archivo de diseño descargado',
-  'journey.studio.importSpreadFailed': 'Ese archivo no es una doble página de TREK Studio',
+  'journey.studio.importSpreadFailed': 'Ese archivo no es una doble página de PanelMint Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': 'Diseñar un libro pide sitio para trabajar, así que Studio solo está en el escritorio, y el PDF también. Todo lo demás de tu viaje funciona aquí como siempre.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

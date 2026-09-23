@@ -54,7 +54,7 @@ import {
  * status the failure deserves.
  *
  * Only the trip owner may change a binding (plus an instance admin, who
- * overrides trip permissions everywhere else too). It hands TREK a credential
+ * overrides trip permissions everywhere else too). It hands PanelMint a credential
  * that usually reaches the owner's entire document archive, so widening this to
  * every member would let any member point the trip at a folder the owner never
  * meant to share. Reading the status is open to all members: they need to know
@@ -177,7 +177,7 @@ export class DocSyncController {
       .listConnections(Number(tripId))
       .find((c) => c.provider_id === body.providerId);
     // Only for the address the credential was stored against. Merging it into a
-    // probe of an arbitrary baseUrl turns this route into a way to have TREK
+    // probe of an arbitrary baseUrl turns this route into a way to have PanelMint
     // post a stored API token at a server of the caller's choosing, which is
     // exactly what somebody who inherited a trip but not its credentials would
     // reach for. Same host, same scheme, same port, or the caller types it in.
@@ -218,7 +218,7 @@ export class DocSyncController {
     const conn = this.config.getConnection(Number(connectionId));
     if (!conn || conn.trip_id !== Number(tripId)) throw new HttpException('Connection not found', 404);
     // Its bindings go with it (ON DELETE CASCADE), so read them first. Every
-    // subscription TREK registered for one of them is taken down while the
+    // subscription PanelMint registered for one of them is taken down while the
     // credential is still here to do it with, as unbinding one does: left
     // standing, a Paperless workflow or a Nextcloud listener keeps posting to
     // a token that answers nothing, for good.
@@ -293,7 +293,7 @@ export class DocSyncController {
     if (docFailed(res)) throw new HttpException(res.error.detail || res.error.code, 400);
     this.announceBinding(res.data);
 
-    // Subscribe where the provider lets TREK do it itself. A failure here is
+    // Subscribe where the provider lets PanelMint do it itself. A failure here is
     // not a failure of the binding (polling still carries it), so it is logged
     // rather than thrown at the user; the first run that follows would write
     // over anything put into the link state.
@@ -432,7 +432,7 @@ export class DocSyncController {
  * The origin a provider has to call back on.
  *
  * Derived from the request rather than from configuration because a self-hosted
- * TREK is reached under whatever name its operator chose, and asking them to
+ * PanelMint is reached under whatever name its operator chose, and asking them to
  * maintain a second copy of it would get it wrong. Returns null behind a proxy
  * that strips the host, in which case the webhook is simply not offered and
  * polling carries the binding.

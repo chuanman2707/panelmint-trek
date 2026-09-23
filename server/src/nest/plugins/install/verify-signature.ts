@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
  * controls the registry repo controls that. A minisign (Ed25519) author
  * signature proves the bytes were signed by the holder of the plugin AUTHOR's
  * private key — so a compromised registry cannot ship attacker code under an
- * author's name without also stealing that key. TREK verifies offline with
+ * author's name without also stealing that key. PanelMint verifies offline with
  * node:crypto (no Fulcio/Rekor phone-home), consistent with the "no telemetry
  * beyond the update check" stance.
  *

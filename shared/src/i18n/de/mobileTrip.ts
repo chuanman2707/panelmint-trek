@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Fahrdaten',
   'mobileTrip.rtDesktopNote':
     'Diese Werte werden am Desktop gesetzt. Dort kannst du auch Routenvarianten vergleichen und einen Tag einer importierten Spur folgen lassen.',
-  'mobileTrip.rtPlanOnDesktop': 'Geplant wird am Desktop. TREK berechnet die Fahrt, sobald ein Tag zwei Orte hat.',
+  'mobileTrip.rtPlanOnDesktop': 'Geplant wird am Desktop. PanelMint berechnet die Fahrt, sobald ein Tag zwei Orte hat.',
   'mobileTrip.rtSearchOffline': 'Braucht eine Verbindung: Die Suche liest die Strecke, die vor dir liegt.',
   'mobileTrip.rtBehind': '{time} hinter dem Plan',
   'mobileTrip.rtStart': 'Start',

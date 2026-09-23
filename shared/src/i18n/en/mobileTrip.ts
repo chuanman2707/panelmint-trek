@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Driving figures',
   'mobileTrip.rtDesktopNote':
     'These figures are set on the desktop, where you can also compare route alternatives and make a day follow an imported track.',
-  'mobileTrip.rtPlanOnDesktop': 'Planning happens on the desktop. TREK works out the drive once a day has two places.',
+  'mobileTrip.rtPlanOnDesktop': 'Planning happens on the desktop. PanelMint works out the drive once a day has two places.',
   'mobileTrip.rtSearchOffline': 'Needs a connection: the search reads the route ahead.',
   'mobileTrip.rtBehind': '{time} behind plan',
   'mobileTrip.rtStart': 'Start',

@@ -17,7 +17,7 @@ const notifications: TranslationStrings = {
   'notifications.synologySessionCleared.text':
     'Server atau akun kamu berubah — buka Pengaturan untuk menguji koneksi lagi.',
   'notifications.versionAvailable.title': 'Pembaruan Tersedia',
-  'notifications.versionAvailable.text': 'TREK {version} kini tersedia.',
+  'notifications.versionAvailable.text': 'PanelMint {version} kini tersedia.',
   'notifications.versionAvailable.button': 'Lihat Detail',
   'notifications.test.title': 'Notifikasi uji dari {actor}',
   'notifications.test.text': 'Ini adalah notifikasi uji sederhana.',

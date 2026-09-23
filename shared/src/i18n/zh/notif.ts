@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': '行李分配',
   'notif.packing_tagged.text': '{actor} 将您分配到 {trip} 中的 {category}',
   'notif.version_available.title': '新版本可用',
-  'notif.version_available.text': 'TREK {version} 现已可用',
+  'notif.version_available.text': 'PanelMint {version} 现已可用',
   'notif.replica_failure.title': '存储副本故障',
   'notif.replica_failure.text': "写入副本 '{backend}' 失败：{op} / {key} — {error}",
   'notif.replica_failure.textSuppressed': "写入副本 '{backend}' 失败：{op} / {key} — {error}。自上次通知以来，还有 {suppressed} 个失败被抑制。",

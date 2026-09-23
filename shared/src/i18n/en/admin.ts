@@ -132,9 +132,9 @@ const admin: TranslationStrings = {
   'admin.trekApi.badgeDefault': 'Recommended default',
   'admin.googleCaveat.badge': 'Not recommended',
   'admin.googleCaveat.body':
-    'TREK is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
+    'PanelMint is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
   'admin.trekApi.tagline':
-    'TREK\'s own place index. Search without a Google key, without a quota and without anyone counting your lookups.',
+    'PanelMint\'s own place index. Search without a Google key, without a quota and without anyone counting your lookups.',
   'admin.trekApi.factPlaces':
     '73.6 million places worldwide',
   'admin.trekApi.factNoKey':
@@ -216,8 +216,8 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Show pictures and a description while adding a place. Wikipedia and OpenStreetMap are always used; Google is added on top when Place Photos or Place Details are on.',
   'admin.placesGoogleOnly.title': 'Search with Google only',
-  'admin.placesGoogleOnly.subtitle': 'Every search and every suggestion goes to Google Places. Off, TREK\'s own index and OpenStreetMap answer first and Google is only asked when they find nothing.',
-  'admin.placesGoogleOnly.missingKey': 'Needs a Google Maps API key. Without one, search runs on TREK\'s own index and OpenStreetMap whatever this switch says.',
+  'admin.placesGoogleOnly.subtitle': 'Every search and every suggestion goes to Google Places. Off, PanelMint\'s own index and OpenStreetMap answer first and Google is only asked when they find nothing.',
+  'admin.placesGoogleOnly.missingKey': 'Needs a Google Maps API key. Without one, search runs on PanelMint\'s own index and OpenStreetMap whatever this switch says.',
   'admin.placesGoogleOnly.otherProvider': 'Needs Google as the places provider. With Amap or OpenStreetMap picked, search never goes to Google whatever this switch says.',
   'admin.transitProvider.title': 'Transit Provider',
   'admin.transitProvider.subtitle': 'Which service answers public transit search.',
@@ -367,7 +367,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Source repository',
   'admin.plugins.reportIssue': 'Report an issue',
   'admin.plugins.homepage': 'Homepage',
-  'admin.plugins.requiresTrek': 'Requires TREK {version}+',
+  'admin.plugins.requiresTrek': 'Requires PanelMint {version}+',
   'admin.plugins.reviewedOn': 'Reviewed {date}',
   'admin.plugins.perm.db:own': 'Store its own data in an isolated database',
   'admin.plugins.perm.db:read:trips': 'Read trips the acting user can access',
@@ -425,7 +425,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Provide photos to Memories',
   'admin.plugins.perm.hook:calendar-source': 'Provide events to the calendar',
   'admin.plugins.perm.hook:place-detail-provider': 'Contribute extra details (reviews, ratings, links) to a place',
-  'admin.plugins.perm.hook:search-provider': "Answer place searches from its own index, beside TREK's own results",
+  'admin.plugins.perm.hook:search-provider': "Answer place searches from its own index, beside PanelMint's own results",
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
   'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
@@ -442,7 +442,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     'Publish tools that an AI assistant can run on your behalf (it acts with the access you grant the plugin here, not with the assistant’s own)',
   'admin.plugins.perm.geolocation:read':
-    "Ask for your live position while one of its views is open (TREK reads it under this site's location permission, not the plugin's own)",
+    "Ask for your live position while one of its views is open (PanelMint reads it under this site's location permission, not the plugin's own)",
   'admin.plugins.perm.hook:pdf-section-provider': 'Append text sections to the trip PDF export',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Highlight countries on the Atlas world map (e.g. wishlists or travel advisories)',
@@ -473,13 +473,13 @@ const admin: TranslationStrings = {
   'admin.plugins.security.title': 'How plugins are contained — and the limits',
   'admin.plugins.security.isolationTitle': 'Every plugin runs boxed in',
   'admin.plugins.security.isolationBody':
-    "A plugin runs as its own locked-down process that can only read its own files. It cannot read your database, your login secret or your encryption key, cannot start other programs, and cannot write files anywhere. Its interface runs in a sealed browser frame that can't read your session cookie or touch the TREK page around it.",
+    "A plugin runs as its own locked-down process that can only read its own files. It cannot read your database, your login secret or your encryption key, cannot start other programs, and cannot write files anywhere. Its interface runs in a sealed browser frame that can't read your session cookie or touch the PanelMint page around it.",
   'admin.plugins.security.permsTitle': 'What the permissions mean',
   'admin.plugins.security.permsBody':
-    "The permissions shown before you install are a hard limit that TREK enforces while the plugin runs — it literally cannot do anything that isn't on the list. But they tell you what a plugin can do, not what it actually does. A plugin allowed to read your trips and reach a server can send your trips to that server, so read the permissions and the outbound hosts, not just the description.",
+    "The permissions shown before you install are a hard limit that PanelMint enforces while the plugin runs — it literally cannot do anything that isn't on the list. But they tell you what a plugin can do, not what it actually does. A plugin allowed to read your trips and reach a server can send your trips to that server, so read the permissions and the outbound hosts, not just the description.",
   'admin.plugins.security.limitsTitle': "What we can't promise",
   'admin.plugins.security.limitsBody':
-    "The isolation is a strong software boundary, not an absolute one. A plugin acts with exactly the rights you approve, so within those rights it can behave differently than its description suggests, and it can send data it legitimately holds to the hosts it declared. TREK does not read or judge what a plugin's code actually does.",
+    "The isolation is a strong software boundary, not an absolute one. A plugin acts with exactly the rights you approve, so within those rights it can behave differently than its description suggests, and it can send data it legitimately holds to the hosts it declared. PanelMint does not read or judge what a plugin's code actually does.",
   'admin.plugins.security.worstTitle': 'The worst case',
   'admin.plugins.security.worstBody':
     "A hostile plugin you turn on can misuse the data and connections you granted it — for example, leak the trips it is allowed to read. It cannot steal passwords, forge an admin login, run commands on your server, or reach data you didn't grant. The damage stays inside what you approved, and turning the plugin off stops it.",
@@ -488,7 +488,7 @@ const admin: TranslationStrings = {
     'A reviewed plugin was manually scanned for malware by a TREK maintainer on each version — checked for hostile code, not for whether it works well. It is not a promise that the plugin is harmless.',
   'admin.plugins.security.signedTitle': 'What "Signed" means',
   'admin.plugins.security.signedBody':
-    'The checksum TREK verifies on every install proves the files are exactly what the registry vouches for. A signature proves something different: that they came from the author, signed with a key only they hold. A signed plugin has both. An unsigned one is not unsafe — it simply carries one guarantee fewer, and most plugins in the registry are unsigned today.',
+    'The checksum PanelMint verifies on every install proves the files are exactly what the registry vouches for. A signature proves something different: that they came from the author, signed with a key only they hold. A signed plugin has both. An unsigned one is not unsafe — it simply carries one guarantee fewer, and most plugins in the registry are unsigned today.',
   'admin.plugins.signed': 'Signed',
   'admin.plugins.signedHint': "Verified against the author's signing key when it was installed",
   'admin.plugins.unsigned': 'Unsigned',
@@ -503,20 +503,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     "The files do not match the author's signature. They are not what the author signed — either they were corrupted, or they were tampered with. This cannot be overridden.",
   'admin.plugins.sig.missingBody':
-    'This plugin was signed when you installed it, but the new version ships no signature. TREK will not quietly accept the downgrade. This cannot be overridden.',
+    'This plugin was signed when you installed it, but the new version ships no signature. PanelMint will not quietly accept the downgrade. This cannot be overridden.',
   'admin.plugins.sig.incompleteBody':
     'The registry entry is half-signed: it declares an author key but the version carries no signature (or the reverse). That is a mistake on the plugin side. This cannot be overridden.',
   'admin.plugins.sig.pinnedKey': 'Key it was installed with',
   'admin.plugins.sig.newKey': 'Key it is offering now',
   'admin.plugins.sig.confirmOutOfBand':
-    'TREK cannot tell a legitimate key rotation apart from a takeover — both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it. Once you do, the plugin is updated and the new key is remembered.',
+    'PanelMint cannot tell a legitimate key rotation apart from a takeover — both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it. Once you do, the plugin is updated and the new key is remembered.',
   'admin.plugins.sig.retrustConfirm': 'Trust the new key & update',
   'admin.plugins.sig.cancel': 'Do not trust it',
   'admin.plugins.sig.consentUnsigned':
     'Nothing ties this version to its author — the files match the registry, but they carry no author signature.',
   'admin.plugins.security.trustTitle': 'The bottom line',
   'admin.plugins.security.trustBody':
-    'Installing a plugin is like installing any third-party app: only add code from authors you trust, and when in doubt, inspect it yourself first. TREK takes no responsibility for third-party plugins.',
+    'Installing a plugin is like installing any third-party app: only add code from authors you trust, and when in doubt, inspect it yourself first. PanelMint takes no responsibility for third-party plugins.',
   'admin.plugins.runtimeOn': 'Runtime on',
   'admin.plugins.tabDiscover': 'Discover',
   'admin.plugins.searchPlaceholder': 'Search plugins…',
@@ -532,12 +532,12 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Updates first',
   'admin.plugins.sortDownloads': 'Most downloads',
   'admin.plugins.updatesAvailable': '{count} updates available for your plugins.',
-  'admin.plugins.newerNeedsTrek': 'v{version} available — needs TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'v{version} available — needs PanelMint {range}',
   'admin.plugins.updateAll': 'Update all',
   'admin.plugins.versionsTitle': 'Versions',
   'admin.plugins.versionPickerTitle': 'Change version — {name}',
   'admin.plugins.versionSwitch': 'Switch to {version}',
-  'admin.plugins.versionNeedsTrek': 'needs TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'needs PanelMint {range}',
   'admin.plugins.changeVersion': 'Change version…',
   'admin.plugins.noVersions': 'No published versions found in the registry.',
   'admin.plugins.downgradeTitle': 'Roll back this plugin?',
@@ -599,21 +599,21 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Download',
   'admin.plugins.dep.update': 'Update',
   'admin.plugins.dep.resolveHint': 'Downloads the latest compatible version, including its own dependencies.',
-  'admin.plugins.dep.trekIncompatible': 'Needs TREK {range} — this server runs {host}',
-  'admin.plugins.dep.trekUnknown': 'Does not say which TREK versions it supports',
+  'admin.plugins.dep.trekIncompatible': 'Needs PanelMint {range} — this server runs {host}',
+  'admin.plugins.dep.trekUnknown': 'Does not say which PanelMint versions it supports',
   'admin.plugins.installCompatible': 'Install {version}',
   'admin.plugins.installAnyway': 'Install anyway',
   'admin.plugins.rangeBypass.pill': 'Version checks off',
   'admin.plugins.rangeBypass.pillHint':
     'TREK_PLUGINS_IGNORE_TREK_RANGE is set — plugins may install and run outside the TREK versions their authors declared',
-  'admin.plugins.rangeBypass.title': 'Outside its supported TREK versions',
-  'admin.plugins.rangeBypass.noticeTitle': 'Installed outside its supported TREK versions',
+  'admin.plugins.rangeBypass.title': 'Outside its supported PanelMint versions',
+  'admin.plugins.rangeBypass.noticeTitle': 'Installed outside its supported PanelMint versions',
   'admin.plugins.rangeBypass.body':
     '“{name}” declares support for TREK {range}, and this server runs {host}. TREK lets it through only because TREK_PLUGINS_IGNORE_TREK_RANGE is set. Its author has not updated the plugin’s version range for this TREK, so there is no guarantee it works — and in rare cases a mismatched plugin can corrupt TREK data. Continue only if you accept that risk.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '“{name}” does not declare which TREK versions it supports; this server runs {host}. TREK lets it through only because TREK_PLUGINS_IGNORE_TREK_RANGE is set. Nothing says its author tested it on this TREK, so there is no guarantee it works — and in rare cases a mismatched plugin can corrupt TREK data. Continue only if you accept that risk.',
-  'admin.plugins.dep.trekBypassed': 'Outside its TREK range ({range}) — version checks off',
-  'admin.plugins.dep.trekBypassedUnknown': 'Declares no TREK range — version checks off',
+  'admin.plugins.dep.trekBypassed': 'Outside its PanelMint range ({range}) — version checks off',
+  'admin.plugins.dep.trekBypassedUnknown': 'Declares no PanelMint range — version checks off',
   'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'What it can access',
   'admin.plugins.connectsTitle': 'Connects to',
@@ -625,7 +625,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Reviewed on',
   'admin.plugins.downloads': 'Downloads',
   'admin.addons.title': 'Addons',
-  'admin.addons.subtitle': 'Enable or disable features to customize your TREK experience.',
+  'admin.addons.subtitle': 'Enable or disable features to customize your PanelMint experience.',
   'admin.addons.catalog.packing.name': 'Lists',
   'admin.addons.catalog.packing.description': 'Packing lists and to-do tasks for your trips',
   'admin.addons.catalog.budget.name': 'Costs',
@@ -670,7 +670,7 @@ const admin: TranslationStrings = {
   'admin.weather.title': 'Weather Data',
   'admin.weather.badge': 'Since March 24, 2026',
   'admin.weather.description':
-    'TREK uses Open-Meteo as its weather data source. Open-Meteo is a free, open-source weather service — no API key required.',
+    'PanelMint uses Open-Meteo as its weather data source. Open-Meteo is a free, open-source weather service — no API key required.',
   'admin.weather.forecast': '16-day forecast',
   'admin.weather.forecastDesc': 'Previously 5 days (OpenWeatherMap)',
   'admin.weather.climate': 'Historical climate data',
@@ -731,12 +731,12 @@ const admin: TranslationStrings = {
   'admin.github.by': 'by',
   'admin.github.support': 'Helps me keep building TREK',
   'admin.update.available': 'Update available',
-  'admin.update.text': 'TREK {version} is available. You are running {current}.',
+  'admin.update.text': 'PanelMint {version} is available. You are running {current}.',
   'admin.update.button': 'View on GitHub',
   'admin.update.install': 'Install Update',
   'admin.update.confirmTitle': 'Install Update?',
   'admin.update.confirmText':
-    'TREK will be updated from {current} to {version}. The server will restart automatically afterwards.',
+    'PanelMint will be updated from {current} to {version}. The server will restart automatically afterwards.',
   'admin.update.dataInfo': 'All your data (trips, users, API keys, uploads, Vacay, Atlas, budgets) will be preserved.',
   'admin.update.warning': 'The app will be briefly unavailable during the restart.',
   'admin.update.confirm': 'Update Now',
@@ -747,9 +747,9 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Go to Backup',
   'admin.update.howTo': 'How to Update',
   'admin.update.dockerText':
-    'Your TREK instance runs in Docker. To update to {version}, run the following commands on your server:',
+    'Your PanelMint instance runs in Docker. To update to {version}, run the following commands on your server:',
   'admin.update.nonDockerText':
-    'This TREK instance is not running in Docker. To update to {version}, re-run the install or update method you used — for example, on Proxmox Community Scripts run the update from the LXC console:',
+    'This PanelMint instance is not running in Docker. To update to {version}, re-run the install or update method you used — for example, on Proxmox Community Scripts run the update from the LXC console:',
   'admin.update.wikiLink': 'Open the update guide',
   'admin.update.reloadHint': 'Please reload the page in a few seconds.',
   'admin.tabs.permissions': 'Permissions',

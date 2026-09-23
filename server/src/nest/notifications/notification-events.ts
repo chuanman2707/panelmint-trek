@@ -86,7 +86,7 @@ export function isAdminGlobalChannel(channel: string): channel is AdminGlobalCha
 
 // ── The channel contract ───────────────────────────────────────────────────
 //
-// A channel is anything that delivers a *rendered* notification out of TREK:
+// A channel is anything that delivers a *rendered* notification out of PanelMint:
 // email, webhook, ntfy, and any plugin that implements the `notificationChannel`
 // hook. In-app is deliberately NOT a channel — it writes typed rows with
 // scope/target/callback payloads rather than a title+body, so it keeps its own

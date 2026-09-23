@@ -715,7 +715,7 @@ export class MapsService {
    *
    * On unless TREK_PLACES_ENABLED says otherwise, because the index is the path
    * we want people on and an upgrade must not quietly drop back to Nominatim,
-   * whose usage policy forbids what TREK was doing with it.
+   * whose usage policy forbids what PanelMint was doing with it.
    *
    * An environment variable rather than an admin switch on purpose. This decides
    * whether a search leaves the instance at all, which is a property of the
@@ -729,7 +729,7 @@ export class MapsService {
   /**
    * The places in a trip's area, for the offline cache.
    *
-   * The one call TREK makes that is not driven by something a user just typed.
+   * The one call PanelMint makes that is not driven by something a user just typed.
    * It runs when a trip is prepared for offline use, alongside the map tiles,
    * and it is the reason searching a trip works on a plane: without it the
    * offline instance has the trip's own places and nothing else, so "find a
@@ -1366,7 +1366,7 @@ export class MapsService {
     if (!oType) return null;
     // The id is the one thing written into the query, and the query is a
     // language. An OSM element id is a number and nothing else; anything with
-    // more in it is a statement of its own, sent under TREK's shared user agent.
+    // more in it is a statement of its own, sent under PanelMint's shared user agent.
     if (!/^\d+$/.test(osmId)) return null;
     const query = `[out:json][timeout:5];${oType}(${osmId});out tags;`;
     try {

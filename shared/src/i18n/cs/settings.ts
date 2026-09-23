@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'Vlastní instance OSRM. Prázdné použije veřejné servery s limitem asi jednoho požadavku za sekundu — na den to stačí, na road trip je to málo. Projeví se po restartu serveru.',
   'settings.valhallaBase': 'Vlastní instance Valhalla',
   'settings.valhallaBaseHint':
-    'TREK ve výchozím nastavení používá veřejnou Valhallu FOSSGIS k vyhýbání se mýtnému, dálnicím a trajektům. Zde můžete zadat URL vlastní Valhally a používat ji místo veřejné. Pokud je nastavena pouze vlastní směrovací instance, veřejná Valhalla se nepoužije. Po zadání vlastní URL restartujte server a znovu načtěte stránku.',
+    'PanelMint ve výchozím nastavení používá veřejnou Valhallu FOSSGIS k vyhýbání se mýtnému, dálnicím a trajektům. Zde můžete zadat URL vlastní Valhally a používat ji místo veřejné. Pokud je nastavena pouze vlastní směrovací instance, veřejná Valhalla se nepoužije. Po zadání vlastní URL restartujte server a znovu načtěte stránku.',
   'settings.mapHint': 'URL šablony pro mapové dlaždice',
   'settings.mapProvider': 'Poskytovatel mapy',
   'settings.mapProviderHint': 'Ovlivňuje mapy v Trip Planneru a Journey. Atlas vždy používá Leaflet.',
@@ -43,7 +43,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyHint': 'Podkladové mapy CARTO se bez klíče zobrazují s vodoznakem. Zdarma a bez účtu, na',
   'settings.mapCartoKeyLink': 'carto.com API klíč pro podkladové mapy',
   'settings.mapCartoKeyMissing':
-    'Tato šablona je podkladová mapa CARTO. Bez klíče CARTO vypálí do každé dlaždice nápis "API KEY REQUIRED". Dokud klíč nezadáte, TREK zobrazuje výchozí podkladovou mapu.',
+    'Tato šablona je podkladová mapa CARTO. Bez klíče CARTO vypálí do každé dlaždice nápis "API KEY REQUIRED". Dokud klíč nezadáte, PanelMint zobrazuje výchozí podkladovou mapu.',
   'settings.mapStyle': 'Styl mapy',
   'settings.mapStylePlaceholder': 'Vyberte styl Mapbox',
   'settings.mapStyleHint': 'Preset nebo vaše vlastní URL mapbox://styles/USER/ID',
@@ -195,13 +195,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Navrhněte novou funkci',
   'settings.about.wikiHint': 'Dokumentace a návody',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Měsíční podporovatelé',
   'settings.about.supporters.title': 'Společníci na cestě s TREK',
   'settings.about.supporters.subtitle':
-    'Zatímco plánuješ další trasu, tihle lidé plánují společně se mnou budoucnost TREK. Jejich měsíční příspěvek jde přímo na vývoj a reálně strávené hodiny — aby TREK zůstal Open Source.',
+    'Zatímco plánuješ další trasu, tihle lidé plánují společně se mnou budoucnost PanelMint. Jejich měsíční příspěvek jde přímo na vývoj a reálně strávené hodiny — aby PanelMint zůstal Open Source.',
   'settings.about.supporters.since': 'podporovatel od {date}',
   'settings.about.supporters.tierEmpty': 'Buď první',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
@@ -210,7 +210,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    'TREK je samohostovaný plánovač cest, který vám pomůže organizovat výlety od prvního nápadu po poslední vzpomínku. Denní plánování, rozpočet, balicí seznamy, fotky a mnoho dalšího — vše na jednom místě, na vašem vlastním serveru.',
+    'PanelMint je samohostovaný plánovač cest, který vám pomůže organizovat výlety od prvního nápadu po poslední vzpomínku. Denní plánování, rozpočet, balicí seznamy, fotky a mnoho dalšího — vše na jednom místě, na vašem vlastním serveru.',
   'settings.about.madeWith': 'Vytvořeno s',
   'settings.about.madeBy': 'Mauricem a rostoucí open-source komunitou.',
   'settings.username': 'Uživatelské jméno',
@@ -353,7 +353,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Povolte pouze pro důvěryhodnou instanci ve vlastní síti.',
   'settings.airtrail.writeBack': 'Zapisovat změny zpět do AirTrail',
   'settings.airtrail.writeBackHint':
-    'Ve výchozím stavu vypnuto: AirTrail je zdrojem pravdy a TREK z něj pouze čte. Zapněte, chcete-li odesílat úpravy provedené v TREK zpět do AirTrail.',
+    'Ve výchozím stavu vypnuto: AirTrail je zdrojem pravdy a PanelMint z něj pouze čte. Zapněte, chcete-li odesílat úpravy provedené v PanelMint zpět do AirTrail.',
   'settings.airtrail.connected': 'Připojeno',
   'settings.airtrail.notConnected': 'Nepřipojeno',
   'settings.airtrail.toast.saved': 'Připojení k AirTrail uloženo',
@@ -465,7 +465,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Přehled',
   'settings.startPageActiveTrip': 'Aktivní cesta',
   'settings.startPageHint':
-    'TREK se otevře rovnou na cestě, která právě probíhá, jinak na nejbližší nadcházející. Je to táž cesta, kterou zvýrazňuje přehled.',
+    'PanelMint se otevře rovnou na cestě, která právě probíhá, jinak na nejbližší nadcházející. Je to táž cesta, kterou zvýrazňuje přehled.',
   'settings.startTripTab': 'Úvodní karta',
   'settings.startTripTabHint':
     'Karta, kterou se cesta otevře. Pokud patří k vypnutému doplňku, otevře se místo ní plán.',

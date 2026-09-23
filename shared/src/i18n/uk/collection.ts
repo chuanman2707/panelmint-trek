@@ -168,9 +168,9 @@ const collection: TranslationStrings = {
   'collections.file.doneSkipped': 'Імпортовано місць: {count}, пропущено: {skipped}',
   'collections.file.errorTooLarge': 'Цей файл завеликий, щоб бути списком.',
   'collections.file.errorUnreadable': 'Не вдалося прочитати цей файл.',
-  'collections.file.errorNotACollection': 'Це не файл списку TREK.',
-  'collections.file.formatTrek': 'Список TREK',
-  'collections.file.formatTrekHint': 'Для іншого TREK, з мітками й статусом',
+  'collections.file.errorNotACollection': 'Це не файл списку PanelMint.',
+  'collections.file.formatTrek': 'Список PanelMint',
+  'collections.file.formatTrekHint': 'Для іншого PanelMint, з мітками й статусом',
   'collections.file.formatGpxHint':
     'Маршрутні точки для OsmAnd, Organic Maps, Garmin та інших картографічних застосунків',
   'collections.file.gpxOmitted': 'Місць без координат, які не потрапили до файлу GPX: {count}',

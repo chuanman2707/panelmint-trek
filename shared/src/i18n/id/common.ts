@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Coba lagi',
   'common.errorReload': 'Muat ulang halaman',
   'common.errorUpdateTitle': 'Versi baru tersedia',
-  'common.errorUpdateBody': 'TREK diperbarui saat tab ini terbuka. Muat ulang untuk mendapatkan versi baru.',
+  'common.errorUpdateBody': 'PanelMint diperbarui saat tab ini terbuka. Muat ulang untuk mendapatkan versi baru.',
   'common.errorPluginTitle': 'Plugin ini tidak dapat ditampilkan',
 };
 export default common;

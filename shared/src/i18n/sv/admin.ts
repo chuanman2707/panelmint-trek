@@ -130,13 +130,13 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Användare som inte har tvåfaktorsautentisering måste slutföra inställningarna under inställningar innan de använder appen.',
   'admin.apiKeys': 'API Nycklar',
-  'admin.apiKeysHint': 'Var platsdata kommer ifrån. TREK-indexet behöver ingen nyckel; de två leverantörerna nedan är valfria.',
+  'admin.apiKeysHint': 'Var platsdata kommer ifrån. PanelMint-indexet behöver ingen nyckel; de två leverantörerna nedan är valfria.',
   'admin.trekApi.badgeDefault': 'Rekommenderad standardkälla',
   'admin.googleCaveat.badge': 'Avrådes',
   'admin.googleCaveat.body':
-    'TREK är öppen källkod och vi är inte neutrala här. I den här skalan finns omdömen och foton på vanliga verksamheter bara hos Google, och det är ett monopol. Fältet finns i brist på alternativ, inte för att vi rekommenderar det. Varje uppslagning går då till Google.',
+    'PanelMint är öppen källkod och vi är inte neutrala här. I den här skalan finns omdömen och foton på vanliga verksamheter bara hos Google, och det är ett monopol. Fältet finns i brist på alternativ, inte för att vi rekommenderar det. Varje uppslagning går då till Google.',
   'admin.trekApi.tagline':
-    'TREK:s eget platsregister. Sök utan Google-nyckel, utan kvot och utan att någon räknar dina sökningar.',
+    'PanelMint:s eget platsregister. Sök utan Google-nyckel, utan kvot och utan att någon räknar dina sökningar.',
   'admin.trekApi.factPlaces':
     '73,6 miljoner platser i världen',
   'admin.trekApi.factNoKey':
@@ -170,7 +170,7 @@ const admin: TranslationStrings = {
   'admin.mapsKey': 'Google Maps API Nyckel',
   'admin.mapsKeyHint': 'Krävs för att söka efter platser. Hämta på console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Utan Google-API-nyckel används det rekommenderade TREK-API:et. Med en nyckel kan foton, omdömen och öppettider laddas dessutom. Skapa en på console.cloud.google.com.',
+    'Utan Google-API-nyckel används det rekommenderade PanelMint-API:et. Med en nyckel kan foton, omdömen och öppettider laddas dessutom. Skapa en på console.cloud.google.com.',
   'admin.recommended': 'Rekommenderat',
   'admin.weatherKey': 'OpenWeatherMap API Nyckel',
   'admin.weatherKeyHint': 'För väderdata. Gratis på openweathermap.org',
@@ -181,13 +181,13 @@ const admin: TranslationStrings = {
     'För platssökning i Fastlandskina, där Google inte går att nå och OpenStreetMap har tunn täckning. Kräver en "Web 服务"-nyckel (webbtjänst), inte en JS API-nyckel. Skaffa en på console.amap.com.',
   'admin.placesProvider.title': 'Leverantör för platssökning',
   'admin.placesProvider.subtitle':
-    'TREK:s egen indexering och OpenStreetMap svarar på varje sökning. Här väljs vem som frågas därutöver när de inte hittar något: Automatiskt föredrar Google om en nyckel finns, sedan Amap.',
+    'PanelMint:s egen indexering och OpenStreetMap svarar på varje sökning. Här väljs vem som frågas därutöver när de inte hittar något: Automatiskt föredrar Google om en nyckel finns, sedan Amap.',
   'admin.placesProvider.auto': 'Automatisk',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
   'admin.placesProvider.missingKey':
-    'Den valda leverantören saknar API-nyckel, så platssökningen besvaras enbart av TREK:s index och OpenStreetMap.',
+    'Den valda leverantören saknar API-nyckel, så platssökningen besvaras enbart av PanelMint:s index och OpenStreetMap.',
   'admin.placesProvider.saved': 'Leverantör för platssökning sparad',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Ansluten',
@@ -222,8 +222,8 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Visar bilder och en beskrivning när du lägger till en plats. Wikipedia och OpenStreetMap används alltid; Google tillkommer när Platsfoton eller Platsdetaljer är på.',
   'admin.placesGoogleOnly.title': 'Sök bara med Google',
-  'admin.placesGoogleOnly.subtitle': 'Varje sökning och varje förslag går till Google Places. Av svarar TREK:s eget index och OpenStreetMap först, och Google tillfrågas bara när de inte hittar något.',
-  'admin.placesGoogleOnly.missingKey': 'Kräver en Google Maps API-nyckel. Utan nyckel söker TREK via sitt eget index och OpenStreetMap, oavsett hur den här brytaren står.',
+  'admin.placesGoogleOnly.subtitle': 'Varje sökning och varje förslag går till Google Places. Av svarar PanelMint:s eget index och OpenStreetMap först, och Google tillfrågas bara när de inte hittar något.',
+  'admin.placesGoogleOnly.missingKey': 'Kräver en Google Maps API-nyckel. Utan nyckel söker PanelMint via sitt eget index och OpenStreetMap, oavsett hur den här brytaren står.',
   'admin.placesGoogleOnly.otherProvider': 'Kräver Google som platsleverantör. Med Amap eller OpenStreetMap valt går ingen sökning till Google, oavsett hur den här väljaren står.',
   'admin.transitProvider.title': 'Kollektivtrafikleverantör',
   'admin.transitProvider.subtitle': 'Vilken tjänst som besvarar sökningar i kollektivtrafiken.',
@@ -374,7 +374,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Källkodsarkiv',
   'admin.plugins.reportIssue': 'Rapportera ett problem',
   'admin.plugins.homepage': 'Webbplats',
-  'admin.plugins.requiresTrek': 'Kräver TREK {version}+',
+  'admin.plugins.requiresTrek': 'Kräver PanelMint {version}+',
   'admin.plugins.reviewedOn': 'Granskad {date}',
   'admin.plugins.perm.db:own': 'Lagra sina egna data i en isolerad databas',
   'admin.plugins.perm.db:read:trips': 'Läsa resor som den aktiva användaren har åtkomst till',
@@ -445,7 +445,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Bidra med extra detaljer (recensioner, betyg, länkar) till en plats',
   'admin.plugins.perm.hook:search-provider':
-    'Besvara platssökningar från ett eget index, vid sidan av TREK:s egna resultat',
+    'Besvara platssökningar från ett eget index, vid sidan av PanelMint:s egna resultat',
   'admin.plugins.perm.hook:trip-warning-provider': 'Visa valideringsvarningar på en resa (visas i planeraren)',
   'admin.plugins.perm.hook:table-contributor':
     'Lägga till kolumner och åtgärder i rese­vyer (bokningar, platser, dagar)',
@@ -463,7 +463,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     'Publicera verktyg som en AI-assistent kan köra åt dig (det agerar med de rättigheter du ger tillägget här, inte med assistentens egna)',
   'admin.plugins.perm.geolocation:read':
-    'Fråga efter din position i realtid medan en av dess vyer är öppen (TREK läser den med den här webbplatsens platsbehörighet, inte med en egen behörighet för tillägget)',
+    'Fråga efter din position i realtid medan en av dess vyer är öppen (PanelMint läser den med den här webbplatsens platsbehörighet, inte med en egen behörighet för tillägget)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Lägga till textavsnitt i resans PDF-export',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Markera länder på Atlas-världskartan (t.ex. önskelistor eller resevarningar)',
@@ -492,26 +492,26 @@ const admin: TranslationStrings = {
   'admin.plugins.updateKeptOff':
     'Uppdateringen är installerad — förblir avstängd tills du godkänner de nya behörigheterna',
   'admin.plugins.reviewedMeaning':
-    '”Granskad” betyder att en TREK-underhållare har skannat pluginet efter skadlig kod i varje version — inte efter kvalitet eller om det fungerar. Det är ingen garanti för att ett plugin är ofarligt.',
+    '”Granskad” betyder att en PanelMint-underhållare har skannat pluginet efter skadlig kod i varje version — inte efter kvalitet eller om det fungerar. Det är ingen garanti för att ett plugin är ofarligt.',
   'admin.plugins.security.title': 'Så här isoleras plugins — och gränserna för det',
   'admin.plugins.security.isolationTitle': 'Varje plugin körs inkapslat',
   'admin.plugins.security.isolationBody':
-    'Ett plugin körs som en egen låst process som bara kan läsa sina egna filer. Det kan inte läsa din databas, din inloggningshemlighet eller din krypteringsnyckel, kan inte starta andra program och kan inte skriva filer någonstans. Dess gränssnitt körs i en förseglad webbläsarram som inte kan läsa din sessionscookie eller röra TREK-sidan runt omkring.',
+    'Ett plugin körs som en egen låst process som bara kan läsa sina egna filer. Det kan inte läsa din databas, din inloggningshemlighet eller din krypteringsnyckel, kan inte starta andra program och kan inte skriva filer någonstans. Dess gränssnitt körs i en förseglad webbläsarram som inte kan läsa din sessionscookie eller röra PanelMint-sidan runt omkring.',
   'admin.plugins.security.permsTitle': 'Vad behörigheterna betyder',
   'admin.plugins.security.permsBody':
-    'Behörigheterna som visas innan du installerar är en hård gräns som TREK upprätthåller medan pluginet körs — det kan bokstavligen inte göra något som inte står på listan. Men de talar om vad ett plugin kan göra, inte vad det faktiskt gör. Ett plugin som får läsa dina resor och nå en server kan skicka dina resor till den servern, så läs behörigheterna och de utgående värdarna, inte bara beskrivningen.',
+    'Behörigheterna som visas innan du installerar är en hård gräns som PanelMint upprätthåller medan pluginet körs — det kan bokstavligen inte göra något som inte står på listan. Men de talar om vad ett plugin kan göra, inte vad det faktiskt gör. Ett plugin som får läsa dina resor och nå en server kan skicka dina resor till den servern, så läs behörigheterna och de utgående värdarna, inte bara beskrivningen.',
   'admin.plugins.security.limitsTitle': 'Vad vi inte kan lova',
   'admin.plugins.security.limitsBody':
-    'Isoleringen är en stark mjukvarugräns, men inte en absolut. Ett plugin agerar med exakt de rättigheter du godkänner, så inom dessa rättigheter kan det bete sig annorlunda än vad beskrivningen antyder, och det kan skicka data som det legitimt innehar till de värdar det har deklarerat. TREK läser eller bedömer inte vad ett plugins kod faktiskt gör.',
+    'Isoleringen är en stark mjukvarugräns, men inte en absolut. Ett plugin agerar med exakt de rättigheter du godkänner, så inom dessa rättigheter kan det bete sig annorlunda än vad beskrivningen antyder, och det kan skicka data som det legitimt innehar till de värdar det har deklarerat. PanelMint läser eller bedömer inte vad ett plugins kod faktiskt gör.',
   'admin.plugins.security.worstTitle': 'Värsta tänkbara fall',
   'admin.plugins.security.worstBody':
     'Ett fientligt plugin som du aktiverar kan missbruka de data och anslutningar du har gett det — till exempel läcka de resor det får läsa. Det kan inte stjäla lösenord, förfalska en administratörsinloggning, köra kommandon på din server eller nå data som du inte har beviljat. Skadan håller sig inom det du har godkänt, och att stänga av pluginet stoppar det.',
   'admin.plugins.security.reviewedTitle': 'Vad ”Granskad” betyder',
   'admin.plugins.security.reviewedBody':
-    'Ett granskat plugin har manuellt skannats efter skadlig kod av en TREK-underhållare i varje version — kontrollerat för fientlig kod, inte för om det fungerar bra. Det är inget löfte om att pluginet är ofarligt.',
+    'Ett granskat plugin har manuellt skannats efter skadlig kod av en PanelMint-underhållare i varje version — kontrollerat för fientlig kod, inte för om det fungerar bra. Det är inget löfte om att pluginet är ofarligt.',
   'admin.plugins.security.signedTitle': 'Vad ”Signerad” betyder',
   'admin.plugins.security.signedBody':
-    'Kontrollsumman som TREK verifierar vid varje installation bevisar att filerna är exakt det som registret går i god för. En signatur bevisar något annat: att de kommer från upphovspersonen, signerade med en nyckel som bara hen har. Ett signerat plugin har båda delarna. Ett osignerat är inte osäkert — det bär helt enkelt en garanti mindre, och de flesta plugins i registret är osignerade i dag.',
+    'Kontrollsumman som PanelMint verifierar vid varje installation bevisar att filerna är exakt det som registret går i god för. En signatur bevisar något annat: att de kommer från upphovspersonen, signerade med en nyckel som bara hen har. Ett signerat plugin har båda delarna. Ett osignerat är inte osäkert — det bär helt enkelt en garanti mindre, och de flesta plugins i registret är osignerade i dag.',
   'admin.plugins.signed': 'Signerad',
   'admin.plugins.signedHint': 'Verifierad mot upphovspersonens signeringsnyckel när den installerades',
   'admin.plugins.unsigned': 'Osignerad',
@@ -526,20 +526,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     'Filerna stämmer inte med upphovspersonens signatur. De är inte det som upphovspersonen signerade — antingen har de skadats eller så har någon manipulerat dem. Detta går inte att förbigå.',
   'admin.plugins.sig.missingBody':
-    'Det här pluginet var signerat när du installerade det, men den nya versionen levereras utan signatur. TREK accepterar inte den försämringen i tysthet. Detta går inte att förbigå.',
+    'Det här pluginet var signerat när du installerade det, men den nya versionen levereras utan signatur. PanelMint accepterar inte den försämringen i tysthet. Detta går inte att förbigå.',
   'admin.plugins.sig.incompleteBody':
     'Registerposten är halvsignerad: den anger en upphovspersonsnyckel men versionen bär ingen signatur (eller tvärtom). Det är ett misstag på pluginets sida. Detta går inte att förbigå.',
   'admin.plugins.sig.pinnedKey': 'Nyckeln det installerades med',
   'admin.plugins.sig.newKey': 'Nyckeln det erbjuder nu',
   'admin.plugins.sig.confirmOutOfBand':
-    'TREK kan inte skilja ett legitimt nyckelbyte från en kapning — härifrån ser de identiska ut. Bekräfta den nya nyckeln med upphovspersonen via en kanal du redan litar på innan du accepterar den. När du gör det uppdateras pluginet och den nya nyckeln sparas.',
+    'PanelMint kan inte skilja ett legitimt nyckelbyte från en kapning — härifrån ser de identiska ut. Bekräfta den nya nyckeln med upphovspersonen via en kanal du redan litar på innan du accepterar den. När du gör det uppdateras pluginet och den nya nyckeln sparas.',
   'admin.plugins.sig.retrustConfirm': 'Lita på den nya nyckeln och uppdatera',
   'admin.plugins.sig.cancel': 'Lita inte på den',
   'admin.plugins.sig.consentUnsigned':
     'Ingenting knyter den här versionen till sin upphovsperson — filerna stämmer med registret, men de bär ingen signatur från upphovspersonen.',
   'admin.plugins.security.trustTitle': 'Sammanfattningsvis',
   'admin.plugins.security.trustBody':
-    'Att installera ett plugin är som att installera vilken tredjepartsapp som helst: lägg bara till kod från upphovspersoner du litar på, och granska det själv först om du är osäker. TREK tar inget ansvar för tredjepartsplugins.',
+    'Att installera ett plugin är som att installera vilken tredjepartsapp som helst: lägg bara till kod från upphovspersoner du litar på, och granska det själv först om du är osäker. PanelMint tar inget ansvar för tredjepartsplugins.',
   'admin.plugins.runtimeOn': 'Körmiljö på',
   'admin.plugins.tabDiscover': 'Upptäck',
   'admin.plugins.searchPlaceholder': 'Sök plugins…',
@@ -555,11 +555,11 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Uppdateringar först',
   'admin.plugins.sortDownloads': 'Mest nedladdade',
   'admin.plugins.updatesAvailable': '{count} uppdateringar tillgängliga för dina plugins.',
-  'admin.plugins.newerNeedsTrek': 'v{version} tillgänglig — kräver TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'v{version} tillgänglig — kräver PanelMint {range}',
   'admin.plugins.versionsTitle': 'Versioner',
   'admin.plugins.versionPickerTitle': 'Byt version — {name}',
   'admin.plugins.versionSwitch': 'Byt till {version}',
-  'admin.plugins.versionNeedsTrek': 'kräver TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'kräver PanelMint {range}',
   'admin.plugins.changeVersion': 'Byt version…',
   'admin.plugins.noVersions': 'Inga publicerade versioner hittades i registret.',
   'admin.plugins.downgradeTitle': 'Rulla tillbaka detta tillägg?',
@@ -622,22 +622,22 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Ladda ner',
   'admin.plugins.dep.update': 'Uppdatera',
   'admin.plugins.dep.resolveHint': 'Laddar ner den senaste kompatibla versionen, inklusive dess egna beroenden.',
-  'admin.plugins.dep.trekIncompatible': 'Kräver TREK {range} — den här servern kör {host}',
-  'admin.plugins.dep.trekUnknown': 'Anger inte vilka TREK-versioner som stöds',
+  'admin.plugins.dep.trekIncompatible': 'Kräver PanelMint {range} — den här servern kör {host}',
+  'admin.plugins.dep.trekUnknown': 'Anger inte vilka PanelMint-versioner som stöds',
   'admin.plugins.installCompatible': 'Installera {version}',
   'admin.plugins.installAnyway': 'Installera ändå',
   'admin.plugins.rangeBypass.pill': 'Versionskontroller av',
   'admin.plugins.rangeBypass.pillHint':
     'TREK_PLUGINS_IGNORE_TREK_RANGE är satt — plugin kan installeras och köras utanför de TREK-versioner deras upphovspersoner angett',
-  'admin.plugins.rangeBypass.title': 'Utanför de TREK-versioner som stöds',
-  'admin.plugins.rangeBypass.noticeTitle': 'Installerat utanför de TREK-versioner som stöds',
+  'admin.plugins.rangeBypass.title': 'Utanför de PanelMint-versioner som stöds',
+  'admin.plugins.rangeBypass.noticeTitle': 'Installerat utanför de PanelMint-versioner som stöds',
   'admin.plugins.rangeBypass.body':
     '”{name}” anger stöd för TREK {range}, och den här servern kör {host}. TREK släpper igenom det bara för att TREK_PLUGINS_IGNORE_TREK_RANGE är satt. Upphovspersonen har inte uppdaterat pluginets versionsintervall för den här TREK-versionen, så det finns ingen garanti att det fungerar — och i sällsynta fall kan ett plugin som inte passar skada TREK-data. Fortsätt bara om du accepterar den risken.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '”{name}” anger inte vilka TREK-versioner det stöder; den här servern kör {host}. TREK släpper igenom det bara för att TREK_PLUGINS_IGNORE_TREK_RANGE är satt. Inget tyder på att upphovspersonen har testat det på den här TREK-versionen, så det finns ingen garanti att det fungerar — och i sällsynta fall kan ett plugin som inte passar skada TREK-data. Fortsätt bara om du accepterar den risken.',
   'admin.plugins.dep.trekBypassed':
-    'Utanför sitt TREK-intervall ({range}) — versionskontroller av',
-  'admin.plugins.dep.trekBypassedUnknown': 'Anger inget TREK-intervall — versionskontroller av',
+    'Utanför sitt PanelMint-intervall ({range}) — versionskontroller av',
+  'admin.plugins.dep.trekBypassedUnknown': 'Anger inget PanelMint-intervall — versionskontroller av',
   'admin.plugins.incompatible': 'Inkompatibel',
   'admin.plugins.accessTitle': 'Vad det har åtkomst till',
   'admin.plugins.connectsTitle': 'Ansluter till',
@@ -649,7 +649,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Granskad',
   'admin.plugins.downloads': 'Nedladdningar',
   'admin.addons.title': 'Tillägg',
-  'admin.addons.subtitle': 'Aktivera eller inaktivera funktioner för att anpassa din TREK-upplevelse.',
+  'admin.addons.subtitle': 'Aktivera eller inaktivera funktioner för att anpassa din PanelMint-upplevelse.',
   'admin.addons.catalog.packing.name': 'Listor',
   'admin.addons.catalog.packing.description': 'Packlistor och saker att göra inför dina resor',
   'admin.addons.catalog.budget.name': 'Kostnader',
@@ -694,7 +694,7 @@ const admin: TranslationStrings = {
   'admin.weather.title': 'Väderdata',
   'admin.weather.badge': 'Sedan den 24 mars 2026',
   'admin.weather.description':
-    'TREK använder Open-Meteo som källa för väderdata. Open-Meteo är en kostnadsfri vädertjänst med öppen källkod – ingen API-nyckel krävs.',
+    'PanelMint använder Open-Meteo som källa för väderdata. Open-Meteo är en kostnadsfri vädertjänst med öppen källkod – ingen API-nyckel krävs.',
   'admin.weather.forecast': '16-dagarsprognos',
   'admin.weather.forecastDesc': 'Tidigare 5 dagar (OpenWeatherMap)',
   'admin.weather.climate': 'Historiska klimatdata',
@@ -754,14 +754,14 @@ const admin: TranslationStrings = {
   'admin.github.loading': 'Laddar...',
   'admin.github.error': 'Det gick inte att ladda utgåvorna',
   'admin.github.by': 'av',
-  'admin.github.support': 'Hjälper mig att fortsätta bygga TREK',
+  'admin.github.support': 'Hjälper mig att fortsätta bygga PanelMint',
   'admin.update.available': 'Uppdatering tillgänglig',
-  'admin.update.text': 'TREK {version} finns tillgängligt. Du kör {current}.',
+  'admin.update.text': 'PanelMint {version} finns tillgängligt. Du kör {current}.',
   'admin.update.button': 'Visa på GitHub',
   'admin.update.install': 'Installera uppdatering',
   'admin.update.confirmTitle': 'Ska uppdateringen installeras?',
   'admin.update.confirmText':
-    'TREK kommer att uppdateras från {current} till {version}. Servern startas om automatiskt därefter.',
+    'PanelMint kommer att uppdateras från {current} till {version}. Servern startas om automatiskt därefter.',
   'admin.update.dataInfo':
     'Alla dina data (resor, användare, API-nycklar, uppladdningar, Vacay, Atlas, budgetar) kommer att bevaras.',
   'admin.update.warning': 'Appen kommer att vara tillfälligt otillgänglig under omstarten.',
@@ -773,9 +773,9 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Gå till Säkerhetskopiering',
   'admin.update.howTo': 'Så här uppdaterar du',
   'admin.update.dockerText':
-    'Din TREK-instans körs i Docker. För att uppdatera till {version} kör du följande kommandon på din server:',
+    'Din PanelMint-instans körs i Docker. För att uppdatera till {version} kör du följande kommandon på din server:',
   'admin.update.nonDockerText':
-    'Denna TREK-instans körs inte i Docker. För att uppdatera till {version}, kör installations- eller uppdateringsmetod du använde på nytt — till exempel, i Proxmox Community Scripts kör du uppdateringen från LXC-konsolen:',
+    'Denna PanelMint-instans körs inte i Docker. För att uppdatera till {version}, kör installations- eller uppdateringsmetod du använde på nytt — till exempel, i Proxmox Community Scripts kör du uppdateringen från LXC-konsolen:',
   'admin.update.wikiLink': 'Öppna uppdateringsguiden',
   'admin.update.reloadHint': 'Vänligen uppdatera sidan om några sekunder.',
   'admin.tabs.permissions': 'Behörigheter',

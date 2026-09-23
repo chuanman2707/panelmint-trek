@@ -21,7 +21,7 @@ import { TripMembershipService } from '../trip-membership/trip-membership.servic
  *
  * 1. **Access is decided per trip, against the database, every time.** The list
  *    comes from `listAccessibleTripIds`, a single trip goes through
- *    `canAccessTrip` — the same predicates the rest of TREK uses (owner or member).
+ *    `canAccessTrip` — the same predicates the rest of PanelMint uses (owner or member).
  *    Nothing is filtered in application code after a broad read, because a filter
  *    that is forgotten once leaks everything.
  * 2. **Rows are never handed out as they are stored.** Ids, foreign keys and
@@ -196,7 +196,7 @@ export class PublicApiService {
    * Accommodations with their date range resolved from the start/end day rows.
    *
    * Stored as day ids, reported as ISO dates: a consumer has no way to look up a
-   * TREK day id, and the dates are what it actually needs to match its own nights.
+   * PanelMint day id, and the dates are what it actually needs to match its own nights.
    */
   private buildAccommodations(tripId: number): PublicApiAccommodation[] {
     const rows = this.db.all<AccommodationRow>(
@@ -282,7 +282,7 @@ export class PublicApiService {
    * is scoped by `user_id` in SQL, which is the part that matters.
    *
    * Returns entries even when the Atlas addon is switched off: the addon governs
-   * whether TREK shows the feature, not whether the rows exist, and a key whose
+   * whether PanelMint shows the feature, not whether the rows exist, and a key whose
    * answers change when an unrelated toggle moves is a key nobody can build on.
    */
   listBucketList(userId: number): PublicApiBucketListItem[] {
@@ -308,7 +308,7 @@ export class PublicApiService {
    * Names only. The query selects `username` and nothing else — no ids, no email
    * addresses — because an integration key is a credential for reading its owner's
    * itinerary, not for enumerating the people around them. What it returns is
-   * exactly what those people already see on the trip in TREK.
+   * exactly what those people already see on the trip in PanelMint.
    */
   private buildTravellers(tripId: number): PublicApiTraveller[] {
     const rows = this.db.all<TravellerRow>(

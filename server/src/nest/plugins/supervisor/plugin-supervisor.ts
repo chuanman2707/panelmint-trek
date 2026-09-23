@@ -22,7 +22,7 @@ export interface PluginRouteInfo {
  * heartbeats, and restart-with-backoff / auto-disable on crashes. A child dying
  * — segfault, throw, OOM, infinite loop — only ever kills the child; the Nest
  * event loop never hiccups. That is what finally makes "a plugin can't crash
- * TREK" true.
+ * PanelMint" true.
  */
 
 export type PluginStatus = 'starting' | 'active' | 'error' | 'stopped';

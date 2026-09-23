@@ -175,7 +175,7 @@ export class PluginHooks {
    * host-initiated for an arbitrary recipient, so the hook gets that recipient's own
    * decrypted config as an argument rather than the right to read anything as them.
    * The budget is the longest of the read hooks because the channel is talking to a
-   * third-party API (Telegram, ntfy, a webhook) rather than to TREK.
+   * third-party API (Telegram, ntfy, a webhook) rather than to PanelMint.
    */
   @PluginHook('notificationChannel', { permission: 'hook:notification-channel', fn: 'send', timeoutMs: 8000 })
   sendNotification(pluginId: string, message: HookChannelMessage, userSettings: unknown): Promise<unknown> {

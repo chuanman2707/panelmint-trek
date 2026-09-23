@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Packlistenzuweisung',
   'notif.packing_tagged.text': '{actor} hat dich zu {category} in {trip} zugewiesen',
   'notif.version_available.title': 'Neue Version verfügbar',
-  'notif.version_available.text': 'TREK {version} ist jetzt verfügbar',
+  'notif.version_available.text': 'PanelMint {version} ist jetzt verfügbar',
   'notif.replica_failure.title': 'Speicher-Replik-Fehler',
   'notif.replica_failure.text': "Schreibvorgang auf Replik '{backend}' fehlgeschlagen: {op} von {key} — {error}",
   'notif.replica_failure.textSuppressed': "Schreibvorgang auf Replik '{backend}' fehlgeschlagen: {op} von {key} — {error}. Seit der letzten Benachrichtigung wurden {suppressed} weitere Fehler unterdrückt.",

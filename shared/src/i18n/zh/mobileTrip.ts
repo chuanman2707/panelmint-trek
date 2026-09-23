@@ -49,7 +49,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.transportsEmpty': '暂无交通安排',
   'mobileTrip.rtInfoTitle': '驾驶数据',
   'mobileTrip.rtDesktopNote': '这些数据在桌面端设置。在桌面端还可以比较其他路线走法，并让某一天沿导入的轨迹行驶。',
-  'mobileTrip.rtPlanOnDesktop': '规划在桌面端进行。一天里有了两个地点，TREK 就会算出这段车程。',
+  'mobileTrip.rtPlanOnDesktop': '规划在桌面端进行。一天里有了两个地点，PanelMint 就会算出这段车程。',
   'mobileTrip.rtSearchOffline': '需要联网：搜索会读取前方的路线。',
   'mobileTrip.rtBehind': '比计划晚 {time}',
   'mobileTrip.rtStart': '开始',

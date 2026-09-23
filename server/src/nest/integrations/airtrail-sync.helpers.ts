@@ -3,7 +3,7 @@ import { flightPassengers, ownPassenger } from './airtrail.client';
 import type { AirtrailFlightRaw, AirtrailPassengerWrite, AirtrailSavePayload } from './airtrail.client';
 
 /**
- * The pure half of the AirTrail push: turning a TREK reservation plus the flight
+ * The pure half of the AirTrail push: turning a PanelMint reservation plus the flight
  * as AirTrail currently has it into a save body.
  *
  * Free functions rather than methods, and in their own file, because
@@ -20,7 +20,7 @@ function splitLocal(dt: string | null | undefined): { date: string | null; time:
 /**
  * Build the POST /flight/save body. AirTrail's save fully overwrites the flight,
  * so we start from the flight as AirTrail currently has it (`existing`, the raw
- * GET object) and overwrite ONLY the fields TREK manages. Everything else —
+ * GET object) and overwrite ONLY the fields PanelMint manages. Everything else —
  * terminal, gate, scheduled/actual times, customFields, track, and any field
  * AirTrail may add later — passes through untouched. We deliberately do NOT model
  * those fields; spreading the raw object keeps us decoupled from AirTrail's schema
@@ -60,7 +60,7 @@ export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw):
     seats.push({ userId: '<USER_ID>', guestName: null, seat: null, seatNumber: null, seatClass: null });
   }
 
-  // Push the seat the user set in TREK onto their own AirTrail entry (the one
+  // Push the seat the user set in PanelMint onto their own AirTrail entry (the one
   // with a userId), leaving any co-passenger seats untouched.
   const seatNumber = typeof meta.seat === 'string' && meta.seat.trim() ? meta.seat.trim() : null;
   const ownSeat = seats.find((s) => s.userId) ?? seats[0];
@@ -77,7 +77,7 @@ export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw):
   if (ownSeat) ownSeat.flightReason = reason;
 
   // Spread the existing flight first to preserve every AirTrail-owned field, then
-  // overwrite only what TREK manages. `from`/`to`/`airline`/`aircraft` come back
+  // overwrite only what PanelMint manages. `from`/`to`/`airline`/`aircraft` come back
   // from GET as objects but the save shape wants codes — those are exactly the
   // keys we override, so the spread never ships an object where a code is wanted.
   return {
@@ -91,16 +91,16 @@ export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw):
     departureTime: dep.time,
     arrival: arr.date,
     arrivalTime: arr.time,
-    // Import reads the SCHEDULED time, so a TREK edit must write back there too —
+    // Import reads the SCHEDULED time, so a PanelMint edit must write back there too —
     // otherwise the next pull (scheduled-wins) would revert it. AirTrail rebuilds the
     // instant from a full-ISO date carrier + the HH:MM time, so pass a date carrier.
     departureScheduled: dep.date ? `${dep.date}T00:00:00.000Z` : null,
     departureScheduledTime: dep.time,
     arrivalScheduled: arr.date ? `${arr.date}T00:00:00.000Z` : null,
     arrivalScheduledTime: arr.time,
-    // These are AirTrail-owned details TREK doesn't surface in its edit UI — a TREK
+    // These are AirTrail-owned details PanelMint doesn't surface in its edit UI — a PanelMint
     // edit can leave them out of `metadata`. Preserve AirTrail's current value when
-    // TREK has none rather than nulling it out (#1240). Use airline_code (not the
+    // PanelMint has none rather than nulling it out (#1240). Use airline_code (not the
     // display name in metadata.airline, #1334); both it and entityCode mirror the
     // import/hash code-selection so a writeback stays a no-op for the hash.
     airline: meta.airline_code ?? entityCode(existing.airline) ?? null,

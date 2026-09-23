@@ -18,7 +18,7 @@ const storage: TranslationStrings = {
   'storage.field.primary': 'Primär backend',
   'storage.field.replicas': 'Repliker',
   'storage.title': 'Lagring',
-  'storage.description': 'Var TREK sparar uppladdade filer, foton och säkerhetskopior. Inget ändras förrän du sparar.',
+  'storage.description': 'Var PanelMint sparar uppladdade filer, foton och säkerhetskopior. Inget ändras förrän du sparar.',
   'storage.loading': 'Laddar…',
   'storage.saved': 'Lagringskonfiguration sparad',
   'storage.save': 'Spara ändringar',
@@ -66,7 +66,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Profilbilder',
   'storage.category.places': 'Platsbilder',
   'storage.category.photos-google': 'Google-fotocache',
-  'storage.category.photos-trek': 'TREK-fotocache',
+  'storage.category.photos-trek': 'PanelMint-fotocache',
   'storage.category.backups': 'Säkerhetskopior',
 
   // What each category stores — rendered under the label in the category map.
@@ -79,7 +79,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Cachade kopior av foton från Google Places — kan hämtas igen, säkert att förlora.',
   'storage.categoryDesc.photos-trek':
-    'Cachade foton från TREK-fototjänsten som används av Foton (Memories) — kan hämtas igen, säkert att förlora.',
+    'Cachade foton från PanelMint-fototjänsten som används av Foton (Memories) — kan hämtas igen, säkert att förlora.',
   'storage.categoryDesc.backups': 'Serverbackuparkiv skapade av backuppanelen eller schemat.',
   'storage.health.title': 'Hälsa',
   'storage.health.allClear': 'Inga replikfel registrerade.',

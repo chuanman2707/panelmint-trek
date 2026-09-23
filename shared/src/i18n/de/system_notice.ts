@@ -1,20 +1,20 @@
 import type { TranslationStrings } from '../types';
 
 const system_notice: TranslationStrings = {
-  'system_notice.welcome_v1.title': 'Willkommen bei TREK',
+  'system_notice.welcome_v1.title': 'Willkommen bei PanelMint',
   'system_notice.welcome_v1.body':
     'Dein All-in-one-Reiseplaner. Erstelle Reisepläne, teile sie mit Freunden und bleib organisiert – online und offline.',
   'system_notice.welcome_v1.cta_label': 'Reise planen',
-  'system_notice.welcome_v1.hero_alt': 'Malerisches Reiseziel mit TREK-Planungs-UI',
+  'system_notice.welcome_v1.hero_alt': 'Malerisches Reiseziel mit PanelMint-Planungs-UI',
   'system_notice.welcome_v1.highlight_plan': 'Tagesweise Reisepläne für jede Reise',
   'system_notice.welcome_v1.highlight_share': 'Gemeinsam mit Reisepartnern planen',
   'system_notice.welcome_v1.highlight_offline': 'Funktioniert offline auf dem Handy',
   'system_notice.dev_test_modal.title': '[Dev] Test notice',
   'system_notice.dev_test_modal.body': 'This is a dev-only test notice.',
   // Dankeschön + Projektunterstützung (1x pro Installation und pro Update)
-  'system_notice.thank_you_support.title': 'Danke, dass du TREK nutzt',
+  'system_notice.thank_you_support.title': 'Danke, dass du PanelMint nutzt',
   'system_notice.thank_you_support.body':
-    'Ein kurzes Dankeschön, dass du TREK installiert hast — das bedeutet mir wirklich viel.\n\nIch bin Solo-Entwickler und baue TREK in meiner Freizeit. Angefangen hat alles als kleines Tool nur für meine eigenen Reisen, und ich bin ehrlich überwältigt von der Unterstützung und dem Interesse der Community seitdem. In TREK steckt viel Herzblut von meiner Seite — aber auch viele großartige externe Mitwirkende haben es mitgeprägt.\n\n**TREK ist Open Source und vollständig kostenlos — und das bleibt für immer so. Keine Paid Tiers, keine Abos, kein Haken. Versprochen.**\n\nWenn TREK dir nützt und du die Entwicklung unterstützen möchtest, hilft mir ein kleiner Kaffee wirklich beim Weitermachen — überhaupt kein Druck, aber jede Tasse trägt durch die langen Nächte.\n\nDanke, dass du dabei bist.\n\n— Maurice',
+    'Ein kurzes Dankeschön, dass du PanelMint installiert hast — das bedeutet mir wirklich viel.\n\nIch bin Solo-Entwickler und baue PanelMint in meiner Freizeit. Angefangen hat alles als kleines Tool nur für meine eigenen Reisen, und ich bin ehrlich überwältigt von der Unterstützung und dem Interesse der Community seitdem. In PanelMint steckt viel Herzblut von meiner Seite — aber auch viele großartige externe Mitwirkende haben es mitgeprägt.\n\n**PanelMint ist Open Source und vollständig kostenlos — und das bleibt für immer so. Keine Paid Tiers, keine Abos, kein Haken. Versprochen.**\n\nWenn PanelMint dir nützt und du die Entwicklung unterstützen möchtest, hilft mir ein kleiner Kaffee wirklich beim Weitermachen — überhaupt kein Druck, aber jede Tasse trägt durch die langen Nächte.\n\nDanke, dass du dabei bist.\n\n— Maurice',
   'system_notice.thank_you_support.highlight_opensource': '100% Open Source auf GitHub',
   'system_notice.thank_you_support.highlight_free': 'Für immer kostenlos – keine Paid Tiers',
   'system_notice.thank_you_support.highlight_community': 'Gemeinsam mit der Community gebaut',
@@ -27,7 +27,7 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.position': 'Meldung {current} von {total}',
   'system_notice.v3_photos.title': 'Fotos wurden in 3.0 verschoben',
   'system_notice.v3_photos.body':
-    '**Fotos** im Trip-Planer wurden entfernt. Deine Fotos sind sicher — TREK hat deine Immich- oder Synology-Bibliothek nie verändert.\n\nFotos befinden sich jetzt im **Journey**-Addon. Journey ist optional — falls es noch nicht verfügbar ist, bitte deinen Admin, es unter Admin → Addons zu aktivieren.',
+    '**Fotos** im Trip-Planer wurden entfernt. Deine Fotos sind sicher — PanelMint hat deine Immich- oder Synology-Bibliothek nie verändert.\n\nFotos befinden sich jetzt im **Journey**-Addon. Journey ist optional — falls es noch nicht verfügbar ist, bitte deinen Admin, es unter Admin → Addons zu aktivieren.',
   'system_notice.v3_journey.title': 'Neu: Journey — dein Reisetagebuch',
   'system_notice.v3_journey.body':
     'Dokumentiere deine Reisen als lebendige Geschichten mit Zeitachsen, Fotogalerien und interaktiven Karten.',
@@ -51,13 +51,13 @@ const system_notice: TranslationStrings = {
   'system_notice.v3_mcp.highlight_tools': 'Erweitertes Toolset & Prompts',
   'system_notice.v3_thankyou.title': 'Ein persönliches Wort von mir',
   'system_notice.v3_thankyou.body':
-    'Bevor du weiterklickst — einen Moment noch.\n\nTREK hat als Nebenprojekt für meine eigenen Reisen angefangen. Ich hätte nie gedacht, dass es jemals so weit kommt, dass 4.000 von euch damit ihre Abenteuer planen. Jeder Stern, jedes Issue, jeder Feature-Wunsch — ich lese sie alle, und sie halten mich am Laufen durch die späten Nächte zwischen Vollzeitjob und Studium.\n\nEins will ich euch sagen: TREK wird immer Open Source bleiben, immer self-hosted, immer eures. Kein Tracking, keine Abos, keine versteckten Haken. Einfach ein Tool, gebaut von jemandem, der das Reisen genauso liebt wie ihr.\n\nBesonderer Dank an [jubnl](https://github.com/jubnl) — du bist ein unglaublicher Mitstreiter geworden. So vieles, was 3.0 großartig macht, trägt deine Handschrift. Danke, dass du an dieses Projekt geglaubt hast, als es noch holprig war.\n\nUnd an jeden einzelnen von euch, der einen Bug gemeldet, einen String übersetzt, TREK mit Freunden geteilt oder einfach damit eine Reise geplant hat — **danke**. Ihr seid der Grund, warum es das hier gibt.\n\nAuf viele weitere Abenteuer zusammen.\n\n— Maurice\n\n---\n\n[Tritt der Community auf Discord bei](https://discord.gg/7Q6M6jDwzf)\n\nWenn TREK deine Reisen besser macht, hält ein [kleiner Kaffee](https://ko-fi.com/mauriceboe) die Lichter an.',
+    'Bevor du weiterklickst — einen Moment noch.\n\nPanelMint hat als Nebenprojekt für meine eigenen Reisen angefangen. Ich hätte nie gedacht, dass es jemals so weit kommt, dass 4.000 von euch damit ihre Abenteuer planen. Jeder Stern, jedes Issue, jeder Feature-Wunsch — ich lese sie alle, und sie halten mich am Laufen durch die späten Nächte zwischen Vollzeitjob und Studium.\n\nEins will ich euch sagen: PanelMint wird immer Open Source bleiben, immer self-hosted, immer eures. Kein Tracking, keine Abos, keine versteckten Haken. Einfach ein Tool, gebaut von jemandem, der das Reisen genauso liebt wie ihr.\n\nBesonderer Dank an [jubnl](https://github.com/jubnl) — du bist ein unglaublicher Mitstreiter geworden. So vieles, was 3.0 großartig macht, trägt deine Handschrift. Danke, dass du an dieses Projekt geglaubt hast, als es noch holprig war.\n\nUnd an jeden einzelnen von euch, der einen Bug gemeldet, einen String übersetzt, PanelMint mit Freunden geteilt oder einfach damit eine Reise geplant hat — **danke**. Ihr seid der Grund, warum es das hier gibt.\n\nAuf viele weitere Abenteuer zusammen.\n\n— Maurice\n\n---\n\n[Tritt der Community auf Discord bei](https://discord.gg/7Q6M6jDwzf)\n\nWenn PanelMint deine Reisen besser macht, hält ein [kleiner Kaffee](https://ko-fi.com/mauriceboe) die Lichter an.',
   'system_notice.v3014_whitespace_collision.title': 'Aktion erforderlich: Benutzerkontokonflikt',
   'system_notice.v3014_whitespace_collision.body':
     'Das 3.0.14-Upgrade hat einen oder mehrere Konflikte bei Benutzernamen oder E-Mail-Adressen festgestellt, die durch führende oder nachgestellte Leerzeichen in gespeicherten Konten verursacht wurden. Betroffene Konten wurden automatisch umbenannt. Prüfe die Serverprotokolle auf Zeilen, die mit **[migration] WHITESPACE COLLISION** beginnen, um die betroffenen Konten zu identifizieren.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update installiert',
-  'system_notice.release_notes.headline': 'Vier Dinge, die TREK jetzt selbst kann.',
+  'system_notice.release_notes.headline': 'Vier Dinge, die PanelMint jetzt selbst kann.',
   'system_notice.release_notes.intro': 'Eine eigene Orts-API, Roadtrips komplett geplant, dein Standortverlauf wieder in deiner Hand, und deine Dokumente im Abgleich.',
   'system_notice.release_notes.features_label': 'Die Highlights',
   'system_notice.release_notes.features_aside': 'Längst nicht alles',
@@ -66,24 +66,24 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.feature_roadtrip_title': 'Roadtrip-Addon',
   'system_notice.release_notes.feature_roadtrip_body': 'Plant die Fahrt selbst: Route, Strecke, Stunden und Stopps. Aus, bis ein Admin es einschaltet.',
   'system_notice.release_notes.feature_dawarich_title': 'Dawarich-Integration',
-  'system_notice.release_notes.feature_dawarich_body': 'Die selbst gehostete Antwort auf Google Timeline, jetzt direkt in TREK lesbar. TREK liest, und nur das.',
-  'system_notice.release_notes.footnote': 'Dazu kommt eine lange Liste kleinerer Änderungen überall sonst in TREK.',
+  'system_notice.release_notes.feature_dawarich_body': 'Die selbst gehostete Antwort auf Google Timeline, jetzt direkt in PanelMint lesbar. PanelMint liest, und nur das.',
+  'system_notice.release_notes.footnote': 'Dazu kommt eine lange Liste kleinerer Änderungen überall sonst in PanelMint.',
   'system_notice.release_notes.notes_label': 'Release Notes',
   'system_notice.release_notes.note_eyebrow': 'Ein Wort vom Maintainer',
-  'system_notice.release_notes.note_title': 'Du bist der Grund, warum ich TREK weiterbaue.',
+  'system_notice.release_notes.note_title': 'Du bist der Grund, warum ich PanelMint weiterbaue.',
   'system_notice.release_notes.note_body':
-    'TREK hat als kleines Tool für meine eigenen Reisen angefangen, geschrieben nach Feierabend, weil ich sie besser planen wollte. Aufgehört zu wachsen hat es eigentlich nie. Fast alles, was du nutzt, ist spät in der Nacht entstanden, am Wochenende, im Zug, neben einem Vollzeitjob, und an so manchem Abend habe ich mich still gefragt, ob es da draußen überhaupt jemals jemand öffnen würde.',
+    'PanelMint hat als kleines Tool für meine eigenen Reisen angefangen, geschrieben nach Feierabend, weil ich sie besser planen wollte. Aufgehört zu wachsen hat es eigentlich nie. Fast alles, was du nutzt, ist spät in der Nacht entstanden, am Wochenende, im Zug, neben einem Vollzeitjob, und an so manchem Abend habe ich mich still gefragt, ob es da draußen überhaupt jemals jemand öffnen würde.',
   'system_notice.release_notes.promise_label': 'Das Versprechen',
-  'system_notice.release_notes.promise_lead': 'TREK bleibt kostenlos, für immer.',
+  'system_notice.release_notes.promise_lead': 'PanelMint bleibt kostenlos, für immer.',
   'system_notice.release_notes.promise_text':
     'Jede Funktion, jedes Update, für alle. Keine Paid Tiers, keine Abos, kein Haken.',
   'system_notice.release_notes.note_body_after':
     'Dann kamt ihr. Innerhalb weniger Monate wart ihr Tausende: Sterne, Bug-Reports, Übersetzungen in Sprachen, die ich nicht spreche, Pull Requests von Leuten, die ich nie getroffen habe. Ich schaue noch immer jeden Morgen als Erstes ins Repository, und so richtig real fühlt es sich bis heute nicht an.',
   'system_notice.release_notes.note_closing': 'Danke, dass du dabei bist. Viele Grüße, Maurice.',
   'system_notice.release_notes.support_lead':
-    'TREK ist kostenlos und wird es immer bleiben, aber Server, Domains und viele späte Nächte sind es nicht.',
+    'PanelMint ist kostenlos und wird es immer bleiben, aber Server, Domains und viele späte Nächte sind es nicht.',
   'system_notice.release_notes.support_text':
-    'Wenn TREK sich einen Platz auf deinen Reisen verdient hat, spendier mir einen Kaffee und hilf mit, dass auch das nächste Release kommt.',
+    'Wenn PanelMint sich einen Platz auf deinen Reisen verdient hat, spendier mir einen Kaffee und hilf mit, dass auch das nächste Release kommt.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Ko-fi unterstützen',
   'system_notice.release_notes.feature_docsync_title': 'Dokumenten-Sync',

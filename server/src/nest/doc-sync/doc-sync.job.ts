@@ -17,7 +17,7 @@ import {
 /**
  * The poll that carries document sync.
  *
- * It is the mechanism, not the fallback. Only Paperless lets TREK subscribe to
+ * It is the mechanism, not the fallback. Only Paperless lets PanelMint subscribe to
  * changes on its own; Papra's webhook API is closed to API keys, Nextcloud's
  * needs admin rights, OpenCloud has no registrable hook, and Synology has
  * nothing at all. On top of that no provider here emits an event for every

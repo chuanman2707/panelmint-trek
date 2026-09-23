@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Rijgegevens',
   'mobileTrip.rtDesktopNote':
     'Deze waarden stel je in op de desktop. Daar kun je ook routevarianten vergelijken en een dag een geïmporteerde track laten volgen.',
-  'mobileTrip.rtPlanOnDesktop': 'Plannen doe je op de desktop. TREK berekent de rit zodra een dag twee plaatsen heeft.',
+  'mobileTrip.rtPlanOnDesktop': 'Plannen doe je op de desktop. PanelMint berekent de rit zodra een dag twee plaatsen heeft.',
   'mobileTrip.rtSearchOffline': 'Vereist een verbinding: de zoekopdracht leest de route die voor je ligt.',
   'mobileTrip.rtBehind': '{time} achter op schema',
   'mobileTrip.rtStart': 'Start',

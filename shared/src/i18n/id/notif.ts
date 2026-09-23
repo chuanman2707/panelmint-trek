@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Penugasan Perlengkapan',
   'notif.packing_tagged.text': '{actor} menugaskanmu ke {category} di {trip}',
   'notif.version_available.title': 'Versi Baru Tersedia',
-  'notif.version_available.text': 'TREK {version} kini tersedia',
+  'notif.version_available.text': 'PanelMint {version} kini tersedia',
   'notif.replica_failure.title': 'Kegagalan replika penyimpanan',
   'notif.replica_failure.text': "Penulisan replika gagal pada '{backend}': {op} dari {key} — {error}",
   'notif.replica_failure.textSuppressed': "Penulisan replika gagal pada '{backend}': {op} dari {key} — {error}. {suppressed} kegagalan lainnya diabaikan sejak notifikasi terakhir.",

@@ -217,7 +217,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': 'Sdíleno přes',
   'journey.public.madeWith': 'Vytvořeno pomocí',
   'journey.pdf.journeyBook': 'Cestovní kniha',
-  'journey.pdf.madeWith': 'Vytvořeno pomocí TREK',
+  'journey.pdf.madeWith': 'Vytvořeno pomocí PanelMint',
   'journey.pdf.day': 'Den',
   'journey.pdf.theEnd': 'Konec',
   'journey.pdf.saveAsPdf': 'Uložit jako PDF',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'Uloží návrh této dvoustrany jako soubor, bez fotografií, ke sdílení nebo dalšímu použití',
   'journey.studio.importSpread': 'Importovat',
   'journey.studio.importSpreadHint': 'Přidá dvoustranu ze staženého souboru s návrhem',
-  'journey.studio.importSpreadFailed': 'Tento soubor není dvoustrana z TREK Studia',
+  'journey.studio.importSpreadFailed': 'Tento soubor není dvoustrana z PanelMint Studia',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': 'Sazba knihy potřebuje místo, a tak je Studio jen na počítači, stejně jako tvorba PDF. Všechno ostatní z cesty tu funguje jako obvykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

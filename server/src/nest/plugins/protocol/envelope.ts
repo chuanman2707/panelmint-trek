@@ -372,7 +372,7 @@ export const KNOWN_PERMISSIONS = [
   'hook:trip-card-provider',
   'hook:notification-channel',
   // Data-subject-rights hook: the host calls the plugin's deleteUserData /
-  // exportUserData when a TREK account is erased or its data is exported. Userless
+  // exportUserData when a PanelMint account is erased or its data is exported. Userless
   // (the plugin only receives a userId and acts on its OWN db), so it grants no
   // read into core data — it exists so a plugin can honour GDPR erasure/portability.
   'hook:user-data',
@@ -389,12 +389,12 @@ export const KNOWN_PERMISSIONS = [
   // applies. Nothing is sent to the server; the plugin's server code never sees a
   // position unless its own client ships it through one of its routes.
   'geolocation:read',
-  // Lets the plugin publish tools on TREK's own MCP server, so an assistant can
+  // Lets the plugin publish tools on PanelMint's own MCP server, so an assistant can
   // call into it as the requesting user. Modelled on the hook:* family rather
   // than on geolocation:read above: the host dispatches INTO the child for
   // every call, so it needs the active-and-holds-the-grant check and the
   // acting-user binding that HOOK_PERMISSION gives it. The name has no hook:
-  // prefix because the surface it opens is MCP, not a TREK render slot, and
+  // prefix because the surface it opens is MCP, not a PanelMint render slot, and
   // nothing keys off that prefix.
   //
   // This is the real boundary on plugin tools. The user-facing plugins:use

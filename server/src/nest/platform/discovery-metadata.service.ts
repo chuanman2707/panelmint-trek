@@ -45,7 +45,7 @@ export class DiscoveryMetadataService {
       oauthMetadata: metadata,
       resourceServerUrl: new URL(`${metadata.issuer}/mcp`),
       scopesSupported: ALL_SCOPES as string[],
-      resourceName: 'TREK MCP',
+      resourceName: 'PanelMint MCP',
     });
     return this.sdkMetaRouter;
   }

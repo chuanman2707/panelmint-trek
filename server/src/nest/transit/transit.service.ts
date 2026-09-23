@@ -16,7 +16,7 @@ import {
 /**
  * Public transit routing (#1065) backed by Transitous (api.transitous.org), the
  * community-run MOTIS instance over public GTFS feeds — free, no API key, fits
- * TREK's no-paid-providers rule. Self-hosters can point TRANSIT_API_URL at their
+ * PanelMint's no-paid-providers rule. Self-hosters can point TRANSIT_API_URL at their
  * own MOTIS instance instead.
  *
  * Since #1699 an admin can point the two routes at Google instead, for the

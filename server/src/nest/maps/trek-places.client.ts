@@ -2,14 +2,14 @@
  * Client for the TREK Places API.
  *
  * The index behind it is Overture Places, built monthly and served from a
- * server the project runs. It replaces the two things TREK used to do badly:
+ * server the project runs. It replaces the two things PanelMint used to do badly:
  * searching through Nominatim, which its own usage policy forbids for
  * autocomplete, and paying Google for a text search whose terms then forbid
  * storing what comes back.
  *
  * Everything here is read-only, unauthenticated and cacheable. There is no key
  * to configure and no quota to exhaust, so the failure modes are the network
- * and the service being down, both of which fall back to what TREK did before.
+ * and the service being down, both of which fall back to what PanelMint did before.
  */
 import { readEnv, getAppUrl } from '../../app-config';
 
@@ -183,7 +183,7 @@ async function getJson<T>(
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        'X-TREK-Instance': instanceToken(),
+        'X-PanelMint-Instance': instanceToken(),
       },
     });
     if (!res.ok) {
@@ -403,7 +403,7 @@ export async function trekPlacesById(gers: string): Promise<TrekPlace | null> {
 }
 
 /**
- * Map a TREK place onto the record shape the client already reads.
+ * Map a PanelMint place onto the record shape the client already reads.
  *
  * Deliberately the same shape Nominatim and Google produce, so nothing on the
  * client had to learn a third format. `osm_id` carries the GERS id prefixed

@@ -9,7 +9,7 @@
  *
  * Two things make this provider different from the Google one:
  *
- *  1. **Datum.** Amap speaks GCJ-02, TREK speaks WGS-84 everywhere else. This
+ *  1. **Datum.** Amap speaks GCJ-02, PanelMint speaks WGS-84 everywhere else. This
  *     file is one of the two places in the codebase allowed to hold a GCJ-02
  *     coordinate, and it never lets one escape: every outbound coordinate is
  *     converted on the way out, every inbound one on the way back. Nothing
@@ -54,7 +54,7 @@ function asArray<T>(value: T[] | undefined | null): T[] {
 }
 
 /**
- * The prefix that makes an Amap POI id recognisable anywhere in TREK.
+ * The prefix that makes an Amap POI id recognisable anywhere in PanelMint.
  *
  * Amap ids are bare hex-ish strings (`B0FFFAB6J2`), indistinguishable from a
  * Google place id by shape. Without a namespace, an Amap place opened later
@@ -102,7 +102,7 @@ const AMAP_INFOCODE_HINTS: Record<string, string> = {
 };
 
 /**
- * The HTTP status TREK should answer with for an Amap failure.
+ * The HTTP status PanelMint should answer with for an Amap failure.
  *
  * Amap's own status line is always 200, and the controller maps a thrown
  * `.status` straight through to the client, so a credential problem has to
@@ -267,7 +267,7 @@ export class AmapPlacesProvider implements PlacesProvider {
   // ── Normalisation ──────────────────────────────────────────────────────────
 
   /**
-   * One POI in the shape the rest of TREK consumes, coordinates back in WGS-84.
+   * One POI in the shape the rest of PanelMint consumes, coordinates back in WGS-84.
    *
    * `address` is assembled rather than taken as-is: Amap's `address` field is
    * the street line alone ("三里屯路19号"), which on its own is not enough to

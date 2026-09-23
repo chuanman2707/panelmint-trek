@@ -217,7 +217,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': 'Udostępnione przez',
   'journey.public.madeWith': 'Stworzone z',
   'journey.pdf.journeyBook': 'Książka podróży',
-  'journey.pdf.madeWith': 'Stworzone z TREK',
+  'journey.pdf.madeWith': 'Stworzone z PanelMint',
   'journey.pdf.day': 'Dzień',
   'journey.pdf.theEnd': 'Koniec',
   'journey.pdf.saveAsPdf': 'Zapisz jako PDF',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'Zapisuje projekt tej rozkładówki jako plik, bez zdjęć, do udostępnienia lub ponownego użycia',
   'journey.studio.importSpread': 'Importuj',
   'journey.studio.importSpreadHint': 'Dodaje rozkładówkę z pobranego pliku projektu',
-  'journey.studio.importSpreadFailed': 'Ten plik nie jest rozkładówką TREK Studio',
+  'journey.studio.importSpreadFailed': 'Ten plik nie jest rozkładówką PanelMint Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': 'Składanie książki wymaga miejsca, dlatego Studio działa tylko na komputerze, tak samo jak tworzenie PDF-a. Reszta podróży działa tu jak zwykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

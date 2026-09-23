@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Завдання для пакування',
   'notif.packing_tagged.text': '{actor} призначив вас у {category} у {trip}',
   'notif.version_available.title': 'Доступна нова версія',
-  'notif.version_available.text': 'TREK {version} тепер доступний',
+  'notif.version_available.text': 'PanelMint {version} тепер доступний',
   'notif.replica_failure.title': 'Збій репліки сховища',
   'notif.replica_failure.text': "Помилка запису в репліку '{backend}': {op} для {key} — {error}",
   'notif.replica_failure.textSuppressed': "Помилка запису в репліку '{backend}': {op} для {key} — {error}. Із моменту останнього сповіщення приховано ще {suppressed} помилок.",

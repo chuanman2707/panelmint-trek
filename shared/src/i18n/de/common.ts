@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Erneut versuchen',
   'common.errorReload': 'Seite neu laden',
   'common.errorUpdateTitle': 'Eine neue Version ist verfügbar',
-  'common.errorUpdateBody': 'TREK wurde aktualisiert, während dieser Tab offen war. Lade neu, um die neue Version zu erhalten.',
+  'common.errorUpdateBody': 'PanelMint wurde aktualisiert, während dieser Tab offen war. Lade neu, um die neue Version zu erhalten.',
   'common.errorPluginTitle': 'Dieses Plugin konnte nicht angezeigt werden',
 };
 export default common;

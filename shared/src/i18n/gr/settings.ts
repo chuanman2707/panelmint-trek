@@ -29,7 +29,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'Δική σας εγκατάσταση OSRM. Κενό σημαίνει τους δημόσιους διακομιστές, που επιτρέπουν περίπου ένα αίτημα ανά δευτερόλεπτο: αρκεί για μία ημέρα, λίγο για ένα οδικό ταξίδι. Ισχύει μετά από επανεκκίνηση του διακομιστή.',
   'settings.valhallaBase': 'Δική σας υπηρεσία Valhalla',
   'settings.valhallaBaseHint':
-    'Το TREK χρησιμοποιεί από προεπιλογή τη δημόσια Valhalla της FOSSGIS για την αποφυγή διοδίων, αυτοκινητοδρόμων και πορθμείων. Εισαγάγετε εδώ τη διεύθυνση URL της δικής σας Valhalla για να τη χρησιμοποιήσετε αντί της δημόσιας. Αν έχει ρυθμιστεί μόνο ιδιωτική υπηρεσία δρομολόγησης, η δημόσια Valhalla δεν χρησιμοποιείται. Αφού εισαγάγετε ιδιωτική διεύθυνση URL, επανεκκινήστε τον διακομιστή και φορτώστε ξανά τη σελίδα.',
+    'Το PanelMint χρησιμοποιεί από προεπιλογή τη δημόσια Valhalla της FOSSGIS για την αποφυγή διοδίων, αυτοκινητοδρόμων και πορθμείων. Εισαγάγετε εδώ τη διεύθυνση URL της δικής σας Valhalla για να τη χρησιμοποιήσετε αντί της δημόσιας. Αν έχει ρυθμιστεί μόνο ιδιωτική υπηρεσία δρομολόγησης, η δημόσια Valhalla δεν χρησιμοποιείται. Αφού εισαγάγετε ιδιωτική διεύθυνση URL, επανεκκινήστε τον διακομιστή και φορτώστε ξανά τη σελίδα.',
   'settings.mapHint': 'Πρότυπο URL για πλακίδια χάρτη',
   'settings.mapProvider': 'Πάροχος Χάρτη',
   'settings.mapProviderHint':
@@ -46,7 +46,7 @@ const settings: TranslationStrings = {
     'Οι βασικοί χάρτες CARTO εμφανίζουν υδατογράφημα χωρίς κλειδί. Δωρεάν, χωρίς λογαριασμό, από',
   'settings.mapCartoKeyLink': 'κλειδί API βασικών χαρτών carto.com',
   'settings.mapCartoKeyMissing':
-    'Αυτό το πρότυπο είναι βασικός χάρτης CARTO. Χωρίς κλειδί, η CARTO τυπώνει "API KEY REQUIRED" σε κάθε πλακίδιο. Μέχρι να εισαγάγετε κλειδί, το TREK εμφανίζει τον προεπιλεγμένο βασικό χάρτη.',
+    'Αυτό το πρότυπο είναι βασικός χάρτης CARTO. Χωρίς κλειδί, η CARTO τυπώνει "API KEY REQUIRED" σε κάθε πλακίδιο. Μέχρι να εισαγάγετε κλειδί, το PanelMint εμφανίζει τον προεπιλεγμένο βασικό χάρτη.',
   'settings.mapStyle': 'Στυλ Χάρτη',
   'settings.mapStylePlaceholder': 'Επιλέξτε ένα στυλ Mapbox',
   'settings.mapStyleHint': 'Προκαθορισμένο ή δικό σας mapbox://styles/USER/ID URL',
@@ -244,13 +244,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Προτείνετε ένα νέο χαρακτηριστικό',
   'settings.about.wikiHint': 'Τεκμηρίωση & οδηγοί',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Μηνιαίοι Υποστηρικτές',
   'settings.about.supporters.title': 'Συνταξιδιώτες για το TREK',
   'settings.about.supporters.subtitle':
-    'Καθώς εσείς σχεδιάζετε την επόμενή σας διαδρομή, αυτοί οι άνθρωποι βοηθούν να σχεδιαστεί το μέλλον του TREK. Η μηνιαία τους συνεισφορά πηγαίνει απευθείας στην ανάπτυξη και σε πραγματικές ώρες εργασίας — ώστε το TREK να παραμένει Open Source.',
+    'Καθώς εσείς σχεδιάζετε την επόμενή σας διαδρομή, αυτοί οι άνθρωποι βοηθούν να σχεδιαστεί το μέλλον του PanelMint. Η μηνιαία τους συνεισφορά πηγαίνει απευθείας στην ανάπτυξη και σε πραγματικές ώρες εργασίας — ώστε το PanelMint να παραμένει Open Source.',
   'settings.about.supporters.since': 'υποστηρικτής από {date}',
   'settings.about.supporters.tierEmpty': 'Γίνετε ο πρώτος',
   'settings.about.supporter.tier.noReturnTicket': 'Χωρίς Εισιτήριο Επιστροφής',
@@ -259,7 +259,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Οικονομικός Ταξιδιώτης',
   'settings.about.supporter.tier.hostelBunkmate': 'Συγκάτοικος Hostel',
   'settings.about.description':
-    'Το TREK είναι ένας self-hosted ταξιδιωτικός σχεδιαστής που σας βοηθά να οργανώσετε τα ταξίδια σας από την πρώτη ιδέα μέχρι την τελευταία ανάμνηση. Σχεδιασμός ημερών, προϋπολογισμός, λίστες πακεταρίσματος, φωτογραφίες και πολλά άλλα — όλα σε ένα μέρος, στον δικό σας server.',
+    'Το PanelMint είναι ένας self-hosted ταξιδιωτικός σχεδιαστής που σας βοηθά να οργανώσετε τα ταξίδια σας από την πρώτη ιδέα μέχρι την τελευταία ανάμνηση. Σχεδιασμός ημερών, προϋπολογισμός, λίστες πακεταρίσματος, φωτογραφίες και πολλά άλλα — όλα σε ένα μέρος, στον δικό σας server.',
   'settings.about.madeWith': 'Φτιαγμένο με',
   'settings.about.madeBy': 'από τον Maurice και μια αναπτυσσόμενη κοινότητα open-source.',
   'settings.username': 'Όνομα χρήστη',
@@ -370,7 +370,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Ενεργοποιήστε το μόνο για μια αξιόπιστη εγκατάσταση στο δικό σας δίκτυο.',
   'settings.airtrail.writeBack': 'Εγγραφή αλλαγών πίσω στο AirTrail',
   'settings.airtrail.writeBackHint':
-    'Απενεργοποιημένο από προεπιλογή: το AirTrail είναι η πηγή αλήθειας και το TREK μόνο διαβάζει από αυτό. Ενεργοποιήστε το για να στέλνετε πίσω στο AirTrail τις αλλαγές που κάνετε στο TREK.',
+    'Απενεργοποιημένο από προεπιλογή: το AirTrail είναι η πηγή αλήθειας και το PanelMint μόνο διαβάζει από αυτό. Ενεργοποιήστε το για να στέλνετε πίσω στο AirTrail τις αλλαγές που κάνετε στο PanelMint.',
   'settings.airtrail.connected': 'Συνδέθηκε',
   'settings.airtrail.notConnected': 'Δεν συνδέθηκε',
   'settings.airtrail.toast.saved': 'Η σύνδεση με το AirTrail αποθηκεύτηκε',
@@ -483,7 +483,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Πίνακας ελέγχου',
   'settings.startPageActiveTrip': 'Ενεργό ταξίδι',
   'settings.startPageHint':
-    'Το TREK ανοίγει απευθείας στο ταξίδι που είναι σε εξέλιξη ή στο επόμενο που ξεκινά. Είναι το ίδιο ταξίδι που προβάλλει ο πίνακας ελέγχου.',
+    'Το PanelMint ανοίγει απευθείας στο ταξίδι που είναι σε εξέλιξη ή στο επόμενο που ξεκινά. Είναι το ίδιο ταξίδι που προβάλλει ο πίνακας ελέγχου.',
   'settings.startTripTab': 'Αρχική καρτέλα',
   'settings.startTripTabHint':
     'Η καρτέλα με την οποία ανοίγει το ταξίδι. Αν ανήκει σε απενεργοποιημένο πρόσθετο, ανοίγει το πλάνο.',

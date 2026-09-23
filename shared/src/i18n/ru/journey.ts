@@ -217,7 +217,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': 'Опубликовано через',
   'journey.public.madeWith': 'Сделано с помощью',
   'journey.pdf.journeyBook': 'Книга путешествия',
-  'journey.pdf.madeWith': 'Сделано с помощью TREK',
+  'journey.pdf.madeWith': 'Сделано с помощью PanelMint',
   'journey.pdf.day': 'День',
   'journey.pdf.theEnd': 'Конец',
   'journey.pdf.saveAsPdf': 'Сохранить как PDF',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'Сохраняет оформление разворота в файл, без фотографий, чтобы поделиться им или использовать снова',
   'journey.studio.importSpread': 'Импорт',
   'journey.studio.importSpreadHint': 'Добавляет разворот из скачанного файла оформления',
-  'journey.studio.importSpreadFailed': 'Этот файл не является разворотом TREK Studio',
+  'journey.studio.importSpreadFailed': 'Этот файл не является разворотом PanelMint Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': 'Вёрстка книги требует места, поэтому Студия работает только на компьютере, и создание PDF тоже. Всё остальное в путешествии здесь работает как обычно.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

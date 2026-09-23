@@ -3015,7 +3015,7 @@ function runMigrations(db: Database.Database): void {
       }
     },
     () => {
-      // AirTrail flight linkage on reservations (#214) — lets a TREK transport
+      // AirTrail flight linkage on reservations (#214) — lets a PanelMint transport
       // remember its AirTrail origin so the two-way sync can match + update it.
       // sync_enabled flips to 0 when the AirTrail flight is deleted (row kept).
       try {
@@ -3054,8 +3054,8 @@ function runMigrations(db: Database.Database): void {
       );
     },
     () => {
-      // Per-user opt-in for writing TREK edits back to AirTrail (#1240). Default
-      // off: AirTrail is the source of truth and TREK never writes unless asked.
+      // Per-user opt-in for writing PanelMint edits back to AirTrail (#1240). Default
+      // off: AirTrail is the source of truth and PanelMint never writes unless asked.
       try {
         db.exec('ALTER TABLE users ADD COLUMN airtrail_write_enabled INTEGER DEFAULT 0');
       } catch (err: any) {
@@ -3553,7 +3553,7 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_plugin_sched_due ON plugin_scheduled_tasks (due_at);');
     },
-    // Durable GDPR erasure queue (#plugins). When a TREK account is deleted, every
+    // Durable GDPR erasure queue (#plugins). When a PanelMint account is deleted, every
     // installed plugin holding `hook:user-data` gets a pending row here so its own
     // deleteUserData handler runs even if the plugin was offline at delete time —
     // erasure must not be lost across a restart, so it is persisted (unlike the
@@ -3655,10 +3655,10 @@ function runMigrations(db: Database.Database): void {
       }
     },
 
-    // The semver RANGE of TREK versions a plugin declares it supports (its manifest's
+    // The semver RANGE of PanelMint versions a plugin declares it supports (its manifest's
     // `trek`, e.g. ">=3.2.0 <4.0.0"). The existing `min_trek_version` only carries the
     // lower bound, so it cannot express "stops working at 4.0" — which is precisely the
-    // case the activation gate has to catch after a TREK upgrade. Kept nullable: a plugin
+    // case the activation gate has to catch after a PanelMint upgrade. Kept nullable: a plugin
     // installed before this column existed has no range recorded, and the gate refuses to
     // activate it rather than guessing (see TREK_VERSION_UNKNOWN).
     () => {
@@ -3991,7 +3991,7 @@ function runMigrations(db: Database.Database): void {
       }
     },
     /*
-     * TREK Studio books (#1973).
+     * PanelMint Studio books (#1973).
      *
      * One row per book, the document itself stored as JSON. A book is a
      * document rather than a graph of records: the editor loads it whole, the
@@ -4491,7 +4491,7 @@ function runMigrations(db: Database.Database): void {
      *
      * Daily aggregates, not a log: one row per day, profile, surface and engine
      * kind, carrying totals. No query, no coordinate, no route, no user, no trip.
-     * The question they answer is whether TREK could host a router itself, and
+     * The question they answer is whether PanelMint could host a router itself, and
      * that needs volume, not itineraries.
      *
      * The table is created regardless of the switch, like the shadow log above:
@@ -4651,7 +4651,7 @@ function runMigrations(db: Database.Database): void {
     //
     // `source_hash` exists because a Dawarich visit carries no `updated_at`: a
     // rename or a re-detection is only visible as a different hash of the fields
-    // TREK shows. `source_missing_at` exists because deleting a visit removes it
+    // PanelMint shows. `source_missing_at` exists because deleting a visit removes it
     // from the API rather than tombstoning it, so absence from a full re-read of
     // the same window is the only signal — and it is recorded, not acted on,
     // because an entry the user already accepted and edited is theirs now.
@@ -5006,7 +5006,7 @@ function runMigrations(db: Database.Database): void {
      * "everyone on the trip sees the same documents": it would make a
      * document's visibility depend on whose credentials fetched it. So the trip
      * admin binds the trip once, the server talks to the provider under that
-     * single identity, and TREK's own membership decides who sees what.
+     * single identity, and PanelMint's own membership decides who sees what.
      *
      * `owner_user_id` stays separate from `trip_id` so the credential holder is
      * always explicit: when that person leaves the trip the binding goes to
@@ -5077,9 +5077,9 @@ function runMigrations(db: Database.Database): void {
      * Document providers, part 3 of 3: the pairing and its sync state.
      *
      * `content_sha256` and `pushed_sha256` are two columns on purpose. The
-     * first is the bytes both sides last agreed on, the second is what TREK
+     * first is the bytes both sides last agreed on, the second is what PanelMint
      * itself last uploaded. Collapsing them into one is precisely the mistake
-     * that builds an echo loop: a webhook fires for TREK's own write, the core
+     * that builds an echo loop: a webhook fires for PanelMint's own write, the core
      * cannot tell it from a stranger's edit, and the file bounces.
      *
      * `remote_missing_at` records that something vanished upstream instead of
@@ -5088,7 +5088,7 @@ function runMigrations(db: Database.Database): void {
      * "everything was deleted" would empty a trip.
      *
      * `file_id ON DELETE SET NULL` keeps a tombstone behind after a document is
-     * permanently deleted in TREK, so the next run does not cheerfully download
+     * permanently deleted in PanelMint, so the next run does not cheerfully download
      * it again.
      */
     () => {
@@ -5128,12 +5128,12 @@ function runMigrations(db: Database.Database): void {
     },
 
     /*
-     * Document providers: when TREK itself put a provider copy in the bin.
+     * Document providers: when PanelMint itself put a provider copy in the bin.
      *
-     * A file deleted in TREK under the `trash` policy takes its provider copy
-     * with it. Taken back out of TREK's trash, it has to go up again; a copy
+     * A file deleted in PanelMint under the `trash` policy takes its provider copy
+     * with it. Taken back out of PanelMint's trash, it has to go up again; a copy
      * somebody else deleted in the meantime must not. Both leave the same gap
-     * in a listing, so the difference is written down when TREK acts rather
+     * in a listing, so the difference is written down when PanelMint acts rather
      * than guessed at later.
      *
      * No backfill from the binding's current policy: that policy may not be

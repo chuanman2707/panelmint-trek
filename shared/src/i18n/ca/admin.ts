@@ -93,13 +93,13 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     "Els usuaris sense 2FA han de completar la configuració a Ajustos abans d'utilitzar l'aplicació.",
   'admin.apiKeys': 'Claus API',
-  'admin.apiKeysHint': "D'on vénen les dades de llocs. L'índex de TREK no necessita clau; els dos proveïdors de sota són opcionals.",
+  'admin.apiKeysHint': "D'on vénen les dades de llocs. L'índex de PanelMint no necessita clau; els dos proveïdors de sota són opcionals.",
   'admin.trekApi.badgeDefault': 'Font recomanada per defecte',
   'admin.googleCaveat.badge': 'No recomanat',
   'admin.googleCaveat.body':
-    "TREK és programari lliure i aquí no som neutrals. En aquesta escala, les valoracions i les fotos de negocis corrents només existeixen a Google, i això és un monopoli. El camp hi és per manca d'alternativa, no perquè el recomanem. Llavors cada consulta va a Google.",
+    "PanelMint és programari lliure i aquí no som neutrals. En aquesta escala, les valoracions i les fotos de negocis corrents només existeixen a Google, i això és un monopoli. El camp hi és per manca d'alternativa, no perquè el recomanem. Llavors cada consulta va a Google.",
   'admin.trekApi.tagline':
-    'L\'índex de llocs propi de TREK. Cercar sense clau de Google, sense quota i sense que ningú compti les teves cerques.',
+    'L\'índex de llocs propi de PanelMint. Cercar sense clau de Google, sense quota i sense que ningú compti les teves cerques.',
   'admin.trekApi.factPlaces':
     '73,6 milions de llocs al món',
   'admin.trekApi.factNoKey':
@@ -133,7 +133,7 @@ const admin: TranslationStrings = {
   'admin.mapsKey': 'Clau API de Google Maps',
   'admin.mapsKeyHint': 'Obligatòria per cercar llocs. Aconsegueix-la a console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    "Sense clau d'API de Google s'utilitza l'API de TREK recomanada. Amb una clau es poden carregar a més fotos, valoracions i horaris. Crea-la a console.cloud.google.com.",
+    "Sense clau d'API de Google s'utilitza l'API de PanelMint recomanada. Amb una clau es poden carregar a més fotos, valoracions i horaris. Crea-la a console.cloud.google.com.",
   'admin.recommended': 'Recomanat',
   'admin.weatherKey': "Clau API d'OpenWeatherMap",
   'admin.weatherKeyHint': 'Per a dades meteorològiques. Gratuït a openweathermap.org',
@@ -167,8 +167,8 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     "Mostra imatges i una descripció en afegir un lloc. Wikipedia i OpenStreetMap s'usen sempre; Google s'hi afegeix si Fotos de llocs o Detalls de llocs estan actius.",
   'admin.placesGoogleOnly.title': 'Cercar només amb Google',
-  'admin.placesGoogleOnly.subtitle': 'Cada cerca i cada suggeriment van a Google Places. Desactivat, responen primer l\'índex de TREK i OpenStreetMap, i Google només es consulta si no troben res.',
-  'admin.placesGoogleOnly.missingKey': 'Cal una clau d\'API de Google Maps. Sense clau, la cerca fa servir l\'índex de TREK i OpenStreetMap, sigui com sigui aquest interruptor.',
+  'admin.placesGoogleOnly.subtitle': 'Cada cerca i cada suggeriment van a Google Places. Desactivat, responen primer l\'índex de PanelMint i OpenStreetMap, i Google només es consulta si no troben res.',
+  'admin.placesGoogleOnly.missingKey': 'Cal una clau d\'API de Google Maps. Sense clau, la cerca fa servir l\'índex de PanelMint i OpenStreetMap, sigui com sigui aquest interruptor.',
   'admin.placesGoogleOnly.otherProvider': 'Necessita Google com a proveïdor de llocs. Amb Amap o OpenStreetMap seleccionats, cap cerca va a Google, digui el que digui aquest interruptor.',
   'admin.transitProvider.title': 'Proveïdor de transport públic',
   'admin.transitProvider.subtitle': 'Quin servei respon la cerca de transport públic.',
@@ -221,7 +221,7 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.saveError': 'Error en desar',
   'admin.tabs.addons': 'Complements',
   'admin.addons.title': 'Complements',
-  'admin.addons.subtitle': 'Activa o desactiva funcions per personalitzar la teva experiència a TREK.',
+  'admin.addons.subtitle': 'Activa o desactiva funcions per personalitzar la teva experiència a PanelMint.',
   'admin.addons.subtitleBefore': 'Activa o desactiva funcions per personalitzar la teva experiència a ',
   'admin.addons.subtitleAfter': '.',
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
@@ -248,7 +248,7 @@ const admin: TranslationStrings = {
   'admin.weather.title': 'Dades meteorològiques',
   'admin.weather.badge': 'Des del 24 de març de 2026',
   'admin.weather.description':
-    'TREK utilitza Open-Meteo com a font de dades meteorològiques. Open-Meteo és un servei meteorològic gratuït i de codi obert: no requereix clau API.',
+    'PanelMint utilitza Open-Meteo com a font de dades meteorològiques. Open-Meteo és un servei meteorològic gratuït i de codi obert: no requereix clau API.',
   'admin.weather.forecast': 'Pronòstic de 16 dies',
   'admin.weather.forecastDesc': 'Abans eren 5 dies (OpenWeatherMap)',
   'admin.weather.climate': 'Dades climàtiques històriques',
@@ -305,16 +305,16 @@ const admin: TranslationStrings = {
   'admin.github.hideDetails': 'Amagar detalls',
   'admin.github.loadMore': 'Carregar més',
   'admin.github.loading': 'Carregant...',
-  'admin.github.support': 'Ajuda a continuar desenvolupant TREK',
+  'admin.github.support': 'Ajuda a continuar desenvolupant PanelMint',
   'admin.github.error': "No s'han pogut carregar les versions",
   'admin.github.by': 'per',
   'admin.update.available': 'Actualització disponible',
-  'admin.update.text': 'TREK {version} està disponible. Estàs utilitzant {current}.',
+  'admin.update.text': 'PanelMint {version} està disponible. Estàs utilitzant {current}.',
   'admin.update.button': 'Veure a GitHub',
   'admin.update.install': 'Instal·lar actualització',
   'admin.update.confirmTitle': "Vols instal·lar l'actualització?",
   'admin.update.confirmText':
-    "TREK s'actualitzarà de {current} a {version}. Després, el servidor es reiniciarà automàticament.",
+    "PanelMint s'actualitzarà de {current} a {version}. Després, el servidor es reiniciarà automàticament.",
   'admin.update.dataInfo':
     'Totes les teves dades (viatges, usuaris, claus API, pujades, Vacay, Atlas, pressupostos) es conservaran.',
   'admin.update.warning': "L'aplicació estarà breument no disponible durant el reinici.",
@@ -326,10 +326,10 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Anar a Còpia de seguretat',
   'admin.update.howTo': 'Com actualitzar',
   'admin.update.dockerText':
-    "La teva instància de TREK s'executa en Docker. Per actualitzar a {version}, executa les següents ordres al teu servidor:",
+    "La teva instància de PanelMint s'executa en Docker. Per actualitzar a {version}, executa les següents ordres al teu servidor:",
   'admin.update.reloadHint': 'Recarrega la pàgina en uns segons.',
   'admin.update.nonDockerText':
-    "Aquesta instància de TREK no s'executa amb Docker. Per actualitzar a {version}, torna a executar el mètode d'instal·lació o actualització que vas fer servir — per exemple, a Proxmox Community Scripts executa l'actualització des de la consola LXC:",
+    "Aquesta instància de PanelMint no s'executa amb Docker. Per actualitzar a {version}, torna a executar el mètode d'instal·lació o actualització que vas fer servir — per exemple, a Proxmox Community Scripts executa l'actualització des de la consola LXC:",
   'admin.update.wikiLink': "Obre la guia d\\'actualització",
   'admin.addons.catalog.memories.name': 'Fotos (Immich)',
   'admin.addons.catalog.memories.description': "Comparteix fotos de viatge a través de la teva instància d'Immich",
@@ -448,13 +448,13 @@ const admin: TranslationStrings = {
     "Per a la cerca de llocs a la Xina continental, on Google no és accessible i la cobertura d'OpenStreetMap és escassa. Cal una clau «Web 服务» (servei web), no una clau de l'API JS. Se n'obté una a console.amap.com.",
   'admin.placesProvider.title': 'Proveïdor de la cerca de llocs',
   'admin.placesProvider.subtitle':
-    "L'índex propi de TREK i OpenStreetMap responen cada cerca. Aquí es tria a qui més es consulta quan no troben res: Automàtic prefereix Google si hi ha clau, després Amap.",
+    "L'índex propi de PanelMint i OpenStreetMap responen cada cerca. Aquí es tria a qui més es consulta quan no troben res: Automàtic prefereix Google si hi ha clau, després Amap.",
   'admin.placesProvider.auto': 'Automàtic',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
   'admin.placesProvider.missingKey':
-    "El proveïdor seleccionat no té cap clau d'API configurada, així que la cerca de llocs la responen només l'índex de TREK i OpenStreetMap.",
+    "El proveïdor seleccionat no té cap clau d'API configurada, així que la cerca de llocs la responen només l'índex de PanelMint i OpenStreetMap.",
   'admin.placesProvider.saved': 'Proveïdor de la cerca de llocs desat',
   'admin.tabs.plugins': 'Connectors',
   'admin.tabs.storage': 'Emmagatzematge',
@@ -539,11 +539,11 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Repositori de codi',
   'admin.plugins.reportIssue': "Informar d'un problema",
   'admin.plugins.homepage': 'Lloc web',
-  'admin.plugins.requiresTrek': 'Requereix TREK {version}+',
+  'admin.plugins.requiresTrek': 'Requereix PanelMint {version}+',
   'admin.plugins.reviewedOn': 'Verificat el {date}',
   'admin.plugins.perm.hook:map-layer-provider': 'Dibuixar rutes, corredors i zones al mapa del viatge',
   'admin.plugins.perm.hook:search-provider':
-    "Respondre cerques de llocs des d'un índex propi, al costat dels resultats de TREK",
+    "Respondre cerques de llocs des d'un índex propi, al costat dels resultats de PanelMint",
   'admin.plugins.perm.hook:route-provider':
     'Oferir perfils de ruta amb què el planificador pot calcular els dies (p. ex. rutes per a cotxe elèctric amb parades de recàrrega)',
   'admin.plugins.perm.hook:day-schedule-provider':
@@ -556,7 +556,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     "Publicar eines que un assistent d'IA pot executar en nom teu (actua amb els permisos que concedeixes aquí al connector, no amb els seus)",
   'admin.plugins.perm.geolocation:read':
-    "Consultar la teva ubicació en temps real mentre una de les seves vistes és oberta (el TREK la llegeix amb el permís d'ubicació d'aquest lloc, no amb un permís propi del connector)",
+    "Consultar la teva ubicació en temps real mentre una de les seves vistes és oberta (el PanelMint la llegeix amb el permís d'ubicació d'aquest lloc, no amb un permís propi del connector)",
   'admin.plugins.updateConsentTitle': 'Aquesta actualització necessita permisos nous',
   'admin.plugins.updateConsentBody':
     "{name} v{version} demana permisos que encara no has concedit. La versió nova està instal·lada, però roman desactivada fins que l'aprovis.",
@@ -566,26 +566,26 @@ const admin: TranslationStrings = {
   'admin.plugins.updateLater': 'Deixar-lo desactivat de moment',
   'admin.plugins.updateKeptOff': 'Actualització instal·lada — es deixa desactivada fins que aprovis els permisos nous',
   'admin.plugins.reviewedMeaning':
-    '"Verificat" significa que un mantenidor de TREK ha analitzat aquest connector a la recerca de programari maliciós en cada versió, no la seva qualitat ni si funciona. No és cap garantia que un connector sigui inofensiu.',
+    '"Verificat" significa que un mantenidor de PanelMint ha analitzat aquest connector a la recerca de programari maliciós en cada versió, no la seva qualitat ni si funciona. No és cap garantia que un connector sigui inofensiu.',
   'admin.plugins.security.title': 'Com es contenen els connectors — i els límits',
   'admin.plugins.security.isolationTitle': "Cada connector s'executa aïllat",
   'admin.plugins.security.isolationBody':
-    "Un connector s'executa com el seu propi procés blindat que només pot llegir els seus propis fitxers. No pot llegir la teva base de dades, el teu secret d'inici de sessió ni la teva clau de xifratge, no pot iniciar altres programes i no pot escriure fitxers enlloc. La seva interfície s'executa en un marc de navegador segellat que no pot llegir la teva galeta de sessió ni tocar la pàgina de TREK que l'envolta.",
+    "Un connector s'executa com el seu propi procés blindat que només pot llegir els seus propis fitxers. No pot llegir la teva base de dades, el teu secret d'inici de sessió ni la teva clau de xifratge, no pot iniciar altres programes i no pot escriure fitxers enlloc. La seva interfície s'executa en un marc de navegador segellat que no pot llegir la teva galeta de sessió ni tocar la pàgina de PanelMint que l'envolta.",
   'admin.plugins.security.permsTitle': 'Què signifiquen els permisos',
   'admin.plugins.security.permsBody':
-    "Els permisos que es mostren abans d'instal·lar són un límit estricte que TREK aplica mentre el connector s'executa: literalment no pot fer res que no sigui a la llista. Però t'indiquen el que un connector pot fer, no el que fa realment. Un connector amb permís per llegir els teus viatges i connectar-se a un servidor pot enviar els teus viatges a aquest servidor, així que llegeix els permisos i els amfitrions de sortida, no només la descripció.",
+    "Els permisos que es mostren abans d'instal·lar són un límit estricte que PanelMint aplica mentre el connector s'executa: literalment no pot fer res que no sigui a la llista. Però t'indiquen el que un connector pot fer, no el que fa realment. Un connector amb permís per llegir els teus viatges i connectar-se a un servidor pot enviar els teus viatges a aquest servidor, així que llegeix els permisos i els amfitrions de sortida, no només la descripció.",
   'admin.plugins.security.limitsTitle': 'El que no podem prometre',
   'admin.plugins.security.limitsBody':
-    "L'aïllament és una frontera de programari sòlida, però no absoluta. Un connector actua exactament amb els permisos que aprovis, així que, dins d'aquests permisos, pot comportar-se de manera diferent del que suggereix la seva descripció i pot enviar les dades que té legítimament als amfitrions que ha declarat. TREK no llegeix ni jutja el que fa realment el codi d'un connector.",
+    "L'aïllament és una frontera de programari sòlida, però no absoluta. Un connector actua exactament amb els permisos que aprovis, així que, dins d'aquests permisos, pot comportar-se de manera diferent del que suggereix la seva descripció i pot enviar les dades que té legítimament als amfitrions que ha declarat. PanelMint no llegeix ni jutja el que fa realment el codi d'un connector.",
   'admin.plugins.security.worstTitle': 'El pitjor dels casos',
   'admin.plugins.security.worstBody':
     "Un connector hostil que activis pot fer un mal ús de les dades i connexions que li has concedit — per exemple, filtrar els viatges que té permís per llegir. No pot robar contrasenyes, falsificar un inici de sessió d'administrador, executar ordres al teu servidor ni accedir a dades que no li has concedit. El dany es limita al que has aprovat, i desactivar el connector l'atura.",
   'admin.plugins.security.reviewedTitle': 'Què vol dir "Revisat"',
   'admin.plugins.security.reviewedBody':
-    "Un connector revisat ha estat analitzat manualment a la recerca de programari maliciós per un mantenidor de TREK a cada versió — s'hi ha buscat codi hostil, no pas si funciona bé. No és cap garantia que el connector sigui inofensiu.",
+    "Un connector revisat ha estat analitzat manualment a la recerca de programari maliciós per un mantenidor de PanelMint a cada versió — s'hi ha buscat codi hostil, no pas si funciona bé. No és cap garantia que el connector sigui inofensiu.",
   'admin.plugins.security.signedTitle': 'Què vol dir "Signat"',
   'admin.plugins.security.signedBody':
-    "La suma de verificació que TREK comprova a cada instal·lació demostra que els fitxers són exactament els que el registre avala. Una signatura demostra una altra cosa: que provenen de l'autor, signats amb una clau que només ell posseeix. Un connector signat té totes dues coses. Un connector sense signar no és insegur — simplement té una garantia menys, i actualment la majoria dels connectors del registre no estan signats.",
+    "La suma de verificació que PanelMint comprova a cada instal·lació demostra que els fitxers són exactament els que el registre avala. Una signatura demostra una altra cosa: que provenen de l'autor, signats amb una clau que només ell posseeix. Un connector signat té totes dues coses. Un connector sense signar no és insegur — simplement té una garantia menys, i actualment la majoria dels connectors del registre no estan signats.",
   'admin.plugins.signed': 'Signat',
   'admin.plugins.signedHint': "Verificat amb la clau de signatura de l'autor en el moment de la instal·lació",
   'admin.plugins.unsigned': 'Sense signar',
@@ -600,20 +600,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     "Els fitxers no coincideixen amb la signatura de l'autor. No són el que l'autor va signar — o bé s'han malmès, o bé s'han manipulat. Això no es pot ometre.",
   'admin.plugins.sig.missingBody':
-    'Aquest connector estava signat quan el vas instal·lar, però la nova versió no inclou cap signatura. TREK no acceptarà aquesta degradació en silenci. Això no es pot ometre.',
+    'Aquest connector estava signat quan el vas instal·lar, però la nova versió no inclou cap signatura. PanelMint no acceptarà aquesta degradació en silenci. Això no es pot ometre.',
   'admin.plugins.sig.incompleteBody':
     "L'entrada del registre està signada a mitges: declara una clau d'autor però la versió no porta cap signatura (o a l'inrevés). És un error per part del connector. Això no es pot ometre.",
   'admin.plugins.sig.pinnedKey': 'Clau amb què es va instal·lar',
   'admin.plugins.sig.newKey': 'Clau que ofereix ara',
   'admin.plugins.sig.confirmOutOfBand':
-    "TREK no pot distingir una rotació de clau legítima d'una presa de control — des d'aquí totes dues es veuen idèntiques. Confirma la nova clau amb l'autor a través d'un canal en què ja confiïs abans d'acceptar-la. Un cop ho facis, el connector s'actualitza i la nova clau es recorda.",
+    "PanelMint no pot distingir una rotació de clau legítima d'una presa de control — des d'aquí totes dues es veuen idèntiques. Confirma la nova clau amb l'autor a través d'un canal en què ja confiïs abans d'acceptar-la. Un cop ho facis, el connector s'actualitza i la nova clau es recorda.",
   'admin.plugins.sig.retrustConfirm': 'Confiar en la nova clau i actualitzar',
   'admin.plugins.sig.cancel': 'No confiar-hi',
   'admin.plugins.sig.consentUnsigned':
     "Res no vincula aquesta versió amb el seu autor — els fitxers coincideixen amb el registre, però no porten cap signatura de l'autor.",
   'admin.plugins.security.trustTitle': 'En resum',
   'admin.plugins.security.trustBody':
-    "Instal·lar un connector és com instal·lar qualsevol aplicació de tercers: afegeix només codi d'autors en qui confiïs i, en cas de dubte, inspecciona'l tu mateix primer. TREK no assumeix cap responsabilitat pels connectors de tercers.",
+    "Instal·lar un connector és com instal·lar qualsevol aplicació de tercers: afegeix només codi d'autors en qui confiïs i, en cas de dubte, inspecciona'l tu mateix primer. PanelMint no assumeix cap responsabilitat pels connectors de tercers.",
   'admin.plugins.runtimeOn': "Entorn d'execució actiu",
   'admin.plugins.tabDiscover': 'Descobreix',
   'admin.plugins.searchPlaceholder': 'Cerca connectors…',
@@ -629,11 +629,11 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Primer les actualitzacions',
   'admin.plugins.sortDownloads': 'Més baixades',
   'admin.plugins.updatesAvailable': '{count} actualitzacions disponibles per als teus connectors.',
-  'admin.plugins.newerNeedsTrek': 'v{version} disponible — necessita TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'v{version} disponible — necessita PanelMint {range}',
   'admin.plugins.versionsTitle': 'Versions',
   'admin.plugins.versionPickerTitle': 'Canvia la versió — {name}',
   'admin.plugins.versionSwitch': 'Canvia a {version}',
-  'admin.plugins.versionNeedsTrek': 'necessita TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'necessita PanelMint {range}',
   'admin.plugins.changeVersion': 'Canvia la versió…',
   'admin.plugins.noVersions': 'No s\'han trobat versions publicades al registre.',
   'admin.plugins.downgradeTitle': 'Vols revertir aquest connector?',
@@ -697,23 +697,23 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Baixa',
   'admin.plugins.dep.update': 'Actualitza',
   'admin.plugins.dep.resolveHint': 'Baixa la darrera versió compatible, incloses les seves pròpies dependències.',
-  'admin.plugins.dep.trekIncompatible': 'Necessita TREK {range} — aquest servidor executa {host}',
-  'admin.plugins.dep.trekUnknown': 'No indica quines versions de TREK admet',
+  'admin.plugins.dep.trekIncompatible': 'Necessita PanelMint {range} — aquest servidor executa {host}',
+  'admin.plugins.dep.trekUnknown': 'No indica quines versions de PanelMint admet',
   'admin.plugins.installCompatible': 'Instal·la {version}',
   'admin.plugins.installAnyway': 'Instal·la igualment',
   'admin.plugins.rangeBypass.pill': 'Comprovacions de versió desactivades',
   'admin.plugins.rangeBypass.pillHint':
     'TREK_PLUGINS_IGNORE_TREK_RANGE està definit — els connectors es poden instal·lar i executar fora de les versions de TREK declarades pels seus autors',
-  'admin.plugins.rangeBypass.title': 'Fora de les versions de TREK compatibles',
-  'admin.plugins.rangeBypass.noticeTitle': 'Instal·lat fora de les versions de TREK compatibles',
+  'admin.plugins.rangeBypass.title': 'Fora de les versions de PanelMint compatibles',
+  'admin.plugins.rangeBypass.noticeTitle': 'Instal·lat fora de les versions de PanelMint compatibles',
   'admin.plugins.rangeBypass.body':
     '«{name}» declara compatibilitat amb TREK {range}, i aquest servidor executa {host}. TREK el deixa passar només perquè TREK_PLUGINS_IGNORE_TREK_RANGE està definit. L’autor no ha actualitzat el rang de versions del connector per a aquest TREK, així que no hi ha cap garantia que funcioni — i en casos rars un connector incompatible pot corrompre les dades de TREK. Continua només si acceptes aquest risc.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '«{name}» no declara quines versions de TREK admet; aquest servidor executa {host}. TREK el deixa passar només perquè TREK_PLUGINS_IGNORE_TREK_RANGE està definit. Res no indica que l’autor l’hagi provat en aquest TREK, així que no hi ha cap garantia que funcioni — i en casos rars un connector incompatible pot corrompre les dades de TREK. Continua només si acceptes aquest risc.',
   'admin.plugins.dep.trekBypassed':
-    'Fora del seu rang de TREK ({range}) — comprovacions de versió desactivades',
+    'Fora del seu rang de PanelMint ({range}) — comprovacions de versió desactivades',
   'admin.plugins.dep.trekBypassedUnknown':
-    'No declara cap rang de TREK — comprovacions de versió desactivades',
+    'No declara cap rang de PanelMint — comprovacions de versió desactivades',
   'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'A què pot accedir',
   'admin.plugins.connectsTitle': 'Es connecta a',

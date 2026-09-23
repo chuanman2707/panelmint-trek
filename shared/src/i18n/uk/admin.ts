@@ -88,13 +88,13 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Користувачі без 2FA повинні завершити налаштування в розділі «Налаштування» перед використанням програми.',
   'admin.apiKeys': 'API-ключі',
-  'admin.apiKeysHint': "Звідки беруться дані про місця. Покажчику TREK ключ не потрібен; два постачальники нижче необов'язкові.",
+  'admin.apiKeysHint': "Звідки беруться дані про місця. Покажчику PanelMint ключ не потрібен; два постачальники нижче необов'язкові.",
   'admin.trekApi.badgeDefault': 'Рекомендоване джерело',
   'admin.googleCaveat.badge': 'Не рекомендовано',
   'admin.googleCaveat.body':
-    'TREK має відкритий код, і ми тут не нейтральні. У такому масштабі відгуки та світлини звичайних закладів є лише в Google, і це і є монополія. Поле тут через брак альтернативи, а не тому, що ми його радимо. Тоді кожен запит іде до Google.',
+    'PanelMint має відкритий код, і ми тут не нейтральні. У такому масштабі відгуки та світлини звичайних закладів є лише в Google, і це і є монополія. Поле тут через брак альтернативи, а не тому, що ми його радимо. Тоді кожен запит іде до Google.',
   'admin.trekApi.tagline':
-    'Власний покажчик місць TREK. Пошук без ключа Google, без квоти й без того, щоб хтось рахував ваші запити.',
+    'Власний покажчик місць PanelMint. Пошук без ключа Google, без квоти й без того, щоб хтось рахував ваші запити.',
   'admin.trekApi.factPlaces':
     '73,6 мільйона місць у світі',
   'admin.trekApi.factNoKey':
@@ -139,12 +139,12 @@ const admin: TranslationStrings = {
     'Для пошуку місць у континентальному Китаї, де Google недоступний, а даних OpenStreetMap обмаль. Потрібен ключ типу «Web 服务» (вебсервіс), а не ключ JS API. Отримати можна на console.amap.com.',
   'admin.placesProvider.title': 'Постачальник пошуку місць',
   'admin.placesProvider.subtitle':
-    'Власний індекс TREK і OpenStreetMap відповідають на кожен пошук. Тут обирається, кого запитати додатково, якщо вони нічого не знайшли: «Автоматично» надає перевагу Google за наявності ключа, потім Amap.',
+    'Власний індекс PanelMint і OpenStreetMap відповідають на кожен пошук. Тут обирається, кого запитати додатково, якщо вони нічого не знайшли: «Автоматично» надає перевагу Google за наявності ключа, потім Amap.',
   'admin.placesProvider.auto': 'Автоматично',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Для обраного постачальника не задано ключ API, тому на пошук місць відповідають лише індекс TREK і OpenStreetMap.',
+  'admin.placesProvider.missingKey': 'Для обраного постачальника не задано ключ API, тому на пошук місць відповідають лише індекс PanelMint і OpenStreetMap.',
   'admin.placesProvider.saved': 'Постачальника пошуку місць збережено',
   'admin.validateKey': 'Перевірити',
   'admin.keyValid': 'Підключено',
@@ -178,8 +178,8 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Показує зображення та опис під час додавання місця. Wikipedia та OpenStreetMap використовуються завжди; Google додається, якщо ввімкнено «Фото місць» або «Деталі місць».',
   'admin.placesGoogleOnly.title': 'Шукати лише через Google',
-  'admin.placesGoogleOnly.subtitle': 'Кожен пошук і кожна підказка йдуть до Google Places. Вимкнено: спершу відповідають індекс TREK та OpenStreetMap, Google запитується лише тоді, коли вони нічого не знайшли.',
-  'admin.placesGoogleOnly.missingKey': 'Потрібен ключ Google Maps API. Без нього пошук іде через індекс TREK та OpenStreetMap незалежно від цього перемикача.',
+  'admin.placesGoogleOnly.subtitle': 'Кожен пошук і кожна підказка йдуть до Google Places. Вимкнено: спершу відповідають індекс PanelMint та OpenStreetMap, Google запитується лише тоді, коли вони нічого не знайшли.',
+  'admin.placesGoogleOnly.missingKey': 'Потрібен ключ Google Maps API. Без нього пошук іде через індекс PanelMint та OpenStreetMap незалежно від цього перемикача.',
   'admin.placesGoogleOnly.otherProvider': 'Потрібен Google як постачальник місць. Якщо вибрано Amap або OpenStreetMap, жоден пошук не йде до Google, хай як стоїть цей перемикач.',
   'admin.transitProvider.title': 'Постачальник громадського транспорту',
   'admin.transitProvider.subtitle': 'Яка служба відповідає на пошук громадського транспорту.',
@@ -313,7 +313,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Репозиторій вихідного коду',
   'admin.plugins.reportIssue': 'Повідомити про проблему',
   'admin.plugins.homepage': 'Домашня сторінка',
-  'admin.plugins.requiresTrek': 'Потрібен TREK {version}+',
+  'admin.plugins.requiresTrek': 'Потрібен PanelMint {version}+',
   'admin.plugins.reviewedOn': 'Перевірено {date}',
   'admin.plugins.perm.db:own': 'Зберігати власні дані в ізольованій базі даних',
   'admin.plugins.perm.db:read:trips': 'Читати подорожі, до яких має доступ поточний користувач',
@@ -383,7 +383,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Надавати події для календаря',
   'admin.plugins.perm.hook:place-detail-provider': 'Додавати додаткові деталі (відгуки, оцінки, посилання) до місця',
   'admin.plugins.perm.hook:search-provider':
-    'Відповідати на пошук місць із власного індексу, поряд із результатами TREK',
+    'Відповідати на пошук місць із власного індексу, поряд із результатами PanelMint',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Створювати попередження перевірки для подорожі (показуються в планувальнику)',
   'admin.plugins.perm.hook:table-contributor': 'Додавати стовпці та дії до подань подорожі (бронювання, місця, дні)',
@@ -402,7 +402,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     'Публікувати інструменти, які ШІ-асистент може запускати від вашого імені (він діє з правами, наданими плаґіну тут, а не зі своїми)',
   'admin.plugins.perm.geolocation:read':
-    'Запитувати ваше місцезнаходження в реальному часі, поки відкрито одне з його подань (TREK зчитує його з дозволом на геолокацію для цього сайту, а не з окремим дозволом розширення)',
+    'Запитувати ваше місцезнаходження в реальному часі, поки відкрито одне з його подань (PanelMint зчитує його з дозволом на геолокацію для цього сайту, а не з окремим дозволом розширення)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Додавати текстові розділи до PDF-експорту подорожі',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Виділяти країни на карті світу в Атласі (наприклад, списки бажань або попередження для мандрівників)',
@@ -431,26 +431,26 @@ const admin: TranslationStrings = {
   'admin.plugins.updateLater': 'Поки що залишити вимкненим',
   'admin.plugins.updateKeptOff': 'Оновлення встановлено — залишено вимкненим, доки ви не схвалите нові дозволи',
   'admin.plugins.reviewedMeaning':
-    '«Перевірено» означає, що супроводжувач TREK перевіряв цей плагін на наявність шкідливого коду в кожній версії — а не на якість чи працездатність. Це не гарантія того, що плагін безпечний.',
+    '«Перевірено» означає, що супроводжувач PanelMint перевіряв цей плагін на наявність шкідливого коду в кожній версії — а не на якість чи працездатність. Це не гарантія того, що плагін безпечний.',
   'admin.plugins.security.title': 'Як обмежуються плагіни — і де їхні межі',
   'admin.plugins.security.isolationTitle': 'Кожен плагін працює в ізоляції',
   'admin.plugins.security.isolationBody':
-    'Плагін працює як власний ізольований процес, який може читати лише свої власні файли. Він не може читати вашу базу даних, ваш секрет входу чи ваш ключ шифрування, не може запускати інші програми та не може записувати файли будь-де. Його інтерфейс працює в ізольованому фреймі браузера, який не може читати ваш файл cookie сеансу чи торкатися сторінки TREK навколо нього.',
+    'Плагін працює як власний ізольований процес, який може читати лише свої власні файли. Він не може читати вашу базу даних, ваш секрет входу чи ваш ключ шифрування, не може запускати інші програми та не може записувати файли будь-де. Його інтерфейс працює в ізольованому фреймі браузера, який не може читати ваш файл cookie сеансу чи торкатися сторінки PanelMint навколо нього.',
   'admin.plugins.security.permsTitle': 'Що означають дозволи',
   'admin.plugins.security.permsBody':
-    'Дозволи, показані перед встановленням, — це жорстке обмеження, яке TREK застосовує під час роботи плагіна: він буквально не може зробити нічого, чого немає у списку. Але вони говорять, що плагін може робити, а не що він насправді робить. Плагін, якому дозволено читати ваші подорожі та звертатися до сервера, може надіслати ваші подорожі на цей сервер, тож читайте дозволи та вихідні хости, а не лише опис.',
+    'Дозволи, показані перед встановленням, — це жорстке обмеження, яке PanelMint застосовує під час роботи плагіна: він буквально не може зробити нічого, чого немає у списку. Але вони говорять, що плагін може робити, а не що він насправді робить. Плагін, якому дозволено читати ваші подорожі та звертатися до сервера, може надіслати ваші подорожі на цей сервер, тож читайте дозволи та вихідні хости, а не лише опис.',
   'admin.plugins.security.limitsTitle': 'Чого ми не можемо обіцяти',
   'admin.plugins.security.limitsBody':
-    'Ізоляція — це надійна програмна межа, але не абсолютна. Плагін діє рівно з тими правами, які ви схвалили, тож у межах цих прав він може поводитися інакше, ніж описано, і може надсилати дані, якими законно володіє, на заявлені ним хости. TREK не читає й не оцінює, що насправді робить код плагіна.',
+    'Ізоляція — це надійна програмна межа, але не абсолютна. Плагін діє рівно з тими правами, які ви схвалили, тож у межах цих прав він може поводитися інакше, ніж описано, і може надсилати дані, якими законно володіє, на заявлені ним хости. PanelMint не читає й не оцінює, що насправді робить код плагіна.',
   'admin.plugins.security.worstTitle': 'Найгірший випадок',
   'admin.plugins.security.worstBody':
     'Шкідливий плагін, який ви увімкнули, може зловживати даними та підключеннями, які ви йому надали, — наприклад, розкрити подорожі, які йому дозволено читати. Він не може викрасти паролі, підробити вхід адміністратора, виконувати команди на вашому сервері чи отримати доступ до даних, яких ви не надали. Шкода залишається в межах того, що ви схвалили, а вимкнення плагіна зупиняє її.',
   'admin.plugins.security.reviewedTitle': 'Що означає «Перевірено»',
   'admin.plugins.security.reviewedBody':
-    'Перевірений плагін вручну сканував супроводжувач TREK на наявність шкідливого коду в кожній версії — перевіряли на ворожий код, а не на те, чи добре він працює. Це не обіцянка, що плагін безпечний.',
+    'Перевірений плагін вручну сканував супроводжувач PanelMint на наявність шкідливого коду в кожній версії — перевіряли на ворожий код, а не на те, чи добре він працює. Це не обіцянка, що плагін безпечний.',
   'admin.plugins.security.signedTitle': 'Що означає «Підписано»',
   'admin.plugins.security.signedBody':
-    'Контрольна сума, яку TREK перевіряє під час кожного встановлення, доводить, що файли — це саме те, за що ручається реєстр. Підпис доводить інше: що вони походять від автора й підписані ключем, який є лише в нього. Підписаний плагін має і те, і те. Плагін без підпису не є небезпечним — він просто дає на одну гарантію менше, і сьогодні більшість плагінів у реєстрі не підписані.',
+    'Контрольна сума, яку PanelMint перевіряє під час кожного встановлення, доводить, що файли — це саме те, за що ручається реєстр. Підпис доводить інше: що вони походять від автора й підписані ключем, який є лише в нього. Підписаний плагін має і те, і те. Плагін без підпису не є небезпечним — він просто дає на одну гарантію менше, і сьогодні більшість плагінів у реєстрі не підписані.',
   'admin.plugins.signed': 'Підписано',
   'admin.plugins.signedHint': 'Під час встановлення перевірено за ключем підпису автора',
   'admin.plugins.unsigned': 'Без підпису',
@@ -465,20 +465,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     'Файли не відповідають підпису автора. Це не те, що підписав автор — їх або пошкоджено, або підмінено. Це не можна обійти.',
   'admin.plugins.sig.missingBody':
-    'Цей плагін був підписаний, коли ви його встановлювали, але нова версія не має підпису. TREK не прийме таке пониження мовчки. Це не можна обійти.',
+    'Цей плагін був підписаний, коли ви його встановлювали, але нова версія не має підпису. PanelMint не прийме таке пониження мовчки. Це не можна обійти.',
   'admin.plugins.sig.incompleteBody':
     'Запис у реєстрі підписаний наполовину: він оголошує ключ автора, але версія не має підпису (або навпаки). Це помилка на боці плагіна. Це не можна обійти.',
   'admin.plugins.sig.pinnedKey': 'Ключ, з яким його встановлено',
   'admin.plugins.sig.newKey': 'Ключ, який він пропонує зараз',
   'admin.plugins.sig.confirmOutOfBand':
-    'TREK не може відрізнити законну зміну ключа від захоплення — звідси вони виглядають однаково. Перш ніж прийняти новий ключ, підтвердьте його в автора через канал, якому ви вже довіряєте. Щойно ви це зробите, плагін буде оновлено, а новий ключ — збережено.',
+    'PanelMint не може відрізнити законну зміну ключа від захоплення — звідси вони виглядають однаково. Перш ніж прийняти новий ключ, підтвердьте його в автора через канал, якому ви вже довіряєте. Щойно ви це зробите, плагін буде оновлено, а новий ключ — збережено.',
   'admin.plugins.sig.retrustConfirm': 'Довіряти новому ключу й оновити',
   'admin.plugins.sig.cancel': 'Не довіряти',
   'admin.plugins.sig.consentUnsigned':
     "Ніщо не пов'язує цю версію з її автором — файли збігаються з реєстром, але не мають підпису автора.",
   'admin.plugins.security.trustTitle': 'Підсумок',
   'admin.plugins.security.trustBody':
-    'Встановлення плагіна — це те саме, що встановлення будь-якого стороннього застосунку: додавайте лише код від авторів, яким довіряєте, а в разі сумнівів спершу перевірте його самостійно. TREK не несе відповідальності за сторонні плагіни.',
+    'Встановлення плагіна — це те саме, що встановлення будь-якого стороннього застосунку: додавайте лише код від авторів, яким довіряєте, а в разі сумнівів спершу перевірте його самостійно. PanelMint не несе відповідальності за сторонні плагіни.',
   'admin.plugins.runtimeOn': 'Середовище виконання ввімкнено',
   'admin.plugins.tabDiscover': 'Огляд',
   'admin.plugins.searchPlaceholder': 'Пошук плагінів…',
@@ -494,11 +494,11 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Спочатку оновлення',
   'admin.plugins.sortDownloads': 'За завантаженнями',
   'admin.plugins.updatesAvailable': 'Для ваших плагінів доступно оновлень: {count}.',
-  'admin.plugins.newerNeedsTrek': 'Доступна v{version} — потрібен TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'Доступна v{version} — потрібен PanelMint {range}',
   'admin.plugins.versionsTitle': 'Версії',
   'admin.plugins.versionPickerTitle': 'Змінити версію — {name}',
   'admin.plugins.versionSwitch': 'Перейти на {version}',
-  'admin.plugins.versionNeedsTrek': 'потрібен TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'потрібен PanelMint {range}',
   'admin.plugins.changeVersion': 'Змінити версію…',
   'admin.plugins.noVersions': 'У реєстрі не знайдено опублікованих версій.',
   'admin.plugins.downgradeTitle': 'Відкотити цей плагін?',
@@ -561,22 +561,22 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Завантажити',
   'admin.plugins.dep.update': 'Оновити',
   'admin.plugins.dep.resolveHint': 'Завантажує останню сумісну версію разом з її залежностями.',
-  'admin.plugins.dep.trekIncompatible': 'Потрібен TREK {range} — на цьому сервері {host}',
-  'admin.plugins.dep.trekUnknown': 'Не вказано, які версії TREK підтримуються',
+  'admin.plugins.dep.trekIncompatible': 'Потрібен PanelMint {range} — на цьому сервері {host}',
+  'admin.plugins.dep.trekUnknown': 'Не вказано, які версії PanelMint підтримуються',
   'admin.plugins.installCompatible': 'Встановити {version}',
   'admin.plugins.installAnyway': 'Усе одно встановити',
   'admin.plugins.rangeBypass.pill': 'Перевірки версії вимкнено',
   'admin.plugins.rangeBypass.pillHint':
     'Задано TREK_PLUGINS_IGNORE_TREK_RANGE — плагіни можна встановлювати та запускати поза версіями TREK, вказаними їхніми авторами',
-  'admin.plugins.rangeBypass.title': 'Поза підтримуваними версіями TREK',
-  'admin.plugins.rangeBypass.noticeTitle': 'Встановлено поза підтримуваними версіями TREK',
+  'admin.plugins.rangeBypass.title': 'Поза підтримуваними версіями PanelMint',
+  'admin.plugins.rangeBypass.noticeTitle': 'Встановлено поза підтримуваними версіями PanelMint',
   'admin.plugins.rangeBypass.body':
     '«{name}» заявляє підтримку TREK {range}, а цей сервер працює на {host}. TREK пропускає його лише тому, що задано TREK_PLUGINS_IGNORE_TREK_RANGE. Автор не оновив діапазон версій плагіна для цього TREK, тож працездатність не гарантується — а в рідкісних випадках несумісний плагін може пошкодити дані TREK. Продовжуйте, лише якщо приймаєте цей ризик.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '«{name}» не вказує, які версії TREK він підтримує; цей сервер працює на {host}. TREK пропускає його лише тому, що задано TREK_PLUGINS_IGNORE_TREK_RANGE. Ніщо не свідчить, що автор тестував його на цьому TREK, тож працездатність не гарантується — а в рідкісних випадках несумісний плагін може пошкодити дані TREK. Продовжуйте, лише якщо приймаєте цей ризик.',
   'admin.plugins.dep.trekBypassed':
-    'Поза своїм діапазоном TREK ({range}) — перевірки версії вимкнено',
-  'admin.plugins.dep.trekBypassedUnknown': 'Діапазон TREK не вказано — перевірки версії вимкнено',
+    'Поза своїм діапазоном PanelMint ({range}) — перевірки версії вимкнено',
+  'admin.plugins.dep.trekBypassedUnknown': 'Діапазон PanelMint не вказано — перевірки версії вимкнено',
   'admin.plugins.incompatible': 'Несумісно',
   'admin.plugins.accessTitle': 'До чого має доступ',
   'admin.plugins.connectsTitle': 'Підключається до',
@@ -588,7 +588,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Перевірено',
   'admin.plugins.downloads': 'Завантаження',
   'admin.addons.title': 'Доповнення',
-  'admin.addons.subtitle': 'Увімкніть або вимкніть функції, щоб налаштувати TREK під себе.',
+  'admin.addons.subtitle': 'Увімкніть або вимкніть функції, щоб налаштувати PanelMint під себе.',
   'admin.addons.catalog.memories.name': 'Фото (Immich)',
   'admin.addons.catalog.memories.description': 'Діліться фотографіями з подорожей через Immich',
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -633,7 +633,7 @@ const admin: TranslationStrings = {
   'admin.weather.title': 'Дані про погоду',
   'admin.weather.badge': 'З 24 березня 2026',
   'admin.weather.description':
-    'TREK використовує Open-Meteo як джерело даних про погоду. Open-Meteo — безкоштовний сервіс з відкритим кодом, API-ключ не потрібен.',
+    'PanelMint використовує Open-Meteo як джерело даних про погоду. Open-Meteo — безкоштовний сервіс з відкритим кодом, API-ключ не потрібен.',
   'admin.weather.forecast': 'Прогноз на 16 днів',
   'admin.weather.forecastDesc': 'Раніше 5 днів (OpenWeatherMap)',
   'admin.weather.climate': 'Історичні кліматичні дані',
@@ -689,15 +689,15 @@ const admin: TranslationStrings = {
   'admin.github.hideDetails': 'Сховати деталі',
   'admin.github.loadMore': 'Завантажити ще',
   'admin.github.loading': 'Завантаження...',
-  'admin.github.support': 'Допомагає продовжувати розробку TREK',
+  'admin.github.support': 'Допомагає продовжувати розробку PanelMint',
   'admin.github.error': 'Не вдалося завантажити релізи',
   'admin.github.by': 'від',
   'admin.update.available': 'Доступне оновлення',
-  'admin.update.text': 'Доступна версія TREK {version}. У вас встановлено {current}.',
+  'admin.update.text': 'Доступна версія PanelMint {version}. У вас встановлено {current}.',
   'admin.update.button': 'Переглянути на GitHub',
   'admin.update.install': 'Встановити оновлення',
   'admin.update.confirmTitle': 'Встановити оновлення?',
-  'admin.update.confirmText': 'TREK буде оновлено з {current} до {version}. Сервер перезапуститься автоматично.',
+  'admin.update.confirmText': 'PanelMint буде оновлено з {current} до {version}. Сервер перезапуститься автоматично.',
   'admin.update.dataInfo':
     'Усі ваші дані (поїздки, користувачі, API-ключі, завантаження, Vacay, Atlas, бюджети) будуть збережені.',
   'admin.update.warning': 'Застосунок буде тимчасово недоступний під час перезапуску.',
@@ -709,9 +709,9 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Перейти до резервних копій',
   'admin.update.howTo': 'Як оновити',
   'admin.update.dockerText':
-    'Ваш екземпляр TREK працює в Docker. Для оновлення до {version} виконайте ці команди на сервері:',
+    'Ваш екземпляр PanelMint працює в Docker. Для оновлення до {version} виконайте ці команди на сервері:',
   'admin.update.nonDockerText':
-    'Цей екземпляр TREK не працює в Docker. Щоб оновити до {version}, повторно запустіть метод встановлення або оновлення, який ви використовували, — наприклад, у Proxmox Community Scripts запустіть оновлення з консолі LXC:',
+    'Цей екземпляр PanelMint не працює в Docker. Щоб оновити до {version}, повторно запустіть метод встановлення або оновлення, який ви використовували, — наприклад, у Proxmox Community Scripts запустіть оновлення з консолі LXC:',
   'admin.update.wikiLink': 'Відкрити інструкцію з оновлення',
   'admin.update.reloadHint': 'Перезавантажте сторінку через кілька секунд.',
   'admin.tabs.permissions': 'Дозволи',

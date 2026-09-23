@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'Connecta la teva pròpia instància de Dawarich per veure on has estat realment. TREK la llegeix i et proposa entrades de diari, llocs i països — no s’hi afegeix res fins que ho confirmes, i no s’escriu res de tornada a Dawarich.',
+    'Connecta la teva pròpia instància de Dawarich per veure on has estat realment. PanelMint la llegeix i et proposa entrades de diari, llocs i països — no s’hi afegeix res fins que ho confirmes, i no s’escriu res de tornada a Dawarich.',
   'dawarich.url': 'Adreça de la instància',
   'dawarich.apiKey': 'Clau API',
   'dawarich.apiKeyPlaceholder': 'Enganxa la teva clau API de Dawarich',
@@ -13,7 +13,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTlsHint':
     'Només cal si la teva instància fa servir un certificat en què el teu servidor no confia.',
   'dawarich.syncEnabled': 'Comprova automàticament si hi ha estades noves',
-  'dawarich.syncEnabledHint': 'Desactivat vol dir que TREK només llegeix Dawarich quan tu l’hi demanes.',
+  'dawarich.syncEnabledHint': 'Desactivat vol dir que PanelMint només llegeix Dawarich quan tu l’hi demanes.',
   'dawarich.test.button': 'Prova la connexió',
   'dawarich.test.success': 'Connectat. S’han trobat {count} estades en els darrers 30 dies.',
   'dawarich.test.failed': 'No s’ha pogut contactar amb Dawarich.',
@@ -46,18 +46,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'Aquesta versió de Dawarich no ofereix: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'TREK no ha pogut contactar amb aquesta adreça.',
+  'dawarich.error.unreachable': 'PanelMint no ha pogut contactar amb aquesta adreça.',
   'dawarich.error.unauthorized': 'Dawarich ha rebutjat la clau API.',
   'dawarich.error.forbidden': 'Aquesta clau API no té permís per llegir això.',
   'dawarich.error.not_found': 'Aquesta versió de Dawarich no té aquest punt final.',
-  'dawarich.error.rate_limited': 'Dawarich ha demanat a TREK que vagi més a poc a poc. Torna-ho a provar d’aquí a poc.',
+  'dawarich.error.rate_limited': 'Dawarich ha demanat a PanelMint que vagi més a poc a poc. Torna-ho a provar d’aquí a poc.',
   'dawarich.error.server_error': 'Dawarich ha respost amb un error.',
   'dawarich.error.invalid_response': 'Aquesta adreça ha respost amb una cosa que no és Dawarich.',
-  'dawarich.error.too_large': 'Dawarich ha enviat més dades de les que TREK llegeix de cop.',
+  'dawarich.error.too_large': 'Dawarich ha enviat més dades de les que PanelMint llegeix de cop.',
   'dawarich.error.not_connected': 'Encara no hi ha cap instància de Dawarich connectada.',
   'dawarich.error.addon_disabled': 'El complement Dawarich està desactivat en aquesta instància.',
-  'dawarich.error.offline': 'Això necessita connexió: TREK ara és fora de línia.',
-  'dawarich.error.invalid_url': 'TREK no pot fer servir aquesta adreça.',
+  'dawarich.error.offline': 'Això necessita connexió: PanelMint ara és fora de línia.',
+  'dawarich.error.invalid_url': 'PanelMint no pot fer servir aquesta adreça.',
   'dawarich.warning.private_ip': 'Aquesta adreça apunta a una IP privada ({ip}). Comprova que és el que volies: el servidor pot necessitar ALLOW_INTERNAL_NETWORK=true per arribar-hi.',
   'dawarich.error.unknown': 'Alguna cosa ha anat malament en parlar amb Dawarich.',
 
@@ -97,9 +97,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'Al diari',
   'dawarich.suggestions.acceptedAs.bucket_list': 'Desig marcat',
   'dawarich.suggestions.sourceChanged':
-    'Aquesta estada ha canviat a Dawarich des que la vas fer servir. El que has escrit a TREK no s’ha tocat.',
+    'Aquesta estada ha canviat a Dawarich des que la vas fer servir. El que has escrit a PanelMint no s’ha tocat.',
   'dawarich.suggestions.sourceMissing':
-    'Aquesta estada ja no existeix a Dawarich. El que has escrit a TREK no s’ha tocat.',
+    'Aquesta estada ja no existeix a Dawarich. El que has escrit a PanelMint no s’ha tocat.',
   'dawarich.sourceStatus.suggested': 'Detectat, sense confirmar',
   'dawarich.confidence.high': 'Detecció segura',
   'dawarich.confidence.medium': 'Detecció força segura',
@@ -154,12 +154,12 @@ const dawarich: TranslationStrings = {
     'Països on els teus enregistraments diuen que has estat. Confirma els que vulguis al teu Atles — no s’hi afegeix res tot sol, i el que has marcat a mà continua sent teu.',
   'dawarich.atlas.load': 'Busca països',
   'dawarich.atlas.loading': 'S’estan llegint els teus enregistraments…',
-  'dawarich.atlas.empty': 'Els teus enregistraments no mostren cap país que TREK no tingui ja.',
+  'dawarich.atlas.empty': 'Els teus enregistraments no mostren cap país que PanelMint no tingui ja.',
   'dawarich.atlas.cities': '{count} ciutats',
   'dawarich.atlas.citiesOne': '1 ciutat',
   'dawarich.atlas.accept': 'Afegeix {count} països',
   'dawarich.atlas.accepted': '{count} països afegits',
-  'dawarich.atlas.unresolved': 'TREK no ha pogut associar això a cap país: {names}.',
+  'dawarich.atlas.unresolved': 'PanelMint no ha pogut associar això a cap país: {names}.',
   'dawarich.atlas.source': 'Des de Dawarich',
   'dawarich.atlas.range': 'S’ha mirat de {from} a {to}',
 

@@ -224,7 +224,7 @@ describe('AuthController (authenticated)', () => {
   it('avatar 403 in demo mode, 400 without a file, else saves', async () => {
     process.env.DEMO_MODE = 'true';
     vi.mocked(isDemoEmail).mockReturnValue(true);
-    expect(await thrownAsync(() => ac(asvc(), rl()).avatar(user, { filename: 'a.jpg' } as Express.Multer.File))).toEqual({ status: 403, body: { error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' } });
+    expect(await thrownAsync(() => ac(asvc(), rl()).avatar(user, { filename: 'a.jpg' } as Express.Multer.File))).toEqual({ status: 403, body: { error: 'Uploads are disabled in demo mode. Self-host PanelMint for full functionality.' } });
     vi.mocked(isDemoEmail).mockReturnValue(false);
     delete process.env.DEMO_MODE;
     expect(await thrownAsync(() => ac(asvc(), rl()).avatar(user, undefined))).toEqual({ status: 400, body: { error: 'No image uploaded' } });

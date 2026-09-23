@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'Gerçekte nerelere gittiğinizi görmek için kendi Dawarich sunucunuzu bağlayın. TREK bu kayıtları okur ve günlük kayıtları, yerler ve ülkeler önerir — siz onaylamadan hiçbir şey eklenmez ve Dawarich’e hiçbir şey geri yazılmaz.',
+    'Gerçekte nerelere gittiğinizi görmek için kendi Dawarich sunucunuzu bağlayın. PanelMint bu kayıtları okur ve günlük kayıtları, yerler ve ülkeler önerir — siz onaylamadan hiçbir şey eklenmez ve Dawarich’e hiçbir şey geri yazılmaz.',
   'dawarich.url': 'Sunucu adresi',
   'dawarich.apiKey': 'API anahtarı',
   'dawarich.apiKeyPlaceholder': 'Dawarich API anahtarınızı yapıştırın',
@@ -14,7 +14,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTlsHint':
     'Yalnızca sunucunuzun güvenmediği bir sertifika kullanan bir örnek için gerekir.',
   'dawarich.syncEnabled': 'Yeni konaklamaları otomatik olarak denetle',
-  'dawarich.syncEnabledHint': 'Kapalıyken TREK, Dawarich’i yalnızca siz istediğinizde okur.',
+  'dawarich.syncEnabledHint': 'Kapalıyken PanelMint, Dawarich’i yalnızca siz istediğinizde okur.',
   'dawarich.test.button': 'Bağlantıyı test et',
   'dawarich.test.success': 'Bağlandı. Son 30 günde {count} konaklama bulundu.',
   'dawarich.test.failed': 'Dawarich’e ulaşılamadı.',
@@ -47,18 +47,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'Bu Dawarich sürümü şunları sunmuyor: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'TREK bu adrese ulaşamadı.',
+  'dawarich.error.unreachable': 'PanelMint bu adrese ulaşamadı.',
   'dawarich.error.unauthorized': 'Dawarich API anahtarını reddetti.',
   'dawarich.error.forbidden': 'Bu API anahtarının bunu okuma izni yok.',
   'dawarich.error.not_found': 'Bu Dawarich sürümünde böyle bir uç nokta yok.',
-  'dawarich.error.rate_limited': 'Dawarich, TREK’ten yavaşlamasını istedi. Birazdan yeniden deneyin.',
+  'dawarich.error.rate_limited': 'Dawarich, PanelMint’ten yavaşlamasını istedi. Birazdan yeniden deneyin.',
   'dawarich.error.server_error': 'Dawarich bir hatayla yanıt verdi.',
   'dawarich.error.invalid_response': 'Bu adres, Dawarich olmayan bir şeyle yanıt verdi.',
-  'dawarich.error.too_large': 'Dawarich, TREK’in bir kerede okuyacağından daha fazla veri gönderdi.',
+  'dawarich.error.too_large': 'Dawarich, PanelMint’in bir kerede okuyacağından daha fazla veri gönderdi.',
   'dawarich.error.not_connected': 'Henüz bağlı bir Dawarich sunucusu yok.',
   'dawarich.error.addon_disabled': 'Dawarich eklentisi bu örnek için kapalı.',
-  'dawarich.error.offline': 'Bunun için bağlantı gerekiyor — TREK şu anda çevrimdışı.',
-  'dawarich.error.invalid_url': 'TREK bu adresi kullanamıyor.',
+  'dawarich.error.offline': 'Bunun için bağlantı gerekiyor — PanelMint şu anda çevrimdışı.',
+  'dawarich.error.invalid_url': 'PanelMint bu adresi kullanamıyor.',
   'dawarich.warning.private_ip': 'Bu adres özel bir IP’ye çıkıyor ({ip}). Böyle olmasını istediğinden emin ol — sunucunun buna erişmesi için ALLOW_INTERNAL_NETWORK=true gerekebilir.',
   'dawarich.error.unknown': 'Dawarich ile iletişimde bir şeyler ters gitti.',
 
@@ -99,9 +99,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'Günlükte',
   'dawarich.suggestions.acceptedAs.bucket_list': 'Dilek işaretlendi',
   'dawarich.suggestions.sourceChanged':
-    'Bu konaklama, siz kullandıktan sonra Dawarich’te değişti. TREK’te yazdıklarınıza dokunulmadı.',
+    'Bu konaklama, siz kullandıktan sonra Dawarich’te değişti. PanelMint’te yazdıklarınıza dokunulmadı.',
   'dawarich.suggestions.sourceMissing':
-    'Bu konaklama artık Dawarich’te yok. TREK’te yazdıklarınıza dokunulmadı.',
+    'Bu konaklama artık Dawarich’te yok. PanelMint’te yazdıklarınıza dokunulmadı.',
   'dawarich.sourceStatus.suggested': 'Algılandı, onaylanmadı',
   'dawarich.confidence.high': 'Kesine yakın algılama',
   'dawarich.confidence.medium': 'Oldukça güvenilir algılama',
@@ -156,12 +156,12 @@ const dawarich: TranslationStrings = {
     'Kayıtlarınıza göre bulunduğunuz ülkeler. Atlas’ınızda görmek istediklerinizi onaylayın — hiçbir şey kendiliğinden eklenmez ve elle işaretlediğiniz her şey size ait kalır.',
   'dawarich.atlas.load': 'Ülkeleri ara',
   'dawarich.atlas.loading': 'Kayıtlarınız okunuyor…',
-  'dawarich.atlas.empty': 'Kayıtlarınız, TREK’te halihazırda olmayan bir ülke göstermiyor.',
+  'dawarich.atlas.empty': 'Kayıtlarınız, PanelMint’te halihazırda olmayan bir ülke göstermiyor.',
   'dawarich.atlas.cities': '{count} şehir',
   'dawarich.atlas.citiesOne': '1 şehir',
   'dawarich.atlas.accept': '{count} ülke ekle',
   'dawarich.atlas.accepted': '{count} ülke eklendi',
-  'dawarich.atlas.unresolved': 'TREK bunları bir ülkeyle eşleştiremedi: {names}.',
+  'dawarich.atlas.unresolved': 'PanelMint bunları bir ülkeyle eşleştiremedi: {names}.',
   'dawarich.atlas.source': 'Dawarich’ten',
   'dawarich.atlas.range': '{from} ile {to} arası incelendi',
 

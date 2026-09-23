@@ -33,7 +33,7 @@ export const DEFAULTABLE_USER_SETTING_KEYS = [
   /**
    * Base URL of the routing engine, when the instance runs its own (#1797).
    *
-   * Empty means the public OSRM hosts TREK ships with, which allow roughly one request a
+   * Empty means the public OSRM hosts PanelMint ships with, which allow roughly one request a
    * second — enough for a day plan, not for a road trip that routes every leg of every
    * day, and they answer nothing beyond plain routing. Defaultable rather than per-user
    * because a routing engine is a property of the deployment, not a taste.

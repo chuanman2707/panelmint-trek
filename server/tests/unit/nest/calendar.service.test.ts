@@ -658,7 +658,7 @@ describe('exportICS', () => {
 
     const { ics, filename } = svc.exportICS(trip.id);
 
-    expect(ics).toContain('X-WR-CALNAME:TREK Trip');
+    expect(ics).toContain('X-WR-CALNAME:PanelMint Trip');
     expect(ics).toContain('SUMMARY:Trip');
     expect(filename).toBe('trek-trip.ics');
   });
@@ -1689,7 +1689,7 @@ describe('serialised output', () => {
     expect(ics).toMatchInlineSnapshot(`
       "BEGIN:VCALENDAR
       VERSION:2.0
-      PRODID:-//TREK//Travel Planner//EN
+      PRODID:-//PanelMint//Trip Planner//EN
       CALSCALE:GREGORIAN
       METHOD:PUBLISH
       X-WR-CALNAME:Golden Trip

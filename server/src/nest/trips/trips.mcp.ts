@@ -341,7 +341,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'add_trip_member',
-    description: 'Add a user to a trip by their username or email address. Needs the member_manage permission, which by default only the trip owner holds. Use create_trip_guest instead for a companion who has no TREK account.',
+    description: 'Add a user to a trip by their username or email address. Needs the member_manage permission, which by default only the trip owner holds. Use create_trip_guest instead for a companion who has no PanelMint account.',
     inputSchema: {
       tripId: z.number().int().positive(),
       identifier: z.string().min(1).describe('Username or email of the user to add'),
@@ -425,7 +425,7 @@ export class TripsMcp {
 
   @Tool({
     name: 'create_trip_guest',
-    description: 'Add a travelling companion who has no TREK account to a trip. Use this when the person cannot be found by username or email. A guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
+    description: 'Add a travelling companion who has no PanelMint account to a trip. Use this when the person cannot be found by username or email. A guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
     inputSchema: {
       tripId: z.number().int().positive(),
       name: z.string().min(1).max(50).describe('Display name of the guest, e.g. "Anna"'),

@@ -2,7 +2,7 @@ import { HttpException } from '@nestjs/common';
 import { createZodValidationPipe } from 'nestjs-zod';
 
 /**
- * TREK's Zod validation pipe, built on nestjs-zod so it works in BOTH modes:
+ * PanelMint's Zod validation pipe, built on nestjs-zod so it works in BOTH modes:
  *
  *  - **Global** (`APP_PIPE` in AppModule): validates every parameter whose
  *    metatype is a `createZodDto(...)` class (the `<domain>.dto.ts` wrappers
@@ -13,7 +13,7 @@ import { createZodValidationPipe } from 'nestjs-zod';
  *  - **Per-parameter** (`@Body(new ZodValidationPipe(schema))`): still accepts
  *    an explicit schema/DTO for one-off cases.
  *
- * On failure it throws TREK's error envelope `{ error: string }` with status
+ * On failure it throws PanelMint's error envelope `{ error: string }` with status
  * 400 — the same shape the legacy routes produce (`field: message; ...`,
  * root-level issues labeled `body`), so the client's error handling and the
  * pinned test assertions are unaffected by the nestjs-zod migration.

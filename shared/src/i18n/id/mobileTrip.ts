@@ -51,7 +51,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtDesktopNote':
     'Data ini diatur di desktop, di sana kamu juga bisa membandingkan rute alternatif dan membuat satu hari mengikuti jalur yang diimpor.',
   'mobileTrip.rtPlanOnDesktop':
-    'Perencanaan dilakukan di desktop. TREK menghitung perjalanannya begitu satu hari punya dua tempat.',
+    'Perencanaan dilakukan di desktop. PanelMint menghitung perjalanannya begitu satu hari punya dua tempat.',
   'mobileTrip.rtSearchOffline': 'Perlu koneksi: pencarian membaca rute di depan.',
   'mobileTrip.rtBehind': 'terlambat {time} dari rencana',
   'mobileTrip.rtStart': 'Mulai',

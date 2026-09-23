@@ -45,7 +45,7 @@ export function isPlacesProviderChoice(value: unknown): value is PlacesProviderC
   return typeof value === 'string' && (PLACES_PROVIDER_CHOICES as readonly string[]).includes(value);
 }
 
-/** A place as the rest of TREK consumes it. Open by design, see maps.schema.ts. */
+/** A place as the rest of PanelMint consumes it. Open by design, see maps.schema.ts. */
 export type ProviderPlace = Record<string, unknown>;
 
 export interface ProviderSuggestion {

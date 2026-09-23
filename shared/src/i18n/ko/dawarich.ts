@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    '직접 운영하는 Dawarich 인스턴스를 연결하면 실제로 어디에 다녀왔는지 확인할 수 있습니다. TREK은 기록을 읽어 일기, 장소, 국가를 제안합니다. 확인하기 전까지는 아무것도 추가되지 않으며, Dawarich에 다시 기록되는 내용도 없습니다.',
+    '직접 운영하는 Dawarich 인스턴스를 연결하면 실제로 어디에 다녀왔는지 확인할 수 있습니다. PanelMint은 기록을 읽어 일기, 장소, 국가를 제안합니다. 확인하기 전까지는 아무것도 추가되지 않으며, Dawarich에 다시 기록되는 내용도 없습니다.',
   'dawarich.url': '인스턴스 주소',
   'dawarich.apiKey': 'API 키',
   'dawarich.apiKeyPlaceholder': 'Dawarich API 키를 붙여넣으세요',
@@ -12,7 +12,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTls': '자체 서명 인증서 허용',
   'dawarich.allowInsecureTlsHint': '인스턴스가 서버에서 신뢰하지 않는 인증서를 사용할 때만 필요합니다.',
   'dawarich.syncEnabled': '새 방문 기록을 자동으로 확인',
-  'dawarich.syncEnabledHint': '끄면 요청할 때만 TREK이 Dawarich를 읽습니다.',
+  'dawarich.syncEnabledHint': '끄면 요청할 때만 PanelMint이 Dawarich를 읽습니다.',
   'dawarich.test.button': '연결 테스트',
   'dawarich.test.success': '연결되었습니다. 최근 30일 동안 방문 기록 {count}건을 찾았습니다.',
   'dawarich.test.failed': 'Dawarich에 연결할 수 없습니다.',
@@ -45,18 +45,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': '이 Dawarich 버전에서는 다음 기능을 사용할 수 없습니다: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'TREK이 해당 주소에 연결하지 못했습니다.',
+  'dawarich.error.unreachable': 'PanelMint이 해당 주소에 연결하지 못했습니다.',
   'dawarich.error.unauthorized': 'Dawarich가 API 키를 거부했습니다.',
   'dawarich.error.forbidden': '이 API 키에는 해당 내용을 읽을 권한이 없습니다.',
   'dawarich.error.not_found': '이 Dawarich 버전에는 해당 엔드포인트가 없습니다.',
   'dawarich.error.rate_limited': 'Dawarich가 요청 속도를 낮춰 달라고 응답했습니다. 잠시 후 다시 시도하세요.',
   'dawarich.error.server_error': 'Dawarich가 오류로 응답했습니다.',
   'dawarich.error.invalid_response': '해당 주소가 Dawarich가 아닌 응답을 보냈습니다.',
-  'dawarich.error.too_large': 'Dawarich가 TREK이 한 번에 읽을 수 있는 양보다 많은 데이터를 보냈습니다.',
+  'dawarich.error.too_large': 'Dawarich가 PanelMint이 한 번에 읽을 수 있는 양보다 많은 데이터를 보냈습니다.',
   'dawarich.error.not_connected': '아직 연결된 Dawarich 인스턴스가 없습니다.',
   'dawarich.error.addon_disabled': '이 인스턴스에서는 Dawarich 애드온이 꺼져 있습니다.',
-  'dawarich.error.offline': '연결이 필요합니다 — TREK이 지금 오프라인입니다.',
-  'dawarich.error.invalid_url': 'TREK은 이 주소를 사용할 수 없습니다.',
+  'dawarich.error.offline': '연결이 필요합니다 — PanelMint이 지금 오프라인입니다.',
+  'dawarich.error.invalid_url': 'PanelMint은 이 주소를 사용할 수 없습니다.',
   'dawarich.warning.private_ip': '이 주소는 사설 IP({ip})를 가리킵니다. 의도한 설정인지 확인하세요. 서버에 ALLOW_INTERNAL_NETWORK=true가 필요할 수 있습니다.',
   'dawarich.error.unknown': 'Dawarich와 통신하는 중 문제가 발생했습니다.',
 
@@ -96,9 +96,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': '일기에 있음',
   'dawarich.suggestions.acceptedAs.bucket_list': '위시리스트 완료됨',
   'dawarich.suggestions.sourceChanged':
-    '이 방문 기록은 사용한 뒤 Dawarich에서 변경되었습니다. TREK에 작성한 내용은 그대로 유지됩니다.',
+    '이 방문 기록은 사용한 뒤 Dawarich에서 변경되었습니다. PanelMint에 작성한 내용은 그대로 유지됩니다.',
   'dawarich.suggestions.sourceMissing':
-    '이 방문 기록은 더 이상 Dawarich에 없습니다. TREK에 작성한 내용은 그대로 유지됩니다.',
+    '이 방문 기록은 더 이상 Dawarich에 없습니다. PanelMint에 작성한 내용은 그대로 유지됩니다.',
   'dawarich.sourceStatus.suggested': '감지됨, 미확인',
   'dawarich.confidence.high': '확실한 감지',
   'dawarich.confidence.medium': '비교적 확실한 감지',
@@ -153,12 +153,12 @@ const dawarich: TranslationStrings = {
     '기록에 따르면 다녀온 것으로 보이는 국가입니다. Atlas에 넣고 싶은 국가를 확인해 주세요. 저절로 추가되는 것은 없으며, 직접 표시한 내용도 그대로 유지됩니다.',
   'dawarich.atlas.load': '국가 찾기',
   'dawarich.atlas.loading': '기록을 읽는 중…',
-  'dawarich.atlas.empty': '기록에는 TREK에 아직 없는 국가가 없습니다.',
+  'dawarich.atlas.empty': '기록에는 PanelMint에 아직 없는 국가가 없습니다.',
   'dawarich.atlas.cities': '도시 {count}곳',
   'dawarich.atlas.citiesOne': '도시 1곳',
   'dawarich.atlas.accept': '국가 {count}곳 추가',
   'dawarich.atlas.accepted': '국가 {count}곳을 추가했습니다',
-  'dawarich.atlas.unresolved': 'TREK이 다음 항목을 국가와 연결하지 못했습니다: {names}.',
+  'dawarich.atlas.unresolved': 'PanelMint이 다음 항목을 국가와 연결하지 못했습니다: {names}.',
   'dawarich.atlas.source': 'Dawarich에서',
   'dawarich.atlas.range': '{from}부터 {to}까지 확인함',
 

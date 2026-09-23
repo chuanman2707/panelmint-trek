@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Replikák',
   'storage.title': 'Tárhely',
   'storage.description':
-    'Itt tárolja a TREK a feltöltött fájlokat, fotókat és biztonsági mentéseket. Semmi sem változik, amíg nem mentesz.',
+    'Itt tárolja a PanelMint a feltöltött fájlokat, fotókat és biztonsági mentéseket. Semmi sem változik, amíg nem mentesz.',
   'storage.loading': 'Betöltés…',
   'storage.saved': 'A tárhely-konfiguráció mentve',
   'storage.save': 'Módosítások mentése',
@@ -67,7 +67,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Profilképek',
   'storage.category.places': 'Helyképek',
   'storage.category.photos-google': 'Google fotó gyorsítótár',
-  'storage.category.photos-trek': 'TREK fotó gyorsítótár',
+  'storage.category.photos-trek': 'PanelMint fotó gyorsítótár',
   'storage.category.backups': 'Biztonsági mentések',
 
   // What each category stores — rendered under the label in the category map.
@@ -80,7 +80,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'A Google Places fotóinak gyorsítótárazott másolatai — újra lekérhetők, biztonságosan elveszíthetők.',
   'storage.categoryDesc.photos-trek':
-    'A Fotók (Memories) funkció által használt TREK fotószolgáltatás gyorsítótárazott fotói — újra lekérhetők, biztonságosan elveszíthetők.',
+    'A Fotók (Memories) funkció által használt PanelMint fotószolgáltatás gyorsítótárazott fotói — újra lekérhetők, biztonságosan elveszíthetők.',
   'storage.categoryDesc.backups':
     'A Biztonsági mentés panel vagy az ütemezés által létrehozott szerver-mentési archívumok.',
   'storage.health.title': 'Állapot',

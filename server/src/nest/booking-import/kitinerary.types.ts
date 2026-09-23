@@ -128,7 +128,7 @@ export interface KiEvent {
 export interface KiReservation {
   '@type': string;
   /**
-   * TREK's own marker, not schema.org: the extractor could not read a type and
+   * PanelMint's own marker, not schema.org: the extractor could not read a type and
    * fell back to the lodging shape so the item would survive mapping (#2076).
    */
   trekTypeGuessed?: boolean;

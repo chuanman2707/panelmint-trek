@@ -80,10 +80,10 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loading': 'Đang tải…',
   'oauth.authorize.errorTitle': 'Lỗi ủy quyền',
   'oauth.authorize.loginTitle': 'Đăng nhập để tiếp tục',
-  'oauth.authorize.loginDescription': '{client} muốn truy cập vào tài khoản TREK của bạn. Vui lòng đăng nhập trước.',
-  'oauth.authorize.loginButton': 'Đăng nhập vào TREK',
+  'oauth.authorize.loginDescription': '{client} muốn truy cập vào tài khoản PanelMint của bạn. Vui lòng đăng nhập trước.',
+  'oauth.authorize.loginButton': 'Đăng nhập vào PanelMint',
   'oauth.authorize.requestLabel': 'Yêu cầu ủy quyền',
-  'oauth.authorize.requestDescription': 'Ứng dụng này đang yêu cầu quyền truy cập vào tài khoản TREK của bạn.',
+  'oauth.authorize.requestDescription': 'Ứng dụng này đang yêu cầu quyền truy cập vào tài khoản PanelMint của bạn.',
   'oauth.authorize.trustNote':
     'Chỉ cấp quyền truy cập cho các ứng dụng mà bạn tin tưởng. Dữ liệu của bạn vẫn còn trên máy chủ của bạn.',
   'oauth.authorize.selectScope': 'Chọn ít nhất một phạm vi',

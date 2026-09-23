@@ -191,11 +191,11 @@ export function RootErrorFallback({ error, isChunkError }: FallbackState) {
     >
       <AlertTriangle size={24} className="text-content-muted" aria-hidden />
       <p className="text-subtitle font-semibold text-content">
-        {isChunkError ? 'A new version is available' : 'TREK could not start'}
+        {isChunkError ? 'A new version is available' : 'PanelMint could not start'}
       </p>
       <p className="text-body text-content-secondary">
         {isChunkError
-          ? 'TREK was updated while this tab was open. Reload to get the new version.'
+          ? 'PanelMint was updated while this tab was open. Reload to get the new version.'
           : 'Reloading usually fixes this. Your data is safe.'}
       </p>
       {message && <code className="max-w-full truncate text-caption text-content-faint">{message}</code>}

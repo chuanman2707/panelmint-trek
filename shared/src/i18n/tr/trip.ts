@@ -34,7 +34,7 @@ const trip: TranslationStrings = {
   'trip.toast.placesDeleted': '{count} yer silindi',
   'trip.invite.linkTitle': 'Seyahat davet bağlantısı',
   'trip.invite.linkHint':
-    'TREK hesabı olan ve bu bağlantıyı açan herkes seyahate üye olarak katılır. Eski bağlantıyı geçersiz kılmak için yeniden oluşturun.',
+    'PanelMint hesabı olan ve bu bağlantıyı açan herkes seyahate üye olarak katılır. Eski bağlantıyı geçersiz kılmak için yeniden oluşturun.',
   'trip.invite.create': 'Davet bağlantısı oluştur',
   'trip.invite.regenerate': 'Yeniden oluştur',
   'trip.invite.disable': 'Devre dışı bırak',

@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': '重試',
   'common.errorReload': '重新載入頁面',
   'common.errorUpdateTitle': '有新版本可用',
-  'common.errorUpdateBody': '此分頁開啟期間 TREK 已更新。請重新載入以取得新版本。',
+  'common.errorUpdateBody': '此分頁開啟期間 PanelMint 已更新。請重新載入以取得新版本。',
   'common.errorPluginTitle': '無法顯示此外掛程式',
 };
 export default common;

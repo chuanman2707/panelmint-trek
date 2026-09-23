@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Thử lại',
   'common.errorReload': 'Tải lại trang',
   'common.errorUpdateTitle': 'Đã có phiên bản mới',
-  'common.errorUpdateBody': 'TREK đã được cập nhật trong khi thẻ này đang mở. Hãy tải lại để nhận phiên bản mới.',
+  'common.errorUpdateBody': 'PanelMint đã được cập nhật trong khi thẻ này đang mở. Hãy tải lại để nhận phiên bản mới.',
   'common.errorPluginTitle': 'Không thể hiển thị plugin này',
 };
 export default common;

@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Αντίγραφα',
   'storage.title': 'Αποθήκευση',
   'storage.description':
-    'Πού διατηρεί το TREK τα αρχεία, τις φωτογραφίες και τα αντίγραφα ασφαλείας που ανεβάζεις. Τίποτα δεν αλλάζει μέχρι να αποθηκεύσεις.',
+    'Πού διατηρεί το PanelMint τα αρχεία, τις φωτογραφίες και τα αντίγραφα ασφαλείας που ανεβάζεις. Τίποτα δεν αλλάζει μέχρι να αποθηκεύσεις.',
   'storage.loading': 'Φόρτωση…',
   'storage.saved': 'Η ρύθμιση αποθήκευσης αποθηκεύτηκε',
   'storage.save': 'Αποθήκευση αλλαγών',
@@ -67,7 +67,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Φωτογραφίες προφίλ',
   'storage.category.places': 'Εικόνες τοποθεσιών',
   'storage.category.photos-google': 'Κρυφή μνήμη φωτογραφιών Google',
-  'storage.category.photos-trek': 'Κρυφή μνήμη φωτογραφιών TREK',
+  'storage.category.photos-trek': 'Κρυφή μνήμη φωτογραφιών PanelMint',
   'storage.category.backups': 'Αντίγραφα ασφαλείας',
 
   // What each category stores — rendered under the label in the category map.
@@ -82,7 +82,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Αποθηκευμένα αντίγραφα φωτογραφιών από το Google Places — ανακτήσιμα ξανά, η απώλειά τους είναι ασφαλής.',
   'storage.categoryDesc.photos-trek':
-    'Φωτογραφίες σε κρυφή μνήμη από την υπηρεσία φωτογραφιών TREK που χρησιμοποιείται από τις Φωτογραφίες (Memories) — ανακτήσιμες ξανά, η απώλειά τους είναι ασφαλής.',
+    'Φωτογραφίες σε κρυφή μνήμη από την υπηρεσία φωτογραφιών PanelMint που χρησιμοποιείται από τις Φωτογραφίες (Memories) — ανακτήσιμες ξανά, η απώλειά τους είναι ασφαλής.',
   'storage.categoryDesc.backups':
     'Αρχεία αντιγράφων ασφαλείας του διακομιστή που δημιουργούνται από τον πίνακα Αντιγράφων Ασφαλείας ή το πρόγραμμα.',
   'storage.health.title': 'Κατάσταση',

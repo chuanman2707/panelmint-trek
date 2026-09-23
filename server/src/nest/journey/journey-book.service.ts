@@ -5,7 +5,7 @@ import { DatabaseService } from '../database/database.service';
 import { JourneyDomainService } from './journey-domain.service';
 
 /**
- * Storing TREK Studio books.
+ * Storing PanelMint Studio books.
  *
  * ── Access ───────────────────────────────────────────────────────────────
  *
@@ -185,7 +185,7 @@ export class JourneyBookService {
    * Broadcasting a few hundred kilobytes of JSON on every autosave would make
    * the notification the size of the thing being edited.
    *
-   * The saver is excluded by socket id, the same way every other TREK mutation
+   * The saver is excluded by socket id, the same way every other PanelMint mutation
    * does it, so the client that just saved does not process its own change.
    */
   broadcastSaved(journeyId: number, userId: number, record: BookRecord, socketId?: string) {

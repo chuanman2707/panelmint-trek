@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    '自分の Dawarich インスタンスを接続すると、実際に訪れた場所がわかります。TREK はそれを読み取り、日記のエントリー、場所、国を提案します。確認するまで何も追加されず、Dawarich に書き戻すこともありません。',
+    '自分の Dawarich インスタンスを接続すると、実際に訪れた場所がわかります。PanelMint はそれを読み取り、日記のエントリー、場所、国を提案します。確認するまで何も追加されず、Dawarich に書き戻すこともありません。',
   'dawarich.url': 'インスタンスのアドレス',
   'dawarich.apiKey': 'API キー',
   'dawarich.apiKeyPlaceholder': 'Dawarich の API キーを貼り付け',
@@ -14,7 +14,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTlsHint':
     'サーバーが信頼していない証明書をインスタンスが使っている場合にのみ必要です。',
   'dawarich.syncEnabled': '新しい滞在を自動で確認',
-  'dawarich.syncEnabledHint': 'オフにすると、TREK は指示したときだけ Dawarich を読み取ります。',
+  'dawarich.syncEnabledHint': 'オフにすると、PanelMint は指示したときだけ Dawarich を読み取ります。',
   'dawarich.test.button': '接続をテスト',
   'dawarich.test.success': '接続しました。過去30日間で{count}件の滞在が見つかりました。',
   'dawarich.test.failed': 'Dawarich に接続できませんでした。',
@@ -47,7 +47,7 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'この Dawarich のバージョンでは利用できません：{features}。',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'TREK はそのアドレスに接続できませんでした。',
+  'dawarich.error.unreachable': 'PanelMint はそのアドレスに接続できませんでした。',
   'dawarich.error.unauthorized': 'Dawarich が API キーを拒否しました。',
   'dawarich.error.forbidden': 'その API キーにはこれを読み取る権限がありません。',
   'dawarich.error.not_found': 'この Dawarich のバージョンにはそのエンドポイントがありません。',
@@ -55,11 +55,11 @@ const dawarich: TranslationStrings = {
     'Dawarich からリクエストを控えるよう求められました。しばらくしてからお試しください。',
   'dawarich.error.server_error': 'Dawarich がエラーを返しました。',
   'dawarich.error.invalid_response': 'そのアドレスからの応答は Dawarich のものではありません。',
-  'dawarich.error.too_large': 'Dawarich が、TREK が一度に読み取れる量を超えるデータを返しました。',
+  'dawarich.error.too_large': 'Dawarich が、PanelMint が一度に読み取れる量を超えるデータを返しました。',
   'dawarich.error.not_connected': 'Dawarich インスタンスはまだ接続されていません。',
   'dawarich.error.addon_disabled': 'このインスタンスでは Dawarich アドオンが無効になっています。',
-  'dawarich.error.offline': 'これには接続が必要です。TREK は現在オフラインです。',
-  'dawarich.error.invalid_url': 'TREK はこのアドレスを使用できません。',
+  'dawarich.error.offline': 'これには接続が必要です。PanelMint は現在オフラインです。',
+  'dawarich.error.invalid_url': 'PanelMint はこのアドレスを使用できません。',
   'dawarich.warning.private_ip': 'このアドレスはプライベート IP ({ip}) を指しています。意図した設定かご確認ください。サーバー側に ALLOW_INTERNAL_NETWORK=true が必要な場合があります。',
   'dawarich.error.unknown': 'Dawarich との通信中に問題が発生しました。',
 
@@ -100,9 +100,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': '日記に記載済み',
   'dawarich.suggestions.acceptedAs.bucket_list': 'ウィッシュにチェック済み',
   'dawarich.suggestions.sourceChanged':
-    'この滞在は、使用したあとに Dawarich 側で変更されました。TREK に書いた内容はそのままです。',
+    'この滞在は、使用したあとに Dawarich 側で変更されました。PanelMint に書いた内容はそのままです。',
   'dawarich.suggestions.sourceMissing':
-    'この滞在は Dawarich にもう存在しません。TREK に書いた内容はそのままです。',
+    'この滞在は Dawarich にもう存在しません。PanelMint に書いた内容はそのままです。',
   'dawarich.sourceStatus.suggested': '検出済み・未確認',
   'dawarich.confidence.high': '確度の高い検出',
   'dawarich.confidence.medium': 'ある程度確かな検出',
@@ -158,12 +158,12 @@ const dawarich: TranslationStrings = {
     '記録から滞在したとみられる国です。Atlas に入れたいものを確認してください。自動では追加されず、手動で付けた印もそのまま残ります。',
   'dawarich.atlas.load': '国を探す',
   'dawarich.atlas.loading': '記録を読み取り中…',
-  'dawarich.atlas.empty': '記録の中に、TREK にまだない国はありませんでした。',
+  'dawarich.atlas.empty': '記録の中に、PanelMint にまだない国はありませんでした。',
   'dawarich.atlas.cities': '{count}都市',
   'dawarich.atlas.citiesOne': '1 都市',
   'dawarich.atlas.accept': '{count}か国を追加',
   'dawarich.atlas.accepted': '{count}か国を追加しました',
-  'dawarich.atlas.unresolved': 'TREK はこれらを国と照合できませんでした：{names}。',
+  'dawarich.atlas.unresolved': 'PanelMint はこれらを国と照合できませんでした：{names}。',
   'dawarich.atlas.source': 'Dawarich から',
   'dawarich.atlas.range': '{from}から{to}までを対象',
 

@@ -9,7 +9,7 @@ const login: TranslationStrings = {
   'login.signingIn': 'Đang đăng nhập…',
   'login.signIn': 'Đăng nhập',
   'login.createAdmin': 'Tạo tài khoản quản trị',
-  'login.createAdminHint': 'Thiết lập tài khoản quản trị đầu tiên cho TREK.',
+  'login.createAdminHint': 'Thiết lập tài khoản quản trị đầu tiên cho PanelMint.',
   'login.setNewPassword': 'Đặt mật khẩu mới',
   'login.setNewPasswordHint': 'Bạn phải thay đổi mật khẩu trước khi tiếp tục.',
   'login.createAccount': 'Tạo tài khoản',
@@ -70,7 +70,7 @@ const login: TranslationStrings = {
   'login.passkey.failed': 'Đăng nhập bằng mật mã không thành công. Vui lòng thử lại.',
   'login.insecureCookie.title': 'Đăng nhập không được giữ qua HTTP',
   'login.insecureCookie.body':
-    'Bạn đang kết nối qua HTTP thuần, nên trình duyệt loại bỏ cookie phiên bảo mật của TREK — yêu cầu tiếp theo sẽ thất bại với "Access token required". Cách khắc phục: dùng HTTPS, hoặc với máy chủ tại nhà hãy đặt COOKIE_SECURE=false.',
+    'Bạn đang kết nối qua HTTP thuần, nên trình duyệt loại bỏ cookie phiên bảo mật của PanelMint — yêu cầu tiếp theo sẽ thất bại với "Access token required". Cách khắc phục: dùng HTTPS, hoặc với máy chủ tại nhà hãy đặt COOKIE_SECURE=false.',
   'login.insecureCookie.link': 'Mở hướng dẫn khắc phục sự cố',
 };
 export default login;

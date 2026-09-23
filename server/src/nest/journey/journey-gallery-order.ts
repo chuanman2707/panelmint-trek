@@ -6,7 +6,7 @@
  * added". Upload day one's pictures after day two's and the gallery stays
  * shuffled, with nothing in the UI to straighten it out.
  *
- * The anchor is instead the best time TREK knows for the picture:
+ * The anchor is instead the best time PanelMint knows for the picture:
  *
  *  1. its capture time, when EXIF or the photo provider gave one up,
  *  2. otherwise the date of the earliest entry it hangs on, which is where the

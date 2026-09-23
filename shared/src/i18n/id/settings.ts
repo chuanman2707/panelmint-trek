@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'Instans OSRM milik sendiri. Kosong berarti server publik, yang mengizinkan sekitar satu permintaan per detik — cukup untuk sehari, mepet untuk perjalanan darat. Berlaku setelah server dimulai ulang.',
   'settings.valhallaBase': 'Instans Valhalla sendiri',
   'settings.valhallaBaseHint':
-    'Secara bawaan, TREK menggunakan Valhalla publik FOSSGIS untuk menghindari tol, jalan bebas hambatan, dan feri. Masukkan URL Valhalla Anda sendiri di sini untuk menggunakannya sebagai pengganti. Jika hanya instans perutean sendiri yang dikonfigurasi, Valhalla publik tidak digunakan. Setelah memasukkan URL sendiri, mulai ulang server dan muat ulang halaman.',
+    'Secara bawaan, PanelMint menggunakan Valhalla publik FOSSGIS untuk menghindari tol, jalan bebas hambatan, dan feri. Masukkan URL Valhalla Anda sendiri di sini untuk menggunakannya sebagai pengganti. Jika hanya instans perutean sendiri yang dikonfigurasi, Valhalla publik tidak digunakan. Setelah memasukkan URL sendiri, mulai ulang server dan muat ulang halaman.',
   'settings.mapHint': 'Template URL untuk tile peta',
   'settings.mapProvider': 'Penyedia peta',
   'settings.mapProviderHint': 'Berlaku untuk peta Trip Planner dan Journey. Atlas selalu menggunakan Leaflet.',
@@ -43,7 +43,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyHint': 'Peta dasar CARTO menampilkan tanda air tanpa kunci. Gratis, tanpa akun, dari',
   'settings.mapCartoKeyLink': 'kunci API peta dasar carto.com',
   'settings.mapCartoKeyMissing':
-    'Templat ini adalah peta dasar CARTO. Tanpa kunci, CARTO mencetak "API KEY REQUIRED" di setiap ubin. Sampai kunci dimasukkan, TREK menampilkan peta dasar bawaan.',
+    'Templat ini adalah peta dasar CARTO. Tanpa kunci, CARTO mencetak "API KEY REQUIRED" di setiap ubin. Sampai kunci dimasukkan, PanelMint menampilkan peta dasar bawaan.',
   'settings.mapStyle': 'Gaya peta',
   'settings.mapStylePlaceholder': 'Pilih gaya Mapbox',
   'settings.mapStyleHint': 'Preset atau URL mapbox://styles/USER/ID milikmu',
@@ -232,13 +232,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Sarankan fitur baru',
   'settings.about.wikiHint': 'Dokumentasi & panduan',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Pendukung Bulanan',
   'settings.about.supporters.title': 'Rekan perjalanan untuk TREK',
   'settings.about.supporters.subtitle':
-    'Saat kamu merencanakan rute berikutnya, orang-orang ini ikut merencanakan masa depan TREK. Kontribusi bulanan mereka langsung masuk ke pengembangan dan jam kerja nyata — supaya TREK tetap Open Source.',
+    'Saat kamu merencanakan rute berikutnya, orang-orang ini ikut merencanakan masa depan PanelMint. Kontribusi bulanan mereka langsung masuk ke pengembangan dan jam kerja nyata — supaya PanelMint tetap Open Source.',
   'settings.about.supporters.since': 'pendukung sejak {date}',
   'settings.about.supporters.tierEmpty': 'Jadilah yang pertama',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
@@ -247,7 +247,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    'TREK adalah perencana perjalanan self-hosted yang membantu kamu mengatur perjalanan dari ide pertama hingga kenangan terakhir. Perencanaan harian, anggaran, daftar bawaan, foto dan masih banyak lagi — semua di satu tempat, di servermu sendiri.',
+    'PanelMint adalah perencana perjalanan self-hosted yang membantu kamu mengatur perjalanan dari ide pertama hingga kenangan terakhir. Perencanaan harian, anggaran, daftar bawaan, foto dan masih banyak lagi — semua di satu tempat, di servermu sendiri.',
   'settings.about.madeWith': 'Dibuat dengan',
   'settings.about.madeBy': 'oleh Maurice dan komunitas open-source yang terus berkembang.',
   'settings.username': 'Nama pengguna',
@@ -357,7 +357,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Aktifkan hanya untuk instans tepercaya di jaringanmu sendiri.',
   'settings.airtrail.writeBack': 'Tulis perubahan kembali ke AirTrail',
   'settings.airtrail.writeBackHint':
-    'Nonaktif secara bawaan: AirTrail adalah sumber kebenaran dan TREK hanya membaca darinya. Aktifkan untuk mengirim perubahan yang dibuat di TREK kembali ke AirTrail.',
+    'Nonaktif secara bawaan: AirTrail adalah sumber kebenaran dan PanelMint hanya membaca darinya. Aktifkan untuk mengirim perubahan yang dibuat di PanelMint kembali ke AirTrail.',
   'settings.airtrail.connected': 'Terhubung',
   'settings.airtrail.notConnected': 'Tidak terhubung',
   'settings.airtrail.toast.saved': 'Koneksi AirTrail disimpan',
@@ -470,7 +470,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Dasbor',
   'settings.startPageActiveTrip': 'Perjalanan aktif',
   'settings.startPageHint':
-    'TREK langsung membuka perjalanan yang sedang berlangsung, atau yang paling dekat akan dimulai. Perjalanan yang sama yang disorot dasbor.',
+    'PanelMint langsung membuka perjalanan yang sedang berlangsung, atau yang paling dekat akan dimulai. Perjalanan yang sama yang disorot dasbor.',
   'settings.startTripTab': 'Tab awal',
   'settings.startTripTabHint':
     'Tab yang dibuka bersama perjalanan. Jika tab itu milik addon yang dimatikan, tampilan rencana yang dibuka.',

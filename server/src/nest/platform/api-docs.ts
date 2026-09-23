@@ -13,15 +13,15 @@ import { readEnv } from '../../app-config';
  *   /api/docs-json   raw OpenAPI 3 document (generated clients, Postman)
  *   /api/docs-yaml   same, as YAML
  *
- * The bearer button works with a plain TREK session JWT: extractToken
+ * The bearer button works with a plain PanelMint session JWT: extractToken
  * accepts `Authorization: Bearer` everywhere as the cookie fallback.
  */
 export function setupApiDocs(app: INestApplication): void {
   const version: string = readEnv().app.appVersion || (require('../../../package.json') as { version: string }).version;
   const config = new DocumentBuilder()
-    .setTitle('TREK API')
+    .setTitle('PanelMint API')
     .setDescription(
-      'The REST API the TREK web app itself runs on. Authenticate with a session JWT — '
+      'The REST API the PanelMint web app itself runs on. Authenticate with a session JWT — '
       + 'either the `trek_session` cookie (same browser) or an `Authorization: Bearer <jwt>` header.',
     )
     .setVersion(version)

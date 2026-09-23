@@ -12,7 +12,7 @@ export function setUserDeletedSink(fn: ((userId: number) => void) | null): void 
   sink = fn;
 }
 
-/** Announce that a TREK account was fully deleted. Called by the core deletion
+/** Announce that a PanelMint account was fully deleted. Called by the core deletion
  * paths after deleteUserCompletely so plugins can erase their own per-user data.
  * Swallows everything: a plugin bookkeeping error must never fail the deletion. */
 export function emitUserDeleted(userId: number): void {

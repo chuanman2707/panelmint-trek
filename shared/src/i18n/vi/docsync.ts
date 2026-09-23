@@ -13,17 +13,17 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': 'Tên thư mục mới',
   'docsync.syncNow': 'Đồng bộ ngay',
   'docsync.unlink': 'Ngắt kết nối',
-  'docsync.confirmUnlink': 'Tài liệu vẫn ở lại trong TREK và trong kho. Chỉ có liên kết giữa chúng bị gỡ.',
+  'docsync.confirmUnlink': 'Tài liệu vẫn ở lại trong PanelMint và trong kho. Chỉ có liên kết giữa chúng bị gỡ.',
   'docsync.syncEnabled': 'Tự động đồng bộ',
   'docsync.deletePolicy': 'Khi một tài liệu bị xóa',
   'docsync.deleteUnlink': 'Giữ cả hai bản',
   'docsync.deleteTrash': 'Chuyển vào thùng rác',
   'docsync.conflictPolicy': 'Khi cả hai bên đều thay đổi',
   'docsync.onConflict.manual': 'Hỏi tôi',
-  'docsync.onConflict.trek_wins': 'Giữ bản của TREK',
+  'docsync.onConflict.trek_wins': 'Giữ bản của PanelMint',
   'docsync.onConflict.provider_wins': 'Giữ bản của kho',
   'docsync.webhookHint':
-    'Dán URL này vào nhà cung cấp của bạn để thay đổi đến ngay lập tức. Nếu không, TREK sẽ kiểm tra theo định kỳ.',
+    'Dán URL này vào nhà cung cấp của bạn để thay đổi đến ngay lập tức. Nếu không, PanelMint sẽ kiểm tra theo định kỳ.',
 
   // Các trường của biểu mẫu kết nối. Khóa phản chiếu cột `label` trong
   // document_provider_fields, nơi lưu hậu tố khóa chứ không phải văn bản.
@@ -46,7 +46,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudAppPassword':
     'Cài đặt → Bảo mật → Tạo mật khẩu ứng dụng mới. Không bao giờ dùng mật khẩu tài khoản.',
   'docsync.hintOpenCloudToken': 'Được tạo trong OpenCloud ở mục mã thông báo ứng dụng.',
-  'docsync.hintBasePath': 'Nơi TREK tìm thư mục chuyến đi. Mặc định là /TREK.',
+  'docsync.hintBasePath': 'Nơi PanelMint tìm thư mục chuyến đi. Mặc định là /TREK.',
   'docsync.hintSynologyUrl': 'Nhớ kèm cổng, ví dụ https://nas.example.com:5001',
   'docsync.hintSynologyUser': 'Tốt nhất là một tài khoản DSM riêng chỉ truy cập được thư mục chia sẻ này.',
   'docsync.hintSynologyOtp': 'Chỉ cần một lần, nếu tài khoản dùng xác thực hai yếu tố.',
@@ -66,13 +66,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': 'Quá lớn',
   'docsync.state.error': 'Lỗi',
   'docsync.state.remote_missing': 'Không có ở nhà cung cấp',
-  'docsync.state.local_deleted': 'Đã xóa trong TREK',
+  'docsync.state.local_deleted': 'Đã xóa trong PanelMint',
   'docsync.state.scope_drift': 'Đã chuyển ra khỏi thư mục',
 
   'docsync.conflict.resolve': "Giải quyết {count}",
 
   'docsync.conflict.title': 'Cả hai bản đều thay đổi',
-  'docsync.conflict.keepTrek': 'Giữ bản TREK',
+  'docsync.conflict.keepTrek': 'Giữ bản PanelMint',
   'docsync.conflict.keepProvider': 'Giữ bản của nhà cung cấp',
   'docsync.conflict.keepBoth': 'Giữ cả hai',
 
@@ -85,7 +85,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'Tài khoản này không được phép làm việc đó.',
   'docsync.error.not_found': 'Không tìm thấy ở nhà cung cấp.',
   'docsync.error.scope_missing': 'Thư mục đã kết nối không còn tồn tại.',
-  'docsync.error.rate_limited': 'Nhà cung cấp đang giới hạn số lượt gọi của chúng ta. TREK sẽ thử lại sau.',
+  'docsync.error.rate_limited': 'Nhà cung cấp đang giới hạn số lượt gọi của chúng ta. PanelMint sẽ thử lại sau.',
   'docsync.error.too_large': 'Tệp lớn hơn mức nhà cung cấp chấp nhận.',
   'docsync.error.unsupported_type': 'Nhà cung cấp không chấp nhận loại tệp này.',
   'docsync.error.quota_exceeded': 'Nhà cung cấp đã hết dung lượng.',
@@ -106,8 +106,8 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': 'Chưa kết nối gì',
   'docsync.empty.hintOwner':
-    'Hãy chọn một kho ở bên trái. TREK luôn giữ bản sao của riêng mình, nên không mất gì nếu kho đó biến mất.',
-  'docsync.empty.hintMember': 'Chủ chuyến đi là người thiết lập việc này. Dù sao thì tài liệu vẫn ở lại trong TREK.',
+    'Hãy chọn một kho ở bên trái. PanelMint luôn giữ bản sao của riêng mình, nên không mất gì nếu kho đó biến mất.',
+  'docsync.empty.hintMember': 'Chủ chuyến đi là người thiết lập việc này. Dù sao thì tài liệu vẫn ở lại trong PanelMint.',
 
   // Cách mỗi sản phẩm sắp xếp tài liệu. Hiển thị trước khi ai đó kết nối, vì đó
   // chính là thứ màn hình kế tiếp sẽ hỏi.
@@ -118,7 +118,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'Lưu theo thư mục trên NAS',
 
   // ── Thanh luồng ────────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'PanelMint',
   'docsync.flow.toProvider': 'Gửi ra kho',
   'docsync.flow.toTrek': 'Nhận từ kho',
   'docsync.flow.documents': 'tài liệu',
@@ -148,18 +148,18 @@ const docsync: TranslationStrings = {
   'docsync.connect.okAs': 'Đã kết nối, đăng nhập với tư cách {account}',
   'docsync.connect.insecureHint': 'Dành cho máy chủ trong mạng nội bộ của bạn dùng chứng chỉ tự ký.',
   'docsync.connect.about.paperless':
-    'TREK lưu chuyến đi này dưới thẻ riêng của nó và không đụng tới phần còn lại trong kho của bạn.',
+    'PanelMint lưu chuyến đi này dưới thẻ riêng của nó và không đụng tới phần còn lại trong kho của bạn.',
   'docsync.connect.about.papra':
-    'Hãy chọn tổ chức mà chuyến đi này thuộc về. TREK sẽ lưu nó dưới thẻ riêng bên trong tổ chức đó.',
+    'Hãy chọn tổ chức mà chuyến đi này thuộc về. PanelMint sẽ lưu nó dưới thẻ riêng bên trong tổ chức đó.',
   'docsync.connect.about.nextcloud':
     'Hãy dùng mật khẩu ứng dụng, đừng dùng mật khẩu tài khoản: nó vẫn chạy được với xác thực hai yếu tố và bạn có thể thu hồi riêng.',
-  'docsync.connect.about.opencloud': 'TREK có không gian riêng cho chuyến đi này, tách khỏi mọi thứ khác.',
+  'docsync.connect.about.opencloud': 'PanelMint có không gian riêng cho chuyến đi này, tách khỏi mọi thứ khác.',
   'docsync.connect.about.synologydrive':
     'Tốt nhất là một tài khoản DSM chỉ truy cập được thư mục chia sẻ dành cho chuyến đi này.',
 
   // ── Chọn nơi chứa ──────────────────────────────────────────────────────────
   'docsync.scope.title': 'Chuyến đi này nên nằm ở đâu trong {provider}?',
-  'docsync.scope.intro': 'Chỉ những gì nằm trong đây mới được đồng bộ. Mọi thứ khác trong kho của bạn không vào TREK.',
+  'docsync.scope.intro': 'Chỉ những gì nằm trong đây mới được đồng bộ. Mọi thứ khác trong kho của bạn không vào PanelMint.',
   'docsync.scope.createTitle': 'Tạo mục mới',
   'docsync.scope.createAction': 'Tạo',
   'docsync.scope.pickTitle': 'Hoặc dùng mục bạn đã có',
@@ -169,7 +169,7 @@ const docsync: TranslationStrings = {
   // ── Những việc cần người quyết định ────────────────────────────────────────
   'docsync.issues.title': 'Cần xem lại',
   'docsync.issues.conflict': 'Đã thay đổi ở cả hai nơi. Hãy chọn bản muốn giữ.',
-  'docsync.issues.remote_missing': 'Không còn trong kho. Bản trong TREK vẫn còn.',
+  'docsync.issues.remote_missing': 'Không còn trong kho. Bản trong PanelMint vẫn còn.',
   'docsync.issues.rejected_type': 'Loại tệp này không được phép ở đây.',
   'docsync.issues.too_large': 'Lớn hơn giới hạn cho phép.',
   'docsync.issues.error': 'Việc truyền tệp không thành công.',

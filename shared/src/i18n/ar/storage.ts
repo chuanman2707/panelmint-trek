@@ -18,7 +18,7 @@ const storage: TranslationStrings = {
   'storage.field.primary': 'الواجهة الخلفية الأساسية',
   'storage.field.replicas': 'النسخ المتماثلة',
   'storage.title': 'التخزين',
-  'storage.description': 'المكان الذي يحفظ فيه TREK الملفات والصور والنسخ الاحتياطية المرفوعة. لا يتغيّر شيء حتى تحفظ.',
+  'storage.description': 'المكان الذي يحفظ فيه PanelMint الملفات والصور والنسخ الاحتياطية المرفوعة. لا يتغيّر شيء حتى تحفظ.',
   'storage.loading': 'جارٍ التحميل…',
   'storage.saved': 'تم حفظ إعدادات التخزين',
   'storage.save': 'حفظ التغييرات',
@@ -64,7 +64,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'الصور الشخصية',
   'storage.category.places': 'صور الأماكن',
   'storage.category.photos-google': 'ذاكرة تخزين مؤقت لصور Google',
-  'storage.category.photos-trek': 'ذاكرة تخزين مؤقت لصور TREK',
+  'storage.category.photos-trek': 'ذاكرة تخزين مؤقت لصور PanelMint',
   'storage.category.backups': 'النسخ الاحتياطية',
 
   // What each category stores — rendered under the label in the category map.
@@ -77,7 +77,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'نسخ مخزّنة مؤقتًا من صور Google Places — يمكن إعادة جلبها، ويُمكن فقدانها بأمان.',
   'storage.categoryDesc.photos-trek':
-    'صور مخزّنة مؤقتًا من خدمة صور TREK التي تستخدمها ميزة الصور (Memories) — يمكن إعادة جلبها، ويُمكن فقدانها بأمان.',
+    'صور مخزّنة مؤقتًا من خدمة صور PanelMint التي تستخدمها ميزة الصور (Memories) — يمكن إعادة جلبها، ويُمكن فقدانها بأمان.',
   'storage.categoryDesc.backups': 'أرشيفات النسخ الاحتياطي للخادم التي تُنشئها لوحة النسخ الاحتياطي أو الجدولة.',
   'storage.health.title': 'الحالة',
   'storage.health.allClear': 'لم يتم تسجيل أي أعطال في النسخ المتماثلة.',

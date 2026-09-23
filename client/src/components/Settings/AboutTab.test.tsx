@@ -41,12 +41,12 @@ describe('AboutTab', () => {
     render(<AboutTab appVersion="2.9.10" />);
     const link = document.querySelector('a[href*="issues/new"]');
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', 'https://github.com/chuanman2707/panelmint-trek/issues');
+    expect(link).toHaveAttribute('href', 'https://github.com/chuanman2707/panelmint-trek/issues/new');
   });
 
   it('FE-COMP-ABOUT-007: displays feature request link', () => {
     render(<AboutTab appVersion="2.9.10" />);
-    const link = document.querySelector('a[href*="discussions/new"]');
+    const link = document.querySelector('a[href*="labels=enhancement"]');
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('target', '_blank');
   });
@@ -126,7 +126,7 @@ describe('AboutTab', () => {
 
   it('FE-COMP-ABOUT-016: Feature request link hover changes border and box-shadow styles', () => {
     render(<AboutTab appVersion="1.0.0" />);
-    const link = document.querySelector('a[href*="discussions/new"]') as HTMLAnchorElement;
+    const link = document.querySelector('a[href*="labels=enhancement"]') as HTMLAnchorElement;
     fireEvent.mouseEnter(link);
     expect(link.style.borderColor).toBe('rgb(245, 158, 11)');
     expect(link.style.boxShadow).not.toBe('');

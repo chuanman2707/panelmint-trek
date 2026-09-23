@@ -21,7 +21,7 @@ import { StorageService } from './nest/storage/storage.service';
 import { MAX_COLLECTION_FILE_BYTES } from '@trek/shared';
 
 /**
- * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
+ * Builds the unified PanelMint NestJS application that serves the ENTIRE surface — the
  * former Express app is gone. One builder is shared by the production bootstrap
  * (index.ts) and the integration-test harness so the two can never drift.
  *

@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Репліки',
   'storage.title': 'Сховище',
   'storage.description':
-    'Де TREK зберігає завантажені файли, фото та резервні копії. Нічого не зміниться, доки ви не збережете.',
+    'Де PanelMint зберігає завантажені файли, фото та резервні копії. Нічого не зміниться, доки ви не збережете.',
   'storage.loading': 'Завантаження…',
   'storage.saved': 'Конфігурацію сховища збережено',
   'storage.save': 'Зберегти зміни',
@@ -67,7 +67,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Фото профілю',
   'storage.category.places': 'Зображення місць',
   'storage.category.photos-google': 'Кеш фото Google',
-  'storage.category.photos-trek': 'Кеш фото TREK',
+  'storage.category.photos-trek': 'Кеш фото PanelMint',
   'storage.category.backups': 'Резервні копії',
 
   // What each category stores — rendered under the label in the category map.
@@ -80,7 +80,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Кешовані копії фото Google Places — можуть бути отримані повторно, їх втрата безпечна.',
   'storage.categoryDesc.photos-trek':
-    'Кешовані фото зі служби фото TREK, яку використовує функція Фото (Memories) — можуть бути отримані повторно, їх втрата безпечна.',
+    'Кешовані фото зі служби фото PanelMint, яку використовує функція Фото (Memories) — можуть бути отримані повторно, їх втрата безпечна.',
   'storage.categoryDesc.backups':
     'Архіви резервних копій сервера, створені панеллю резервного копіювання або за розкладом.',
   'storage.health.title': 'Стан',

@@ -37,7 +37,7 @@ export interface PhotoFetchError {
 }
 
 /**
- * A photo backend TREK can serve assets from (#584).
+ * A photo backend PanelMint can serve assets from (#584).
  *
  * The dispatch used to be a `switch (photo.provider)` in three places, which is
  * what made "add a provider" a search-and-edit task rather than a registration.

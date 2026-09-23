@@ -24,7 +24,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': "Assignació d'equipatge",
   'notif.packing_tagged.text': '{actor} et va assignar a {category} a {trip}',
   'notif.version_available.title': 'Versió nova disponible',
-  'notif.version_available.text': 'TREK {version} ja està disponible',
+  'notif.version_available.text': 'PanelMint {version} ja està disponible',
   'notif.replica_failure.title': "Error de rèplica d'emmagatzematge",
   'notif.replica_failure.text': "L'escriptura a la rèplica '{backend}' ha fallat: {op} de {key} — {error}",
   'notif.replica_failure.textSuppressed': "L'escriptura a la rèplica '{backend}' ha fallat: {op} de {key} — {error}. S'han suprimit {suppressed} errors més des de l'última notificació.",

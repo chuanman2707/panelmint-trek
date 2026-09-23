@@ -13,17 +13,17 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': '新しいフォルダー名',
   'docsync.syncNow': '今すぐ同期',
   'docsync.unlink': '接続解除',
-  'docsync.confirmUnlink': 'ドキュメントは TREK にも保管先にも残ります。なくなるのは両者の対応付けだけです。',
+  'docsync.confirmUnlink': 'ドキュメントは PanelMint にも保管先にも残ります。なくなるのは両者の対応付けだけです。',
   'docsync.syncEnabled': '自動で同期',
   'docsync.deletePolicy': 'ドキュメントが削除されたとき',
   'docsync.deleteUnlink': '両方のコピーを残す',
   'docsync.deleteTrash': 'ゴミ箱へ移動する',
   'docsync.conflictPolicy': '両方が変更された場合',
   'docsync.onConflict.manual': '確認する',
-  'docsync.onConflict.trek_wins': 'TREK のコピーを残す',
+  'docsync.onConflict.trek_wins': 'PanelMint のコピーを残す',
   'docsync.onConflict.provider_wins': '保存先のコピーを残す',
   'docsync.webhookHint':
-    'この URL を連携先に貼り付けると、変更がすぐに届きます。設定しない場合、TREK は一定間隔で確認します。',
+    'この URL を連携先に貼り付けると、変更がすぐに届きます。設定しない場合、PanelMint は一定間隔で確認します。',
 
   // 接続フォームの項目。キーは document_provider_fields の `label` 列に対応し、
   // この列にはテキストではなくキーの末尾だけが入ります。
@@ -46,7 +46,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudAppPassword':
     '「設定 → セキュリティ → 新しいアプリパスワードを作成」で発行します。アカウントのパスワードは使わないでください。',
   'docsync.hintOpenCloudToken': 'OpenCloud のアプリトークンとして作成します。',
-  'docsync.hintBasePath': 'TREK が旅行用フォルダーを探す場所です。既定は /TREK です。',
+  'docsync.hintBasePath': 'PanelMint が旅行用フォルダーを探す場所です。既定は /TREK です。',
   'docsync.hintSynologyUrl': 'ポート番号も含めてください。例：https://nas.example.com:5001',
   'docsync.hintSynologyUser': 'この共有フォルダーだけにアクセスできる専用の DSM アカウントが最適です。',
   'docsync.hintSynologyOtp': 'アカウントで二段階認証を使っている場合に、最初の一度だけ必要です。',
@@ -66,13 +66,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': 'サイズ超過',
   'docsync.state.error': 'エラー',
   'docsync.state.remote_missing': '連携先に見つかりません',
-  'docsync.state.local_deleted': 'TREK で削除済み',
+  'docsync.state.local_deleted': 'PanelMint で削除済み',
   'docsync.state.scope_drift': 'フォルダー外へ移動',
 
   'docsync.conflict.resolve': "{count} 件を解決",
 
   'docsync.conflict.title': '両方のコピーが変更されました',
-  'docsync.conflict.keepTrek': 'TREK のバージョンを残す',
+  'docsync.conflict.keepTrek': 'PanelMint のバージョンを残す',
   'docsync.conflict.keepProvider': '連携先のバージョンを残す',
   'docsync.conflict.keepBoth': '両方を残す',
 
@@ -85,7 +85,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'このアカウントにはその権限がありません。',
   'docsync.error.not_found': '連携先に見つかりませんでした。',
   'docsync.error.scope_missing': '接続されたフォルダーはすでに存在しません。',
-  'docsync.error.rate_limited': '連携先が要求を制限しています。TREK が後でもう一度試します。',
+  'docsync.error.rate_limited': '連携先が要求を制限しています。PanelMint が後でもう一度試します。',
   'docsync.error.too_large': 'このファイルは連携先が受け付けるサイズを超えています。',
   'docsync.error.unsupported_type': '連携先はこのファイル形式を受け付けません。',
   'docsync.error.quota_exceeded': '連携先の空き容量がありません。',
@@ -106,8 +106,8 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': 'まだ何も接続されていません',
   'docsync.empty.hintOwner':
-    '左から保管先を選んでください。TREK はすべてのコピーを自分で持つので、保管先がなくなっても失われるものはありません。',
-  'docsync.empty.hintMember': 'この設定は旅行の所有者が行います。どちらにしてもドキュメントは TREK に残ります。',
+    '左から保管先を選んでください。PanelMint はすべてのコピーを自分で持つので、保管先がなくなっても失われるものはありません。',
+  'docsync.empty.hintMember': 'この設定は旅行の所有者が行います。どちらにしてもドキュメントは PanelMint に残ります。',
 
   // それぞれの製品が何を単位に整理するか。接続する前に表示します。次の画面で
   // 聞かれるのがまさにこれだからです。
@@ -118,7 +118,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'NAS 上のフォルダーで整理',
 
   // ── フローバー ─────────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'PanelMint',
   'docsync.flow.toProvider': '保管先へ',
   'docsync.flow.toTrek': '保管先から',
   'docsync.flow.documents': 'ドキュメント',
@@ -147,16 +147,16 @@ const docsync: TranslationStrings = {
   'docsync.connect.testing': '接続を確認しています',
   'docsync.connect.okAs': '接続できました。{account} としてサインインしています',
   'docsync.connect.insecureHint': '自己署名証明書を使う、自分のネットワーク上のインスタンス向けです。',
-  'docsync.connect.about.paperless': 'TREK はこの旅行を専用のタグで管理し、アーカイブのほかの部分には触れません。',
-  'docsync.connect.about.papra': 'この旅行が属する組織を選びます。TREK はその中に専用のタグを作って管理します。',
+  'docsync.connect.about.paperless': 'PanelMint はこの旅行を専用のタグで管理し、アーカイブのほかの部分には触れません。',
+  'docsync.connect.about.papra': 'この旅行が属する組織を選びます。PanelMint はその中に専用のタグを作って管理します。',
   'docsync.connect.about.nextcloud':
     'アカウントのパスワードではなくアプリパスワードを使ってください。二段階認証があっても使えて、単独で失効できます。',
-  'docsync.connect.about.opencloud': 'TREK はこの旅行のために専用のスペースを持ち、ほかとは分けて扱います。',
+  'docsync.connect.about.opencloud': 'PanelMint はこの旅行のために専用のスペースを持ち、ほかとは分けて扱います。',
   'docsync.connect.about.synologydrive': 'この旅行で使う共有フォルダーだけにアクセスできる DSM アカウントが最適です。',
 
   // ── 置き場所を選ぶ ─────────────────────────────────────────────────────────
   'docsync.scope.title': 'この旅行を {provider} のどこに置きますか？',
-  'docsync.scope.intro': 'ここに入っているものだけが同期されます。保管先のほかのものは TREK に入りません。',
+  'docsync.scope.intro': 'ここに入っているものだけが同期されます。保管先のほかのものは PanelMint に入りません。',
   'docsync.scope.createTitle': '新しく作る',
   'docsync.scope.createAction': '作成',
   'docsync.scope.pickTitle': 'または既にあるものを使う',
@@ -166,7 +166,7 @@ const docsync: TranslationStrings = {
   // ── 人が判断する必要があるもの ─────────────────────────────────────────────
   'docsync.issues.title': '確認が必要',
   'docsync.issues.conflict': '両方で変更されました。どちらを残すか選んでください。',
-  'docsync.issues.remote_missing': '保管先から消えました。TREK のコピーは残っています。',
+  'docsync.issues.remote_missing': '保管先から消えました。PanelMint のコピーは残っています。',
   'docsync.issues.rejected_type': 'このファイル形式はここでは許可されていません。',
   'docsync.issues.too_large': '上限を超えています。',
   'docsync.issues.error': '転送できませんでした。',

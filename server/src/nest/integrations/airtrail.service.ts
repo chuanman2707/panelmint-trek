@@ -45,7 +45,7 @@ export class AirtrailService {
     );
   }
 
-  /** Has this user opted in to TREK writing their flight edits back to AirTrail? (#1240) */
+  /** Has this user opted in to PanelMint writing their flight edits back to AirTrail? (#1240) */
   isAirtrailWriteEnabled(userId: number): boolean {
     const row = this.db.get<{ airtrail_write_enabled?: number | null }>(
       'SELECT airtrail_write_enabled FROM users WHERE id = ?',

@@ -88,13 +88,13 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Benutzer ohne 2FA müssen die Einrichtung unter Einstellungen abschließen, bevor sie die App nutzen können.',
   'admin.apiKeys': 'API-Schlüssel',
-  'admin.apiKeysHint': 'Woher die Ortsdaten kommen. Der TREK-Index braucht keinen Schlüssel, die beiden Anbieter darunter sind optional.',
+  'admin.apiKeysHint': 'Woher die Ortsdaten kommen. Der PanelMint-Index braucht keinen Schlüssel, die beiden Anbieter darunter sind optional.',
   'admin.trekApi.badgeDefault': 'Empfohlene Standardquelle',
   'admin.googleCaveat.badge': 'Nicht empfohlen',
   'admin.googleCaveat.body':
-    'TREK ist quelloffen und wir sind hier nicht neutral. Bewertungen und Fotos gewöhnlicher Läden gibt es in dieser Größenordnung nur bei Google, und genau das ist ein Monopol. Das Feld steht hier, weil es keine Alternative gibt, nicht weil wir es empfehlen. Jede Abfrage geht dann an Google.',
+    'PanelMint ist quelloffen und wir sind hier nicht neutral. Bewertungen und Fotos gewöhnlicher Läden gibt es in dieser Größenordnung nur bei Google, und genau das ist ein Monopol. Das Feld steht hier, weil es keine Alternative gibt, nicht weil wir es empfehlen. Jede Abfrage geht dann an Google.',
   'admin.trekApi.tagline':
-    'TREKs eigener Ortsindex. Suchen ohne Google-Schlüssel, ohne Kontingent und ohne dass jemand mitzählt.',
+    'PanelMints eigener Ortsindex. Suchen ohne Google-Schlüssel, ohne Kontingent und ohne dass jemand mitzählt.',
   'admin.trekApi.factPlaces':
     '73,6 Millionen Orte weltweit',
   'admin.trekApi.factNoKey':
@@ -138,12 +138,12 @@ const admin: TranslationStrings = {
   'admin.amapKeyHint':
     'Für die Ortssuche in Festlandchina, wo Google nicht erreichbar ist und OpenStreetMap kaum Daten hat. Benötigt einen Key vom Typ „Web 服务" (Webdienst), nicht einen JS-API-Key. Erhältlich auf console.amap.com.',
   'admin.placesProvider.title': 'Anbieter für die Ortssuche',
-  'admin.placesProvider.subtitle': 'Der TREK-Index und OpenStreetMap beantworten jede Suche. Hier wird gewählt, wer zusätzlich gefragt wird, wenn die beiden nichts finden: Automatisch bevorzugt Google, wenn ein Schlüssel da ist, danach Amap.',
+  'admin.placesProvider.subtitle': 'Der PanelMint-Index und OpenStreetMap beantworten jede Suche. Hier wird gewählt, wer zusätzlich gefragt wird, wenn die beiden nichts finden: Automatisch bevorzugt Google, wenn ein Schlüssel da ist, danach Amap.',
   'admin.placesProvider.auto': 'Automatisch',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Für den gewählten Anbieter ist kein API-Schlüssel hinterlegt, die Ortssuche beantworten daher nur der TREK-Index und OpenStreetMap.',
+  'admin.placesProvider.missingKey': 'Für den gewählten Anbieter ist kein API-Schlüssel hinterlegt, die Ortssuche beantworten daher nur der PanelMint-Index und OpenStreetMap.',
   'admin.placesProvider.saved': 'Anbieter für die Ortssuche gespeichert',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Verbunden',
@@ -177,8 +177,8 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Bilder und eine Beschreibung beim Hinzufügen eines Ortes anzeigen. Wikipedia und OpenStreetMap werden immer genutzt; Google kommt zusätzlich dazu, wenn Ortsfotos oder Ortsdetails aktiv sind.',
   'admin.placesGoogleOnly.title': 'Nur mit Google suchen',
-  'admin.placesGoogleOnly.subtitle': 'Jede Suche und jeder Vorschlag geht an Google Places. Aus, antworten zuerst der TREK-Index und OpenStreetMap, Google wird nur gefragt, wenn beide nichts finden.',
-  'admin.placesGoogleOnly.missingKey': 'Braucht einen Google-Maps-API-Schlüssel. Ohne ihn läuft die Suche über den TREK-Index und OpenStreetMap, egal wie dieser Schalter steht.',
+  'admin.placesGoogleOnly.subtitle': 'Jede Suche und jeder Vorschlag geht an Google Places. Aus, antworten zuerst der PanelMint-Index und OpenStreetMap, Google wird nur gefragt, wenn beide nichts finden.',
+  'admin.placesGoogleOnly.missingKey': 'Braucht einen Google-Maps-API-Schlüssel. Ohne ihn läuft die Suche über den PanelMint-Index und OpenStreetMap, egal wie dieser Schalter steht.',
   'admin.placesGoogleOnly.otherProvider': 'Braucht Google als Orts-Anbieter. Mit Amap oder OpenStreetMap als Auswahl geht keine Suche an Google, egal wie dieser Schalter steht.',
   'admin.transitProvider.title': 'Verkehrsanbieter',
   'admin.transitProvider.subtitle': 'Welcher Dienst die ÖPNV-Suche beantwortet.',
@@ -314,7 +314,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Quell-Repository',
   'admin.plugins.reportIssue': 'Problem melden',
   'admin.plugins.homepage': 'Homepage',
-  'admin.plugins.requiresTrek': 'Benötigt TREK {version}+',
+  'admin.plugins.requiresTrek': 'Benötigt PanelMint {version}+',
   'admin.plugins.reviewedOn': 'Geprüft am {date}',
   'admin.plugins.perm.db:own': 'Eigene Daten in einer isolierten Datenbank speichern',
   'admin.plugins.perm.db:read:trips': 'Reisen lesen, auf die der handelnde Nutzer Zugriff hat',
@@ -383,7 +383,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Zusatzdetails (Bewertungen, Ratings, Links) zu einem Ort beisteuern',
   'admin.plugins.perm.hook:search-provider':
-    'Ortssuchen aus einem eigenen Index beantworten, neben TREKs eigenen Ergebnissen',
+    'Ortssuchen aus einem eigenen Index beantworten, neben PanelMints eigenen Ergebnissen',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validierungswarnungen zu einer Reise ausgeben (im Planer angezeigt)',
   'admin.plugins.perm.hook:table-contributor':
@@ -402,7 +402,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     'Tools veröffentlichen, die ein KI-Assistent in deinem Namen ausführen kann (es handelt mit den Rechten, die du dem Plugin hier erteilst, nicht mit denen des Assistenten)',
   'admin.plugins.perm.geolocation:read':
-    'Deinen Live-Standort abfragen, solange eine seiner Ansichten offen ist (TREK liest ihn mit der Standortfreigabe dieser Seite, nicht mit einer eigenen des Plugins)',
+    'Deinen Live-Standort abfragen, solange eine seiner Ansichten offen ist (PanelMint liest ihn mit der Standortfreigabe dieser Seite, nicht mit einer eigenen des Plugins)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Textabschnitte an den PDF-Export einer Reise anhängen',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Länder auf der Atlas-Weltkarte hervorheben (z. B. Wunschlisten oder Reisehinweise)',
@@ -432,26 +432,26 @@ const admin: TranslationStrings = {
   'admin.plugins.updateLater': 'Vorerst aus lassen',
   'admin.plugins.updateKeptOff': 'Update installiert — bleibt aus, bis du die neuen Berechtigungen freigibst',
   'admin.plugins.reviewedMeaning':
-    '„Geprüft" heißt: Ein TREK-Maintainer hat den Code dieses Plugins bei jeder Version manuell auf Schadsoftware gescannt — nicht auf Qualität oder Funktion. Es ist keine Garantie, dass ein Plugin harmlos ist.',
+    '„Geprüft" heißt: Ein PanelMint-Maintainer hat den Code dieses Plugins bei jeder Version manuell auf Schadsoftware gescannt — nicht auf Qualität oder Funktion. Es ist keine Garantie, dass ein Plugin harmlos ist.',
   'admin.plugins.security.title': 'Wie Plugins eingesperrt werden — und wo die Grenzen liegen',
   'admin.plugins.security.isolationTitle': 'Jedes Plugin läuft abgeschottet',
   'admin.plugins.security.isolationBody':
-    'Ein Plugin läuft als eigener, abgeriegelter Prozess, der nur seine eigenen Dateien lesen darf. Es kann weder deine Datenbank noch deinen Login-Schlüssel oder deinen Verschlüsselungsschlüssel lesen, keine anderen Programme starten und nirgends Dateien schreiben. Seine Oberfläche läuft in einem versiegelten Browser-Rahmen, der dein Sitzungs-Cookie nicht lesen und die TREK-Seite drumherum nicht anfassen kann.',
+    'Ein Plugin läuft als eigener, abgeriegelter Prozess, der nur seine eigenen Dateien lesen darf. Es kann weder deine Datenbank noch deinen Login-Schlüssel oder deinen Verschlüsselungsschlüssel lesen, keine anderen Programme starten und nirgends Dateien schreiben. Seine Oberfläche läuft in einem versiegelten Browser-Rahmen, der dein Sitzungs-Cookie nicht lesen und die PanelMint-Seite drumherum nicht anfassen kann.',
   'admin.plugins.security.permsTitle': 'Was die Berechtigungen bedeuten',
   'admin.plugins.security.permsBody':
-    'Die Berechtigungen, die dir vor der Installation angezeigt werden, sind eine harte Obergrenze, die TREK zur Laufzeit durchsetzt — ein Plugin kann buchstäblich nichts tun, was nicht auf der Liste steht. Aber sie sagen dir, was ein Plugin kann, nicht was es tatsächlich tut. Ein Plugin, das deine Reisen lesen und einen Server erreichen darf, kann deine Reisen an diesen Server schicken — lies also die Berechtigungen und die Zielhosts, nicht nur die Beschreibung.',
+    'Die Berechtigungen, die dir vor der Installation angezeigt werden, sind eine harte Obergrenze, die PanelMint zur Laufzeit durchsetzt — ein Plugin kann buchstäblich nichts tun, was nicht auf der Liste steht. Aber sie sagen dir, was ein Plugin kann, nicht was es tatsächlich tut. Ein Plugin, das deine Reisen lesen und einen Server erreichen darf, kann deine Reisen an diesen Server schicken — lies also die Berechtigungen und die Zielhosts, nicht nur die Beschreibung.',
   'admin.plugins.security.limitsTitle': 'Was wir nicht garantieren können',
   'admin.plugins.security.limitsBody':
-    'Die Isolation ist eine starke Software-Grenze, keine absolute. Ein Plugin handelt mit genau den Rechten, die du freigibst — innerhalb dieser Rechte kann es sich anders verhalten als seine Beschreibung nahelegt, und es kann Daten, die es legitim hat, an die von ihm deklarierten Hosts senden. TREK liest oder bewertet nicht, was der Code eines Plugins tatsächlich tut.',
+    'Die Isolation ist eine starke Software-Grenze, keine absolute. Ein Plugin handelt mit genau den Rechten, die du freigibst — innerhalb dieser Rechte kann es sich anders verhalten als seine Beschreibung nahelegt, und es kann Daten, die es legitim hat, an die von ihm deklarierten Hosts senden. PanelMint liest oder bewertet nicht, was der Code eines Plugins tatsächlich tut.',
   'admin.plugins.security.worstTitle': 'Der schlimmste Fall',
   'admin.plugins.security.worstBody':
     'Ein bösartiges Plugin, das du einschaltest, kann die Daten und Verbindungen missbrauchen, die du ihm gegeben hast — etwa die Reisen abgreifen, die es lesen darf. Es kann keine Passwörter stehlen, keinen Admin-Login fälschen, keine Befehle auf deinem Server ausführen und keine Daten erreichen, die du nicht freigegeben hast. Der Schaden bleibt in dem, was du freigegeben hast, und das Ausschalten des Plugins stoppt ihn.',
   'admin.plugins.security.reviewedTitle': 'Was „Geprüft" bedeutet',
   'admin.plugins.security.reviewedBody':
-    'Ein geprüftes Plugin wurde bei jeder Version von einem TREK-Maintainer manuell auf Schadsoftware gescannt — geprüft auf feindlichen Code, nicht darauf, ob es gut funktioniert. Es ist kein Versprechen, dass das Plugin harmlos ist.',
+    'Ein geprüftes Plugin wurde bei jeder Version von einem PanelMint-Maintainer manuell auf Schadsoftware gescannt — geprüft auf feindlichen Code, nicht darauf, ob es gut funktioniert. Es ist kein Versprechen, dass das Plugin harmlos ist.',
   'admin.plugins.security.signedTitle': 'Was „Signiert" bedeutet',
   'admin.plugins.security.signedBody':
-    'Die Prüfsumme, die TREK bei jeder Installation prüft, belegt, dass die Dateien genau das sind, wofür die Registry einsteht. Eine Signatur belegt etwas anderes: dass sie vom Autor stammen, signiert mit einem Schlüssel, den nur er besitzt. Ein signiertes Plugin hat beides. Ein unsigniertes ist nicht unsicher — es trägt schlicht eine Garantie weniger, und die meisten Plugins in der Registry sind heute unsigniert.',
+    'Die Prüfsumme, die PanelMint bei jeder Installation prüft, belegt, dass die Dateien genau das sind, wofür die Registry einsteht. Eine Signatur belegt etwas anderes: dass sie vom Autor stammen, signiert mit einem Schlüssel, den nur er besitzt. Ein signiertes Plugin hat beides. Ein unsigniertes ist nicht unsicher — es trägt schlicht eine Garantie weniger, und die meisten Plugins in der Registry sind heute unsigniert.',
   'admin.plugins.signed': 'Signiert',
   'admin.plugins.signedHint': 'Bei der Installation gegen den Signaturschlüssel des Autors geprüft',
   'admin.plugins.unsigned': 'Unsigniert',
@@ -466,20 +466,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     'Die Dateien passen nicht zur Signatur des Autors. Sie sind nicht das, was der Autor signiert hat — entweder wurden sie beschädigt oder manipuliert. Das lässt sich nicht übergehen.',
   'admin.plugins.sig.missingBody':
-    'Dieses Plugin war signiert, als du es installiert hast, aber die neue Version bringt keine Signatur mit. TREK akzeptiert diesen Rückschritt nicht stillschweigend. Das lässt sich nicht übergehen.',
+    'Dieses Plugin war signiert, als du es installiert hast, aber die neue Version bringt keine Signatur mit. PanelMint akzeptiert diesen Rückschritt nicht stillschweigend. Das lässt sich nicht übergehen.',
   'admin.plugins.sig.incompleteBody':
     'Der Registry-Eintrag ist nur halb signiert: Er nennt einen Autorenschlüssel, die Version trägt aber keine Signatur (oder umgekehrt). Das ist ein Fehler auf Seiten des Plugins. Das lässt sich nicht übergehen.',
   'admin.plugins.sig.pinnedKey': 'Schlüssel, mit dem es installiert wurde',
   'admin.plugins.sig.newKey': 'Schlüssel, den es jetzt anbietet',
   'admin.plugins.sig.confirmOutOfBand':
-    'TREK kann einen legitimen Schlüsselwechsel nicht von einer Übernahme unterscheiden — von hier aus sehen beide gleich aus. Bestätige den neuen Schlüssel beim Autor über einen Kanal, dem du bereits vertraust, bevor du ihn annimmst. Sobald du das tust, wird das Plugin aktualisiert und der neue Schlüssel gemerkt.',
+    'PanelMint kann einen legitimen Schlüsselwechsel nicht von einer Übernahme unterscheiden — von hier aus sehen beide gleich aus. Bestätige den neuen Schlüssel beim Autor über einen Kanal, dem du bereits vertraust, bevor du ihn annimmst. Sobald du das tust, wird das Plugin aktualisiert und der neue Schlüssel gemerkt.',
   'admin.plugins.sig.retrustConfirm': 'Neuem Schlüssel vertrauen & aktualisieren',
   'admin.plugins.sig.cancel': 'Nicht vertrauen',
   'admin.plugins.sig.consentUnsigned':
     'Nichts verbindet diese Version mit ihrem Autor — die Dateien entsprechen der Registry, tragen aber keine Autorensignatur.',
   'admin.plugins.security.trustTitle': 'Das Fazit',
   'admin.plugins.security.trustBody':
-    'Ein Plugin zu installieren ist wie jede fremde App zu installieren: Füge nur Code von Autoren hinzu, denen du vertraust, und prüfe ihn im Zweifel zuerst selbst. TREK übernimmt keine Verantwortung für Plugins von Drittanbietern.',
+    'Ein Plugin zu installieren ist wie jede fremde App zu installieren: Füge nur Code von Autoren hinzu, denen du vertraust, und prüfe ihn im Zweifel zuerst selbst. PanelMint übernimmt keine Verantwortung für Plugins von Drittanbietern.',
   'admin.plugins.runtimeOn': 'Laufzeit aktiv',
   'admin.plugins.tabDiscover': 'Entdecken',
   'admin.plugins.searchPlaceholder': 'Plugins durchsuchen…',
@@ -495,11 +495,11 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Updates zuerst',
   'admin.plugins.sortDownloads': 'Meiste Downloads',
   'admin.plugins.updatesAvailable': '{count} Updates für deine Plugins verfügbar.',
-  'admin.plugins.newerNeedsTrek': 'v{version} verfügbar — benötigt TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'v{version} verfügbar — benötigt PanelMint {range}',
   'admin.plugins.versionsTitle': 'Versionen',
   'admin.plugins.versionPickerTitle': 'Version wechseln — {name}',
   'admin.plugins.versionSwitch': 'Zu {version} wechseln',
-  'admin.plugins.versionNeedsTrek': 'benötigt TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'benötigt PanelMint {range}',
   'admin.plugins.changeVersion': 'Version wechseln…',
   'admin.plugins.noVersions': 'Keine veröffentlichten Versionen in der Registry gefunden.',
   'admin.plugins.downgradeTitle': 'Dieses Plugin zurücksetzen?',
@@ -562,22 +562,22 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Herunterladen',
   'admin.plugins.dep.update': 'Aktualisieren',
   'admin.plugins.dep.resolveHint': 'Lädt die neueste kompatible Version samt eigener Abhängigkeiten herunter.',
-  'admin.plugins.dep.trekIncompatible': 'Benötigt TREK {range} — auf diesem Server läuft {host}',
-  'admin.plugins.dep.trekUnknown': 'Gibt nicht an, welche TREK-Versionen unterstützt werden',
+  'admin.plugins.dep.trekIncompatible': 'Benötigt PanelMint {range} — auf diesem Server läuft {host}',
+  'admin.plugins.dep.trekUnknown': 'Gibt nicht an, welche PanelMint-Versionen unterstützt werden',
   'admin.plugins.installCompatible': '{version} installieren',
   'admin.plugins.installAnyway': 'Trotzdem installieren',
   'admin.plugins.rangeBypass.pill': 'Versionsprüfung aus',
   'admin.plugins.rangeBypass.pillHint':
     'TREK_PLUGINS_IGNORE_TREK_RANGE ist gesetzt — Plugins dürfen außerhalb der von ihren Autoren angegebenen TREK-Versionen installiert und ausgeführt werden',
-  'admin.plugins.rangeBypass.title': 'Außerhalb der unterstützten TREK-Versionen',
-  'admin.plugins.rangeBypass.noticeTitle': 'Außerhalb der unterstützten TREK-Versionen installiert',
+  'admin.plugins.rangeBypass.title': 'Außerhalb der unterstützten PanelMint-Versionen',
+  'admin.plugins.rangeBypass.noticeTitle': 'Außerhalb der unterstützten PanelMint-Versionen installiert',
   'admin.plugins.rangeBypass.body':
     '„{name}“ gibt Unterstützung für TREK {range} an, dieser Server läuft mit {host}. TREK lässt es nur durch, weil TREK_PLUGINS_IGNORE_TREK_RANGE gesetzt ist. Der Autor hat den Versionsbereich des Plugins für dieses TREK nicht aktualisiert, es gibt also keine Garantie, dass es funktioniert — und in seltenen Fällen kann ein unpassendes Plugin TREK-Daten beschädigen. Fahre nur fort, wenn du dieses Risiko akzeptierst.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '„{name}“ gibt nicht an, welche TREK-Versionen es unterstützt; dieser Server läuft mit {host}. TREK lässt es nur durch, weil TREK_PLUGINS_IGNORE_TREK_RANGE gesetzt ist. Nichts belegt, dass der Autor es auf diesem TREK getestet hat, es gibt also keine Garantie, dass es funktioniert — und in seltenen Fällen kann ein unpassendes Plugin TREK-Daten beschädigen. Fahre nur fort, wenn du dieses Risiko akzeptierst.',
   'admin.plugins.dep.trekBypassed':
-    'Außerhalb seines TREK-Bereichs ({range}) — Versionsprüfung aus',
-  'admin.plugins.dep.trekBypassedUnknown': 'Gibt keinen TREK-Bereich an — Versionsprüfung aus',
+    'Außerhalb seines PanelMint-Bereichs ({range}) — Versionsprüfung aus',
+  'admin.plugins.dep.trekBypassedUnknown': 'Gibt keinen PanelMint-Bereich an — Versionsprüfung aus',
   'admin.plugins.incompatible': 'Nicht kompatibel',
   'admin.plugins.accessTitle': 'Worauf es zugreift',
   'admin.plugins.connectsTitle': 'Verbindet sich mit',
@@ -589,7 +589,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Geprüft am',
   'admin.plugins.downloads': 'Downloads',
   'admin.addons.title': 'Addons',
-  'admin.addons.subtitle': 'Aktiviere oder deaktiviere Funktionen, um TREK nach deinen Wünschen anzupassen.',
+  'admin.addons.subtitle': 'Aktiviere oder deaktiviere Funktionen, um PanelMint nach deinen Wünschen anzupassen.',
   'admin.addons.catalog.packing.name': 'Listen',
   'admin.addons.catalog.packing.description': 'Packlisten und To-Do-Aufgaben für deine Reisen',
   'admin.addons.catalog.budget.name': 'Kosten',
@@ -634,7 +634,7 @@ const admin: TranslationStrings = {
   'admin.weather.title': 'Wetterdaten',
   'admin.weather.badge': 'Seit 24. März 2026',
   'admin.weather.description':
-    'TREK nutzt Open-Meteo als Wetterdatenquelle. Open-Meteo ist ein kostenloser, quelloffener Wetterdienst — es wird kein API-Schlüssel benötigt.',
+    'PanelMint nutzt Open-Meteo als Wetterdatenquelle. Open-Meteo ist ein kostenloser, quelloffener Wetterdienst — es wird kein API-Schlüssel benötigt.',
   'admin.weather.forecast': '16-Tage-Vorhersage',
   'admin.weather.forecastDesc': 'Statt bisher 5 Tage (OpenWeatherMap)',
   'admin.weather.climate': 'Historische Klimadaten',
@@ -693,14 +693,14 @@ const admin: TranslationStrings = {
   'admin.github.loading': 'Wird geladen...',
   'admin.github.error': 'Releases konnten nicht geladen werden',
   'admin.github.by': 'von',
-  'admin.github.support': 'Hilft mir, TREK weiterzuentwickeln',
+  'admin.github.support': 'Hilft mir, PanelMint weiterzuentwickeln',
   'admin.update.available': 'Update verfügbar',
-  'admin.update.text': 'TREK {version} ist verfügbar. Du verwendest {current}.',
+  'admin.update.text': 'PanelMint {version} ist verfügbar. Du verwendest {current}.',
   'admin.update.button': 'Auf GitHub ansehen',
   'admin.update.install': 'Update installieren',
   'admin.update.confirmTitle': 'Update installieren?',
   'admin.update.confirmText':
-    'TREK wird von {current} auf {version} aktualisiert. Der Server startet danach automatisch neu.',
+    'PanelMint wird von {current} auf {version} aktualisiert. Der Server startet danach automatisch neu.',
   'admin.update.dataInfo':
     'Alle Daten (Reisen, Benutzer, API-Schlüssel, Uploads, Vacay, Atlas, Budgets) bleiben erhalten.',
   'admin.update.warning': 'Die App ist während des Neustarts kurz nicht erreichbar.',
@@ -712,9 +712,9 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Zum Backup',
   'admin.update.howTo': 'Update-Anleitung',
   'admin.update.dockerText':
-    'Deine TREK-Instanz läuft in Docker. Um auf {version} zu aktualisieren, führe folgende Befehle auf deinem Server aus:',
+    'Deine PanelMint-Instanz läuft in Docker. Um auf {version} zu aktualisieren, führe folgende Befehle auf deinem Server aus:',
   'admin.update.nonDockerText':
-    'Diese TREK-Instanz läuft nicht in Docker. Um auf {version} zu aktualisieren, führe die Installations- oder Update-Methode erneut aus, die du verwendet hast — bei Proxmox Community Scripts startest du das Update zum Beispiel über die LXC-Konsole:',
+    'Diese PanelMint-Instanz läuft nicht in Docker. Um auf {version} zu aktualisieren, führe die Installations- oder Update-Methode erneut aus, die du verwendet hast — bei Proxmox Community Scripts startest du das Update zum Beispiel über die LXC-Konsole:',
   'admin.update.wikiLink': 'Update-Anleitung öffnen',
   'admin.update.reloadHint': 'Bitte lade die Seite in wenigen Sekunden neu.',
   'admin.tabs.permissions': 'Berechtigungen',

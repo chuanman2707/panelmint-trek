@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Újra',
   'common.errorReload': 'Oldal újratöltése',
   'common.errorUpdateTitle': 'Új verzió érhető el',
-  'common.errorUpdateBody': 'A TREK frissült, amíg ez a lap nyitva volt. Töltse újra az új verzióért.',
+  'common.errorUpdateBody': 'A PanelMint frissült, amíg ez a lap nyitva volt. Töltse újra az új verzióért.',
   'common.errorPluginTitle': 'Ezt a bővítményt nem sikerült megjeleníteni',
 };
 export default common;

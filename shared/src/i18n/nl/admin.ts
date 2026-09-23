@@ -88,13 +88,13 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Gebruikers zonder 2FA moeten de installatie in Instellingen voltooien voordat ze de app kunnen gebruiken.',
   'admin.apiKeys': 'API-sleutels',
-  'admin.apiKeysHint': 'Waar plaatsgegevens vandaan komen. De TREK-index heeft geen sleutel nodig; de twee aanbieders hieronder zijn optioneel.',
+  'admin.apiKeysHint': 'Waar plaatsgegevens vandaan komen. De PanelMint-index heeft geen sleutel nodig; de twee aanbieders hieronder zijn optioneel.',
   'admin.trekApi.badgeDefault': 'Aanbevolen standaardbron',
   'admin.googleCaveat.badge': 'Niet aanbevolen',
   'admin.googleCaveat.body':
-    "TREK is open source en wij zijn hier niet neutraal. Op deze schaal bestaan beoordelingen en foto's van gewone zaken alleen bij Google, en dat is een monopolie. Het veld staat er bij gebrek aan alternatief, niet omdat wij het aanraden. Elke opvraging gaat dan naar Google.",
+    "PanelMint is open source en wij zijn hier niet neutraal. Op deze schaal bestaan beoordelingen en foto's van gewone zaken alleen bij Google, en dat is een monopolie. Het veld staat er bij gebrek aan alternatief, niet omdat wij het aanraden. Elke opvraging gaat dan naar Google.",
   'admin.trekApi.tagline':
-    'TREK\'s eigen plaatsenindex. Zoeken zonder Google-sleutel, zonder quotum en zonder dat iemand meetelt.',
+    'PanelMint\'s eigen plaatsenindex. Zoeken zonder Google-sleutel, zonder quotum en zonder dat iemand meetelt.',
   'admin.trekApi.factPlaces':
     '73,6 miljoen plaatsen wereldwijd',
   'admin.trekApi.factNoKey':
@@ -128,7 +128,7 @@ const admin: TranslationStrings = {
   'admin.mapsKey': 'Google Maps API-sleutel',
   'admin.mapsKeyHint': 'Vereist voor het zoeken van plaatsen. Verkrijgbaar op console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    "Zonder Google-API-sleutel wordt de aanbevolen TREK-API gebruikt. Met een sleutel kunnen daarnaast foto's, beoordelingen en openingstijden worden geladen. Maak er een aan op console.cloud.google.com.",
+    "Zonder Google-API-sleutel wordt de aanbevolen PanelMint-API gebruikt. Met een sleutel kunnen daarnaast foto's, beoordelingen en openingstijden worden geladen. Maak er een aan op console.cloud.google.com.",
   'admin.recommended': 'Aanbevolen',
   'admin.weatherKey': 'OpenWeatherMap API-sleutel',
   'admin.weatherKeyHint': 'Voor weergegevens. Gratis op openweathermap.org',
@@ -138,12 +138,12 @@ const admin: TranslationStrings = {
   'admin.amapKeyHint':
     'Voor het zoeken naar plaatsen in het Chinese vasteland, waar Google onbereikbaar is en OpenStreetMap weinig gegevens heeft. Vereist een sleutel van het type ‘Web 服务’ (webservice), geen JS API-sleutel. Verkrijgbaar op console.amap.com.',
   'admin.placesProvider.title': 'Provider voor plaatszoeken',
-  'admin.placesProvider.subtitle': 'De eigen index van TREK en OpenStreetMap beantwoorden elke zoekopdracht. Hier kies je wie er nog meer wordt gevraagd als zij niets vinden: Automatisch geeft de voorkeur aan Google als er een sleutel is, daarna Amap.',
+  'admin.placesProvider.subtitle': 'De eigen index van PanelMint en OpenStreetMap beantwoorden elke zoekopdracht. Hier kies je wie er nog meer wordt gevraagd als zij niets vinden: Automatisch geeft de voorkeur aan Google als er een sleutel is, daarna Amap.',
   'admin.placesProvider.auto': 'Automatisch',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Voor de gekozen aanbieder is geen API-sleutel ingesteld, dus plaatszoeken wordt alleen door de TREK-index en OpenStreetMap beantwoord.',
+  'admin.placesProvider.missingKey': 'Voor de gekozen aanbieder is geen API-sleutel ingesteld, dus plaatszoeken wordt alleen door de PanelMint-index en OpenStreetMap beantwoord.',
   'admin.placesProvider.saved': 'Provider voor plaatszoeken opgeslagen',
   'admin.validateKey': 'Testen',
   'admin.keyValid': 'Verbonden',
@@ -177,8 +177,8 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     "Toont afbeeldingen en een beschrijving bij het toevoegen van een plaats. Wikipedia en OpenStreetMap worden altijd gebruikt; Google komt erbij als Plaatsfoto's of Plaatsdetails aanstaan.",
   'admin.placesGoogleOnly.title': 'Alleen met Google zoeken',
-  'admin.placesGoogleOnly.subtitle': 'Elke zoekopdracht en elke suggestie gaat naar Google Places. Uit, antwoorden eerst de TREK-index en OpenStreetMap; Google wordt alleen gevraagd als die niets vinden.',
-  'admin.placesGoogleOnly.missingKey': 'Vereist een Google Maps API-sleutel. Zonder sleutel zoekt TREK via de eigen index en OpenStreetMap, wat deze schakelaar ook zegt.',
+  'admin.placesGoogleOnly.subtitle': 'Elke zoekopdracht en elke suggestie gaat naar Google Places. Uit, antwoorden eerst de PanelMint-index en OpenStreetMap; Google wordt alleen gevraagd als die niets vinden.',
+  'admin.placesGoogleOnly.missingKey': 'Vereist een Google Maps API-sleutel. Zonder sleutel zoekt PanelMint via de eigen index en OpenStreetMap, wat deze schakelaar ook zegt.',
   'admin.placesGoogleOnly.otherProvider': 'Vereist Google als plaatsenprovider. Met Amap of OpenStreetMap gekozen gaat geen enkele zoekopdracht naar Google, wat deze schakelaar ook zegt.',
   'admin.transitProvider.title': 'Ov-provider',
   'admin.transitProvider.subtitle': 'Welke dienst het ov-zoeken beantwoordt.',
@@ -313,7 +313,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Broncoderepository',
   'admin.plugins.reportIssue': 'Probleem melden',
   'admin.plugins.homepage': 'Homepage',
-  'admin.plugins.requiresTrek': 'Vereist TREK {version}+',
+  'admin.plugins.requiresTrek': 'Vereist PanelMint {version}+',
   'admin.plugins.reviewedOn': 'Beoordeeld op {date}',
   'admin.plugins.perm.db:own': 'Eigen gegevens opslaan in een geïsoleerde database',
   'admin.plugins.perm.db:read:trips': 'Reizen lezen waartoe de actieve gebruiker toegang heeft',
@@ -384,7 +384,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Extra details (reviews, beoordelingen, links) aan een plek toevoegen',
   'admin.plugins.perm.hook:search-provider':
-    'Zoekopdrachten naar locaties beantwoorden vanuit een eigen index, naast de resultaten van TREK',
+    'Zoekopdrachten naar locaties beantwoorden vanuit een eigen index, naast de resultaten van PanelMint',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Validatiewaarschuwingen tonen bij een reis (zichtbaar in de planner)',
   'admin.plugins.perm.hook:table-contributor':
@@ -403,7 +403,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     'Tools publiceren die een AI-assistent namens jou kan uitvoeren (die handelt met de rechten die je de plug-in hier geeft, niet met die van de assistent)',
   'admin.plugins.perm.geolocation:read':
-    'Je live locatie opvragen zolang een van zijn weergaven open is (TREK leest die met de locatietoestemming van deze site, niet met een eigen toestemming van de plug-in)',
+    'Je live locatie opvragen zolang een van zijn weergaven open is (PanelMint leest die met de locatietoestemming van deze site, niet met een eigen toestemming van de plug-in)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Tekstsecties toevoegen aan de PDF-export van de reis',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Landen markeren op de Atlas-wereldkaart (bijv. wensenlijsten of reisadviezen)',
@@ -431,26 +431,26 @@ const admin: TranslationStrings = {
   'admin.plugins.updateLater': 'Voorlopig uit laten',
   'admin.plugins.updateKeptOff': 'Update geïnstalleerd — uit gelaten totdat je de nieuwe machtigingen goedkeurt',
   'admin.plugins.reviewedMeaning':
-    '"Beoordeeld" betekent dat een TREK-beheerder deze plugin bij elke versie op malware heeft gecontroleerd — niet op kwaliteit of op de vraag of hij werkt. Het is geen garantie dat een plugin ongevaarlijk is.',
+    '"Beoordeeld" betekent dat een PanelMint-beheerder deze plugin bij elke versie op malware heeft gecontroleerd — niet op kwaliteit of op de vraag of hij werkt. Het is geen garantie dat een plugin ongevaarlijk is.',
   'admin.plugins.security.title': 'Hoe plugins worden ingeperkt — en de grenzen',
   'admin.plugins.security.isolationTitle': 'Elke plugin draait afgeschermd',
   'admin.plugins.security.isolationBody':
-    "Een plugin draait als een eigen afgeschermd proces dat alleen zijn eigen bestanden kan lezen. Hij kan je database, je login-geheim of je versleutelingssleutel niet lezen, kan geen andere programma's starten en kan nergens bestanden wegschrijven. De interface draait in een afgesloten browserframe dat je sessiecookie niet kan lezen en de TREK-pagina eromheen niet kan aanraken.",
+    "Een plugin draait als een eigen afgeschermd proces dat alleen zijn eigen bestanden kan lezen. Hij kan je database, je login-geheim of je versleutelingssleutel niet lezen, kan geen andere programma's starten en kan nergens bestanden wegschrijven. De interface draait in een afgesloten browserframe dat je sessiecookie niet kan lezen en de PanelMint-pagina eromheen niet kan aanraken.",
   'admin.plugins.security.permsTitle': 'Wat de machtigingen betekenen',
   'admin.plugins.security.permsBody':
-    'De machtigingen die vóór het installeren worden getoond, zijn een harde grens die TREK afdwingt zolang de plugin draait — hij kan letterlijk niets doen wat niet op de lijst staat. Maar ze vertellen je wat een plugin kán doen, niet wat hij daadwerkelijk doet. Een plugin die je reizen mag lezen en een server mag bereiken, kan je reizen naar die server sturen; lees dus de machtigingen en de uitgaande hosts, niet alleen de beschrijving.',
+    'De machtigingen die vóór het installeren worden getoond, zijn een harde grens die PanelMint afdwingt zolang de plugin draait — hij kan letterlijk niets doen wat niet op de lijst staat. Maar ze vertellen je wat een plugin kán doen, niet wat hij daadwerkelijk doet. Een plugin die je reizen mag lezen en een server mag bereiken, kan je reizen naar die server sturen; lees dus de machtigingen en de uitgaande hosts, niet alleen de beschrijving.',
   'admin.plugins.security.limitsTitle': 'Wat we niet kunnen beloven',
   'admin.plugins.security.limitsBody':
-    'De isolatie is een sterke softwaregrens, geen absolute. Een plugin handelt met precies de rechten die je goedkeurt, dus binnen die rechten kan hij zich anders gedragen dan zijn beschrijving suggereert, en kan hij gegevens die hij rechtmatig bezit naar de door hem opgegeven hosts sturen. TREK leest of beoordeelt niet wat de code van een plugin daadwerkelijk doet.',
+    'De isolatie is een sterke softwaregrens, geen absolute. Een plugin handelt met precies de rechten die je goedkeurt, dus binnen die rechten kan hij zich anders gedragen dan zijn beschrijving suggereert, en kan hij gegevens die hij rechtmatig bezit naar de door hem opgegeven hosts sturen. PanelMint leest of beoordeelt niet wat de code van een plugin daadwerkelijk doet.',
   'admin.plugins.security.worstTitle': 'Het ergste geval',
   'admin.plugins.security.worstBody':
     "Een kwaadwillende plugin die je inschakelt, kan de gegevens en verbindingen die je hebt verleend misbruiken — bijvoorbeeld de reizen lekken die hij mag lezen. Hij kan geen wachtwoorden stelen, geen beheerderslogin vervalsen, geen commando's op je server uitvoeren en geen gegevens bereiken die je niet hebt verleend. De schade blijft binnen wat je hebt goedgekeurd, en de plugin uitschakelen stopt hem.",
   'admin.plugins.security.reviewedTitle': 'Wat "Beoordeeld" betekent',
   'admin.plugins.security.reviewedBody':
-    'Een beoordeelde plugin is bij elke versie handmatig door een TREK-beheerder op malware gecontroleerd — gecontroleerd op kwaadaardige code, niet op de vraag of hij goed werkt. Het is geen belofte dat de plugin ongevaarlijk is.',
+    'Een beoordeelde plugin is bij elke versie handmatig door een PanelMint-beheerder op malware gecontroleerd — gecontroleerd op kwaadaardige code, niet op de vraag of hij goed werkt. Het is geen belofte dat de plugin ongevaarlijk is.',
   'admin.plugins.security.signedTitle': 'Wat "Ondertekend" betekent',
   'admin.plugins.security.signedBody':
-    'De controlesom die TREK bij elke installatie verifieert, bewijst dat de bestanden precies zijn waarvoor de registry instaat. Een handtekening bewijst iets anders: dat ze van de auteur komen, ondertekend met een sleutel die alleen hij heeft. Een ondertekende plugin heeft beide. Een niet-ondertekende plugin is niet onveilig — hij draagt simpelweg één garantie minder, en de meeste plugins in de registry zijn vandaag niet ondertekend.',
+    'De controlesom die PanelMint bij elke installatie verifieert, bewijst dat de bestanden precies zijn waarvoor de registry instaat. Een handtekening bewijst iets anders: dat ze van de auteur komen, ondertekend met een sleutel die alleen hij heeft. Een ondertekende plugin heeft beide. Een niet-ondertekende plugin is niet onveilig — hij draagt simpelweg één garantie minder, en de meeste plugins in de registry zijn vandaag niet ondertekend.',
   'admin.plugins.signed': 'Ondertekend',
   'admin.plugins.signedHint': 'Bij de installatie geverifieerd tegen de ondertekeningssleutel van de auteur',
   'admin.plugins.unsigned': 'Niet ondertekend',
@@ -465,20 +465,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     'De bestanden komen niet overeen met de handtekening van de auteur. Ze zijn niet wat de auteur heeft ondertekend — ze zijn beschadigd geraakt, of er is mee geknoeid. Dit kan niet worden genegeerd.',
   'admin.plugins.sig.missingBody':
-    'Deze plugin was ondertekend toen je hem installeerde, maar de nieuwe versie levert geen handtekening mee. TREK aanvaardt die stap terug niet stilzwijgend. Dit kan niet worden genegeerd.',
+    'Deze plugin was ondertekend toen je hem installeerde, maar de nieuwe versie levert geen handtekening mee. PanelMint aanvaardt die stap terug niet stilzwijgend. Dit kan niet worden genegeerd.',
   'admin.plugins.sig.incompleteBody':
     'Het registry-item is half ondertekend: het vermeldt een auteurssleutel, maar de versie draagt geen handtekening (of andersom). Dat is een fout aan de kant van de plugin. Dit kan niet worden genegeerd.',
   'admin.plugins.sig.pinnedKey': 'Sleutel waarmee hij is geïnstalleerd',
   'admin.plugins.sig.newKey': 'Sleutel die hij nu aanbiedt',
   'admin.plugins.sig.confirmOutOfBand':
-    'TREK kan een legitieme sleutelwissel niet onderscheiden van een overname — van hieruit zien ze er identiek uit. Bevestig de nieuwe sleutel bij de auteur via een kanaal dat je al vertrouwt voordat je hem accepteert. Zodra je dat doet, wordt de plugin bijgewerkt en wordt de nieuwe sleutel onthouden.',
+    'PanelMint kan een legitieme sleutelwissel niet onderscheiden van een overname — van hieruit zien ze er identiek uit. Bevestig de nieuwe sleutel bij de auteur via een kanaal dat je al vertrouwt voordat je hem accepteert. Zodra je dat doet, wordt de plugin bijgewerkt en wordt de nieuwe sleutel onthouden.',
   'admin.plugins.sig.retrustConfirm': 'Nieuwe sleutel vertrouwen en bijwerken',
   'admin.plugins.sig.cancel': 'Niet vertrouwen',
   'admin.plugins.sig.consentUnsigned':
     'Niets koppelt deze versie aan de auteur — de bestanden komen overeen met de registry, maar dragen geen handtekening van de auteur.',
   'admin.plugins.security.trustTitle': 'De conclusie',
   'admin.plugins.security.trustBody':
-    'Een plugin installeren is als het installeren van elke andere app van derden: voeg alleen code toe van auteurs die je vertrouwt en controleer deze bij twijfel eerst zelf. TREK aanvaardt geen enkele verantwoordelijkheid voor plugins van derden.',
+    'Een plugin installeren is als het installeren van elke andere app van derden: voeg alleen code toe van auteurs die je vertrouwt en controleer deze bij twijfel eerst zelf. PanelMint aanvaardt geen enkele verantwoordelijkheid voor plugins van derden.',
   'admin.plugins.runtimeOn': 'Runtime aan',
   'admin.plugins.tabDiscover': 'Ontdekken',
   'admin.plugins.searchPlaceholder': 'Plugins zoeken…',
@@ -494,11 +494,11 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Updates eerst',
   'admin.plugins.sortDownloads': 'Meest gedownload',
   'admin.plugins.updatesAvailable': '{count} updates beschikbaar voor je plugins.',
-  'admin.plugins.newerNeedsTrek': 'v{version} beschikbaar — vereist TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'v{version} beschikbaar — vereist PanelMint {range}',
   'admin.plugins.versionsTitle': 'Versies',
   'admin.plugins.versionPickerTitle': 'Versie wijzigen — {name}',
   'admin.plugins.versionSwitch': 'Overschakelen naar {version}',
-  'admin.plugins.versionNeedsTrek': 'vereist TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'vereist PanelMint {range}',
   'admin.plugins.changeVersion': 'Versie wijzigen…',
   'admin.plugins.noVersions': 'Geen gepubliceerde versies gevonden in het register.',
   'admin.plugins.downgradeTitle': 'Deze plugin terugdraaien?',
@@ -561,21 +561,21 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Downloaden',
   'admin.plugins.dep.update': 'Bijwerken',
   'admin.plugins.dep.resolveHint': 'Downloadt de nieuwste compatibele versie, inclusief de eigen afhankelijkheden.',
-  'admin.plugins.dep.trekIncompatible': 'Vereist TREK {range} — deze server draait {host}',
-  'admin.plugins.dep.trekUnknown': 'Geeft niet aan welke TREK-versies worden ondersteund',
+  'admin.plugins.dep.trekIncompatible': 'Vereist PanelMint {range} — deze server draait {host}',
+  'admin.plugins.dep.trekUnknown': 'Geeft niet aan welke PanelMint-versies worden ondersteund',
   'admin.plugins.installCompatible': '{version} installeren',
   'admin.plugins.installAnyway': 'Toch installeren',
   'admin.plugins.rangeBypass.pill': 'Versiecontroles uit',
   'admin.plugins.rangeBypass.pillHint':
     'TREK_PLUGINS_IGNORE_TREK_RANGE is ingesteld — plugins mogen worden geïnstalleerd en uitgevoerd buiten de TREK-versies die hun auteurs opgeven',
-  'admin.plugins.rangeBypass.title': 'Buiten de ondersteunde TREK-versies',
-  'admin.plugins.rangeBypass.noticeTitle': 'Geïnstalleerd buiten de ondersteunde TREK-versies',
+  'admin.plugins.rangeBypass.title': 'Buiten de ondersteunde PanelMint-versies',
+  'admin.plugins.rangeBypass.noticeTitle': 'Geïnstalleerd buiten de ondersteunde PanelMint-versies',
   'admin.plugins.rangeBypass.body':
     '“{name}” geeft ondersteuning op voor TREK {range}, en deze server draait {host}. TREK laat het alleen door omdat TREK_PLUGINS_IGNORE_TREK_RANGE is ingesteld. De auteur heeft het versiebereik van de plugin niet bijgewerkt voor deze TREK, dus er is geen garantie dat het werkt — en in zeldzame gevallen kan een niet-passende plugin TREK-gegevens beschadigen. Ga alleen verder als je dat risico accepteert.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '“{name}” geeft niet op welke TREK-versies het ondersteunt; deze server draait {host}. TREK laat het alleen door omdat TREK_PLUGINS_IGNORE_TREK_RANGE is ingesteld. Niets wijst erop dat de auteur het op deze TREK heeft getest, dus er is geen garantie dat het werkt — en in zeldzame gevallen kan een niet-passende plugin TREK-gegevens beschadigen. Ga alleen verder als je dat risico accepteert.',
-  'admin.plugins.dep.trekBypassed': 'Buiten zijn TREK-bereik ({range}) — versiecontroles uit',
-  'admin.plugins.dep.trekBypassedUnknown': 'Geeft geen TREK-bereik op — versiecontroles uit',
+  'admin.plugins.dep.trekBypassed': 'Buiten zijn PanelMint-bereik ({range}) — versiecontroles uit',
+  'admin.plugins.dep.trekBypassedUnknown': 'Geeft geen PanelMint-bereik op — versiecontroles uit',
   'admin.plugins.incompatible': 'Niet compatibel',
   'admin.plugins.accessTitle': 'Waartoe hij toegang heeft',
   'admin.plugins.connectsTitle': 'Maakt verbinding met',
@@ -587,7 +587,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Beoordeeld op',
   'admin.plugins.downloads': 'Downloads',
   'admin.addons.title': 'Add-ons',
-  'admin.addons.subtitle': 'Schakel functies in of uit om je TREK-ervaring aan te passen.',
+  'admin.addons.subtitle': 'Schakel functies in of uit om je PanelMint-ervaring aan te passen.',
   'admin.addons.catalog.memories.name': "Foto's (Immich)",
   'admin.addons.catalog.memories.description': "Deel reisfoto's via je Immich-instantie",
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -632,7 +632,7 @@ const admin: TranslationStrings = {
   'admin.weather.title': 'Weergegevens',
   'admin.weather.badge': 'Sinds 24 maart 2026',
   'admin.weather.description':
-    'TREK gebruikt Open-Meteo als weerbron. Open-Meteo is een gratis, open-source weerdienst — geen API-sleutel vereist.',
+    'PanelMint gebruikt Open-Meteo als weerbron. Open-Meteo is een gratis, open-source weerdienst — geen API-sleutel vereist.',
   'admin.weather.forecast': '16-daagse voorspelling',
   'admin.weather.forecastDesc': 'Voorheen 5 dagen (OpenWeatherMap)',
   'admin.weather.climate': 'Historische klimaatgegevens',
@@ -690,15 +690,15 @@ const admin: TranslationStrings = {
   'admin.github.hideDetails': 'Details verbergen',
   'admin.github.loadMore': 'Meer laden',
   'admin.github.loading': 'Laden...',
-  'admin.github.support': 'Helpt mij TREK verder te ontwikkelen',
+  'admin.github.support': 'Helpt mij PanelMint verder te ontwikkelen',
   'admin.github.error': 'Releases laden mislukt',
   'admin.github.by': 'door',
   'admin.update.available': 'Update beschikbaar',
-  'admin.update.text': 'TREK {version} is beschikbaar. Je draait {current}.',
+  'admin.update.text': 'PanelMint {version} is beschikbaar. Je draait {current}.',
   'admin.update.button': 'Bekijk op GitHub',
   'admin.update.install': 'Update installeren',
   'admin.update.confirmTitle': 'Update installeren?',
-  'admin.update.confirmText': 'TREK wordt bijgewerkt van {current} naar {version}. De server herstart automatisch.',
+  'admin.update.confirmText': 'PanelMint wordt bijgewerkt van {current} naar {version}. De server herstart automatisch.',
   'admin.update.dataInfo':
     'Al je gegevens (reizen, gebruikers, API-sleutels, uploads, Vacay, Atlas, budgetten) worden bewaard.',
   'admin.update.warning': 'De app is kort niet beschikbaar tijdens het herstarten.',
@@ -710,9 +710,9 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Naar back-up',
   'admin.update.howTo': 'Hoe bij te werken',
   'admin.update.dockerText':
-    "Je TREK-instantie draait in Docker. Om bij te werken naar {version}, voer de volgende commando's uit op je server:",
+    "Je PanelMint-instantie draait in Docker. Om bij te werken naar {version}, voer de volgende commando's uit op je server:",
   'admin.update.nonDockerText':
-    'Deze TREK-instantie draait niet in Docker. Om bij te werken naar {version}, voer de installatie- of updatemethode die je hebt gebruikt opnieuw uit — bij Proxmox Community Scripts voer je de update bijvoorbeeld uit vanuit de LXC-console:',
+    'Deze PanelMint-instantie draait niet in Docker. Om bij te werken naar {version}, voer de installatie- of updatemethode die je hebt gebruikt opnieuw uit — bij Proxmox Community Scripts voer je de update bijvoorbeeld uit vanuit de LXC-console:',
   'admin.update.wikiLink': 'Open de updatehandleiding',
   'admin.update.reloadHint': 'Herlaad de pagina over een paar seconden.',
   'admin.tabs.permissions': 'Rechten',

@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': '你自己的 OSRM 實例。留空則使用公共伺服器，約每秒一個請求 — 單日夠用，長途自駕則吃緊。需重新啟動伺服器後生效。',
   'settings.valhallaBase': '自建 Valhalla 執行個體',
   'settings.valhallaBaseHint':
-    'TREK 預設使用 FOSSGIS 的公共 Valhalla 來避開收費道路、高速公路和渡輪。若要改用自己的 Valhalla，請在此輸入網址。如果只設定了自己的路線規劃伺服器，就不會使用公共 Valhalla。輸入自己的網址後，請重新啟動伺服器並重新載入頁面。',
+    'PanelMint 預設使用 FOSSGIS 的公共 Valhalla 來避開收費道路、高速公路和渡輪。若要改用自己的 Valhalla，請在此輸入網址。如果只設定了自己的路線規劃伺服器，就不會使用公共 Valhalla。輸入自己的網址後，請重新啟動伺服器並重新載入頁面。',
   'settings.mapHint': '地圖瓦片 URL 模板',
   'settings.mapProvider': '地圖提供商',
   'settings.mapProviderHint': '影響行程規劃和旅程地圖。Atlas 始終使用 Leaflet。',
@@ -42,7 +42,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKey': 'CARTO API 金鑰',
   'settings.mapCartoKeyHint': '沒有金鑰時 CARTO 底圖會顯示浮水印。免費且無需帳戶，來自',
   'settings.mapCartoKeyLink': 'carto.com 底圖 API 金鑰',
-  'settings.mapCartoKeyMissing': '此範本是 CARTO 底圖。沒有金鑰時，CARTO 會在每個圖磚上印上 "API KEY REQUIRED"。 在輸入金鑰之前，TREK 會顯示預設底圖。',
+  'settings.mapCartoKeyMissing': '此範本是 CARTO 底圖。沒有金鑰時，CARTO 會在每個圖磚上印上 "API KEY REQUIRED"。 在輸入金鑰之前，PanelMint 會顯示預設底圖。',
   'settings.mapStyle': '地圖樣式',
   'settings.mapStylePlaceholder': '選擇 Mapbox 樣式',
   'settings.mapStyleHint': '預設或您自己的 mapbox://styles/USER/ID URL',
@@ -222,13 +222,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': '建議新功能',
   'settings.about.wikiHint': '文件與指南',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': '月度支持者',
   'settings.about.supporters.title': '與 TREK 同行的夥伴',
   'settings.about.supporters.subtitle':
-    '當你規劃下一段路線時，這些人也在一起規劃 TREK 的未來。他們每月的支持直接用於開發與實際投入的時間——讓 TREK 保持開源。',
+    '當你規劃下一段路線時，這些人也在一起規劃 PanelMint 的未來。他們每月的支持直接用於開發與實際投入的時間——讓 PanelMint 保持開源。',
   'settings.about.supporters.since': '自 {date} 起的支持者',
   'settings.about.supporters.tierEmpty': '成為第一個',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
@@ -237,7 +237,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    'TREK 是一款自架旅遊規劃器，幫助您從最初構想到最後回憶，整理每次旅行。日程規劃、預算、行李清單、照片及更多功能——全部集中在您自己的伺服器上。',
+    'PanelMint 是一款自架旅遊規劃器，幫助您從最初構想到最後回憶，整理每次旅行。日程規劃、預算、行李清單、照片及更多功能——全部集中在您自己的伺服器上。',
   'settings.about.madeWith': '以',
   'settings.about.madeBy': '由 Maurice 及不斷成長的開源社群製作。',
   'settings.username': '使用者名稱',
@@ -337,7 +337,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': '僅在你自己網路上受信任的執行個體啟用。',
   'settings.airtrail.writeBack': '將變更寫回 AirTrail',
   'settings.airtrail.writeBackHint':
-    '預設關閉：AirTrail 是資料來源，TREK 僅從中讀取。開啟後會將在 TREK 中所做的修改寫回 AirTrail。',
+    '預設關閉：AirTrail 是資料來源，PanelMint 僅從中讀取。開啟後會將在 PanelMint 中所做的修改寫回 AirTrail。',
   'settings.airtrail.connected': '已連接',
   'settings.airtrail.notConnected': '未連接',
   'settings.airtrail.toast.saved': '已儲存 AirTrail 連接',
@@ -445,7 +445,7 @@ const settings: TranslationStrings = {
   'settings.startPage': '啟動頁面',
   'settings.startPageDashboard': '儀表板',
   'settings.startPageActiveTrip': '進行中的旅行',
-  'settings.startPageHint': 'TREK 會直接開啟正在進行的旅行，沒有則開啟最近要開始的那次。與儀表板突顯的是同一次旅行。',
+  'settings.startPageHint': 'PanelMint 會直接開啟正在進行的旅行，沒有則開啟最近要開始的那次。與儀表板突顯的是同一次旅行。',
   'settings.startTripTab': '啟動分頁',
   'settings.startTripTabHint': '旅行開啟時所在的分頁。如果該分頁屬於已關閉的附加元件，則改為開啟計劃檢視。',
 

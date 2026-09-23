@@ -364,7 +364,7 @@ export class UserProfileService {
               'Content-Type': 'application/json',
               'X-Goog-Api-Key': maps_api_key,
               // The mask the real search sends. A narrower probe passes on keys
-              // that are restricted to fewer Places SKUs than TREK asks for.
+              // that are restricted to fewer Places SKUs than PanelMint asks for.
               'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
             },
             body: JSON.stringify({ textQuery: 'test' }),

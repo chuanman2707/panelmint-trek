@@ -79,7 +79,7 @@ export const MAX_TRANSFERS_PER_RUN = 25;
  * its provider or through the Documents addon.
  *
  * Not one of the shared DocsyncErrorCodes: those say what went wrong between
- * TREK and a provider, and here nothing has. It is never written to the binding
+ * PanelMint and a provider, and here nothing has. It is never written to the binding
  * either, which is what lets the binding resume as it was left.
  */
 export const PROVIDER_DISABLED = 'provider_disabled';

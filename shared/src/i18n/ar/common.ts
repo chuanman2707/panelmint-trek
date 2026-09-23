@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'إعادة المحاولة',
   'common.errorReload': 'إعادة تحميل الصفحة',
   'common.errorUpdateTitle': 'يتوفر إصدار جديد',
-  'common.errorUpdateBody': 'تم تحديث TREK أثناء فتح علامة التبويب هذه. أعد التحميل للحصول على الإصدار الجديد.',
+  'common.errorUpdateBody': 'تم تحديث PanelMint أثناء فتح علامة التبويب هذه. أعد التحميل للحصول على الإصدار الجديد.',
   'common.errorPluginTitle': 'تعذّر عرض هذه الإضافة',
 };
 export default common;

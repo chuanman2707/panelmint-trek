@@ -2,7 +2,7 @@
  * The permission list has to describe what the install actually does.
  *
  * `geolocation:read` promised that the browser would ask before a plugin saw a
- * position. It does not: the host reads the position on TREK's own origin, so
+ * position. It does not: the host reads the position on PanelMint's own origin, so
  * whatever the reader already granted this site covers the plugin too, and the
  * prompt they were told to wait for never comes. A consent screen that oversells
  * the guard standing behind it is worse than one that says nothing.

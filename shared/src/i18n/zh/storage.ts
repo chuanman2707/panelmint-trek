@@ -17,7 +17,7 @@ const storage: TranslationStrings = {
   'storage.field.primary': '主后端',
   'storage.field.replicas': '副本',
   'storage.title': '存储',
-  'storage.description': 'TREK 存放上传文件、照片和备份的位置。保存之前不会有任何更改。',
+  'storage.description': 'PanelMint 存放上传文件、照片和备份的位置。保存之前不会有任何更改。',
   'storage.loading': '加载中…',
   'storage.saved': '存储配置已保存',
   'storage.save': '保存更改',
@@ -62,7 +62,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': '个人头像',
   'storage.category.places': '地点图片',
   'storage.category.photos-google': 'Google 照片缓存',
-  'storage.category.photos-trek': 'TREK 照片缓存',
+  'storage.category.photos-trek': 'PanelMint 照片缓存',
   'storage.category.backups': '备份',
 
   // What each category stores — rendered under the label in the category map.
@@ -72,7 +72,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.avatars': '用户账户的个人头像。',
   'storage.categoryDesc.places': '附加到地点和收藏地点的图片 — 上传或导入的。',
   'storage.categoryDesc.photos-google': 'Google Places 照片的缓存副本 — 可重新获取，丢失也无妨。',
-  'storage.categoryDesc.photos-trek': '"照片"（Memories）功能使用的 TREK 照片服务缓存的照片 — 可重新获取，丢失也无妨。',
+  'storage.categoryDesc.photos-trek': '"照片"（Memories）功能使用的 PanelMint 照片服务缓存的照片 — 可重新获取，丢失也无妨。',
   'storage.categoryDesc.backups': '由备份面板或计划任务创建的服务器备份存档。',
   'storage.health.title': '健康状态',
   'storage.health.allClear': '未记录任何副本故障。',

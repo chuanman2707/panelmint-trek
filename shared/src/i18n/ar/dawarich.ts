@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'اربط خادم Dawarich الخاص بك لترى أين ذهبت فعلاً. يقرأه TREK ويقترح مدوّنات وأماكن ودولاً — لا يُضاف شيء قبل أن تؤكده، ولا يُكتب أي شيء في Dawarich.',
+    'اربط خادم Dawarich الخاص بك لترى أين ذهبت فعلاً. يقرأه PanelMint ويقترح مدوّنات وأماكن ودولاً — لا يُضاف شيء قبل أن تؤكده، ولا يُكتب أي شيء في Dawarich.',
   'dawarich.url': 'عنوان الخادم',
   'dawarich.apiKey': 'مفتاح API',
   'dawarich.apiKeyPlaceholder': 'الصق مفتاح API الخاص بـ Dawarich',
@@ -12,7 +12,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTls': 'السماح بشهادة موقّعة ذاتياً',
   'dawarich.allowInsecureTlsHint': 'لا يلزم إلا إذا كان خادمك يستخدم شهادة لا يثق بها خادمك.',
   'dawarich.syncEnabled': 'التحقق من الإقامات الجديدة تلقائياً',
-  'dawarich.syncEnabledHint': 'عند الإيقاف، لا يقرأ TREK من Dawarich إلا حين تطلب ذلك.',
+  'dawarich.syncEnabledHint': 'عند الإيقاف، لا يقرأ PanelMint من Dawarich إلا حين تطلب ذلك.',
   'dawarich.test.button': 'اختبار الاتصال',
   'dawarich.test.success': 'تم الاتصال. تم العثور على {count} إقامة خلال آخر 30 يوماً.',
   'dawarich.test.failed': 'تعذّر الوصول إلى Dawarich.',
@@ -45,18 +45,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'هذه النسخة من Dawarich لا توفّر: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'تعذّر على TREK الوصول إلى هذا العنوان.',
+  'dawarich.error.unreachable': 'تعذّر على PanelMint الوصول إلى هذا العنوان.',
   'dawarich.error.unauthorized': 'رفض Dawarich مفتاح API.',
   'dawarich.error.forbidden': 'هذا المفتاح غير مسموح له بقراءة هذا.',
   'dawarich.error.not_found': 'هذه النسخة من Dawarich لا تحتوي على هذه الواجهة.',
-  'dawarich.error.rate_limited': 'طلب Dawarich من TREK التمهّل. حاول مرة أخرى بعد قليل.',
+  'dawarich.error.rate_limited': 'طلب Dawarich من PanelMint التمهّل. حاول مرة أخرى بعد قليل.',
   'dawarich.error.server_error': 'ردّ Dawarich بخطأ.',
   'dawarich.error.invalid_response': 'ردّ هذا العنوان بشيء ليس Dawarich.',
-  'dawarich.error.too_large': 'أرسل Dawarich بيانات أكثر مما يقرأه TREK دفعة واحدة.',
+  'dawarich.error.too_large': 'أرسل Dawarich بيانات أكثر مما يقرأه PanelMint دفعة واحدة.',
   'dawarich.error.not_connected': 'لا يوجد خادم Dawarich متصل بعد.',
   'dawarich.error.addon_disabled': 'إضافة Dawarich معطّلة على هذا الخادم.',
-  'dawarich.error.offline': 'يحتاج هذا إلى اتصال — TREK غير متصل حالياً.',
-  'dawarich.error.invalid_url': 'لا يمكن لـ TREK استخدام هذا العنوان.',
+  'dawarich.error.offline': 'يحتاج هذا إلى اتصال — PanelMint غير متصل حالياً.',
+  'dawarich.error.invalid_url': 'لا يمكن لـ PanelMint استخدام هذا العنوان.',
   'dawarich.warning.private_ip': 'هذا العنوان يشير إلى عنوان IP خاص ({ip}). تأكد أن هذا ما تقصده — قد يحتاج الخادم إلى ALLOW_INTERNAL_NETWORK=true للوصول إليه.',
   'dawarich.error.unknown': 'حدث خطأ ما أثناء التواصل مع Dawarich.',
 
@@ -96,9 +96,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'في المجلة',
   'dawarich.suggestions.acceptedAs.bucket_list': 'تم شطب الأمنية',
   'dawarich.suggestions.sourceChanged':
-    'تغيّرت هذه الإقامة في Dawarich منذ أن استخدمتها. ما كتبته في TREK لم يُمَس.',
+    'تغيّرت هذه الإقامة في Dawarich منذ أن استخدمتها. ما كتبته في PanelMint لم يُمَس.',
   'dawarich.suggestions.sourceMissing':
-    'لم تعد هذه الإقامة موجودة في Dawarich. ما كتبته في TREK لم يُمَس.',
+    'لم تعد هذه الإقامة موجودة في Dawarich. ما كتبته في PanelMint لم يُمَس.',
   'dawarich.sourceStatus.suggested': 'مُكتشَفة، غير مؤكدة',
   'dawarich.confidence.high': 'اكتشاف موثوق',
   'dawarich.confidence.medium': 'اكتشاف موثوق إلى حدٍّ ما',
@@ -153,12 +153,12 @@ const dawarich: TranslationStrings = {
     'الدول التي تقول تسجيلاتك إنك كنت فيها. أكّد ما تريد إضافته إلى أطلسك — لا يُضاف شيء من تلقاء نفسه، وما وضعته بيدك يبقى لك.',
   'dawarich.atlas.load': 'ابحث عن الدول',
   'dawarich.atlas.loading': 'جارٍ قراءة تسجيلاتك…',
-  'dawarich.atlas.empty': 'لا تُظهر تسجيلاتك أي دول ليست لدى TREK أصلاً.',
+  'dawarich.atlas.empty': 'لا تُظهر تسجيلاتك أي دول ليست لدى PanelMint أصلاً.',
   'dawarich.atlas.cities': '{count} مدينة',
   'dawarich.atlas.citiesOne': 'مدينة واحدة',
   'dawarich.atlas.accept': 'إضافة {count} دولة',
   'dawarich.atlas.accepted': 'تمت إضافة {count} دولة',
-  'dawarich.atlas.unresolved': 'تعذّر على TREK مطابقة هذه بدولة: {names}.',
+  'dawarich.atlas.unresolved': 'تعذّر على PanelMint مطابقة هذه بدولة: {names}.',
   'dawarich.atlas.source': 'من Dawarich',
   'dawarich.atlas.range': 'تم الاطلاع على الفترة من {from} إلى {to}',
 

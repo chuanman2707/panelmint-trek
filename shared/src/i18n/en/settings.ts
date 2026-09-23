@@ -37,7 +37,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'An OSRM instance of your own. Empty uses the public servers, which allow about one request a second — enough for a day, tight for a road trip. Takes effect after a server restart.',
   'settings.valhallaBase': 'Own Valhalla instance',
   'settings.valhallaBaseHint':
-    'TREK uses the public FOSSGIS Valhalla by default to avoid toll roads, motorways and ferries. Enter your own Valhalla URL here to use it instead. If only a custom routing instance is configured, the public Valhalla is not used. After entering a custom URL, restart the server and reload the page.',
+    'PanelMint uses the public FOSSGIS Valhalla by default to avoid toll roads, motorways and ferries. Enter your own Valhalla URL here to use it instead. If only a custom routing instance is configured, the public Valhalla is not used. After entering a custom URL, restart the server and reload the page.',
   'settings.mapHint': 'URL template for map tiles',
   'settings.mapProvider': 'Map Provider',
   'settings.mapProviderHint': 'Affects Trip Planner and Journey maps. Atlas always uses Leaflet.',
@@ -52,7 +52,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyHint': 'CARTO basemaps show a watermark without a key. Free, no account needed, from',
   'settings.mapCartoKeyLink': 'carto.com basemap API key',
   'settings.mapCartoKeyMissing':
-    'This template is a CARTO basemap. Without a key CARTO stamps "API KEY REQUIRED" onto every tile. Until you enter one, TREK shows the default basemap instead.',
+    'This template is a CARTO basemap. Without a key CARTO stamps "API KEY REQUIRED" onto every tile. Until you enter one, PanelMint shows the default basemap instead.',
   'settings.mapStyle': 'Map Style',
   'settings.mapStylePlaceholder': 'Select a Mapbox style',
   'settings.mapStyleHint': 'Preset or your own mapbox://styles/USER/ID URL',
@@ -244,9 +244,9 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Suggest a new feature',
   'settings.about.wikiHint': 'Documentation & guides',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Monthly Supporters',
   'settings.about.supporters.title': 'Travel companions for TREK',
   'settings.about.supporters.subtitle':
@@ -259,7 +259,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    'TREK is a self-hosted travel planner that helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place, on your own server.',
+    'PanelMint is a self-hosted travel planner that helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place, on your own server.',
   'settings.about.madeWith': 'Made with',
   'settings.about.madeBy': 'by Maurice and a growing open-source community.',
   'settings.username': 'Username',
@@ -363,7 +363,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Enable only for a trusted instance on your own network.',
   'settings.airtrail.writeBack': 'Write changes back to AirTrail',
   'settings.airtrail.writeBackHint':
-    'Off by default: AirTrail is the source of truth and TREK only reads from it. Turn on to push edits made in TREK back to AirTrail.',
+    'Off by default: AirTrail is the source of truth and PanelMint only reads from it. Turn on to push edits made in PanelMint back to AirTrail.',
   'settings.airtrail.connected': 'Connected',
   'settings.airtrail.notConnected': 'Not connected',
   'settings.airtrail.toast.saved': 'AirTrail connection saved',
@@ -474,7 +474,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Dashboard',
   'settings.startPageActiveTrip': 'Active trip',
   'settings.startPageHint':
-    'TREK opens straight in the trip running today, or the next one coming up. That is the same trip the dashboard features.',
+    'PanelMint opens straight in the trip running today, or the next one coming up. That is the same trip the dashboard features.',
   'settings.startTripTab': 'Start tab',
   'settings.startTripTabHint':
     'The tab the trip opens on. If it belongs to an addon you switched off, the plan view opens instead.',

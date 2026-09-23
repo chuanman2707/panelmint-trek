@@ -452,7 +452,7 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
       for (const table of requiredTables) {
         if (!tableNames.has(table)) {
           fs.rmSync(extractDir, { recursive: true, force: true });
-          return { success: false, error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`, status: 400 };
+          return { success: false, error: `Uploaded database is missing required table: ${table}. This does not appear to be a PanelMint backup.`, status: 400 };
         }
       }
     } catch (err) {

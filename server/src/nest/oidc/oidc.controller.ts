@@ -31,7 +31,7 @@ const OIDC_EXCHANGE_COOKIE = 'trek_oidc_exchange';
  * /callback is required at /exchange. Neither the provider state nor the auth
  * code is a credential on its own — both travel in URLs.
  */
-@Public('the OIDC handshake happens before a TREK session exists; the provider state is the credential')
+@Public('the OIDC handshake happens before a PanelMint session exists; the provider state is the credential')
 @Controller('api/auth/oidc')
 export class OidcController {
   constructor(

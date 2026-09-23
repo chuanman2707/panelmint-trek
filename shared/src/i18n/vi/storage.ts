@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Bản sao',
   'storage.title': 'Lưu trữ',
   'storage.description':
-    'Nơi TREK lưu giữ các tệp, ảnh và bản sao lưu đã tải lên. Không có gì thay đổi cho đến khi bạn lưu.',
+    'Nơi PanelMint lưu giữ các tệp, ảnh và bản sao lưu đã tải lên. Không có gì thay đổi cho đến khi bạn lưu.',
   'storage.loading': 'Đang tải…',
   'storage.saved': 'Đã lưu cấu hình lưu trữ',
   'storage.save': 'Lưu thay đổi',
@@ -65,7 +65,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Ảnh đại diện',
   'storage.category.places': 'Hình ảnh địa điểm',
   'storage.category.photos-google': 'Bộ nhớ đệm ảnh Google',
-  'storage.category.photos-trek': 'Bộ nhớ đệm ảnh TREK',
+  'storage.category.photos-trek': 'Bộ nhớ đệm ảnh PanelMint',
   'storage.category.backups': 'Bản sao lưu',
 
   // What each category stores — rendered under the label in the category map.
@@ -79,7 +79,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Bản sao được lưu trong bộ nhớ đệm của ảnh Google Places — có thể lấy lại được, mất đi vẫn an toàn.',
   'storage.categoryDesc.photos-trek':
-    'Ảnh được lưu trong bộ nhớ đệm từ dịch vụ ảnh TREK được tính năng Ảnh (Memories) sử dụng — có thể lấy lại được, mất đi vẫn an toàn.',
+    'Ảnh được lưu trong bộ nhớ đệm từ dịch vụ ảnh PanelMint được tính năng Ảnh (Memories) sử dụng — có thể lấy lại được, mất đi vẫn an toàn.',
   'storage.categoryDesc.backups': 'Kho lưu trữ sao lưu máy chủ được tạo bởi bảng Sao lưu hoặc theo lịch trình.',
   'storage.health.title': 'Tình trạng',
   'storage.health.allClear': 'Không có lỗi bản sao nào được ghi nhận.',

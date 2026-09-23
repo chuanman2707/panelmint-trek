@@ -22,7 +22,7 @@ const storage: TranslationStrings = {
 
   // Panel chrome
   'storage.title': 'Storage',
-  'storage.description': 'Where TREK keeps uploaded files, photos and backups. Nothing changes until you save.',
+  'storage.description': 'Where PanelMint keeps uploaded files, photos and backups. Nothing changes until you save.',
   'storage.loading': 'Loading…',
   'storage.saved': 'Storage configuration saved',
   'storage.save': 'Save changes',
@@ -79,7 +79,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Profile pictures',
   'storage.category.places': 'Place images',
   'storage.category.photos-google': 'Google photo cache',
-  'storage.category.photos-trek': 'TREK photo cache',
+  'storage.category.photos-trek': 'PanelMint photo cache',
   'storage.category.backups': 'Backups',
 
   // What each category stores — rendered under the label in the category map.
@@ -91,7 +91,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.places': 'Images attached to places and collection places — uploaded or imported.',
   'storage.categoryDesc.photos-google': 'Cached copies of Google Places photos — re-fetchable, safe to lose.',
   'storage.categoryDesc.photos-trek':
-    'Cached photos from the TREK photo service used by Memories — re-fetchable, safe to lose.',
+    'Cached photos from the PanelMint photo service used by Memories — re-fetchable, safe to lose.',
   'storage.categoryDesc.backups': 'Server backup archives created by the Backup panel or schedule.',
 
   // Health strip

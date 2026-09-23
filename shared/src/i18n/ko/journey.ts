@@ -217,7 +217,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': '공유 경로',
   'journey.public.madeWith': '으로 만들어짐',
   'journey.pdf.journeyBook': 'Journey 책',
-  'journey.pdf.madeWith': 'TREK으로 만들어짐',
+  'journey.pdf.madeWith': 'PanelMint으로 만들어짐',
   'journey.pdf.day': '일차',
   'journey.pdf.theEnd': '끝',
   'journey.pdf.saveAsPdf': 'PDF로 저장',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': '이 펼침면의 디자인을 사진 없이 파일로 저장합니다. 공유하거나 다시 쓸 수 있습니다',
   'journey.studio.importSpread': '가져오기',
   'journey.studio.importSpreadHint': '내려받은 디자인 파일에서 펼침면을 추가합니다',
-  'journey.studio.importSpreadFailed': '이 파일은 TREK 스튜디오 펼침면이 아닙니다',
+  'journey.studio.importSpreadFailed': '이 파일은 PanelMint 스튜디오 펼침면이 아닙니다',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': '책을 만들려면 작업할 공간이 필요해서 스튜디오는 데스크톱에서만 쓸 수 있고, PDF 만들기도 마찬가지입니다. 여정의 나머지 기능은 여기에서도 평소처럼 작동합니다.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

@@ -13,7 +13,7 @@ set -e
 # (it hides the image's node_modules + dist). Fail with actionable guidance
 # instead of a cryptic "Cannot find module 'tsconfig-paths/register'".
 if [ ! -f /app/server/dist/index.js ] || [ ! -d /app/node_modules/tsconfig-paths ]; then
-  echo 'FATAL: TREK application files are missing from the image.'
+  echo 'FATAL: PanelMint application files are missing from the image.'
   echo 'A volume is likely mounted over /app, which hides the app code.'
   echo 'Mount ONLY your data and uploads dirs: -v ./data:/app/data -v ./uploads:/app/uploads'
   echo 'Do NOT mount a volume at /app. See https://github.com/liketrek/TREK/wiki/Troubleshooting'

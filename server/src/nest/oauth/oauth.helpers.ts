@@ -117,7 +117,7 @@ export function classifyRedirectUri(uri: string): RedirectUriVerdict {
  * registers a loopback URI with a placeholder port and then authorizes on the
  * port the OS handed it, so the port (and only the port) is ignored when both
  * sides are loopback HTTP. The MCP SDK's authorize handler already relaxes it;
- * TREK's matcher did not, so the SDK redirected to consent and the validate
+ * PanelMint's matcher did not, so the SDK redirected to consent and the validate
  * route then answered invalid_redirect_uri for the same request (#2227).
  *
  * Nothing else is normalised anywhere in the chain: the stored URI is compared

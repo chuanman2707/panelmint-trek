@@ -169,9 +169,9 @@ const collection: TranslationStrings = {
   'collections.file.doneSkipped': 'Εισήχθησαν {count} μέρη, παραλείφθηκαν {skipped}',
   'collections.file.errorTooLarge': 'Αυτό το αρχείο είναι πολύ μεγάλο για λίστα.',
   'collections.file.errorUnreadable': 'Δεν ήταν δυνατή η ανάγνωση αυτού του αρχείου.',
-  'collections.file.errorNotACollection': 'Αυτό δεν είναι αρχείο λίστας του TREK.',
-  'collections.file.formatTrek': 'Λίστα TREK',
-  'collections.file.formatTrekHint': 'Για άλλο TREK, με ετικέτες και κατάσταση',
+  'collections.file.errorNotACollection': 'Αυτό δεν είναι αρχείο λίστας του PanelMint.',
+  'collections.file.formatTrek': 'Λίστα PanelMint',
+  'collections.file.formatTrekHint': 'Για άλλο PanelMint, με ετικέτες και κατάσταση',
   'collections.file.formatGpxHint': 'Σημεία διαδρομής για OsmAnd, Organic Maps, Garmin και άλλες εφαρμογές χαρτών',
   'collections.file.gpxOmitted': '{count} μέρη χωρίς συντεταγμένες έμειναν εκτός του αρχείου GPX',
   'collections.file.gpxNothing':

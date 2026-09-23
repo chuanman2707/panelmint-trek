@@ -51,7 +51,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtDesktopNote':
     'Các số liệu này được đặt trên máy tính, nơi bạn cũng có thể so sánh các lộ trình khác và cho một ngày đi theo tuyến đã nhập.',
   'mobileTrip.rtPlanOnDesktop':
-    'Việc lên kế hoạch diễn ra trên máy tính. TREK tính chặng lái xe ngay khi một ngày có hai địa điểm.',
+    'Việc lên kế hoạch diễn ra trên máy tính. PanelMint tính chặng lái xe ngay khi một ngày có hai địa điểm.',
   'mobileTrip.rtSearchOffline': 'Cần có kết nối: việc tìm kiếm đọc lộ trình phía trước.',
   'mobileTrip.rtBehind': 'chậm {time} so với kế hoạch',
   'mobileTrip.rtStart': 'Bắt đầu',

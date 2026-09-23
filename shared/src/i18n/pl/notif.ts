@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Zadanie pakowania',
   'notif.packing_tagged.text': '{actor} przypisał Cię do {category} w {trip}',
   'notif.version_available.title': 'Nowa wersja dostępna',
-  'notif.version_available.text': 'TREK {version} jest teraz dostępny',
+  'notif.version_available.text': 'PanelMint {version} jest teraz dostępny',
   'notif.replica_failure.title': 'Awaria repliki magazynu',
   'notif.replica_failure.text': "Zapis do repliki '{backend}' nie powiódł się: {op} dla {key} — {error}",
   'notif.replica_failure.textSuppressed': "Zapis do repliki '{backend}' nie powiódł się: {op} dla {key} — {error}. Od ostatniego powiadomienia ukryto {suppressed} kolejnych błędów.",

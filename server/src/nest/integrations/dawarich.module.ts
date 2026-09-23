@@ -25,7 +25,7 @@ import { DawarichTracksService } from './dawarich-tracks.service';
  *
  * Everything hangs off `/api/integrations/dawarich`, so there is no cycle to
  * dodge and no split into a core module the way AirTrail needed — nothing in
- * TREK injects Dawarich, Dawarich injects TREK. The direction of that arrow is
+ * PanelMint injects Dawarich, Dawarich injects PanelMint. The direction of that arrow is
  * the architecture: this module reads other domains' services to *create* what
  * a user accepted, and never the other way round.
  *

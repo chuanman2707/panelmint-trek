@@ -1,5 +1,5 @@
 /**
- * The canonical locale must not describe TREK as self-hosted.
+ * The canonical locale must not describe PanelMint as self-hosted.
  *
  * Not a style rule. The same build runs on an install its admin set up and on
  * one somebody else operates, and a string that assumes the first is simply
@@ -33,7 +33,7 @@ interface Hit {
 }
 
 describe('canonical locale wording', () => {
-  it('I18N-SELFHOST-001: no en/ string calls TREK self-hosted', () => {
+  it('I18N-SELFHOST-001: no en/ string calls PanelMint self-hosted', () => {
     const offenders = (findOffenders() as Hit[]).map((h) => `${h.file}:${h.line}  [${h.key}]  ${h.text.slice(0, 80)}`);
 
     expect(offenders).toEqual([]);

@@ -218,7 +218,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': '共有元',
   'journey.public.madeWith': '作成：',
   'journey.pdf.journeyBook': '日記ブック',
-  'journey.pdf.madeWith': 'Made with TREK',
+  'journey.pdf.madeWith': 'Made with PanelMint',
   'journey.pdf.day': '日目',
   'journey.pdf.theEnd': 'おわり',
   'journey.pdf.saveAsPdf': 'PDFとして保存',
@@ -248,7 +248,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -290,7 +290,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'この見開きのデザインを、写真を除いてファイルに保存します。共有や再利用に使えます',
   'journey.studio.importSpread': '読み込む',
   'journey.studio.importSpreadHint': 'ダウンロードしたデザインファイルから見開きを追加します',
-  'journey.studio.importSpreadFailed': 'このファイルは TREK Studio の見開きではありません',
+  'journey.studio.importSpreadFailed': 'このファイルは PanelMint Studio の見開きではありません',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': '本づくりには広さが要るので、Studio はデスクトップ専用です。PDF の作成も同じです。旅の記録のほかの機能は、ここでもこれまでどおり使えます。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

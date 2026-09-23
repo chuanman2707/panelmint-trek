@@ -13,17 +13,17 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': '새 폴더 이름',
   'docsync.syncNow': '지금 동기화',
   'docsync.unlink': '연결 해제',
-  'docsync.confirmUnlink': '문서는 TREK과 저장소에 그대로 남습니다. 둘 사이의 연결만 사라집니다.',
+  'docsync.confirmUnlink': '문서는 PanelMint과 저장소에 그대로 남습니다. 둘 사이의 연결만 사라집니다.',
   'docsync.syncEnabled': '자동으로 동기화',
   'docsync.deletePolicy': '문서가 삭제될 때',
   'docsync.deleteUnlink': '양쪽 사본 유지',
   'docsync.deleteTrash': '휴지통으로 이동',
   'docsync.conflictPolicy': '양쪽이 모두 바뀌었을 때',
   'docsync.onConflict.manual': '물어보기',
-  'docsync.onConflict.trek_wins': 'TREK 사본 유지',
+  'docsync.onConflict.trek_wins': 'PanelMint 사본 유지',
   'docsync.onConflict.provider_wins': '저장소 사본 유지',
   'docsync.webhookHint':
-    '이 URL을 저장소에 붙여넣으면 변경 사항이 바로 전달됩니다. 설정하지 않으면 TREK이 주기적으로 확인합니다.',
+    '이 URL을 저장소에 붙여넣으면 변경 사항이 바로 전달됩니다. 설정하지 않으면 PanelMint이 주기적으로 확인합니다.',
 
   // 연결 양식의 항목. 키는 document_provider_fields의 `label` 열과 짝을 이루며,
   // 이 열에는 문구가 아니라 키의 뒷부분만 저장됩니다.
@@ -46,7 +46,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudAppPassword':
     '설정 → 보안 → 새 앱 비밀번호 만들기에서 발급합니다. 계정 비밀번호는 쓰지 마세요.',
   'docsync.hintOpenCloudToken': 'OpenCloud의 앱 토큰에서 만듭니다.',
-  'docsync.hintBasePath': 'TREK이 여행 폴더를 찾는 위치입니다. 기본값은 /TREK입니다.',
+  'docsync.hintBasePath': 'PanelMint이 여행 폴더를 찾는 위치입니다. 기본값은 /TREK입니다.',
   'docsync.hintSynologyUrl': '포트까지 포함하세요. 예: https://nas.example.com:5001',
   'docsync.hintSynologyUser': '이 공유 폴더에만 접근할 수 있는 전용 DSM 계정을 권장합니다.',
   'docsync.hintSynologyOtp': '계정에서 2단계 인증을 사용하는 경우 처음 한 번만 필요합니다.',
@@ -66,13 +66,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': '용량 초과',
   'docsync.state.error': '오류',
   'docsync.state.remote_missing': '저장소에 없음',
-  'docsync.state.local_deleted': 'TREK에서 삭제됨',
+  'docsync.state.local_deleted': 'PanelMint에서 삭제됨',
   'docsync.state.scope_drift': '폴더 밖으로 이동됨',
 
   'docsync.conflict.resolve': "{count}건 해결",
 
   'docsync.conflict.title': '양쪽 사본이 모두 바뀌었습니다',
-  'docsync.conflict.keepTrek': 'TREK 버전 유지',
+  'docsync.conflict.keepTrek': 'PanelMint 버전 유지',
   'docsync.conflict.keepProvider': '저장소 버전 유지',
   'docsync.conflict.keepBoth': '둘 다 유지',
 
@@ -84,7 +84,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': '이 계정에는 그럴 권한이 없습니다.',
   'docsync.error.not_found': '저장소에서 찾을 수 없습니다.',
   'docsync.error.scope_missing': '연결된 폴더가 더 이상 존재하지 않습니다.',
-  'docsync.error.rate_limited': '저장소가 요청 속도를 제한하고 있습니다. TREK이 나중에 다시 시도합니다.',
+  'docsync.error.rate_limited': '저장소가 요청 속도를 제한하고 있습니다. PanelMint이 나중에 다시 시도합니다.',
   'docsync.error.too_large': '저장소가 허용하는 크기보다 파일이 큽니다.',
   'docsync.error.unsupported_type': '저장소가 이 파일 형식을 받지 않습니다.',
   'docsync.error.quota_exceeded': '저장소에 남은 공간이 없습니다.',
@@ -105,8 +105,8 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': '아직 연결된 저장소가 없습니다',
   'docsync.empty.hintOwner':
-    '왼쪽에서 저장소를 고르세요. TREK은 모든 문서의 사본을 따로 보관하므로 저장소가 사라져도 잃는 것은 없습니다.',
-  'docsync.empty.hintMember': '이 설정은 여행 소유자가 합니다. 어느 쪽이든 문서는 TREK에 그대로 남습니다.',
+    '왼쪽에서 저장소를 고르세요. PanelMint은 모든 문서의 사본을 따로 보관하므로 저장소가 사라져도 잃는 것은 없습니다.',
+  'docsync.empty.hintMember': '이 설정은 여행 소유자가 합니다. 어느 쪽이든 문서는 PanelMint에 그대로 남습니다.',
 
   // 제품마다 문서를 정리하는 방식. 다음 화면에서 물어볼 내용이라 연결하기 전에
   // 미리 보여 줍니다.
@@ -117,7 +117,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'NAS의 폴더에 정리',
 
   // ── 흐름 표시줄 ────────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'PanelMint',
   'docsync.flow.toProvider': '저장소로 내보내기',
   'docsync.flow.toTrek': '저장소에서 가져오기',
   'docsync.flow.documents': '문서',
@@ -146,16 +146,16 @@ const docsync: TranslationStrings = {
   'docsync.connect.testing': '연결을 시도하는 중',
   'docsync.connect.okAs': '연결됐습니다. {account} 계정으로 로그인했습니다',
   'docsync.connect.insecureHint': '자체 서명 인증서를 쓰는 내부 네트워크 인스턴스용입니다.',
-  'docsync.connect.about.paperless': 'TREK은 이 여행을 전용 태그로 정리하며 보관함의 나머지는 건드리지 않습니다.',
-  'docsync.connect.about.papra': '이 여행이 속할 조직을 고르세요. TREK은 그 안에서 전용 태그로 정리합니다.',
+  'docsync.connect.about.paperless': 'PanelMint은 이 여행을 전용 태그로 정리하며 보관함의 나머지는 건드리지 않습니다.',
+  'docsync.connect.about.papra': '이 여행이 속할 조직을 고르세요. PanelMint은 그 안에서 전용 태그로 정리합니다.',
   'docsync.connect.about.nextcloud':
     '계정 비밀번호 대신 앱 비밀번호를 쓰세요. 2단계 인증에도 영향을 받지 않고 따로 취소할 수 있습니다.',
-  'docsync.connect.about.opencloud': 'TREK은 이 여행 전용 스페이스를 받아 다른 자료와 분리합니다.',
+  'docsync.connect.about.opencloud': 'PanelMint은 이 여행 전용 스페이스를 받아 다른 자료와 분리합니다.',
   'docsync.connect.about.synologydrive': '이 여행이 쓸 공유 폴더에만 접근하는 DSM 계정을 권장합니다.',
 
   // ── 저장 위치 고르기 ───────────────────────────────────────────────────────
   'docsync.scope.title': '{provider}의 어디에 이 여행을 둘까요?',
-  'docsync.scope.intro': '여기에 있는 것만 동기화됩니다. 저장소의 나머지는 TREK에 들어오지 않습니다.',
+  'docsync.scope.intro': '여기에 있는 것만 동기화됩니다. 저장소의 나머지는 PanelMint에 들어오지 않습니다.',
   'docsync.scope.createTitle': '새로 만들기',
   'docsync.scope.createAction': '만들기',
   'docsync.scope.pickTitle': '또는 이미 있는 것 사용하기',
@@ -165,7 +165,7 @@ const docsync: TranslationStrings = {
   // ── 사람이 정해야 하는 것 ──────────────────────────────────────────────────
   'docsync.issues.title': '확인이 필요합니다',
   'docsync.issues.conflict': '양쪽에서 바뀌었습니다. 어느 쪽을 남길지 고르세요.',
-  'docsync.issues.remote_missing': '저장소에서 사라졌습니다. TREK 사본은 그대로 있습니다.',
+  'docsync.issues.remote_missing': '저장소에서 사라졌습니다. PanelMint 사본은 그대로 있습니다.',
   'docsync.issues.rejected_type': '여기서는 허용되지 않는 파일 형식입니다.',
   'docsync.issues.too_large': '허용 크기를 넘습니다.',
   'docsync.issues.error': '전송이 완료되지 않았습니다.',

@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'Saját OSRM-példány. Üresen hagyva a nyilvános kiszolgálókat használja, amelyek másodpercenként körülbelül egy kérést engednek — egy napra elég, egy autós útra kevés. A kiszolgáló újraindítása után lép életbe.',
   'settings.valhallaBase': 'Saját Valhalla-példány',
   'settings.valhallaBaseHint':
-    'A TREK alapértelmezés szerint a FOSSGIS nyilvános Valhalláját használja a fizetős utak, autópályák és kompok elkerüléséhez. Itt megadhatja saját Valhallája URL-jét, hogy azt használja helyette. Ha csak saját útvonaltervező van beállítva, a nyilvános Valhalla nem használatos. Saját URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
+    'A PanelMint alapértelmezés szerint a FOSSGIS nyilvános Valhalláját használja a fizetős utak, autópályák és kompok elkerüléséhez. Itt megadhatja saját Valhallája URL-jét, hogy azt használja helyette. Ha csak saját útvonaltervező van beállítva, a nyilvános Valhalla nem használatos. Saját URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
   'settings.mapProvider': 'Térkép szolgáltató',
   'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',
@@ -44,7 +44,7 @@ const settings: TranslationStrings = {
     'A CARTO alaptérképek kulcs nélkül vízjelet jelenítenek meg. Ingyenes, fiók nélkül, innen:',
   'settings.mapCartoKeyLink': 'carto.com alaptérkép API-kulcs',
   'settings.mapCartoKeyMissing':
-    'Ez a sablon CARTO alaptérkép. Kulcs nélkül a CARTO minden csempére ráírja: "API KEY REQUIRED". Amíg nincs kulcs megadva, a TREK az alapértelmezett alaptérképet mutatja.',
+    'Ez a sablon CARTO alaptérkép. Kulcs nélkül a CARTO minden csempére ráírja: "API KEY REQUIRED". Amíg nincs kulcs megadva, a PanelMint az alapértelmezett alaptérképet mutatja.',
   'settings.mapStyle': 'Térkép stílus',
   'settings.mapStylePlaceholder': 'Válassz Mapbox stílust',
   'settings.mapStyleHint': 'Preset vagy saját mapbox://styles/USER/ID URL',
@@ -198,13 +198,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Javasolj egy új funkciót',
   'settings.about.wikiHint': 'Dokumentáció és útmutatók',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Havi támogatók',
   'settings.about.supporters.title': 'Útitársak a TREK mellett',
   'settings.about.supporters.subtitle':
-    'Miközben te a következő útvonaladat tervezed, ők a TREK jövőjét tervezik velem együtt. Havi hozzájárulásuk közvetlenül fejlesztésre és valódi órákra fordítódik — hogy a TREK Open Source maradhasson.',
+    'Miközben te a következő útvonaladat tervezed, ők a PanelMint jövőjét tervezik velem együtt. Havi hozzájárulásuk közvetlenül fejlesztésre és valódi órákra fordítódik — hogy a PanelMint Open Source maradhasson.',
   'settings.about.supporters.since': 'támogató {date} óta',
   'settings.about.supporters.tierEmpty': 'Légy az első',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
@@ -213,7 +213,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    'A TREK egy saját szerveren üzemeltetett útitervező, amely segít az utazásaid megszervezésében az első ötlettől az utolsó emlékig. Napi tervezés, költségvetés, csomagolási listák, fotók és még sok más — minden egy helyen, a saját szervereden.',
+    'A PanelMint egy saját szerveren üzemeltetett útitervező, amely segít az utazásaid megszervezésében az első ötlettől az utolsó emlékig. Napi tervezés, költségvetés, csomagolási listák, fotók és még sok más — minden egy helyen, a saját szervereden.',
   'settings.about.madeWith': 'Készítve',
   'settings.about.madeBy': 'Maurice és egy növekvő nyílt forráskódú közösség által.',
   'settings.username': 'Felhasználónév',
@@ -361,7 +361,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Csak megbízható, saját hálózaton futó példány esetén engedélyezd.',
   'settings.airtrail.writeBack': 'Módosítások visszaírása az AirTrailbe',
   'settings.airtrail.writeBackHint':
-    'Alapértelmezés szerint kikapcsolva: az AirTrail a hiteles forrás, és a TREK csak olvas belőle. Kapcsold be, hogy a TREK-ben végzett módosításokat visszaküldje az AirTrailbe.',
+    'Alapértelmezés szerint kikapcsolva: az AirTrail a hiteles forrás, és a PanelMint csak olvas belőle. Kapcsold be, hogy a PanelMint-ben végzett módosításokat visszaküldje az AirTrailbe.',
   'settings.airtrail.connected': 'Csatlakoztatva',
   'settings.airtrail.notConnected': 'Nincs csatlakoztatva',
   'settings.airtrail.toast.saved': 'AirTrail-kapcsolat mentve',
@@ -473,7 +473,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Irányítópult',
   'settings.startPageActiveTrip': 'Aktív utazás',
   'settings.startPageHint':
-    'A TREK egyből a most zajló utazást nyitja meg, vagy a következőt, amelyik indul. Ugyanaz az utazás, amelyet az irányítópult is kiemel.',
+    'A PanelMint egyből a most zajló utazást nyitja meg, vagy a következőt, amelyik indul. Ugyanaz az utazás, amelyet az irányítópult is kiemel.',
   'settings.startTripTab': 'Kezdő fül',
   'settings.startTripTabHint':
     'Az a fül, amellyel az utazás megnyílik. Ha kikapcsolt bővítményhez tartozik, helyette a terv nézet nyílik meg.',

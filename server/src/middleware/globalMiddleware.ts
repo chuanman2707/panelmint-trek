@@ -223,14 +223,14 @@ export function applyGlobalMiddleware(
           "https://en.wikipedia.org", "https://commons.wikimedia.org",
           // Both forms here too: CARTO documents the apex host on its key page,
           // so that is the template users paste in, and the {s} sharded form is
-          // what TREK ships (#2054).
+          // what PanelMint ships (#2054).
           "https://basemaps.cartocdn.com", "https://*.basemaps.cartocdn.com",
           // Both forms: a CSP wildcard host never matches the apex, and OSM
           // serves everything from the bare tile.openstreetmap.org since it
           // retired the a/b/c/d shards (#1733). The sharded hosts stay listed
           // for tile templates users saved before that.
           "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org",
-          // The other two raster presets TREK ships. `mode: 'no-cors'` relaxes
+          // The other two raster presets PanelMint ships. `mode: 'no-cors'` relaxes
           // CORS, not CSP, so without these the tile prefetch is refused in the
           // document and never reaches the Service Worker that would cache it
           // (#2180). routing.openstreetmap.de below is a different host.

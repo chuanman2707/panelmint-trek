@@ -454,7 +454,7 @@ describe('MDashboard', () => {
     window.scrollTo = scrollTo as unknown as typeof window.scrollTo;
     render(<MDashboard />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'TREK' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PanelMint' }));
 
     expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
     window.scrollTo = original;

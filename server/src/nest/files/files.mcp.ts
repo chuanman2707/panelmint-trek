@@ -25,7 +25,7 @@ function isTextual(mimetype: string): boolean {
 /** The MCP wording for a refused content read; the plugin RPC has its own for the same reasons. */
 function contentRefusal(err: FileContentError): string {
   if (err.reason === 'too-large') {
-    return `File is too large to read here (over ${CONTENT_MAX_MB} MB). Ask the user to open it in TREK instead.`;
+    return `File is too large to read here (over ${CONTENT_MAX_MB} MB). Ask the user to open it in PanelMint instead.`;
   }
   if (err.reason === 'not-accessible') return 'File contents are not available.';
   return 'File not found.';
@@ -71,7 +71,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'read_trip_file',
-    description: `Read what is inside one uploaded document, e.g. a booking confirmation or a ticket. Text files come back as readable text, anything else base64-encoded, with "encoding" saying which. Files over ${CONTENT_MAX_MB} MB are refused outright, so point the user at the file in TREK rather than retrying. Reading contents is a separate permission from listing files, so this can be refused on a trip where list_trip_files works.`,
+    description: `Read what is inside one uploaded document, e.g. a booking confirmation or a ticket. Text files come back as readable text, anything else base64-encoded, with "encoding" saying which. Files over ${CONTENT_MAX_MB} MB are refused outright, so point the user at the file in PanelMint rather than retrying. Reading contents is a separate permission from listing files, so this can be refused on a trip where list_trip_files works.`,
     inputSchema: {
       tripId: z.number().int().positive(),
       fileId: z.number().int().positive().describe('File ID from list_trip_files'),

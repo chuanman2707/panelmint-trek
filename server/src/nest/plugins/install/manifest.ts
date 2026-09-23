@@ -84,7 +84,7 @@ export interface RouteProfileCapability {
   icon?: string;
 }
 
-/** One MCP tool the plugin advertises on TREK's MCP server. Requires `mcp:tools`.
+/** One MCP tool the plugin advertises on PanelMint's MCP server. Requires `mcp:tools`.
  *  Declared here, in the signed manifest, and not only reported at load: the child
  *  composes its `loaded` payload AFTER onLoad runs, so a signed, sha256-pinned
  *  artifact could otherwise emit different tool text on every restart with no
@@ -131,11 +131,11 @@ export interface PluginManifest {
   homepage?: string;
   icon?: string;
   type: 'integration' | 'page' | 'widget' | 'trip-page';
-  /** The raw semver RANGE of TREK versions this plugin supports (">=3.2.0 <4.0.0"). */
+  /** The raw semver RANGE of PanelMint versions this plugin supports (">=3.2.0 <4.0.0"). */
   trek?: string;
   /** Same range, normalized: a valid+satisfiable one, or null. What the host gates on. */
   trekRange: string | null;
-  /** The range's lower bound, for display ("Requires TREK 3.2.0+"). Derived, never authored. */
+  /** The range's lower bound, for display ("Requires PanelMint 3.2.0+"). Derived, never authored. */
   minTrekVersion?: string;
   nativeModules: boolean;
   permissions: string[];
@@ -186,7 +186,7 @@ export function parseJsonText(text: string): unknown {
  * Validate a manifest.
  *
  * `requireTrek` is the INSTALL front doors (registry, sideload, dev-link): a plugin
- * that doesn't say which TREK versions it supports may not be installed at all.
+ * that doesn't say which PanelMint versions it supports may not be installed at all.
  *
  * It is deliberately OFF for discovery, which is a reconciler, not a gate. Discovery's
  * failure path only logs and skips — it never touches the plugins row — so a plugin it
@@ -258,7 +258,7 @@ export function parseManifest(raw: unknown, opts?: { requireTrek?: boolean }): P
     throw new ManifestError(
       trek
         ? `invalid "trek" version range "${trek}" (expected a satisfiable semver range, e.g. ">=3.2.0 <4.0.0")`
-        : 'missing "trek" version range — declare the TREK versions this plugin supports, e.g. ">=3.2.0 <4.0.0"',
+        : 'missing "trek" version range — declare the PanelMint versions this plugin supports, e.g. ">=3.2.0 <4.0.0"',
     );
   }
 
@@ -268,7 +268,7 @@ export function parseManifest(raw: unknown, opts?: { requireTrek?: boolean }): P
   }
   const apiVersion = (rawApi as number | undefined) ?? 1;
   if (opts?.requireTrek && apiVersion > PLUGIN_API_VERSION) {
-    throw new ManifestError(`plugin requires plugin-API v${apiVersion}; this TREK supports v${PLUGIN_API_VERSION}`);
+    throw new ManifestError(`plugin requires plugin-API v${apiVersion}; this PanelMint supports v${PLUGIN_API_VERSION}`);
   }
 
   return {

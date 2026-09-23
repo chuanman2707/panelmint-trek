@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Dane jazdy',
   'mobileTrip.rtDesktopNote':
     'Te dane ustawia się na komputerze, gdzie możesz też porównywać warianty trasy i sprawić, by dzień podążał za zaimportowanym śladem.',
-  'mobileTrip.rtPlanOnDesktop': 'Planowanie odbywa się na komputerze. TREK wylicza przejazd, gdy dzień ma dwa miejsca.',
+  'mobileTrip.rtPlanOnDesktop': 'Planowanie odbywa się na komputerze. PanelMint wylicza przejazd, gdy dzień ma dwa miejsca.',
   'mobileTrip.rtSearchOffline': 'Wymaga połączenia: wyszukiwanie czyta trasę przed tobą.',
   'mobileTrip.rtBehind': '{time} opóźnienia względem planu',
   'mobileTrip.rtStart': 'Początek',

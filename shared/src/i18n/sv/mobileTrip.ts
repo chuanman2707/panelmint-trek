@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': 'Kördata',
   'mobileTrip.rtDesktopNote':
     'De här värdena ställer du in på datorn. Där kan du också jämföra alternativa vägar och låta en dag följa ett importerat spår.',
-  'mobileTrip.rtPlanOnDesktop': 'Planeringen sker på datorn. TREK räknar ut körningen så snart en dag har två platser.',
+  'mobileTrip.rtPlanOnDesktop': 'Planeringen sker på datorn. PanelMint räknar ut körningen så snart en dag har två platser.',
   'mobileTrip.rtSearchOffline': 'Kräver anslutning: sökningen läser rutten som ligger framför dig.',
   'mobileTrip.rtBehind': '{time} efter planen',
   'mobileTrip.rtStart': 'Start',

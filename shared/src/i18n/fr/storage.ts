@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Répliques',
   'storage.title': 'Stockage',
   'storage.description':
-    "Où TREK conserve les fichiers, photos et sauvegardes envoyés. Rien ne change tant que tu n'enregistres pas.",
+    "Où PanelMint conserve les fichiers, photos et sauvegardes envoyés. Rien ne change tant que tu n'enregistres pas.",
   'storage.loading': 'Chargement…',
   'storage.saved': 'Configuration de stockage enregistrée',
   'storage.save': 'Enregistrer les modifications',
@@ -67,7 +67,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Photos de profil',
   'storage.category.places': 'Images de lieux',
   'storage.category.photos-google': 'Cache photos Google',
-  'storage.category.photos-trek': 'Cache photos TREK',
+  'storage.category.photos-trek': 'Cache photos PanelMint',
   'storage.category.backups': 'Sauvegardes',
 
   // What each category stores — rendered under the label in the category map.
@@ -81,7 +81,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Copies en cache des photos de Google Places — récupérables à nouveau, leur perte est sans risque.',
   'storage.categoryDesc.photos-trek':
-    'Photos en cache du service photo de TREK utilisé par Photos (Memories) — récupérables à nouveau, leur perte est sans risque.',
+    'Photos en cache du service photo de PanelMint utilisé par Photos (Memories) — récupérables à nouveau, leur perte est sans risque.',
   'storage.categoryDesc.backups':
     'Archives de sauvegarde du serveur créées par le panneau Sauvegarde ou par la planification.',
   'storage.health.title': 'État',

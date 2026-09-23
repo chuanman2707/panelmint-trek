@@ -86,13 +86,13 @@ const admin: TranslationStrings = {
   'admin.requireMfa': 'Vyžadovat dvoufázové ověření (2FA)',
   'admin.requireMfaHint': 'Uživatelé bez 2FA musí dokončit nastavení v Nastavení před použitím aplikace.',
   'admin.apiKeys': 'API klíče',
-  'admin.apiKeysHint': 'Odkud pocházejí data míst. Index TREK nepotřebuje klíč; dva poskytovatelé níže jsou volitelní.',
+  'admin.apiKeysHint': 'Odkud pocházejí data míst. Index PanelMint nepotřebuje klíč; dva poskytovatelé níže jsou volitelní.',
   'admin.trekApi.badgeDefault': 'Doporučený výchozí zdroj',
   'admin.googleCaveat.badge': 'Nedoporučeno',
   'admin.googleCaveat.body':
-    'TREK je otevřený software a nejsme v tom neutrální. V tomto měřítku existují hodnocení a fotografie běžných podniků jen u Googlu, a to je monopol. Pole tu je z nedostatku alternativy, ne proto, že bychom je doporučovali. Každý dotaz pak jde do Googlu.',
+    'PanelMint je otevřený software a nejsme v tom neutrální. V tomto měřítku existují hodnocení a fotografie běžných podniků jen u Googlu, a to je monopol. Pole tu je z nedostatku alternativy, ne proto, že bychom je doporučovali. Každý dotaz pak jde do Googlu.',
   'admin.trekApi.tagline':
-    'Vlastní rejstřík míst TREKu. Hledání bez klíče od Googlu, bez kvóty a bez toho, aby někdo počítal vaše dotazy.',
+    'Vlastní rejstřík míst PanelMintu. Hledání bez klíče od Googlu, bez kvóty a bez toho, aby někdo počítal vaše dotazy.',
   'admin.trekApi.factPlaces':
     '73,6 milionu míst po celém světě',
   'admin.trekApi.factNoKey':
@@ -126,7 +126,7 @@ const admin: TranslationStrings = {
   'admin.mapsKey': 'Google Maps API klíč',
   'admin.mapsKeyHint': 'Povinné pro hledání míst. Získáte na console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Bez klíče Google API se používá doporučené API TREK. S klíčem lze navíc načíst fotografie, hodnocení a otevírací dobu. Klíč vytvoříte na console.cloud.google.com.',
+    'Bez klíče Google API se používá doporučené API PanelMint. S klíčem lze navíc načíst fotografie, hodnocení a otevírací dobu. Klíč vytvoříte na console.cloud.google.com.',
   'admin.recommended': 'Doporučeno',
   'admin.weatherKey': 'OpenWeatherMap API klíč',
   'admin.weatherKeyHint': 'Pro data o počasí. Zdarma na openweathermap.org',
@@ -137,12 +137,12 @@ const admin: TranslationStrings = {
     'Pro hledání míst v kontinentální Číně, kde Google není dostupný a OpenStreetMap má málo dat. Vyžaduje klíč typu „Web 服务" (webová služba), nikoli klíč JS API. Získáte na console.amap.com.',
   'admin.placesProvider.title': 'Poskytovatel hledání míst',
   'admin.placesProvider.subtitle':
-    'Vlastní index TREKu a OpenStreetMap odpovídají na každé hledání. Zde se volí, koho se zeptat navíc, když nic nenajdou: Automaticky upřednostní Google, pokud je klíč, pak Amap.',
+    'Vlastní index PanelMintu a OpenStreetMap odpovídají na každé hledání. Zde se volí, koho se zeptat navíc, když nic nenajdou: Automaticky upřednostní Google, pokud je klíč, pak Amap.',
   'admin.placesProvider.auto': 'Automaticky',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Zvolený poskytovatel nemá nastavený API klíč, na hledání míst tak odpovídá jen index TREKu a OpenStreetMap.',
+  'admin.placesProvider.missingKey': 'Zvolený poskytovatel nemá nastavený API klíč, na hledání míst tak odpovídá jen index PanelMintu a OpenStreetMap.',
   'admin.placesProvider.saved': 'Poskytovatel hledání míst uložen',
   'admin.validateKey': 'Testovat',
   'admin.keyValid': 'Připojeno',
@@ -176,8 +176,8 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Zobrazí obrázky a popis při přidávání místa. Wikipedie a OpenStreetMap se používají vždy; Google se přidá, když jsou zapnuté Fotky míst nebo Detaily míst.',
   'admin.placesGoogleOnly.title': 'Hledat pouze přes Google',
-  'admin.placesGoogleOnly.subtitle': 'Každé hledání a každý návrh jde do Google Places. Vypnuto: nejprve odpovídá index TREK a OpenStreetMap, Google se ptáme jen tehdy, když nic nenajdou.',
-  'admin.placesGoogleOnly.missingKey': 'Vyžaduje klíč Google Maps API. Bez něj hledání běží přes index TREK a OpenStreetMap bez ohledu na tento přepínač.',
+  'admin.placesGoogleOnly.subtitle': 'Každé hledání a každý návrh jde do Google Places. Vypnuto: nejprve odpovídá index PanelMint a OpenStreetMap, Google se ptáme jen tehdy, když nic nenajdou.',
+  'admin.placesGoogleOnly.missingKey': 'Vyžaduje klíč Google Maps API. Bez něj hledání běží přes index PanelMint a OpenStreetMap bez ohledu na tento přepínač.',
   'admin.placesGoogleOnly.otherProvider': 'Vyžaduje Google jako poskytovatele míst. Při zvoleném Amapu nebo OpenStreetMap nejde na Google žádné hledání, ať je tento přepínač nastaven jakkoli.',
   'admin.transitProvider.title': 'Poskytovatel veřejné dopravy',
   'admin.transitProvider.subtitle': 'Která služba odpovídá na vyhledávání veřejné dopravy.',
@@ -312,7 +312,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Zdrojový repozitář',
   'admin.plugins.reportIssue': 'Nahlásit problém',
   'admin.plugins.homepage': 'Domovská stránka',
-  'admin.plugins.requiresTrek': 'Vyžaduje TREK {version}+',
+  'admin.plugins.requiresTrek': 'Vyžaduje PanelMint {version}+',
   'admin.plugins.reviewedOn': 'Zkontrolováno {date}',
   'admin.plugins.perm.db:own': 'Ukládat vlastní data v izolované databázi',
   'admin.plugins.perm.db:read:trips': 'Číst cesty, ke kterým má aktuální uživatel přístup',
@@ -380,7 +380,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Poskytovat fotky do sekce Fotky',
   'admin.plugins.perm.hook:calendar-source': 'Poskytovat události do kalendáře',
   'admin.plugins.perm.hook:place-detail-provider': 'Přidávat další podrobnosti (recenze, hodnocení, odkazy) k místu',
-  'admin.plugins.perm.hook:search-provider': 'Odpovídat na vyhledávání míst z vlastního indexu, vedle výsledků TREK',
+  'admin.plugins.perm.hook:search-provider': 'Odpovídat na vyhledávání míst z vlastního indexu, vedle výsledků PanelMint',
   'admin.plugins.perm.hook:trip-warning-provider': 'Vyvolávat ověřovací upozornění u cesty (zobrazená v plánovači)',
   'admin.plugins.perm.hook:table-contributor': 'Přidávat sloupce a akce do zobrazení cesty (rezervace, místa, dny)',
   'admin.plugins.perm.hook:map-marker-provider': 'Přidávat značky na mapu cesty (např. zobrazit rezervace nebo POI)',
@@ -397,7 +397,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     'Zveřejňovat nástroje, které může AI asistent spustit vaším jménem (jedná s oprávněními, která zde pluginu udělíte, ne se svými)',
   'admin.plugins.perm.geolocation:read':
-    'Zjišťovat vaši aktuální polohu, dokud je otevřené některé z jeho zobrazení (TREK ji čte pod oprávněním k poloze pro tento web, ne pod vlastním oprávněním doplňku)',
+    'Zjišťovat vaši aktuální polohu, dokud je otevřené některé z jeho zobrazení (PanelMint ji čte pod oprávněním k poloze pro tento web, ne pod vlastním oprávněním doplňku)',
   'admin.plugins.perm.hook:pdf-section-provider': 'Připojovat textové sekce k PDF exportu cesty',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Zvýrazňovat země na mapě světa v Atlasu (např. seznamy přání nebo cestovní upozornění)',
@@ -423,26 +423,26 @@ const admin: TranslationStrings = {
   'admin.plugins.updateLater': 'Zatím ponechat vypnuté',
   'admin.plugins.updateKeptOff': 'Aktualizace nainstalována — zůstává vypnutá, dokud neschválíte nová oprávnění',
   'admin.plugins.reviewedMeaning':
-    '„Zkontrolováno“ znamená, že správce TREK prověřil tento plugin na škodlivý kód u každé verze — nikoli jeho kvalitu ani to, zda funguje. Není to záruka, že je plugin neškodný.',
+    '„Zkontrolováno“ znamená, že správce PanelMint prověřil tento plugin na škodlivý kód u každé verze — nikoli jeho kvalitu ani to, zda funguje. Není to záruka, že je plugin neškodný.',
   'admin.plugins.security.title': 'Jak jsou pluginy izolovány — a kde jsou hranice',
   'admin.plugins.security.isolationTitle': 'Každý plugin běží v izolaci',
   'admin.plugins.security.isolationBody':
-    'Plugin běží jako vlastní uzamčený proces, který může číst pouze své vlastní soubory. Nemůže číst vaši databázi, váš přihlašovací tajný klíč ani váš šifrovací klíč, nemůže spouštět jiné programy a nemůže nikam zapisovat soubory. Jeho rozhraní běží v uzavřeném rámci prohlížeče, který nemůže číst vaši session cookie ani zasahovat do okolní stránky TREK.',
+    'Plugin běží jako vlastní uzamčený proces, který může číst pouze své vlastní soubory. Nemůže číst vaši databázi, váš přihlašovací tajný klíč ani váš šifrovací klíč, nemůže spouštět jiné programy a nemůže nikam zapisovat soubory. Jeho rozhraní běží v uzavřeném rámci prohlížeče, který nemůže číst vaši session cookie ani zasahovat do okolní stránky PanelMint.',
   'admin.plugins.security.permsTitle': 'Co oprávnění znamenají',
   'admin.plugins.security.permsBody':
-    'Oprávnění zobrazená před instalací jsou pevný limit, který TREK vynucuje po celou dobu běhu pluginu — plugin doslova nemůže udělat nic, co není na seznamu. Říkají vám ale, co plugin může dělat, nikoli co skutečně dělá. Plugin, který smí číst vaše cesty a spojit se se serverem, může vaše cesty tomuto serveru odeslat, proto si přečtěte oprávnění i odchozí hostitele, nejen popis.',
+    'Oprávnění zobrazená před instalací jsou pevný limit, který PanelMint vynucuje po celou dobu běhu pluginu — plugin doslova nemůže udělat nic, co není na seznamu. Říkají vám ale, co plugin může dělat, nikoli co skutečně dělá. Plugin, který smí číst vaše cesty a spojit se se serverem, může vaše cesty tomuto serveru odeslat, proto si přečtěte oprávnění i odchozí hostitele, nejen popis.',
   'admin.plugins.security.limitsTitle': 'Co nemůžeme slíbit',
   'admin.plugins.security.limitsBody':
-    'Izolace je silná softwarová hranice, nikoli absolutní. Plugin jedná přesně s těmi právy, která schválíte, takže v jejich rámci se může chovat jinak, než naznačuje jeho popis, a může odeslat data, která oprávněně drží, hostitelům, které deklaroval. TREK nečte ani neposuzuje, co kód pluginu ve skutečnosti dělá.',
+    'Izolace je silná softwarová hranice, nikoli absolutní. Plugin jedná přesně s těmi právy, která schválíte, takže v jejich rámci se může chovat jinak, než naznačuje jeho popis, a může odeslat data, která oprávněně drží, hostitelům, které deklaroval. PanelMint nečte ani neposuzuje, co kód pluginu ve skutečnosti dělá.',
   'admin.plugins.security.worstTitle': 'Nejhorší případ',
   'admin.plugins.security.worstBody':
     'Škodlivý plugin, který zapnete, může zneužít data a připojení, jež jste mu udělili — například vynést cesty, které smí číst. Nemůže krást hesla, padělat přihlášení administrátora, spouštět příkazy na vašem serveru ani se dostat k datům, která jste neudělili. Škoda zůstává v rámci toho, co jste schválili, a vypnutí pluginu ji zastaví.',
   'admin.plugins.security.reviewedTitle': 'Co znamená „Zkontrolováno“',
   'admin.plugins.security.reviewedBody':
-    'Zkontrolovaný plugin ručně prověřil správce TREK na škodlivý kód u každé verze — kontroloval nepřátelský kód, nikoli to, zda dobře funguje. Není to slib, že je plugin neškodný.',
+    'Zkontrolovaný plugin ručně prověřil správce PanelMint na škodlivý kód u každé verze — kontroloval nepřátelský kód, nikoli to, zda dobře funguje. Není to slib, že je plugin neškodný.',
   'admin.plugins.security.signedTitle': 'Co znamená „Podepsáno“',
   'admin.plugins.security.signedBody':
-    'Kontrolní součet, který TREK ověřuje při každé instalaci, dokazuje, že soubory jsou přesně tím, za co se registr zaručuje. Podpis dokazuje něco jiného: že pocházejí od autora a jsou podepsané klíčem, který drží jen on. Podepsaný plugin má obojí. Nepodepsaný není nebezpečný — nese jen o jednu záruku méně a většina pluginů v registru dnes podepsaná není.',
+    'Kontrolní součet, který PanelMint ověřuje při každé instalaci, dokazuje, že soubory jsou přesně tím, za co se registr zaručuje. Podpis dokazuje něco jiného: že pocházejí od autora a jsou podepsané klíčem, který drží jen on. Podepsaný plugin má obojí. Nepodepsaný není nebezpečný — nese jen o jednu záruku méně a většina pluginů v registru dnes podepsaná není.',
   'admin.plugins.signed': 'Podepsáno',
   'admin.plugins.signedHint': 'Při instalaci ověřeno proti podpisovému klíči autora',
   'admin.plugins.unsigned': 'Nepodepsáno',
@@ -457,20 +457,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     'Soubory neodpovídají podpisu autora. Nejsou tím, co autor podepsal — buď se poškodily, nebo do nich někdo zasáhl. Toto nelze obejít.',
   'admin.plugins.sig.missingBody':
-    'Tento plugin byl při instalaci podepsaný, ale nová verze žádný podpis nepřináší. TREK takové zhoršení tiše nepřijme. Toto nelze obejít.',
+    'Tento plugin byl při instalaci podepsaný, ale nová verze žádný podpis nepřináší. PanelMint takové zhoršení tiše nepřijme. Toto nelze obejít.',
   'admin.plugins.sig.incompleteBody':
     'Záznam v registru je podepsaný jen napůl: uvádí klíč autora, ale verze nenese žádný podpis (nebo naopak). To je chyba na straně pluginu. Toto nelze obejít.',
   'admin.plugins.sig.pinnedKey': 'Klíč, se kterým byl nainstalován',
   'admin.plugins.sig.newKey': 'Klíč, který nabízí nyní',
   'admin.plugins.sig.confirmOutOfBand':
-    'TREK nedokáže odlišit legitimní výměnu klíče od převzetí pluginu — odsud vypadají obě stejně. Než nový klíč přijmete, ověřte si ho u autora kanálem, kterému už důvěřujete. Jakmile to uděláte, plugin se aktualizuje a nový klíč si TREK zapamatuje.',
+    'PanelMint nedokáže odlišit legitimní výměnu klíče od převzetí pluginu — odsud vypadají obě stejně. Než nový klíč přijmete, ověřte si ho u autora kanálem, kterému už důvěřujete. Jakmile to uděláte, plugin se aktualizuje a nový klíč si PanelMint zapamatuje.',
   'admin.plugins.sig.retrustConfirm': 'Důvěřovat novému klíči a aktualizovat',
   'admin.plugins.sig.cancel': 'Nedůvěřovat',
   'admin.plugins.sig.consentUnsigned':
     'Tuto verzi nic nespojuje s jejím autorem — soubory odpovídají registru, ale nenesou podpis autora.',
   'admin.plugins.security.trustTitle': 'Závěrem',
   'admin.plugins.security.trustBody':
-    'Instalace pluginu je jako instalace jakékoli aplikace třetí strany: přidávejte pouze kód od autorů, kterým důvěřujete, a v případě pochybností si jej nejprve sami prohlédněte. TREK nenese žádnou odpovědnost za pluginy třetích stran.',
+    'Instalace pluginu je jako instalace jakékoli aplikace třetí strany: přidávejte pouze kód od autorů, kterým důvěřujete, a v případě pochybností si jej nejprve sami prohlédněte. PanelMint nenese žádnou odpovědnost za pluginy třetích stran.',
   'admin.plugins.runtimeOn': 'Běhové prostředí běží',
   'admin.plugins.tabDiscover': 'Objevit',
   'admin.plugins.searchPlaceholder': 'Hledat pluginy…',
@@ -486,11 +486,11 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Nejdřív aktualizace',
   'admin.plugins.sortDownloads': 'Nejstahovanější',
   'admin.plugins.updatesAvailable': 'Pro vaše pluginy je k dispozici {count} aktualizací.',
-  'admin.plugins.newerNeedsTrek': 'v{version} k dispozici — vyžaduje TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'v{version} k dispozici — vyžaduje PanelMint {range}',
   'admin.plugins.versionsTitle': 'Verze',
   'admin.plugins.versionPickerTitle': 'Změnit verzi — {name}',
   'admin.plugins.versionSwitch': 'Přepnout na {version}',
-  'admin.plugins.versionNeedsTrek': 'vyžaduje TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'vyžaduje PanelMint {range}',
   'admin.plugins.changeVersion': 'Změnit verzi…',
   'admin.plugins.noVersions': 'V registru nebyly nalezeny žádné publikované verze.',
   'admin.plugins.downgradeTitle': 'Vrátit tento plugin na starší verzi?',
@@ -553,21 +553,21 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Stáhnout',
   'admin.plugins.dep.update': 'Aktualizovat',
   'admin.plugins.dep.resolveHint': 'Stáhne nejnovější kompatibilní verzi včetně jejích vlastních závislostí.',
-  'admin.plugins.dep.trekIncompatible': 'Vyžaduje TREK {range} — tento server běží na {host}',
-  'admin.plugins.dep.trekUnknown': 'Neuvádí, které verze TREK podporuje',
+  'admin.plugins.dep.trekIncompatible': 'Vyžaduje PanelMint {range} — tento server běží na {host}',
+  'admin.plugins.dep.trekUnknown': 'Neuvádí, které verze PanelMint podporuje',
   'admin.plugins.installCompatible': 'Nainstalovat {version}',
   'admin.plugins.installAnyway': 'Přesto nainstalovat',
   'admin.plugins.rangeBypass.pill': 'Kontroly verzí vypnuty',
   'admin.plugins.rangeBypass.pillHint':
     'Je nastaveno TREK_PLUGINS_IGNORE_TREK_RANGE — pluginy se mohou instalovat a spouštět mimo verze TREKu, které jejich autoři deklarovali',
-  'admin.plugins.rangeBypass.title': 'Mimo podporované verze TREKu',
-  'admin.plugins.rangeBypass.noticeTitle': 'Nainstalováno mimo podporované verze TREKu',
+  'admin.plugins.rangeBypass.title': 'Mimo podporované verze PanelMintu',
+  'admin.plugins.rangeBypass.noticeTitle': 'Nainstalováno mimo podporované verze PanelMintu',
   'admin.plugins.rangeBypass.body':
     '„{name}“ deklaruje podporu TREKu {range} a tento server běží na {host}. TREK ho propouští jen proto, že je nastaveno TREK_PLUGINS_IGNORE_TREK_RANGE. Autor neaktualizoval rozsah verzí pluginu pro tento TREK, takže není zaručeno, že bude fungovat — a ve vzácných případech může nekompatibilní plugin poškodit data TREKu. Pokračujte jen tehdy, pokud toto riziko přijímáte.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '„{name}“ neuvádí, které verze TREKu podporuje; tento server běží na {host}. TREK ho propouští jen proto, že je nastaveno TREK_PLUGINS_IGNORE_TREK_RANGE. Nic nenasvědčuje tomu, že ho autor na tomto TREKu testoval, takže není zaručeno, že bude fungovat — a ve vzácných případech může nekompatibilní plugin poškodit data TREKu. Pokračujte jen tehdy, pokud toto riziko přijímáte.',
-  'admin.plugins.dep.trekBypassed': 'Mimo svůj rozsah TREKu ({range}) — kontroly verzí vypnuty',
-  'admin.plugins.dep.trekBypassedUnknown': 'Neuvádí žádný rozsah TREKu — kontroly verzí vypnuty',
+  'admin.plugins.dep.trekBypassed': 'Mimo svůj rozsah PanelMintu ({range}) — kontroly verzí vypnuty',
+  'admin.plugins.dep.trekBypassedUnknown': 'Neuvádí žádný rozsah PanelMintu — kontroly verzí vypnuty',
   'admin.plugins.incompatible': 'Nekompatibilní',
   'admin.plugins.accessTitle': 'K čemu má přístup',
   'admin.plugins.connectsTitle': 'Připojuje se k',
@@ -579,7 +579,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Zkontrolováno',
   'admin.plugins.downloads': 'Stažení',
   'admin.addons.title': 'Doplňky',
-  'admin.addons.subtitle': 'Zapněte nebo vypněte funkce a přizpůsobte si TREK.',
+  'admin.addons.subtitle': 'Zapněte nebo vypněte funkce a přizpůsobte si PanelMint.',
   'admin.addons.catalog.memories.name': 'Fotky (Immich)',
   'admin.addons.catalog.memories.description': 'Sdílejte cestovní fotky přes vaši instanci Immich',
   'admin.addons.catalog.packing.name': 'Seznamy',
@@ -671,11 +671,11 @@ const admin: TranslationStrings = {
   'admin.github.loading': 'Načítání...',
   'admin.github.error': 'Nepodařilo se načíst verze',
   'admin.github.by': 'od',
-  'admin.github.support': 'Pomáhá udržovat vývoj TREK',
+  'admin.github.support': 'Pomáhá udržovat vývoj PanelMint',
   'admin.weather.title': 'Data o počasí',
   'admin.weather.badge': 'Od 24. března 2026',
   'admin.weather.description':
-    'TREK používá Open-Meteo jako zdroj dat. Je to bezplatná open-source služba – není vyžadován API klíč.',
+    'PanelMint používá Open-Meteo jako zdroj dat. Je to bezplatná open-source služba – není vyžadován API klíč.',
   'admin.weather.forecast': 'Předpověď na 16 dní',
   'admin.weather.forecastDesc': 'Dříve 5 dní (OpenWeatherMap)',
   'admin.weather.climate': 'Historická klimatická data',
@@ -684,12 +684,12 @@ const admin: TranslationStrings = {
   'admin.weather.requestsDesc': 'Zdarma, bez nutnosti klíče',
   'admin.weather.locationHint': 'Počasí se určuje podle prvního místa se souřadnicemi v daném dni.',
   'admin.update.available': 'Dostupná aktualizace',
-  'admin.update.text': 'TREK {version} je k dispozici. Aktuálně používáte verzi {current}.',
+  'admin.update.text': 'PanelMint {version} je k dispozici. Aktuálně používáte verzi {current}.',
   'admin.update.button': 'Zobrazit na GitHubu',
   'admin.update.install': 'Instalovat aktualizaci',
   'admin.update.confirmTitle': 'Instalovat aktualizaci?',
   'admin.update.confirmText':
-    'TREK bude aktualizován z verze {current} na {version}. Server se poté automaticky restartuje.',
+    'PanelMint bude aktualizován z verze {current} na {version}. Server se poté automaticky restartuje.',
   'admin.update.dataInfo': 'Všechna vaše data (cesty, uživatelé, API klíče, soubory) budou zachována.',
   'admin.update.warning': 'Aplikace bude během restartu krátce nedostupná.',
   'admin.update.confirm': 'Aktualizovat nyní',
@@ -700,9 +700,9 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Přejít na zálohování',
   'admin.update.howTo': 'Jak aktualizovat',
   'admin.update.dockerText':
-    'Váš TREK běží v Dockeru. Pro aktualizaci na verzi {version} spusťte na svém serveru tyto příkazy:',
+    'Váš PanelMint běží v Dockeru. Pro aktualizaci na verzi {version} spusťte na svém serveru tyto příkazy:',
   'admin.update.nonDockerText':
-    'Tato instance TREK neběží v Dockeru. Pro aktualizaci na verzi {version} znovu spusťte instalační nebo aktualizační metodu, kterou jste použili — například u Proxmox Community Scripts spusťte aktualizaci z konzole LXC:',
+    'Tato instance PanelMint neběží v Dockeru. Pro aktualizaci na verzi {version} znovu spusťte instalační nebo aktualizační metodu, kterou jste použili — například u Proxmox Community Scripts spusťte aktualizaci z konzole LXC:',
   'admin.update.wikiLink': 'Otevřít průvodce aktualizací',
   'admin.update.reloadHint': 'Prosím obnovte stránku za několik sekund.',
   'admin.tabs.permissions': 'Oprávnění',

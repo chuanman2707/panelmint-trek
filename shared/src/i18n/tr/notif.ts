@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Paket listesi ataması',
   'notif.packing_tagged.text': '{actor} sizi {trip} içinde {category} kategorisine atadı',
   'notif.version_available.title': 'Yeni Sürüm Mevcut',
-  'notif.version_available.text': 'TREK {version} artık kullanılabilir',
+  'notif.version_available.text': 'PanelMint {version} artık kullanılabilir',
   'notif.replica_failure.title': 'Depolama kopyası hatası',
   'notif.replica_failure.text': "'{backend}' kopyasına yazma başarısız oldu: {op} ({key}) — {error}",
   'notif.replica_failure.textSuppressed': "'{backend}' kopyasına yazma başarısız oldu: {op} ({key}) — {error}. Son bildirimden bu yana {suppressed} hata daha bastırıldı.",

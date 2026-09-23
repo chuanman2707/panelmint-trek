@@ -51,7 +51,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtDesktopNote':
     'Aquestes dades es configuren a l’escriptori, on també pots comparar rutes alternatives i fer que un dia segueixi una traça importada.',
   'mobileTrip.rtPlanOnDesktop':
-    'La planificació es fa a l’escriptori. TREK calcula el trajecte quan un dia té dos llocs.',
+    'La planificació es fa a l’escriptori. PanelMint calcula el trajecte quan un dia té dos llocs.',
   'mobileTrip.rtSearchOffline': 'Cal connexió: la cerca llegeix la ruta que tens per endavant.',
   'mobileTrip.rtBehind': '{time} de retard sobre el pla',
   'mobileTrip.rtStart': 'Inici',

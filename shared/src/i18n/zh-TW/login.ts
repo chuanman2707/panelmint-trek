@@ -9,7 +9,7 @@ const login: TranslationStrings = {
   'login.signingIn': '登入中…',
   'login.signIn': '登入',
   'login.createAdmin': '建立管理員賬戶',
-  'login.createAdminHint': '為 TREK 設定第一個管理員賬戶。',
+  'login.createAdminHint': '為 PanelMint 設定第一個管理員賬戶。',
   'login.setNewPassword': '設定新密碼',
   'login.setNewPasswordHint': '您必須更改密碼才能繼續。',
   'login.createAccount': '建立賬戶',
@@ -67,7 +67,7 @@ const login: TranslationStrings = {
   'login.passkey.failed': 'Passkey 登入失敗，請重試。',
   'login.insecureCookie.title': "Login won't stick over HTTP",
   'login.insecureCookie.body':
-    'You’re connecting over plain HTTP, so your browser drops TREK’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
+    'You’re connecting over plain HTTP, so your browser drops PanelMint’s secure session cookie — the next request fails with "Access token required". Fix: use HTTPS, or for a home-lab set COOKIE_SECURE=false.',
   'login.insecureCookie.link': 'Open the Troubleshooting guide',
 };
 export default login;

@@ -7,7 +7,7 @@ import { IS_PUBLIC, OPTIONAL_AUTH } from './public.decorator';
 
 /**
  * Default-deny. Registered as an APP_GUARD, so a route is authenticated unless
- * it says otherwise — the inverse of what TREK had, where protection was opt-in
+ * it says otherwise — the inverse of what PanelMint had, where protection was opt-in
  * through 62 separate `@UseGuards(JwtAuthGuard)` and a forgotten one was a
  * silent bypass rather than an error.
  *

@@ -990,7 +990,7 @@ export class JourneyDomainService {
   }
 
   /**
-   * What this journey adds up to — the figures TREK Studio prints on a page.
+   * What this journey adds up to — the figures PanelMint Studio prints on a page.
    *
    * Derived, never stored: the trips added to the journey carry the places and
    * the dates, the journey carries the entries and the photographs, and the
@@ -1151,7 +1151,7 @@ export class JourneyDomainService {
      * a stop that does not exist. It still stops being a step, because the
      * traveller said it does not count.
      *
-     * The fallback has to honour it too. A skeleton is the entry TREK derives
+     * The fallback has to honour it too. A skeleton is the entry PanelMint derives
      * from a trip place, so switching the skeleton off and then drawing the
      * place it came from would put the same stop straight back on the map
      * under its other name. Hence the set of places to leave out.

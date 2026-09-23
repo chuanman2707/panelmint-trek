@@ -221,7 +221,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': 'Geteilt über',
   'journey.public.madeWith': 'Erstellt mit',
   'journey.pdf.journeyBook': 'Reisebuch',
-  'journey.pdf.madeWith': 'Erstellt mit TREK',
+  'journey.pdf.madeWith': 'Erstellt mit PanelMint',
   'journey.pdf.day': 'Tag',
   'journey.pdf.theEnd': 'Ende',
   'journey.pdf.saveAsPdf': 'Als PDF speichern',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio',
+  'journey.studio.title': 'PanelMint Studio',
   'journey.studio.open': 'Studio',
   'journey.studio.openAria': 'Fotobuch-Studio öffnen',
   'journey.studio.backToJourney': 'Zurück zur Journey',
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'Speichert das Design dieser Doppelseite als Datei, ohne die Fotos, zum Teilen oder Wiederverwenden',
   'journey.studio.importSpread': 'Importieren',
   'journey.studio.importSpreadHint': 'Eine Doppelseite aus einer heruntergeladenen Design-Datei einfügen',
-  'journey.studio.importSpreadFailed': 'Diese Datei ist keine TREK-Studio-Doppelseite',
+  'journey.studio.importSpreadFailed': 'Diese Datei ist keine PanelMint-Studio-Doppelseite',
   'journey.studio.desktopOnly': 'Studio braucht mehr Platz',
   'journey.studio.desktopOnlyHint': 'Ein Buch zu gestalten braucht Fläche, deshalb gibt es Studio nur am Desktop, und das PDF ebenso. Alles andere an deiner Journey funktioniert hier wie gewohnt.',
   'journey.studio.formatA5Landscape': 'A5 quer',

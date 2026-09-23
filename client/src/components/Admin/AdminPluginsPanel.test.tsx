@@ -189,7 +189,7 @@ describe('AdminPluginsPanel — row ⋯ menu is never clipped (#1523)', () => {
 })
 
 /**
- * Signature status (#plugins). TREK has always verified author signatures and TOFU-pinned
+ * Signature status (#plugins). PanelMint has always verified author signatures and TOFU-pinned
  * the key — and never showed any of it, so a successfully-installed UNSIGNED plugin looked
  * identical to a signed one, forever.
  *
@@ -454,11 +454,11 @@ describe('AdminPluginsPanel — a block never outlives the registry relationship
 })
 
 /**
- * TREK-version compatibility. The SERVER owns the semver — a second implementation in the
+ * PanelMint-version compatibility. The SERVER owns the semver — a second implementation in the
  * browser would eventually disagree with the install gate and offer a button that 400s —
  * so the panel only renders the verdict the API hands it (`compatible`, `latestCompatible`).
  */
-describe('AdminPluginsPanel — TREK-version compatibility', () => {
+describe('AdminPluginsPanel — PanelMint-version compatibility', () => {
   /** Discover cards for a plugin that is NOT installed — an installed one just reads "Installed". */
   async function openDiscover(entry: Record<string, unknown>) {
     mockPanel(plugin({ id: 'something-else' }), registryEntry(entry))
@@ -466,7 +466,7 @@ describe('AdminPluginsPanel — TREK-version compatibility', () => {
     fireEvent.click(await screen.findByText('Discover'))
   }
 
-  it('blocks Install when no published version runs on this TREK, and says why', async () => {
+  it('blocks Install when no published version runs on this PanelMint, and says why', async () => {
     await openDiscover({ trek: '>=4.0.0', hostVersion: '3.3.0', compatible: false, latestCompatible: null })
     const btn = await screen.findByRole('button', { name: /^incompatible$/i })
     expect(btn).toBeDisabled()
@@ -490,7 +490,7 @@ describe('AdminPluginsPanel — TREK-version compatibility', () => {
       dependencyStatus: 'hostIncompatible', trekRange: '>=3.2.0 <4.0.0', hostVersion: '4.0.0', enabled: 0, status: 'inactive',
     }))
     render(<AdminPluginsPanel />)
-    expect(await screen.findByText(/needs trek >=3\.2\.0 <4\.0\.0/i)).toBeInTheDocument()
+    expect(await screen.findByText(/needs PanelMint >=3\.2\.0 <4\.0\.0/i)).toBeInTheDocument()
   })
 })
 
@@ -1130,14 +1130,14 @@ describe('AdminPluginsPanel — updates', () => {
 })
 
 /**
- * Update availability must follow what this TREK can actually INSTALL (latestCompatible,
+ * Update availability must follow what this PanelMint can actually INSTALL (latestCompatible,
  * computed server-side), never the absolute newest published version — a banner counting
  * versions the update endpoint would refuse nags the admin toward a guaranteed 400.
  */
 describe('AdminPluginsPanel — compatible updates only', () => {
   const outdated = plugin({ source_repo: 'acme/gotify', version: '1.0.0', operatorEgress: false })
 
-  it('FE-COMP-PLUGINS-UPD-001: an update this TREK cannot install is neither offered nor counted', async () => {
+  it('FE-COMP-PLUGINS-UPD-001: an update this PanelMint cannot install is neither offered nor counted', async () => {
     panelWith([outdated], {
       registry: [registryEntry({ latest: '2.0.0', latestCompatible: null, trek: '>=4.0.0', hostVersion: '3.3.0' })],
     })
@@ -1159,13 +1159,13 @@ describe('AdminPluginsPanel — compatible updates only', () => {
     expect(screen.queryByRole('button', { name: /update → v3\.0\.0/i })).not.toBeInTheDocument()
   })
 
-  it('FE-COMP-PLUGINS-UPD-003: a newer version needing a newer TREK leaves a passive hint on the row', async () => {
+  it('FE-COMP-PLUGINS-UPD-003: a newer version needing a newer PanelMint leaves a passive hint on the row', async () => {
     panelWith([outdated], {
       registry: [registryEntry({ latest: '2.0.0', latestCompatible: null, trek: '>=4.0.0', hostVersion: '3.3.0' })],
     })
     render(<AdminPluginsPanel />)
 
-    expect(await screen.findByText('v2.0.0 available — needs TREK >=4.0.0')).toBeInTheDocument()
+    expect(await screen.findByText('v2.0.0 available — needs PanelMint >=4.0.0')).toBeInTheDocument()
   })
 
   it('FE-COMP-PLUGINS-UPD-004: a legacy entry with only minTrekVersion still gets a hint range', async () => {
@@ -1174,7 +1174,7 @@ describe('AdminPluginsPanel — compatible updates only', () => {
     })
     render(<AdminPluginsPanel />)
 
-    expect(await screen.findByText('v2.0.0 available — needs TREK >=4.0.0')).toBeInTheDocument()
+    expect(await screen.findByText('v2.0.0 available — needs PanelMint >=4.0.0')).toBeInTheDocument()
   })
 
   it('FE-COMP-PLUGINS-UPD-005: no hint when the latest version is the one on offer', async () => {
@@ -1182,7 +1182,7 @@ describe('AdminPluginsPanel — compatible updates only', () => {
     render(<AdminPluginsPanel />)
 
     expect(await screen.findByRole('button', { name: /update → v2\.0\.0/i })).toBeInTheDocument()
-    expect(screen.queryByText(/needs TREK/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/needs PanelMint/i)).not.toBeInTheDocument()
   })
 })
 
@@ -1281,14 +1281,14 @@ describe('AdminPluginsPanel — version picker', () => {
     await waitFor(() => expect(body).toEqual({ id: 'trek-gotify', version: '1.5.0' }))
   })
 
-  it('FE-COMP-PLUGINS-VPICK-002: an incompatible version is greyed with its TREK requirement, not installable', async () => {
+  it('FE-COMP-PLUGINS-VPICK-002: an incompatible version is greyed with its PanelMint requirement, not installable', async () => {
     mockDiscoverDetail()
     render(<AdminPluginsPanel />)
     const tabs = await screen.findAllByRole('tab', { name: /^discover/i })
     fireEvent.click(tabs[0])
     fireEvent.click(await screen.findByText('Gotify'))
 
-    expect(await screen.findByText(/^needs TREK >=4\.0\.0$/i)).toBeInTheDocument()
+    expect(await screen.findByText(/^needs PanelMint >=4\.0\.0$/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^install 3\.0\.0$/i })).not.toBeInTheDocument()
   })
 
@@ -1419,11 +1419,11 @@ describe('AdminPluginsPanel — capability and dependency chips', () => {
     expect(screen.getByText('Needs trek-core ^1.0.0')).toBeInTheDocument()
   })
 
-  it('FE-COMP-PLUGINS-PANEL-039: a plugin that names no TREK range says so', async () => {
+  it('FE-COMP-PLUGINS-PANEL-039: a plugin that names no PanelMint range says so', async () => {
     panelWith([plugin({ operatorEgress: false, dependencyStatus: 'hostIncompatible' })])
     render(<AdminPluginsPanel />)
 
-    expect(await screen.findByText('Does not say which TREK versions it supports')).toBeInTheDocument()
+    expect(await screen.findByText('Does not say which PanelMint versions it supports')).toBeInTheDocument()
   })
 })
 
@@ -1506,7 +1506,7 @@ describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
     expect(screen.getByText('Instance-wide')).toBeInTheDocument()
     expect(screen.getByText('Required')).toBeInTheDocument()
     expect(screen.getByText('4 KB')).toBeInTheDocument()
-    expect(screen.getByText('TREK >=3.2.0')).toBeInTheDocument()
+    expect(screen.getByText('PanelMint >=3.2.0')).toBeInTheDocument()
     expect(screen.getByText('Store its own data in an isolated database')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /homepage/i })).toHaveAttribute('href', 'https://gotify.example')
     // 999 500 rounds to a whole megabyte on the card, never "1000k"
@@ -1520,7 +1520,7 @@ describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
     fireEvent.click(await screen.findByText('Gotify'))
 
     expect(await screen.findByText('Needs no special access.')).toBeInTheDocument()
-    expect(screen.getByText('TREK 3.2.0+')).toBeInTheDocument()
+    expect(screen.getByText('PanelMint 3.2.0+')).toBeInTheDocument()
     expect(screen.queryByText('Connects to')).not.toBeInTheDocument()
     expect(screen.queryByText('Setup')).not.toBeInTheDocument()
   })
@@ -1546,7 +1546,7 @@ describe('AdminPluginsPanel — Discover cards and the detail modal', () => {
     await clickDiscover()
     fireEvent.click(await screen.findByText('Gotify'))
 
-    const explanations = await screen.findAllByText(/needs trek >=4\.0\.0 — this server runs 3\.3\.0/i)
+    const explanations = await screen.findAllByText(/needs PanelMint >=4\.0\.0 — this server runs 3\.3\.0/i)
     expect(explanations.length).toBeGreaterThan(0)
   })
 
@@ -2023,12 +2023,12 @@ describe('AdminPluginsPanel registry cards and dependency chips', () => {
     expect(screen.getByText(/dep-b/)).toBeInTheDocument()
   })
 
-  it('FE-W5PLG-022: a plugin whose TREK range is unknown still gets an incompatibility chip', async () => {
+  it('FE-W5PLG-022: a plugin whose PanelMint range is unknown still gets an incompatibility chip', async () => {
     mockPanel([row({ dependencyStatus: 'hostIncompatible', trekRange: null, hostVersion: null })])
     render(<AdminPluginsPanel />)
 
     await screen.findByText('Alpha Widget')
-    expect(screen.getByText(/does not say which trek/i)).toBeInTheDocument()
+    expect(screen.getByText(/does not say which PanelMint/i)).toBeInTheDocument()
   })
 
   it('FE-W5PLG-023: a registry-sourced row links to its repository and issue tracker', async () => {
@@ -2495,7 +2495,7 @@ describe('AdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RANG
     expect(btn).toBeEnabled()
     fireEvent.click(btn)
 
-    const dialog = await screen.findByRole('dialog', { name: /outside its supported trek versions/i })
+    const dialog = await screen.findByRole('dialog', { name: /outside its supported PanelMint versions/i })
     expect(within(dialog).getByText(/no guarantee/i)).toBeInTheDocument()
     expect(within(dialog).getByText(/corrupt trek data/i)).toBeInTheDocument()
     expect(posted).toBeNull() // nothing sent until the admin accepts the risk
@@ -2512,9 +2512,9 @@ describe('AdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RANG
     fireEvent.click(await screen.findByText('Discover'))
     fireEvent.click(await screen.findByRole('button', { name: /^install anyway$/i }))
 
-    const dialog = await screen.findByRole('dialog', { name: /outside its supported trek versions/i })
+    const dialog = await screen.findByRole('dialog', { name: /outside its supported PanelMint versions/i })
     fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }))
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: /outside its supported trek versions/i })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /outside its supported PanelMint versions/i })).not.toBeInTheDocument())
     expect(posted).toBe(false)
   })
 
@@ -2527,7 +2527,7 @@ describe('AdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RANG
 
     await userEvent.upload(container.querySelector('input[type="file"]') as HTMLInputElement, new File(['zip'], 'plugin.zip', { type: 'application/zip' }))
 
-    const dialog = await screen.findByRole('dialog', { name: /installed outside its supported trek versions/i })
+    const dialog = await screen.findByRole('dialog', { name: /installed outside its supported PanelMint versions/i })
     expect(within(dialog).getByText(/no guarantee/i)).toBeInTheDocument()
     expect(within(dialog).getByText(/trek-new/)).toBeInTheDocument()
   })
@@ -2538,6 +2538,6 @@ describe('AdminPluginsPanel — TREK-range bypass (TREK_PLUGINS_IGNORE_TREK_RANG
       trekRangeBypassed: { trekRange: '>=3.2.0 <4.0.0', hostVersion: '4.0.0' },
     })], null)
     render(<AdminPluginsPanel />)
-    expect(await screen.findByText(/outside its trek range \(>=3\.2\.0 <4\.0\.0\)/i)).toBeInTheDocument()
+    expect(await screen.findByText(/outside its PanelMint range \(>=3\.2\.0 <4\.0\.0\)/i)).toBeInTheDocument()
   })
 })

@@ -62,7 +62,7 @@ export function routeDistance(points: { lat: number; lng: number }[]): number {
  *
  * Polarsteps calls this "furthest point from home" and measures from where the
  * trip started, which is the only definition that needs no extra information —
- * TREK does not know where anyone lives, and asking would be a worse book for
+ * PanelMint does not know where anyone lives, and asking would be a worse book for
  * the one fact it adds.
  */
 export function furthestFromStart(points: { lat: number; lng: number }[]): number {

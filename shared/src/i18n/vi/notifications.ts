@@ -17,7 +17,7 @@ const notifications: TranslationStrings = {
   'notifications.synologySessionCleared.text':
     'Máy chủ hoặc tài khoản của bạn đã thay đổi — hãy đi tới Cài đặt để kiểm tra lại kết nối của bạn.',
   'notifications.versionAvailable.title': 'Cập nhật có sẵn',
-  'notifications.versionAvailable.text': 'TREK {version} hiện có sẵn.',
+  'notifications.versionAvailable.text': 'PanelMint {version} hiện có sẵn.',
   'notifications.versionAvailable.button': 'Xem chi tiết',
   'notifications.test.title': 'Thông báo kiểm tra từ {actor}',
   'notifications.test.text': 'Đây là một thông báo thử nghiệm đơn giản.',

@@ -26,7 +26,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Packningsuppdrag',
   'notif.packing_tagged.text': '{actor} har tilldelat dig {category} i {trip}',
   'notif.version_available.title': 'Ny version tillgänglig',
-  'notif.version_available.text': 'TREK {version} finns nu tillgängligt',
+  'notif.version_available.text': 'PanelMint {version} finns nu tillgängligt',
   'notif.replica_failure.title': 'Fel i lagringsreplik',
   'notif.replica_failure.text': "Skrivning till replik '{backend}' misslyckades: {op} för {key} — {error}",
   'notif.replica_failure.textSuppressed': "Skrivning till replik '{backend}' misslyckades: {op} för {key} — {error}. {suppressed} ytterligare fel har undertryckts sedan senaste aviseringen.",

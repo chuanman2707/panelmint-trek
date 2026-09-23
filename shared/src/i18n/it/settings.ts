@@ -28,7 +28,7 @@ const settings: TranslationStrings = {
   'settings.routingBaseHint': 'Una tua istanza OSRM. Vuoto usa i server pubblici, che consentono circa una richiesta al secondo: sufficiente per un giorno, poco per un viaggio in auto. Ha effetto dopo il riavvio del server.',
   'settings.valhallaBase': 'Istanza Valhalla propria',
   'settings.valhallaBaseHint':
-    'TREK usa per impostazione predefinita la Valhalla pubblica di FOSSGIS per evitare pedaggi, autostrade e traghetti. Inserisci qui l’URL della tua Valhalla per usarla al suo posto. Se è configurata solo un’istanza di routing personalizzata, la Valhalla pubblica non viene usata. Dopo aver inserito un URL personalizzato, riavvia il server e ricarica la pagina.',
+    'PanelMint usa per impostazione predefinita la Valhalla pubblica di FOSSGIS per evitare pedaggi, autostrade e traghetti. Inserisci qui l’URL della tua Valhalla per usarla al suo posto. Se è configurata solo un’istanza di routing personalizzata, la Valhalla pubblica non viene usata. Dopo aver inserito un URL personalizzato, riavvia il server e ricarica la pagina.',
   'settings.mapHint': 'Modello URL per i tile della mappa',
   'settings.mapProvider': 'Provider mappa',
   'settings.mapProviderHint': 'Influisce sulle mappe Trip Planner e Journey. Atlas usa sempre Leaflet.',
@@ -43,7 +43,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyHint': 'Le mappe base CARTO mostrano una filigrana senza chiave. Gratuita e senza account, da',
   'settings.mapCartoKeyLink': 'chiave API mappe base di carto.com',
   'settings.mapCartoKeyMissing':
-    'Questo modello è una mappa base CARTO. Senza chiave, CARTO stampa "API KEY REQUIRED" su ogni tassello. Finché non inserisci una chiave, TREK mostra la mappa base predefinita.',
+    'Questo modello è una mappa base CARTO. Senza chiave, CARTO stampa "API KEY REQUIRED" su ogni tassello. Finché non inserisci una chiave, PanelMint mostra la mappa base predefinita.',
   'settings.mapStyle': 'Stile mappa',
   'settings.mapStylePlaceholder': 'Seleziona uno stile Mapbox',
   'settings.mapStyleHint': 'Preset o il tuo URL mapbox://styles/USER/ID',
@@ -198,13 +198,13 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Suggerisci una nuova funzionalità',
   'settings.about.wikiHint': 'Documentazione e guide',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'PanelMint helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'PanelMint is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Sostenitori Mensili',
   'settings.about.supporters.title': 'Compagni di viaggio per TREK',
   'settings.about.supporters.subtitle':
-    'Mentre pianifichi il tuo prossimo itinerario, queste persone aiutano a pianificare il futuro di TREK. Il loro contributo mensile va direttamente allo sviluppo e alle ore realmente investite — per mantenere TREK Open Source.',
+    'Mentre pianifichi il tuo prossimo itinerario, queste persone aiutano a pianificare il futuro di PanelMint. Il loro contributo mensile va direttamente allo sviluppo e alle ore realmente investite — per mantenere PanelMint Open Source.',
   'settings.about.supporters.since': 'sostenitore da {date}',
   'settings.about.supporters.tierEmpty': 'Sii il primo',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
@@ -213,7 +213,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    "TREK è un pianificatore di viaggi self-hosted che ti aiuta a organizzare i tuoi viaggi dalla prima idea all'ultimo ricordo. Pianificazione giornaliera, budget, liste bagagli, foto e molto altro — tutto in un unico posto, sul tuo server.",
+    "PanelMint è un pianificatore di viaggi self-hosted che ti aiuta a organizzare i tuoi viaggi dalla prima idea all'ultimo ricordo. Pianificazione giornaliera, budget, liste bagagli, foto e molto altro — tutto in un unico posto, sul tuo server.",
   'settings.about.madeWith': 'Fatto con',
   'settings.about.madeBy': 'da Maurice e una crescente comunità open-source.',
   'settings.username': 'Nome utente',
@@ -359,7 +359,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': "Abilita solo per un'istanza attendibile sulla tua rete.",
   'settings.airtrail.writeBack': 'Scrivi le modifiche su AirTrail',
   'settings.airtrail.writeBackHint':
-    'Disattivato per impostazione predefinita: AirTrail è la fonte attendibile e TREK si limita a leggerlo. Attiva per inviare ad AirTrail le modifiche fatte in TREK.',
+    'Disattivato per impostazione predefinita: AirTrail è la fonte attendibile e PanelMint si limita a leggerlo. Attiva per inviare ad AirTrail le modifiche fatte in PanelMint.',
   'settings.airtrail.connected': 'Connesso',
   'settings.airtrail.notConnected': 'Non connesso',
   'settings.airtrail.toast.saved': 'Connessione AirTrail salvata',
@@ -472,7 +472,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Dashboard',
   'settings.startPageActiveTrip': 'Viaggio attivo',
   'settings.startPageHint':
-    'TREK si apre direttamente sul viaggio in corso, o sul prossimo in arrivo. È lo stesso viaggio che la dashboard mette in evidenza.',
+    'PanelMint si apre direttamente sul viaggio in corso, o sul prossimo in arrivo. È lo stesso viaggio che la dashboard mette in evidenza.',
   'settings.startTripTab': 'Scheda iniziale',
   'settings.startTripTabHint':
     'La scheda con cui si apre il viaggio. Se appartiene a un componente aggiuntivo disattivato, si apre la vista Programma.',

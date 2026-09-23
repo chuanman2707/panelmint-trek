@@ -8,7 +8,7 @@
  *
  * The threat is not a plugin crashing. It is a plugin writing instructions into
  * every user's assistant context, invisibly to the admin who granted it, and
- * being obeyed. TREK's own code is the proof that the channel works: the
+ * being obeyed. PanelMint's own code is the proof that the channel works: the
  * static-token deprecation notice is delivered in a tool RESULT precisely
  * because that is what an assistant reliably surfaces.
  */
@@ -590,11 +590,11 @@ export type McpToolAnnotations = {
  * a wrong hint in production.
  */
 function isReadOnlyGrant(g: string): boolean {
-  // Reads of TREK's own data.
+  // Reads of PanelMint's own data.
   if (g.startsWith('db:read:')) return true;
   // Service reads: rates:read, weather:read, geolocation:read.
   if (g.endsWith(':read')) return true;
-  // The plugin's private SQLite, invisible to TREK. Counting it would make
+  // The plugin's private SQLite, invisible to PanelMint. Counting it would make
   // nearly every plugin non-read-only and kill auto-approval for legitimate
   // read tools, which is the whole thing the hint exists to allow.
   if (g === 'db:own') return true;

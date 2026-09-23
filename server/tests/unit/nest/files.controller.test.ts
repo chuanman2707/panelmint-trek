@@ -80,7 +80,7 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
     it('403 in demo mode for a demo email', async () => {
       process.env.DEMO_MODE = 'true';
       vi.mocked(isDemoEmail).mockReturnValue(true);
-      expect(await rejected(fc(fsvc()).upload(user, '5', file, {}))).toEqual({ status: 403, body: { error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' } });
+      expect(await rejected(fc(fsvc()).upload(user, '5', file, {}))).toEqual({ status: 403, body: { error: 'Uploads are disabled in demo mode. Self-host PanelMint for full functionality.' } });
     });
     it('403 without file_upload, 400 without a file, else commits + creates + broadcasts', async () => {
       expect(await rejected(fc(fsvc({ can: vi.fn().mockReturnValue(false) })).upload(user, '5', file, {}))).toEqual({ status: 403, body: { error: 'No permission to upload files' } });

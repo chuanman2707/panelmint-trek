@@ -222,7 +222,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': 'Được chia sẻ qua',
   'journey.public.madeWith': 'Được làm bằng',
   'journey.pdf.journeyBook': 'Sách hành trình',
-  'journey.pdf.madeWith': 'Được làm bằng TREK',
+  'journey.pdf.madeWith': 'Được làm bằng PanelMint',
   'journey.pdf.day': 'Ngày',
   'journey.pdf.theEnd': 'Sự kết thúc',
   'journey.pdf.saveAsPdf': 'Lưu dưới dạng PDF',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'Lưu thiết kế của trang đôi này thành tệp, không kèm ảnh, để chia sẻ hoặc dùng lại',
   'journey.studio.importSpread': 'Nhập',
   'journey.studio.importSpreadHint': 'Thêm một trang đôi từ tệp thiết kế đã tải về',
-  'journey.studio.importSpreadFailed': 'Tệp đó không phải trang đôi của TREK Studio',
+  'journey.studio.importSpreadFailed': 'Tệp đó không phải trang đôi của PanelMint Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': 'Dàn một cuốn sách cần chỗ để làm việc, nên Studio chỉ có trên máy tính, và việc tạo PDF cũng vậy. Mọi thứ khác của hành trình vẫn dùng bình thường ở đây.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

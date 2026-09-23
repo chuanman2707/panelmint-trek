@@ -3,7 +3,7 @@ import path from 'node:path';
 import { pluginsCodeRoot, pluginsDataRoot } from './paths';
 
 /**
- * Backup/restore of the plugin trees (#plugins). A TREK backup archives travel.db +
+ * Backup/restore of the plugin trees (#plugins). A PanelMint backup archives travel.db +
  * uploads + the encryption key, but a plugin's per-plugin SQLite file (its ONLY copy
  * of the user data it holds) and its installed code live in separate trees — without
  * these, a restored instance has the `plugins` rows but none of their data or code.

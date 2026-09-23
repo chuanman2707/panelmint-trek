@@ -13,17 +13,17 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': 'Namn på ny mapp',
   'docsync.syncNow': 'Synkronisera nu',
   'docsync.unlink': 'Koppla från',
-  'docsync.confirmUnlink': 'Dokumenten finns kvar i TREK och i arkivet. Bara kopplingen mellan dem försvinner.',
+  'docsync.confirmUnlink': 'Dokumenten finns kvar i PanelMint och i arkivet. Bara kopplingen mellan dem försvinner.',
   'docsync.syncEnabled': 'Synkronisera automatiskt',
   'docsync.deletePolicy': 'När ett dokument tas bort',
   'docsync.deleteUnlink': 'Behåll båda kopiorna',
   'docsync.deleteTrash': 'Flytta till papperskorgen',
   'docsync.conflictPolicy': 'När båda sidor ändrats',
   'docsync.onConflict.manual': 'Fråga mig',
-  'docsync.onConflict.trek_wins': 'Behåll TREK-kopian',
+  'docsync.onConflict.trek_wins': 'Behåll PanelMint-kopian',
   'docsync.onConflict.provider_wins': 'Behåll lagrets kopia',
   'docsync.webhookHint':
-    'Klistra in den här URL:en hos din leverantör så kommer ändringar direkt. Utan den kontrollerar TREK med jämna mellanrum.',
+    'Klistra in den här URL:en hos din leverantör så kommer ändringar direkt. Utan den kontrollerar PanelMint med jämna mellanrum.',
 
   // Fält i anslutningsformuläret. Nycklarna speglar kolumnen `label` i
   // document_provider_fields, som lagrar ett nyckelsuffix i stället för text.
@@ -45,7 +45,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudLogin': 'Ditt inloggningsnamn i Nextcloud, inte din e-postadress.',
   'docsync.hintNextcloudAppPassword': 'Inställningar, Säkerhet, Skapa nytt applösenord. Aldrig ditt kontolösenord.',
   'docsync.hintOpenCloudToken': 'Skapas under apptokens i OpenCloud.',
-  'docsync.hintBasePath': 'Där TREK letar efter resmappar. Standard är /TREK.',
+  'docsync.hintBasePath': 'Där PanelMint letar efter resmappar. Standard är /TREK.',
   'docsync.hintSynologyUrl': 'Ta med porten, till exempel https://nas.example.com:5001',
   'docsync.hintSynologyUser': 'Helst ett eget DSM-konto med åtkomst till bara den här delade mappen.',
   'docsync.hintSynologyOtp': 'Behövs bara en gång, om kontot använder tvåfaktorsautentisering.',
@@ -65,13 +65,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': 'För stor',
   'docsync.state.error': 'Fel',
   'docsync.state.remote_missing': 'Saknas hos leverantören',
-  'docsync.state.local_deleted': 'Borttagen i TREK',
+  'docsync.state.local_deleted': 'Borttagen i PanelMint',
   'docsync.state.scope_drift': 'Flyttad ut ur mappen',
 
   'docsync.conflict.resolve': "Lös {count}",
 
   'docsync.conflict.title': 'Båda kopiorna har ändrats',
-  'docsync.conflict.keepTrek': 'Behåll TREK-versionen',
+  'docsync.conflict.keepTrek': 'Behåll PanelMint-versionen',
   'docsync.conflict.keepProvider': 'Behåll leverantörens version',
   'docsync.conflict.keepBoth': 'Behåll båda',
 
@@ -84,7 +84,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'Det här kontot får inte göra det.',
   'docsync.error.not_found': 'Hittades inte hos leverantören.',
   'docsync.error.scope_missing': 'Den anslutna mappen finns inte längre.',
-  'docsync.error.rate_limited': 'Leverantören begränsar oss. TREK försöker igen senare.',
+  'docsync.error.rate_limited': 'Leverantören begränsar oss. PanelMint försöker igen senare.',
   'docsync.error.too_large': 'Filen är större än vad leverantören tar emot.',
   'docsync.error.unsupported_type': 'Leverantören tar inte emot den här filtypen.',
   'docsync.error.quota_exceeded': 'Leverantören har slut på utrymme.',
@@ -105,8 +105,8 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': 'Inget anslutet än',
   'docsync.empty.hintOwner':
-    'Välj ett arkiv till vänster. TREK behåller en egen kopia av allt, så inget går förlorat om arkivet försvinner.',
-  'docsync.empty.hintMember': 'Resans ägare ställer in det här. Dokumenten finns kvar i TREK oavsett.',
+    'Välj ett arkiv till vänster. PanelMint behåller en egen kopia av allt, så inget går förlorat om arkivet försvinner.',
+  'docsync.empty.hintMember': 'Resans ägare ställer in det här. Dokumenten finns kvar i PanelMint oavsett.',
 
   // Hur varje produkt sorterar sina filer. Visas innan någon ansluter, eftersom
   // det är vad nästa steg kommer att fråga efter.
@@ -117,7 +117,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'Sorterar i en mapp på NAS:en',
 
   // ── Flödesraden ────────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'PanelMint',
   'docsync.flow.toProvider': 'Ut till arkivet',
   'docsync.flow.toTrek': 'In från arkivet',
   'docsync.flow.documents': 'dokument',
@@ -147,16 +147,16 @@ const docsync: TranslationStrings = {
   'docsync.connect.okAs': 'Nådde den, inloggad som {account}',
   'docsync.connect.insecureHint': 'För en instans i ditt eget nätverk med ett självsignerat certifikat.',
   'docsync.connect.about.paperless':
-    'TREK lägger den här resan under en egen tagg och rör aldrig resten av ditt arkiv.',
-  'docsync.connect.about.papra': 'Välj organisationen som resan hör till. TREK lägger den under en egen tagg där inne.',
+    'PanelMint lägger den här resan under en egen tagg och rör aldrig resten av ditt arkiv.',
+  'docsync.connect.about.papra': 'Välj organisationen som resan hör till. PanelMint lägger den under en egen tagg där inne.',
   'docsync.connect.about.nextcloud':
     'Använd ett applösenord, inte ditt kontolösenord: det klarar tvåfaktor och kan återkallas för sig.',
-  'docsync.connect.about.opencloud': 'TREK får en egen yta för den här resan, skild från allt annat.',
+  'docsync.connect.about.opencloud': 'PanelMint får en egen yta för den här resan, skild från allt annat.',
   'docsync.connect.about.synologydrive': 'Helst ett DSM-konto som bara når den delade mapp resan ska använda.',
 
   // ── Välja behållaren ───────────────────────────────────────────────────────
   'docsync.scope.title': 'Var ska den här resan ligga i {provider}?',
-  'docsync.scope.intro': 'Bara det som ligger här synkroniseras. Allt annat i ditt arkiv hålls utanför TREK.',
+  'docsync.scope.intro': 'Bara det som ligger här synkroniseras. Allt annat i ditt arkiv hålls utanför PanelMint.',
   'docsync.scope.createTitle': 'Skapa en ny',
   'docsync.scope.createAction': 'Skapa',
   'docsync.scope.pickTitle': 'Eller använd en du redan har',
@@ -166,7 +166,7 @@ const docsync: TranslationStrings = {
   // ── Sådant någon måste ta ställning till ───────────────────────────────────
   'docsync.issues.title': 'Behöver ses över',
   'docsync.issues.conflict': 'Ändrad på båda ställena. Välj vilken som ska behållas.',
-  'docsync.issues.remote_missing': 'Borta från arkivet. TREK-kopian finns kvar.',
+  'docsync.issues.remote_missing': 'Borta från arkivet. PanelMint-kopian finns kvar.',
   'docsync.issues.rejected_type': 'Den här filtypen tillåts inte här.',
   'docsync.issues.too_large': 'Större än gränsen.',
   'docsync.issues.error': 'Överföringen gick inte igenom.',

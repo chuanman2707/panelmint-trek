@@ -4,7 +4,7 @@ import { readEnv } from '../../app-config';
  * Idempotency-key TTL purge (moved from src/scheduler.ts; the interceptor that
  * writes the keys lives next door in idempotency.interceptor.ts).
  *
- * The TTL must exceed any realistic offline window: the TREK client replays
+ * The TTL must exceed any realistic offline window: the PanelMint client replays
  * queued mutations with their X-Idempotency-Key when it reconnects, so a key
  * GC'd before the device comes back online would let the replay create a
  * duplicate. 24h was far too short for a multi-day offline trip; default 30d,

@@ -222,7 +222,7 @@ const journey: TranslationStrings = {
   'journey.public.sharedVia': 'Dela via',
   'journey.public.madeWith': 'Gjord med',
   'journey.pdf.journeyBook': 'Journey bok',
-  'journey.pdf.madeWith': 'Gjord med TREK',
+  'journey.pdf.madeWith': 'Gjord med PanelMint',
   'journey.pdf.day': 'Dag',
   'journey.pdf.theEnd': 'Slut',
   'journey.pdf.saveAsPdf': 'Spara som PDF',
@@ -247,7 +247,7 @@ const journey: TranslationStrings = {
   'journey.editor.externalPhotosUnavailable': 'No connected photo providers are available.', // en-fallback
   'journey.editor.externalPhotosPartialFailed': '{failed} photo groups failed — save again to retry', // en-fallback
   'journey.picker.day': 'This day', // en-fallback
-  'journey.studio.title': 'TREK Studio', // en-fallback
+  'journey.studio.title': 'PanelMint Studio', // en-fallback
   'journey.studio.open': 'Studio', // en-fallback
   'journey.studio.openAria': 'Open the photo book studio', // en-fallback
   'journey.studio.backToJourney': 'Back to the journey', // en-fallback
@@ -289,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.downloadSpreadHint': 'Sparar uppslagets design som en fil, utan fotografierna, att dela eller återanvända',
   'journey.studio.importSpread': 'Importera',
   'journey.studio.importSpreadHint': 'Lägger till ett uppslag från en nedladdad designfil',
-  'journey.studio.importSpreadFailed': 'Filen är inte ett uppslag från TREK Studio',
+  'journey.studio.importSpreadFailed': 'Filen är inte ett uppslag från PanelMint Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
   'journey.studio.desktopOnlyHint': 'Att formge en bok kräver plats, så Studio finns bara på datorn, och det gör pdf:en också. Allt annat i resan fungerar som vanligt här.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback

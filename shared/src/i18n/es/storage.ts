@@ -19,7 +19,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Réplicas',
   'storage.title': 'Almacenamiento',
   'storage.description':
-    'Dónde guarda TREK los archivos, fotos y copias de seguridad subidos. Nada cambia hasta que guardes.',
+    'Dónde guarda PanelMint los archivos, fotos y copias de seguridad subidos. Nada cambia hasta que guardes.',
   'storage.loading': 'Cargando…',
   'storage.saved': 'Configuración de almacenamiento guardada',
   'storage.save': 'Guardar cambios',
@@ -67,7 +67,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Fotos de perfil',
   'storage.category.places': 'Imágenes de lugares',
   'storage.category.photos-google': 'Caché de fotos de Google',
-  'storage.category.photos-trek': 'Caché de fotos de TREK',
+  'storage.category.photos-trek': 'Caché de fotos de PanelMint',
   'storage.category.backups': 'Copias de seguridad',
 
   // What each category stores — rendered under the label in the category map.
@@ -81,7 +81,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Copias en caché de fotos de Google Places — se pueden volver a obtener, es seguro perderlas.',
   'storage.categoryDesc.photos-trek':
-    'Fotos en caché del servicio de fotos de TREK usado por Fotos (Memories) — se pueden volver a obtener, es seguro perderlas.',
+    'Fotos en caché del servicio de fotos de PanelMint usado por Fotos (Memories) — se pueden volver a obtener, es seguro perderlas.',
   'storage.categoryDesc.backups':
     'Archivos de copia de seguridad del servidor creados por el panel de Copias de seguridad o su programación.',
   'storage.health.title': 'Estado',

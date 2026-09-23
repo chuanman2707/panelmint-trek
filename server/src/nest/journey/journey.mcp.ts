@@ -345,7 +345,7 @@ export class JourneyMcp {
       tags: z.array(z.string()).optional(),
       pros_cons: PROS_CONS.optional().describe('The verdict on the place: what was worth it and what was not'),
       visibility: ENTRY_VISIBILITY.optional().describe('Defaults to private; "shared" and "public" expose the entry through the journey share link'),
-      type: ENTRY_TYPE.optional().describe('Defaults to "entry"; "skeleton" is the stub TREK derives from a trip place and hides behind the hide-skeletons preference'),
+      type: ENTRY_TYPE.optional().describe('Defaults to "entry"; "skeleton" is the stub PanelMint derives from a trip place and hides behind the hide-skeletons preference'),
       sort_order: z.number().int().min(0).optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,

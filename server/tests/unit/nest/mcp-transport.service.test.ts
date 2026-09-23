@@ -64,7 +64,7 @@ describe('setAuthChallenge', () => {
     setAuthChallenge(res as never);
     expect(res.set).toHaveBeenCalledWith(
       'WWW-Authenticate',
-      'Bearer realm="TREK MCP", resource_metadata="https://trek.example.test/.well-known/oauth-protected-resource/mcp", error="invalid_token"',
+      'Bearer realm="PanelMint MCP", resource_metadata="https://trek.example.test/.well-known/oauth-protected-resource/mcp", error="invalid_token"',
     );
     setAuthChallenge(res as never, 'insufficient_scope');
     expect(res.set).toHaveBeenLastCalledWith('WWW-Authenticate', expect.stringContaining('error="insufficient_scope"'));

@@ -75,7 +75,7 @@ export class TripsController {
   }
 
   /**
-   * Where "open TREK straight in my trip" lands. Declared above @Get(':id') —
+   * Where "open PanelMint straight in my trip" lands. Declared above @Get(':id') —
    * a literal segment below it would never be reached.
    */
   @Get('active')

@@ -108,7 +108,7 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'DiscoveryController.protectedResource',
   'DiscoveryController.wellKnownFallback',
   'DiscoveryController.wellKnownRoot',
-  // A document provider cannot hold a TREK session. The per-binding token in
+  // A document provider cannot hold a PanelMint session. The per-binding token in
   // the path is the credential, a shared secret is checked on top where the
   // provider can send one, and the handler's only effect is to schedule a sync
   // run. It never reads the request body as data.
@@ -117,7 +117,7 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   // The container/uptime probe.
   'FeaturesController.health',
   // Subscribable ICS feeds. The token in the path is the credential, and the
-  // calendar client polling it has no TREK session to send.
+  // calendar client polling it has no PanelMint session to send.
   'FeedsPublicController.tripFeed',
   'FeedsPublicController.userFeed',
   // The download link carries its own short-lived token.
@@ -142,7 +142,7 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'OauthPublicController.revoke',
   'OauthPublicController.token',
   'OauthPublicController.userinfo',
-  // The OIDC handshake, before a TREK session exists.
+  // The OIDC handshake, before a PanelMint session exists.
   'OidcController.callback',
   'OidcController.exchange',
   'OidcController.login',

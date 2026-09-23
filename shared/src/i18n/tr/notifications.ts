@@ -17,7 +17,7 @@ const notifications: TranslationStrings = {
   'notifications.synologySessionCleared.text':
     "Sunucunuz veya hesabınız değişti — bağlantıyı test etmek için Ayarlar'a gidin.",
   'notifications.versionAvailable.title': 'Güncelleme Mevcut',
-  'notifications.versionAvailable.text': 'TREK {version} artık kullanılabilir.',
+  'notifications.versionAvailable.text': 'PanelMint {version} artık kullanılabilir.',
   'notifications.versionAvailable.button': 'Ayrıntıları Görüntüle',
   'notifications.test.title': '{actor} Kaynaklı test bildirimi',
   'notifications.test.text': 'Bu basit bir test bildirimidir.',

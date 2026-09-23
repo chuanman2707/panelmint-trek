@@ -17,7 +17,7 @@ export class GoogleRouteMcp {
     access: { group: 'trips', mode: 'read' }, when: addonGate(ADDON_IDS.ROADTRIP) })
   async preview({ url }: { url: string }) { return answeringRefusals(async () => ok(await this.routes.preview(url))); }
 
-  @Tool({ name: 'import_google_maps_route', description: 'Append reviewed Google Maps stops to an existing trip day in supplied order. Creates places and visits atomically. Requires place and day editing permissions. Existing visits remain. TREK calculates the road geometry; no Google route geometry is preserved.',
+  @Tool({ name: 'import_google_maps_route', description: 'Append reviewed Google Maps stops to an existing trip day in supplied order. Creates places and visits atomically. Requires place and day editing permissions. Existing visits remain. PanelMint calculates the road geometry; no Google route geometry is preserved.',
     inputSchema: { tripId: z.number().int().positive(), ...googleRouteImportSchema.shape, stops: z.array(z.strictObject(googleRouteStopSchema.shape)).min(2).max(30) },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     // What the tool writes, not where the link came from: this inserts up to

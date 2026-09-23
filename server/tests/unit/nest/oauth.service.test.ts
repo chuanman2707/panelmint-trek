@@ -1240,7 +1240,7 @@ describe('branches the legacy suite could not reach', () => {
       resource: 'https://evil.example.org/mcp',
     }, user.id);
 
-    expect(result).toEqual({ valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' });
+    expect(result).toEqual({ valid: false, error: 'invalid_target', error_description: 'Requested resource must be the PanelMint MCP endpoint' });
   });
 
   it('validateAuthorizeRequest accepts the MCP endpoint passed explicitly, trailing slash and all', () => {

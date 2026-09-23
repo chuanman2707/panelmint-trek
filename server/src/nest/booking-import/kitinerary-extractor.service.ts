@@ -151,7 +151,7 @@ export class KitineraryExtractorService implements OnModuleInit {
     // extraction re-resolved it through whatever PATH held at that moment, so on
     // a bare-metal install (the official image sets KITINERARY_EXTRACTOR_PATH, so
     // this branch is dead there) anyone who could write to a PATH directory could
-    // have their binary run as the TREK user. Probing the concrete file with
+    // have their binary run as the PanelMint user. Probing the concrete file with
     // execFileSync also drops the /bin/sh hop the old execSync string needed.
     for (const dir of readEnv().integrations.searchPath) {
       const candidate = join(dir, BINARY_NAME);

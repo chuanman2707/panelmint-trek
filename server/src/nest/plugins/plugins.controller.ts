@@ -307,7 +307,7 @@ export class PluginsController {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     try {
       // An explicit version is the rollback path: install exactly what the admin picked
-      // (the TREK-compat gate still refuses in selectVersion). Absent, the runtime
+      // (the PanelMint-compat gate still refuses in selectVersion). Absent, the runtime
       // resolves the newest compatible version itself.
       const res = await this.runtime.update(id, { version: body?.version });
       // A deliberate non-latest pick holds future updates; landing on the newest

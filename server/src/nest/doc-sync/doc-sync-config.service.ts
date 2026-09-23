@@ -22,8 +22,8 @@ import { decryptSecrets, encryptSecrets, maskSecrets, mergeSecrets } from './doc
  * and a member without their own Paperless account would see nothing.
  *
  * So the trip admin binds the trip once, the server talks to the provider under
- * that single identity, and TREK's own membership decides who sees what. The
- * provider never learns that TREK has members. `owner_user_id` stays explicit
+ * that single identity, and PanelMint's own membership decides who sees what. The
+ * provider never learns that PanelMint has members. `owner_user_id` stays explicit
  * beside `trip_id` precisely so that the credential holder is nameable: when
  * they leave the trip the binding goes to `orphaned` rather than quietly
  * carrying on with an ex-member's token.
@@ -497,7 +497,7 @@ export class DocSyncConfigService {
       lastSyncState: link.last_sync_state,
       lastSyncError: link.last_sync_error,
       failureCount: link.failure_count,
-      // Shown so a user can paste it into a provider that will not let TREK
+      // Shown so a user can paste it into a provider that will not let PanelMint
       // subscribe on its own (Papra, and Nextcloud without admin rights). Not
       // for a provider that takes no webhook at all: an address with nowhere
       // to paste it only promises what the timer delivers anyway.
@@ -509,7 +509,7 @@ export class DocSyncConfigService {
   }
 
   /**
-   * Whether the store behind a binding can call TREK at all, as the last probe
+   * Whether the store behind a binding can call PanelMint at all, as the last probe
    * recorded it. Unknown counts as yes: a connection that was never probed
    * still gets the address, and a stale answer costs nothing but a line.
    */

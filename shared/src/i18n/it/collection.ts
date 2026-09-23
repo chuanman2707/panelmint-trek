@@ -169,9 +169,9 @@ const collection: TranslationStrings = {
   'collections.file.doneSkipped': '{count} luoghi importati, {skipped} saltati',
   'collections.file.errorTooLarge': 'Questo file è troppo grande per essere un elenco.',
   'collections.file.errorUnreadable': 'Non è stato possibile leggere questo file.',
-  'collections.file.errorNotACollection': 'Questo non è un file di elenco TREK.',
-  'collections.file.formatTrek': 'Elenco TREK',
-  'collections.file.formatTrekHint': 'Per un altro TREK, con etichette e stato',
+  'collections.file.errorNotACollection': 'Questo non è un file di elenco PanelMint.',
+  'collections.file.formatTrek': 'Elenco PanelMint',
+  'collections.file.formatTrekHint': 'Per un altro PanelMint, con etichette e stato',
   'collections.file.formatGpxHint': 'Punti di passaggio per OsmAnd, Organic Maps, Garmin e altre app di mappe',
   'collections.file.gpxOmitted': '{count} luoghi senza coordinate sono rimasti fuori dal file GPX',
   'collections.file.gpxNothing':

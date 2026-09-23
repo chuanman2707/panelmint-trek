@@ -88,7 +88,7 @@ describe('DiscoveryMetadataService', () => {
     expect(mcpAuthMetadataRouter).toHaveBeenCalledTimes(1);
     const opts = vi.mocked(mcpAuthMetadataRouter).mock.calls[0][0];
     expect(opts.resourceServerUrl.href).toBe('https://trek.example.test/mcp');
-    expect(opts.resourceName).toBe('TREK MCP');
+    expect(opts.resourceName).toBe('PanelMint MCP');
     expect(opts.scopesSupported).toEqual(ALL_SCOPES);
   });
 });
@@ -165,7 +165,7 @@ describe('DiscoveryController', () => {
       authorization_servers:    ['https://trek.example.test'],
       bearer_methods_supported: ['header'],
       scopes_supported:         ALL_SCOPES,
-      resource_name:            'TREK MCP',
+      resource_name:            'PanelMint MCP',
     });
   });
 

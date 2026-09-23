@@ -6,7 +6,7 @@
  * plugin in a tight `while (true) ctx.db.query(...)` loop can starve the whole
  * instance — including the supervisor's own reap sweep. A token bucket at the
  * dispatch boundary caps the sustained call rate (with a burst allowance) and an
- * in-flight counter caps concurrency, turning "one plugin freezes TREK for every
+ * in-flight counter caps concurrency, turning "one plugin freezes PanelMint for every
  * tenant" into "that one plugin gets throttled".
  *
  * Pure + dependency-free (a clock is injected) so it unit-tests without timers.

@@ -1,7 +1,7 @@
 import { stripEmoji } from '../text-sanitize';
 
 /**
- * Turning what a `searchProvider` plugin answers into rows TREK can show (#2221).
+ * Turning what a `searchProvider` plugin answers into rows PanelMint can show (#2221).
  *
  * Shared by the REST route and the MCP tool rather than written twice: the two are the
  * same question asked by a browser and by an assistant, and a cap or a url check that

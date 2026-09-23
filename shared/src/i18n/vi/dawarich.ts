@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'Kết nối phiên bản Dawarich của riêng bạn để xem bạn đã thực sự đi những đâu. TREK đọc dữ liệu đó và gợi ý mục nhật ký, địa điểm và quốc gia — không có gì được thêm vào cho đến khi bạn xác nhận, và không có gì được ghi ngược lại Dawarich.',
+    'Kết nối phiên bản Dawarich của riêng bạn để xem bạn đã thực sự đi những đâu. PanelMint đọc dữ liệu đó và gợi ý mục nhật ký, địa điểm và quốc gia — không có gì được thêm vào cho đến khi bạn xác nhận, và không có gì được ghi ngược lại Dawarich.',
   'dawarich.url': 'Địa chỉ phiên bản',
   'dawarich.apiKey': 'Khóa API',
   'dawarich.apiKeyPlaceholder': 'Dán khóa API Dawarich của bạn',
@@ -12,7 +12,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTls': 'Cho phép chứng chỉ tự ký',
   'dawarich.allowInsecureTlsHint': 'Chỉ cần khi phiên bản của bạn dùng chứng chỉ mà máy chủ không tin cậy.',
   'dawarich.syncEnabled': 'Tự động kiểm tra điểm lưu trú mới',
-  'dawarich.syncEnabledHint': 'Tắt nghĩa là TREK chỉ đọc Dawarich khi bạn yêu cầu.',
+  'dawarich.syncEnabledHint': 'Tắt nghĩa là PanelMint chỉ đọc Dawarich khi bạn yêu cầu.',
   'dawarich.test.button': 'Kiểm tra kết nối',
   'dawarich.test.success': 'Đã kết nối. Tìm thấy {count} điểm lưu trú trong 30 ngày qua.',
   'dawarich.test.failed': 'Không thể kết nối tới Dawarich.',
@@ -45,18 +45,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'Phiên bản Dawarich này không hỗ trợ: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'TREK không kết nối được tới địa chỉ đó.',
+  'dawarich.error.unreachable': 'PanelMint không kết nối được tới địa chỉ đó.',
   'dawarich.error.unauthorized': 'Dawarich đã từ chối khóa API.',
   'dawarich.error.forbidden': 'Khóa API đó không được phép đọc dữ liệu này.',
   'dawarich.error.not_found': 'Phiên bản Dawarich này không có điểm cuối đó.',
-  'dawarich.error.rate_limited': 'Dawarich yêu cầu TREK chậm lại. Hãy thử lại sau giây lát.',
+  'dawarich.error.rate_limited': 'Dawarich yêu cầu PanelMint chậm lại. Hãy thử lại sau giây lát.',
   'dawarich.error.server_error': 'Dawarich đã trả về một lỗi.',
   'dawarich.error.invalid_response': 'Địa chỉ đó trả về thứ gì đó không phải Dawarich.',
-  'dawarich.error.too_large': 'Dawarich gửi nhiều dữ liệu hơn mức TREK đọc được trong một lần.',
+  'dawarich.error.too_large': 'Dawarich gửi nhiều dữ liệu hơn mức PanelMint đọc được trong một lần.',
   'dawarich.error.not_connected': 'Chưa có phiên bản Dawarich nào được kết nối.',
   'dawarich.error.addon_disabled': 'Tiện ích Dawarich đang bị tắt trên phiên bản này.',
-  'dawarich.error.offline': 'Việc này cần kết nối — TREK hiện đang ngoại tuyến.',
-  'dawarich.error.invalid_url': 'TREK không dùng được địa chỉ này.',
+  'dawarich.error.offline': 'Việc này cần kết nối — PanelMint hiện đang ngoại tuyến.',
+  'dawarich.error.invalid_url': 'PanelMint không dùng được địa chỉ này.',
   'dawarich.warning.private_ip': 'Địa chỉ này trỏ tới một IP riêng ({ip}). Hãy chắc chắn đó là điều bạn muốn — máy chủ có thể cần ALLOW_INTERNAL_NETWORK=true để truy cập.',
   'dawarich.error.unknown': 'Đã xảy ra lỗi khi trao đổi với Dawarich.',
 
@@ -96,9 +96,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'Trong nhật ký',
   'dawarich.suggestions.acceptedAs.bucket_list': 'Đã đánh dấu điều mong muốn',
   'dawarich.suggestions.sourceChanged':
-    'Điểm lưu trú này đã thay đổi trong Dawarich kể từ khi bạn dùng nó. Những gì bạn viết trong TREK vẫn nguyên vẹn.',
+    'Điểm lưu trú này đã thay đổi trong Dawarich kể từ khi bạn dùng nó. Những gì bạn viết trong PanelMint vẫn nguyên vẹn.',
   'dawarich.suggestions.sourceMissing':
-    'Điểm lưu trú này không còn tồn tại trong Dawarich. Những gì bạn viết trong TREK vẫn nguyên vẹn.',
+    'Điểm lưu trú này không còn tồn tại trong Dawarich. Những gì bạn viết trong PanelMint vẫn nguyên vẹn.',
   'dawarich.sourceStatus.suggested': 'Đã phát hiện, chưa xác nhận',
   'dawarich.confidence.high': 'Phát hiện chắc chắn',
   'dawarich.confidence.medium': 'Phát hiện khá chắc chắn',
@@ -153,12 +153,12 @@ const dawarich: TranslationStrings = {
     'Những quốc gia mà các bản ghi của bạn cho thấy bạn đã đặt chân tới. Hãy xác nhận những nơi bạn muốn đưa vào Atlas — không có gì tự động được thêm, và những gì bạn tự đánh dấu vẫn là của bạn.',
   'dawarich.atlas.load': 'Tìm quốc gia',
   'dawarich.atlas.loading': 'Đang đọc các bản ghi của bạn…',
-  'dawarich.atlas.empty': 'Các bản ghi của bạn không có quốc gia nào mà TREK chưa biết.',
+  'dawarich.atlas.empty': 'Các bản ghi của bạn không có quốc gia nào mà PanelMint chưa biết.',
   'dawarich.atlas.cities': '{count} thành phố',
   'dawarich.atlas.citiesOne': '1 thành phố',
   'dawarich.atlas.accept': 'Thêm {count} quốc gia',
   'dawarich.atlas.accepted': 'Đã thêm {count} quốc gia',
-  'dawarich.atlas.unresolved': 'TREK không khớp được những mục này với quốc gia nào: {names}.',
+  'dawarich.atlas.unresolved': 'PanelMint không khớp được những mục này với quốc gia nào: {names}.',
   'dawarich.atlas.source': 'Từ Dawarich',
   'dawarich.atlas.range': 'Đã xem từ {from} đến {to}',
 

@@ -16,7 +16,7 @@ type ScopeMode = Scope extends `${string}:${infer M}` ? M : never;
  *
  * Historically this was an empty interface augmented by the host (nest-mcp
  * was a separate extraction-clean workspace); since the fold into the server
- * the TREK shape lives here directly. The type-only `../mcp/scopes` import
+ * the PanelMint shape lives here directly. The type-only `../mcp/scopes` import
  * above is the one deliberate coupling to the rest of the server.
  */
 export interface McpContext {

@@ -101,7 +101,7 @@ vi.mock('../components/Collab/CollabPanel', () => ({
 // to a lightweight status node (like the other heavy sub-components here).
 vi.mock('../components/shared/TripLoadingSplash', () => ({
   default: ({ title }: { title?: string }) =>
-    React.createElement('div', { 'data-testid': 'trip-loading-splash', role: 'status' }, title || 'TREK'),
+    React.createElement('div', { 'data-testid': 'trip-loading-splash', role: 'status' }, title || 'PanelMint'),
 }));
 
 const capturedFileManagerProps: { current: Record<string, any> } = { current: {} };

@@ -73,7 +73,7 @@ function installSdkInjection(requirePlugin: NodeJS.Require): void {
   nodeModule._load = function (request: string, parent: unknown, isMain: boolean): unknown {
     if (request === 'trek-plugin-sdk') return shim;
     if (request.startsWith('trek-plugin-sdk/')) {
-      throw new Error(`${request} is a build/test-time module — only 'trek-plugin-sdk' itself is injected inside TREK`);
+      throw new Error(`${request} is a build/test-time module — only 'trek-plugin-sdk' itself is injected inside PanelMint`);
     }
     return realLoad.call(this, request, parent, isMain);
   };
@@ -158,7 +158,7 @@ async function handleInvoke(req: { id: string; method: string; params: Record<st
       if (typeof def.scheduled === 'function') await def.scheduled({ name, payload }, invCtx);
       respond(true, { ok: true });
     } else if (req.method === 'invoke.deleteUserData') {
-      // A TREK account was erased. Userless (like a job) — the handler only learns
+      // A PanelMint account was erased. Userless (like a job) — the handler only learns
       // the userId and erases its OWN per-user rows. Always ACK, even with no handler,
       // so the host can drop the durable erasure-queue row (nothing to erase == done).
       const userId = req.params.userId as number;

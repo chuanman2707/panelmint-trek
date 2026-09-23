@@ -37,7 +37,7 @@ import crypto from 'node:crypto';
  *
  * Two capabilities are `false`/`manual` because of what Papra withholds from an
  * API key rather than what it cannot do. Webhook CRUD and the restore and
- * hard-delete routes answer 401 to a key and 200 to a browser session, so TREK
+ * hard-delete routes answer 401 to a key and 200 to a browser session, so PanelMint
  * cannot subscribe itself, and there is no endpoint that replaces the bytes of
  * an existing document at all.
  */

@@ -4,7 +4,7 @@ const dawarich: TranslationStrings = {
   // ── Connection ─────────────────────────────────────────────────────────────
   'dawarich.title': 'Dawarich',
   'dawarich.intro':
-    'Koppel je eigen Dawarich-instantie om te zien waar je echt bent geweest. TREK leest hem uit en stelt dagboekvermeldingen, plaatsen en landen voor — er wordt niets toegevoegd voordat jij het bevestigt, en er wordt niets teruggeschreven naar Dawarich.',
+    'Koppel je eigen Dawarich-instantie om te zien waar je echt bent geweest. PanelMint leest hem uit en stelt dagboekvermeldingen, plaatsen en landen voor — er wordt niets toegevoegd voordat jij het bevestigt, en er wordt niets teruggeschreven naar Dawarich.',
   'dawarich.url': 'Adres van de instantie',
   'dawarich.apiKey': 'API-sleutel',
   'dawarich.apiKeyPlaceholder': 'Plak je Dawarich-API-sleutel',
@@ -14,7 +14,7 @@ const dawarich: TranslationStrings = {
   'dawarich.allowInsecureTlsHint':
     'Alleen nodig als je instantie een certificaat gebruikt dat je server niet vertrouwt.',
   'dawarich.syncEnabled': 'Automatisch op nieuwe bezoeken controleren',
-  'dawarich.syncEnabledHint': 'Uit betekent dat TREK Dawarich alleen uitleest als jij erom vraagt.',
+  'dawarich.syncEnabledHint': 'Uit betekent dat PanelMint Dawarich alleen uitleest als jij erom vraagt.',
   'dawarich.test.button': 'Verbinding testen',
   'dawarich.test.success': 'Verbonden. {count} bezoeken gevonden in de laatste 30 dagen.',
   'dawarich.test.failed': 'Kon Dawarich niet bereiken.',
@@ -47,18 +47,18 @@ const dawarich: TranslationStrings = {
   'dawarich.capability.missing': 'Deze versie van Dawarich biedt niet: {features}.',
 
   // ── Failure reasons, as sentences the reader can act on ────────────────────
-  'dawarich.error.unreachable': 'TREK kon dat adres niet bereiken.',
+  'dawarich.error.unreachable': 'PanelMint kon dat adres niet bereiken.',
   'dawarich.error.unauthorized': 'Dawarich heeft de API-sleutel geweigerd.',
   'dawarich.error.forbidden': 'Die API-sleutel mag dit niet lezen.',
   'dawarich.error.not_found': 'Deze versie van Dawarich heeft dat eindpunt niet.',
-  'dawarich.error.rate_limited': 'Dawarich vroeg TREK om het rustiger aan te doen. Probeer het zo meteen opnieuw.',
+  'dawarich.error.rate_limited': 'Dawarich vroeg PanelMint om het rustiger aan te doen. Probeer het zo meteen opnieuw.',
   'dawarich.error.server_error': 'Dawarich antwoordde met een fout.',
   'dawarich.error.invalid_response': 'Dat adres antwoordde met iets dat geen Dawarich is.',
-  'dawarich.error.too_large': 'Dawarich stuurde meer gegevens dan TREK in één keer leest.',
+  'dawarich.error.too_large': 'Dawarich stuurde meer gegevens dan PanelMint in één keer leest.',
   'dawarich.error.not_connected': 'Er is nog geen Dawarich-instantie verbonden.',
   'dawarich.error.addon_disabled': 'De Dawarich-add-on staat uit voor deze instantie.',
-  'dawarich.error.offline': 'Hiervoor is een verbinding nodig — TREK is nu offline.',
-  'dawarich.error.invalid_url': 'TREK kan dit adres niet gebruiken.',
+  'dawarich.error.offline': 'Hiervoor is een verbinding nodig — PanelMint is nu offline.',
+  'dawarich.error.invalid_url': 'PanelMint kan dit adres niet gebruiken.',
   'dawarich.warning.private_ip': 'Dit adres wijst naar een privé-IP ({ip}). Controleer of dat de bedoeling is — de server heeft er mogelijk ALLOW_INTERNAL_NETWORK=true voor nodig.',
   'dawarich.error.unknown': 'Er ging iets mis in het contact met Dawarich.',
 
@@ -98,9 +98,9 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.journal': 'In het reisverslag',
   'dawarich.suggestions.acceptedAs.bucket_list': 'Wens afgevinkt',
   'dawarich.suggestions.sourceChanged':
-    'Dit bezoek is in Dawarich gewijzigd sinds je het hebt gebruikt. Wat je in TREK hebt geschreven, blijft onaangeroerd.',
+    'Dit bezoek is in Dawarich gewijzigd sinds je het hebt gebruikt. Wat je in PanelMint hebt geschreven, blijft onaangeroerd.',
   'dawarich.suggestions.sourceMissing':
-    'Dit bezoek bestaat niet meer in Dawarich. Wat je in TREK hebt geschreven, blijft onaangeroerd.',
+    'Dit bezoek bestaat niet meer in Dawarich. Wat je in PanelMint hebt geschreven, blijft onaangeroerd.',
   'dawarich.sourceStatus.suggested': 'Herkend, niet bevestigd',
   'dawarich.confidence.high': 'Zekere herkenning',
   'dawarich.confidence.medium': 'Redelijk zekere herkenning',
@@ -155,12 +155,12 @@ const dawarich: TranslationStrings = {
     'Landen waar je volgens je opnames bent geweest. Bevestig degene die je in je Atlas wilt — er wordt niets uit zichzelf toegevoegd, en wat je met de hand hebt aangevinkt, blijft van jou.',
   'dawarich.atlas.load': 'Naar landen zoeken',
   'dawarich.atlas.loading': 'Je opnames worden uitgelezen…',
-  'dawarich.atlas.empty': 'Je opnames tonen geen landen die TREK nog niet heeft.',
+  'dawarich.atlas.empty': 'Je opnames tonen geen landen die PanelMint nog niet heeft.',
   'dawarich.atlas.cities': '{count} steden',
   'dawarich.atlas.citiesOne': '1 stad',
   'dawarich.atlas.accept': '{count} landen toevoegen',
   'dawarich.atlas.accepted': '{count} landen toegevoegd',
-  'dawarich.atlas.unresolved': 'TREK kon deze niet aan een land koppelen: {names}.',
+  'dawarich.atlas.unresolved': 'PanelMint kon deze niet aan een land koppelen: {names}.',
   'dawarich.atlas.source': 'Uit Dawarich',
   'dawarich.atlas.range': 'Gekeken van {from} tot {to}',
 

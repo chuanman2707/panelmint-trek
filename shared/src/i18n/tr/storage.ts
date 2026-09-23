@@ -18,7 +18,7 @@ const storage: TranslationStrings = {
   'storage.field.replicas': 'Kopyalar',
   'storage.title': 'Depolama',
   'storage.description':
-    "TREK'in yüklenen dosyaları, fotoğrafları ve yedekleri sakladığı yer. Kaydedene kadar hiçbir şey değişmez.",
+    "PanelMint'in yüklenen dosyaları, fotoğrafları ve yedekleri sakladığı yer. Kaydedene kadar hiçbir şey değişmez.",
   'storage.loading': 'Yükleniyor…',
   'storage.saved': 'Depolama yapılandırması kaydedildi',
   'storage.save': 'Değişiklikleri kaydet',
@@ -65,7 +65,7 @@ const storage: TranslationStrings = {
   'storage.category.avatars': 'Profil fotoğrafları',
   'storage.category.places': 'Yer görselleri',
   'storage.category.photos-google': 'Google fotoğraf önbelleği',
-  'storage.category.photos-trek': 'TREK fotoğraf önbelleği',
+  'storage.category.photos-trek': 'PanelMint fotoğraf önbelleği',
   'storage.category.backups': 'Yedekler',
 
   // What each category stores — rendered under the label in the category map.
@@ -79,7 +79,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.photos-google':
     'Google Places fotoğraflarının önbelleğe alınmış kopyaları — yeniden alınabilir, kaybı güvenlidir.',
   'storage.categoryDesc.photos-trek':
-    'Fotoğraflar (Memories) özelliği tarafından kullanılan TREK fotoğraf hizmetinden önbelleğe alınmış fotoğraflar — yeniden alınabilir, kaybı güvenlidir.',
+    'Fotoğraflar (Memories) özelliği tarafından kullanılan PanelMint fotoğraf hizmetinden önbelleğe alınmış fotoğraflar — yeniden alınabilir, kaybı güvenlidir.',
   'storage.categoryDesc.backups': 'Yedekleme panelinin veya zamanlamanın oluşturduğu sunucu yedek arşivleri.',
   'storage.health.title': 'Sağlık',
   'storage.health.allClear': 'Kaydedilmiş kopya hatası yok.',

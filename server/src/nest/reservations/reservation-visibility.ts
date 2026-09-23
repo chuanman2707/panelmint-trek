@@ -1,5 +1,5 @@
 /**
- * Which reservation rows a viewer without a TREK session may see.
+ * Which reservation rows a viewer without a PanelMint session may see.
  *
  * `ingest_state` is 'live' for everything a person put on a trip, and 'staged'
  * for a row an automated ingest parked for review. Only the two anonymous

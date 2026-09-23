@@ -71,7 +71,7 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Klask en-dro',
   'common.errorReload': 'Adkargañ ar bajenn',
   'common.errorUpdateTitle': 'Un handelv nevez a zo hegerz',
-  'common.errorUpdateBody': 'TREK a zo bet hizivaet e-pad ma oa digor an ivinell-mañ. Adkargit evit kaout an handelv nevez.',
+  'common.errorUpdateBody': 'PanelMint a zo bet hizivaet e-pad ma oa digor an ivinell-mañ. Adkargit evit kaout an handelv nevez.',
   'common.errorPluginTitle': 'N\'eus ket bet gallet diskwel an enlugellad-mañ',
 };
 export default common;
