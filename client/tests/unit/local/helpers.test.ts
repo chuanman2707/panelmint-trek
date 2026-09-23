@@ -47,6 +47,14 @@ describe('api/local helpers', () => {
     expect(getApiErrorMessage(err, 'Something broke')).toBe('Trip not found')
   })
 
+  it('requireRow turns a non-finite id into the same 404 — never a raw DataError', async () => {
+    // numId('abc') → NaN; the server's Number(:id) bound NULL and 404'd too.
+    const err = await requireRow(db.trips, numId('abc'), 'Trip').catch(e => e)
+    expect(err).toBeInstanceOf(LocalApiError)
+    expect(err.response.status).toBe(404)
+    expect(getApiErrorMessage(err, 'Something broke')).toBe('Trip not found')
+  })
+
   it('detached/detachedList return copies that cannot poison the store', () => {
     const row = { id: 1, nested: { flag: true }, list: [1, 2] }
     const copy = detached(row)

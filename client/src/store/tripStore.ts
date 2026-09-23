@@ -81,7 +81,7 @@ export interface TripStoreState
    * would have taken. Callers without `get()` import the bound
    * `applyLocalEffect` from './localEffects' — same method, one mechanism.
    */
-  applyLocalEffect: (type: TrekWsTripEventName, payload?: Record<string, unknown>) => void
+  applyLocalEffect: (type: TrekWsTripEventName, payload?: object | null) => void
   resetTrip: () => void
   loadTrip: (tripId: number | string) => Promise<void>
   hydrateActiveTrip: (tripId: number | string) => Promise<void>
@@ -115,7 +115,8 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   setPlacesCategoryFilter: (categoryIds: Set<string>) => set({ placesCategoryFilter: categoryIds }),
 
   handleRemoteEvent: (event: WebSocketEvent) => handleRemoteEvent(set, get, event),
-  applyLocalEffect: (type, payload = {}) => handleRemoteEvent(set, get, { type, ...payload }),
+  applyLocalEffect: (type, payload = {}) =>
+    handleRemoteEvent(set, get, { type, ...((payload ?? {}) as Record<string, unknown>) }),
 
   // Clear every trip-scoped slice so switching trips (or losing access to one)
   // can never leave a previous trip's data visible. Global tags/categories are

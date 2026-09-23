@@ -19,6 +19,7 @@ vi.mock('../src/api/websocket', () => ({
   setPreReconnectHook: vi.fn(),
   addListener: vi.fn(),
   removeListener: vi.fn(),
+  emitLocalEvent: vi.fn(),
 }));
 
 // MSW lifecycle. A cross-origin request nobody mocked is the dangerous kind: 'warn'

@@ -48,12 +48,19 @@ export function badRequest(message: string, code?: string): LocalApiError {
 }
 
 /**
- * `table.get(id)` or a 404. The returned row is a detached snapshot
- * (structuredClone), matching what a server SELECT handed the ported code —
- * mutating it must never leak into the store or a later read in the same
- * transaction.
+ * `table.get(id)` or a 404. A non-finite id is the local form of a route param
+ * that coerced to NaN: the server's `Number(:id)` bound as NULL, matched no
+ * row, and hit the same 'X not found' 404 (`idParamSchema` exists in shared
+ * but is not wired to path params — controllers pass raw strings). Guarded
+ * here because `table.get(NaN)` would instead throw a raw IndexedDB
+ * `DataError` that no consumer renders.
+ *
+ * The returned row is a detached snapshot (structuredClone), matching what a
+ * server SELECT handed the ported code — mutating it must never leak into the
+ * store or a later read in the same transaction.
  */
 export async function requireRow<T>(table: Table<T, number>, id: number, what: string): Promise<T> {
+  if (!Number.isFinite(id)) throw notFound(what)
   const row = await table.get(id)
   if (!row) throw notFound(what)
   return structuredClone(row)
@@ -78,8 +85,12 @@ export function detachedList<T>(rows: readonly T[]): T[] {
 /**
  * Route-param id to Dexie key. Api methods take `number | string` the way the
  * REST path params arrived; the `panelmint` tables are keyed by number.
- * An unparseable id yields NaN, which `requireRow` misses and turns into the
- * same 404 the server's router produced.
+ *
+ * An unparseable id yields NaN — a "matches nothing" value that `requireRow`
+ * converts into the same 404 the server's NULL-bound lookup produced. Do NOT
+ * feed it into `where().equals()`/`get()` directly: IndexedDB keys reject NaN
+ * with a raw `DataError`. Verify the parent row with `requireRow` first, which
+ * is also what the server's trip-access guard did.
  */
 export function numId(id: number | string): number {
   return typeof id === 'string' ? Number(id) : id

@@ -8,6 +8,7 @@ import { server } from '../../tests/helpers/msw/server'
 import {
   connect, disconnect, joinTrip, leaveTrip, getActiveTrips,
   setRefetchCallback, setPreReconnectHook,
+  addListener, removeListener, emitLocalEvent,
 } from './websocket'
 
 class MockWebSocket {
@@ -263,5 +264,45 @@ describe('websocket > connection lifecycle', () => {
     await vi.advanceTimersByTimeAsync(0)
 
     expect(MockWebSocket.instances).toHaveLength(2)
+  })
+})
+
+/**
+ * Local mode's dispatch path: side-channels whose event lives outside the
+ * tripStore appliers (HANDLED_OUTSIDE_TRIP_STORE — e.g. roadtripVia:changed)
+ * are replayed to the same listener set the socket fed. No socket required.
+ */
+describe('emitLocalEvent', () => {
+  it('delivers the synthesized event to every registered listener', () => {
+    const a = vi.fn()
+    const b = vi.fn()
+    addListener(a)
+    addListener(b)
+    emitLocalEvent({ type: 'roadtripVia:changed', dayId: 10, vias: [] })
+    expect(a).toHaveBeenCalledWith({ type: 'roadtripVia:changed', dayId: 10, vias: [] })
+    expect(b).toHaveBeenCalledTimes(1)
+    removeListener(a)
+    removeListener(b)
+  })
+
+  it('a throwing listener does not stop the others — same swallow as the socket path', () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const dead = vi.fn(() => { throw new Error('boom') })
+    const alive = vi.fn()
+    addListener(dead)
+    addListener(alive)
+    emitLocalEvent({ type: 'roadtripVia:changed', dayId: 10, vias: [] })
+    expect(alive).toHaveBeenCalledTimes(1)
+    removeListener(dead)
+    removeListener(alive)
+    errSpy.mockRestore()
+  })
+
+  it('removeListener detaches — a removed listener never sees the event', () => {
+    const gone = vi.fn()
+    addListener(gone)
+    removeListener(gone)
+    emitLocalEvent({ type: 'roadtripVia:changed', dayId: 10, vias: [] })
+    expect(gone).not.toHaveBeenCalled()
   })
 })

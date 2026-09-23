@@ -61,12 +61,14 @@ in, response out. The caller (slice action, repo, or a store-level helper
 like `applyStayStops`) folds each side-channel into the UI:
 
 ```ts
-import { applyLocalEffect } from '../../store/localEffects'   // non-slice callers
+import { applyLocalEffect } from '../../store/localEffects'  // non-slice callers
+import { emitLocalEvent } from '../websocket'                // outside-store events
 // or inside a slice action: get().applyLocalEffect(...)
 
 const res = await localAssignmentsApi.updateTime(tripId, id, times)
 applyLocalEffect('assignment:updated', { assignment: res.assignment })
-if (res.reordered) applyLocalEffect('assignment:reordered', res.reordered)
+applyLocalEffect('assignment:reordered', res.reordered) // null → no-op
+if (res.vias) emitLocalEvent({ type: 'roadtripVia:changed', ...res.vias })
 ```
 
 `applyLocalEffect(type, payload)` (`store/localEffects.ts`, also a method on
@@ -115,7 +117,9 @@ input must fail the same way.
 - Self is `getSelf()` / `SELF_ID` from `src/db/bootstrap.ts` (localUsers row
   1). Adapters never read `useAuthStore` — the roster's "me" is that row.
 - Request ids arrive as `number | string` (route-param convention); pass them
-  through `numId()` before keying Dexie.
+  through `numId()` before keying Dexie. `numId` can yield NaN — `requireRow`
+  turns that into the same 404 the server's NULL-bound lookup produced; never
+  feed it to `where().equals()`/`get()` bare (IndexedDB throws `DataError`).
 - Junction rows (`packingBagMembers`, `tripMembers`, assignee/traveler/
   participant tables) keep their server column names and UNIQUE semantics —
   mirror the `delete`-then-insert / insert-or-ignore sequences the server

@@ -21,7 +21,14 @@ import { useTripStore } from './tripStore'
 /** One replayed side-channel: a registry event name plus its payload fields. */
 export interface LocalEffect {
   type: TrekWsTripEventName
-  payload?: Record<string, unknown>
+  /**
+   * `object | null`, deliberately not `Record<string, unknown>`: side-channel
+   * fields arrive as interfaces (`{ dayId, orderedIds } | null`), which have
+   * no implicit index signature and would not typecheck against `Record`.
+   * `null` means the adapter reported "nothing happened" — the applier's own
+   * guards turn the empty payload into a no-op.
+   */
+  payload?: object | null
 }
 
 /**
@@ -30,11 +37,11 @@ export interface LocalEffect {
  * broadcast for the change — e.g. after a local `updateTime` resolves:
  *
  *   applyLocalEffect('assignment:updated', { assignment: res.assignment })
- *   if (res.reordered) applyLocalEffect('assignment:reordered', res.reordered)
+ *   applyLocalEffect('assignment:reordered', res.reordered)   // null → no-op
  *
  * An event with no registered applier is a no-op, matching socket behaviour.
  */
-export function applyLocalEffect(type: TrekWsTripEventName, payload: Record<string, unknown> = {}): void {
+export function applyLocalEffect(type: TrekWsTripEventName, payload: object | null = {}): void {
   useTripStore.getState().applyLocalEffect(type, payload)
 }
 

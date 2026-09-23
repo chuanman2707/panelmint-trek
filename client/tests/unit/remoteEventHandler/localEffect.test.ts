@@ -74,6 +74,14 @@ describe('applyLocalEffect', () => {
     expect(useTripStore.getState().packingItems).toEqual([]);
   });
 
+  it('a null side-channel payload is a no-op — adapters pass `reordered` through unchecked', () => {
+    // updateTime returns { reordered: {dayId, orderedIds} | null } — null means
+    // the day was already in time order, and the applier's orderedIds guard
+    // makes the replay a no-op rather than a caller-side `if`.
+    expect(() => applyLocalEffect('assignment:reordered', null)).not.toThrow();
+    expect(useTripStore.getState().assignments).toEqual({});
+  });
+
   it('file:* effects still write to the legacy offlineDb cache (panelmintDb has no files table)', async () => {
     const file = buildTripFile({ id: 33, original_name: 'ticket.pdf' });
     applyLocalEffect('file:created', { file });
