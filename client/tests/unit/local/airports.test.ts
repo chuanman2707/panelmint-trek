@@ -14,6 +14,8 @@ import {
   setAirportData,
   type Airport,
 } from '../../../src/api/local/ported/airports';
+import { airportsApi } from '../../../src/api/local/airports';
+import { LocalApiError } from '../../../src/api/local/helpers';
 import { MemoryStore } from './helpers/memoryStore';
 
 const JFK: Airport = {
@@ -227,5 +229,63 @@ describe('backfillFlightEndpoints', () => {
       ],
     });
     expect(backfillFlightEndpoints(store)).toEqual({ filled: 0, flagged: 0 });
+  });
+});
+
+describe('airportsApi', () => {
+  const fail = (p: Promise<unknown>) => p.then(() => null, (e) => e);
+
+  it('search returns a bare array — no envelope', async () => {
+    const hits = await airportsApi.search('new york');
+    expect(Array.isArray(hits)).toBe(true);
+    expect(hits.map((h) => h.iata)).toEqual(['JFK', 'LGA']);
+  });
+
+  it('search answers [] for an empty, blank or non-string query', async () => {
+    expect(await airportsApi.search('')).toEqual([]);
+    expect(await airportsApi.search('   ')).toEqual([]);
+    expect(await airportsApi.search(undefined as never)).toEqual([]);
+    expect(await airportsApi.search(['a'] as never)).toEqual([]);
+  });
+
+  it('an exact 3-letter IATA returns just that airport', async () => {
+    const hits = await airportsApi.search('cdg');
+    expect(hits).toHaveLength(1);
+    expect(hits[0].iata).toBe('CDG');
+  });
+
+  it('an already-aborted signal rejects like the axios cancel did', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(airportsApi.search('new', controller.signal)).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+  });
+
+  it('byIata is case-insensitive and carries the dataset tz', async () => {
+    const a = await airportsApi.byIata('jfk');
+    expect(a.iata).toBe('JFK');
+    expect(a.tz).toBe('America/New_York');
+  });
+
+  it('byIata answers the 404 Airport not found envelope on an unknown code', async () => {
+    const err = await fail(airportsApi.byIata('zzz'));
+    expect(err).toBeInstanceOf(LocalApiError);
+    expect(err.status).toBe(404);
+    expect(err.response.status).toBe(404);
+    expect(err.response.data.error).toBe('Airport not found');
+    await expect(airportsApi.byIata('')).rejects.toBeInstanceOf(LocalApiError);
+  });
+
+  it('byIata fills a missing tz via tz-lookup (dataset rows ship one)', async () => {
+    setAirportData([{ ...CDG, iata: 'ORY', icao: 'LFPO', name: 'Orly', city: 'Paris', tz: '' }]);
+    const a = await airportsApi.byIata('ory');
+    expect(a.tz).toBe('Europe/Paris');
+  });
+
+  it('returned rows are detached — mutating a hit must not corrupt the dataset', async () => {
+    const hits = await airportsApi.search('jfk');
+    hits[0].city = 'Mutated';
+    expect((await airportsApi.byIata('JFK')).city).toBe('New York');
   });
 });
