@@ -124,12 +124,13 @@ Local impls must match these method lists name-for-name:
 
 - `tripsApi`: `list, create, get, active, update, delete, uploadCover, searchCoverImages, archive, unarchive, getMembers, addMember, removeMember, transferOwnership, createGuest, renameGuest, deleteGuest, copy, bundle`
 - `daysApi`: `list, create, update, updateTransport, delete, reorder`
-- `placesApi`: `list, create, get, update, delete, searchImage, uploadImage, rate, importGpx, importMapFile, importGoogleList, importNaverList, bulkDelete, bulkUpdate`
+- `placesApi`: `list, create, get, update, delete, rate, bulkDelete, bulkUpdate` — `searchImage`, `uploadImage`, `importGpx`, `importMapFile`, `importGoogleList` and `importNaverList` were server-only and are gone; the local adapter does not stub them
 - `assignmentsApi`: `list, create, delete, reorder, move, update, getParticipants, setParticipants, updateTime, updateNotes, updateTransport`
 - `packingApi`: `list, create, bulkImport, update, delete, reorder, setSharing, clone, addContributor, removeContributor, getCategoryAssignees, setCategoryAssignees, listTemplates, applyTemplate, saveAsTemplate, setBagMembers, listBags, createBag, updateBag, deleteBag`
 - `todoApi`: `list, create, update, delete, reorder, getCategoryAssignees, setCategoryAssignees`
 - `tagsApi`: `list, create, update, delete`
-- `categoriesApi`: `list, create, update, delete`
+- `categoriesApi`: `list, get` — the palette is seeded and frozen; `create`, `update` and `delete` answer a local 403 rather than mutating it
+- `mapsApi`: `search, autocomplete, details, placeEnrichment, placePhotoCredit, placePhoto, reverse, resolveUrl, pois, area` — a facade over `api/ext/*` (Photon/Nominatim, Overpass, Wikimedia); `placePhoto` is a stub because there is no server photo cache to serve from, and `placePhotoCredit` reads the credit map `ext/wikimedia` fills
 - `budgetApi`: `list, create, update, delete, setMembers, togglePaid, setPayers, perPersonSummary, settlement, createSettlement, updateSettlement, deleteSettlement, reorderItems, reorderCategories`
 - `reservationsApi`: `list, create, update, delete, setTravelers, updatePositions`
 - `accommodationsApi`: `list, create, update, delete`

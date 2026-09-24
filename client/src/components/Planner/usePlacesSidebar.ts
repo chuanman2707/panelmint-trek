@@ -4,11 +4,8 @@ import { Pencil, Trash2, ExternalLink, Navigation, CalendarDays, Bookmark } from
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useContextMenu } from '../shared/ContextMenu'
-import { placesApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
-import { useAuthStore } from '../../store/authStore'
-import { useAddonStore } from '../../store/addonStore'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 import { safeHttpUrl } from '../../utils/safeUrl'
@@ -57,8 +54,8 @@ export interface PlacesSidebarProps {
 }
 
 /**
- * Sidebar state: file/list import, search + filter + category multi-select,
- * multi-select/bulk-delete and the mobile day-picker sheet. Kept in one hook so
+ * Sidebar state: search + filter + category multi-select, multi-select/
+ * bulk-delete and the mobile day-picker sheet. Kept in one hook so
  * PlacesSidebar stays a thin layout shell over the sub-sections below.
  */
 export function usePlacesSidebar(props: PlacesSidebarProps) {
@@ -75,16 +72,6 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const loadTrip = useTripStore((s) => s.loadTrip)
   const can = useCanDo()
   const canEditPlaces = can('place_edit', trip)
-  // Places-API enrichment (#886) needs a Google Maps key. Not the places
-  // *provider* choice: enrichment's photos and summary come from Google (and,
-  // keyless, from Wikimedia), which is independent of which provider answers
-  // search — an Amap install with a Google key still enriches through Google.
-  const canEnrichImport = useAuthStore((s) => s.hasMapsKey)
-
-  const [fileImportOpen, setFileImportOpen] = useState(false)
-  const [sidebarDropFile, setSidebarDropFile] = useState<File | null>(null)
-  const [sidebarDragOver, setSidebarDragOver] = useState(false)
-  const sidebarDragCounter = useRef(0)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const placeRowRefs = useRef(new Map<number, HTMLDivElement>())
   const lastAutoScrolledPlaceIdRef = useRef<number | null>(null)
@@ -93,73 +80,6 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
       scrollContainerRef.current.scrollTop = initialScrollTop
     }
   }, [])
-
-  const handleSidebarDragEnter = (e: React.DragEvent) => {
-    if (!canEditPlaces) return
-    e.preventDefault()
-    sidebarDragCounter.current++
-    setSidebarDragOver(true)
-  }
-
-  const handleSidebarDragOver = (e: React.DragEvent) => {
-    if (!canEditPlaces) return
-    e.preventDefault()
-  }
-
-  const handleSidebarDragLeave = () => {
-    sidebarDragCounter.current--
-    if (sidebarDragCounter.current === 0) setSidebarDragOver(false)
-  }
-
-  const handleSidebarDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    sidebarDragCounter.current = 0
-    setSidebarDragOver(false)
-    if (!canEditPlaces) return
-    const f = e.dataTransfer.files[0]
-    if (!f) return
-    setSidebarDropFile(f)
-    setFileImportOpen(true)
-  }
-
-  const [listImportOpen, setListImportOpen] = useState(false)
-  const [listImportUrl, setListImportUrl] = useState('')
-  const [listImportLoading, setListImportLoading] = useState(false)
-  const [listImportProvider, setListImportProvider] = useState<'google' | 'naver'>('google')
-  const [listImportEnrich, setListImportEnrich] = useState(false)
-  const availableListImportProviders: Array<'google' | 'naver'> = ['google', 'naver']
-  const hasMultipleListImportProviders = availableListImportProviders.length > 1
-
-  const handleListImport = async () => {
-    if (!listImportUrl.trim()) return
-    setListImportLoading(true)
-    const provider = listImportProvider
-    try {
-      const enrich = listImportEnrich && canEnrichImport
-      const result = provider === 'google'
-        ? await placesApi.importGoogleList(tripId, listImportUrl.trim(), enrich)
-        : await placesApi.importNaverList(tripId, listImportUrl.trim(), enrich)
-      await loadTrip(tripId)
-      if (result.count === 0 && result.skipped > 0) {
-        toast.warning(t('places.importAllSkipped'))
-      } else {
-        toast.success(t(provider === 'google' ? 'places.googleListImported' : 'places.naverListImported', { count: result.count, list: result.listName }))
-      }
-      setListImportOpen(false)
-      setListImportUrl('')
-      if (result.places?.length > 0) {
-        const importedIds: number[] = result.places.map((p: { id: number }) => p.id)
-        pushUndo?.(t(provider === 'google' ? 'undo.importGoogleList' : 'undo.importNaverList'), async () => {
-          try { await placesApi.bulkDelete(tripId, importedIds) } catch {}
-          await loadTrip(tripId)
-        })
-      }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || t(provider === 'google' ? 'places.googleListError' : 'places.naverListError'))
-    } finally {
-      setListImportLoading(false)
-    }
-  }
 
   const [search, setSearch] = useState('')
   // Filter state lives in the trip store so it survives the Plan tab
@@ -315,13 +235,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   return {
     ...props,
     t, toast, ctxMenu, trip, canEditPlaces,
-    fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile,
-    sidebarDragOver, handleSidebarDragEnter, handleSidebarDragOver, handleSidebarDragLeave, handleSidebarDrop,
     scrollContainerRef, onScrollTopChange,
-    listImportOpen, setListImportOpen, listImportUrl, setListImportUrl,
-    listImportLoading, listImportProvider, setListImportProvider,
-    listImportEnrich, setListImportEnrich, canEnrichImport,
-    availableListImportProviders, hasMultipleListImportProviders, handleListImport,
     search, setSearch, filter, setFilter, categoryFilters, setCategoryFilters,
     ratingFilter, setRatingFilter,
     starDropOpen, setStarDropOpen,

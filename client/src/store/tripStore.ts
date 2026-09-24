@@ -88,7 +88,6 @@ export interface TripStoreState
   refreshDays: (tripId: number | string) => Promise<void>
   updateTrip: (tripId: number | string, data: Partial<Trip> & { date_shift_mode?: 'keep_bookings' | 'shift_all' }) => Promise<Trip>
   addTag: (data: Partial<Tag> & { name: string }) => Promise<Tag>
-  addCategory: (data: Partial<Category> & { name: string }) => Promise<Category>
 }
 
 export const useTripStore = create<TripStoreState>((set, get) => ({
@@ -253,16 +252,6 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       return result.tag
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error creating tag'))
-    }
-  },
-
-  addCategory: async (data: Partial<Category> & { name: string }) => {
-    try {
-      const result = await categoriesApi.create(data)
-      set((state) => ({ categories: [...state.categories, result.category] }))
-      return result.category
-    } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error creating category'))
     }
   },
 

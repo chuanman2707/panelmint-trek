@@ -16,9 +16,4 @@ export const tagsHandlers = [
     return HttpResponse.json({ categories: [buildCategory(), buildCategory()] });
   }),
 
-  http.post('/api/categories', async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const category = buildCategory(body);
-    return HttpResponse.json({ category });
-  }),
 ];

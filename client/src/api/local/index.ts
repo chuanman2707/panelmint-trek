@@ -10,3 +10,6 @@
 export { tripsApi } from './trips'
 export { daysApi } from './days'
 export { dashboardApi } from './dashboard'
+export { placesApi } from './places'
+export { categoriesApi } from './categories'
+export { mapsApi } from './maps'

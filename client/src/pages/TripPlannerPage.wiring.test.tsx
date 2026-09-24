@@ -115,12 +115,10 @@ function baseState(): HookState {
       deleteFile: vi.fn(async () => undefined),
       loadFiles: vi.fn(async () => undefined),
       updatePlace: vi.fn(async () => undefined),
-      uploadPlaceImage: vi.fn(async () => undefined),
       ratePlace: vi.fn(async () => undefined),
       updateReservation: vi.fn(async () => undefined),
       updateTrip: vi.fn(async () => undefined),
       setSelectedDay: vi.fn(() => undefined),
-      addCategory: vi.fn(async () => undefined),
     },
     can: vi.fn(() => true),
     canUploadFiles: true,
@@ -668,14 +666,12 @@ describe('TripPlannerPage — day detail and inspector', () => {
     expect(useTripStore.getState().assignments['7'][0].participants).toEqual([{ user_id: 5 }])
 
     await act(async () => { await props('inspector').onUpdatePlace(1, { name: 'X' }) })
-    await act(async () => { await props('inspector').onUploadImage(1, new File(['x'], 'a.png')) })
     await act(async () => { await props('inspector').onRate(1, 4) })
     await act(async () => { await props('inspector').onFileUpload(new FormData()) })
 
     const tripActions = hookState.tripActions as Record<string, ReturnType<typeof vi.fn>>
     expect(tripActions.addFile).toHaveBeenCalled()
     expect(tripActions.updatePlace).toHaveBeenCalledWith(42, 1, { name: 'X' })
-    expect(tripActions.uploadPlaceImage).toHaveBeenCalled()
     expect(tripActions.ratePlace).toHaveBeenCalledWith(42, 1, 4)
   })
 
@@ -717,7 +713,6 @@ describe('TripPlannerPage — day detail and inspector', () => {
     expect(hookState.handleDeletePlace).toHaveBeenCalledWith(1)
 
     await act(async () => { await props('inspector').onUpdatePlace(1, { name: 'Y' }) })
-    await act(async () => { await props('inspector').onUploadImage(1, new File(['x'], 'a.png')) })
     await act(async () => { await props('inspector').onRate(1, 3) })
     await act(async () => { await props('inspector').onFileUpload(new FormData()) })
 
@@ -971,9 +966,6 @@ describe('TripPlannerPage — modals', () => {
     // put the form back to the one every other caller gets.
     expect(hookState.setServiceStopForm).toHaveBeenCalledWith(false)
 
-    act(() => { props('placeForm').onCategoryCreated({ id: 3, name: 'Food' }) })
-    const tripActions = hookState.tripActions as Record<string, ReturnType<typeof vi.fn>>
-    expect(tripActions.addCategory).toHaveBeenCalledWith({ id: 3, name: 'Food' })
   })
 
   it('FE-PAGE-TPW-046: the place form only offers day assignments while editing', () => {

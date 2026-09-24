@@ -6,7 +6,6 @@ import { useCanDo } from '../store/permissionsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { MapViewAuto as MapView } from '../components/Map/MapViewAuto'
 import { TripRouteOverviewPill, TripRouteOverviewPanel } from '../components/Map/TripRouteOverview'
-import { getCached, fetchPhoto } from '../services/photoService'
 import DayPlanSidebar from '../components/Planner/DayPlanSidebar'
 import { DayPlanSidebarTransportDetailModal } from '../components/Planner/DayPlanSidebarTransportDetailModal'
 import RoadtripModeSwitch from '../components/Roadtrip/RoadtripModeSwitch'
@@ -243,7 +242,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // Page = wiring container: the entire planner state machine (store, tabs,
   // selection, CRUD handlers with undo, map filters, splash) lives in the hook.
   const {
-    tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
+    tripId, navigate, toast, t, language, locale, settings,
     trip, days, places, assignments, packingItems, todoItems, categories, reservations, budgetItems, files,
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
@@ -827,7 +826,6 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                   } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
                 }}
                 onUpdatePlace={async (placeId, data) => { try { await tripActions.updatePlace(tripId, placeId, data) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
-                onUploadImage={async (placeId, file) => { await tripActions.uploadPlaceImage(tripId, placeId, file) }}
                 onRate={async (placeId, rating) => { try { await tripActions.ratePlace(tripId, placeId, rating) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
                 leftWidth={isMobile ? 0 : leftPanelPx}
                 rightWidth={isMobile ? 0 : rightPanelPx}
@@ -871,8 +869,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
                     }}
                     onUpdatePlace={async (placeId, data) => { try { await tripActions.updatePlace(tripId, placeId, data) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
-                    onUploadImage={async (placeId, file) => { await tripActions.uploadPlaceImage(tripId, placeId, file) }}
-                    onRate={async (placeId, rating) => { try { await tripActions.ratePlace(tripId, placeId, rating) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
+                        onRate={async (placeId, rating) => { try { await tripActions.ratePlace(tripId, placeId, rating) } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) } }}
                     leftWidth={0}
                     rightWidth={0}
                   />
@@ -989,7 +986,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
           />
         </LazyPanel>
       )}
-      <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null); setServiceStopForm(false) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingPlace ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} onCategoryCreated={cat => tripActions.addCategory?.(cat)} isMobile={isMobile} onOpenExpense={openBookingExpense} serviceStop={serviceStopMode} roadtripActive={roadtripActive} />
+      <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null); setServiceStopForm(false) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingPlace ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} isMobile={isMobile} onOpenExpense={openBookingExpense} serviceStop={serviceStopMode} roadtripActive={roadtripActive} />
       <TripFormModal
         isOpen={showTripForm}
         onClose={() => setShowTripForm(false)}

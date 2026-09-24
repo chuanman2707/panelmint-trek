@@ -16,7 +16,6 @@ import MCostSheet from './MCostSheet'
 import MTransportSheet from './MTransportSheet'
 import MBrowseActionsSheet from './MBrowseActionsSheet'
 import MNoteSheet, { type MNoteSheetPayload } from './MNoteSheet'
-import MImportSheet from './MImportSheet'
 import MExportSheet from './MExportSheet'
 import MMehrSheet from './MMehrSheet'
 import MRtStopSheet from '../roadtrip/MRtStopSheet'
@@ -83,7 +82,6 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         payload={sheet?.id === 'note' ? (sheet.payload as MNoteSheetPayload) : undefined}
         onClose={shell.closeSheet}
       />
-      <MImportSheet planner={planner} open={sheet?.id === 'import'} onClose={shell.closeSheet} />
 
       {/* ── Planner-flag editors (also serve ?create= and the import review) ── */}
       <MPlaceEditSheet planner={planner} onOpenExpense={openBookingExpense} />

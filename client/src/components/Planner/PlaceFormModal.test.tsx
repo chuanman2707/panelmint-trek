@@ -32,7 +32,6 @@ const defaultProps = {
   prefillCoords: null,
   tripId: 1,
   categories: [],
-  onCategoryCreated: vi.fn(),
   assignmentId: null,
   dayAssignments: [],
 };
@@ -549,38 +548,6 @@ describe('PlaceFormModal', () => {
     // Dropdown is closed, so the only place the category name can appear is the trigger.
     expect(screen.getByText('Museums')).toBeInTheDocument();
     expect(screen.queryByText(/No category/i)).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-PLACEFORM-024: onCategoryCreated is called when creating a category', async () => {
-    const user = userEvent.setup();
-    const onCategoryCreated = vi.fn().mockResolvedValue({ id: 99, name: 'Beaches', color: '#6366f1', icon: 'MapPin' });
-
-    render(<PlaceFormModal {...defaultProps} onCategoryCreated={onCategoryCreated} />);
-    expect(onCategoryCreated).not.toHaveBeenCalled();
-
-    // The plus next to the category select swaps in the inline name field.
-    await user.click(screen.getByRole('button', { name: 'New category' }));
-    await user.type(screen.getByPlaceholderText('Category name'), 'Beaches');
-    await user.click(screen.getByRole('button', { name: 'OK' }));
-
-    expect(onCategoryCreated).toHaveBeenCalledWith({ name: 'Beaches', color: '#6366f1', icon: 'MapPin' });
-    // The new category is selected and the inline field closes again.
-    await waitFor(() => expect(screen.queryByPlaceholderText('Category name')).not.toBeInTheDocument());
-  });
-
-  it('FE-PLANNER-PLACEFORM-024b: an empty category name does not call onCategoryCreated', async () => {
-    const user = userEvent.setup();
-    const onCategoryCreated = vi.fn();
-
-    render(<PlaceFormModal {...defaultProps} onCategoryCreated={onCategoryCreated} />);
-    await user.click(screen.getByRole('button', { name: 'New category' }));
-    await user.click(screen.getByRole('button', { name: 'OK' }));
-
-    expect(onCategoryCreated).not.toHaveBeenCalled();
-
-    const inlineRow = screen.getByPlaceholderText('Category name').parentElement!;
-    await user.click(within(inlineRow).getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByPlaceholderText('Category name')).not.toBeInTheDocument();
   });
 
   // ── Time section (edit mode only) ────────────────────────────────────────────

@@ -1,21 +1,17 @@
 import React from 'react'
 import { ContextMenu } from '../shared/ContextMenu'
-import FileImportModal from './FileImportModal'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { usePlacesSidebar, type PlacesSidebarProps } from './usePlacesSidebar'
-import { PlacesDropOverlay, PlacesHeader } from './PlacesSidebarHeader'
+import { PlacesHeader } from './PlacesSidebarHeader'
 import { PlacesSelectionBar } from './PlacesSidebarSelectionBar'
 import { PlacesList } from './PlacesSidebarList'
 import { MobileDayPickerSheet } from './PlacesSidebarMobileDayPicker'
-import { ListImportModal } from './PlacesSidebarListImportModal'
 import { PlacesBulkCategoryModal } from './PlacesBulkCategoryModal'
 
 const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProps) {
   const S = usePlacesSidebar(props)
   const {
-    sidebarDragOver, handleSidebarDragEnter, handleSidebarDragOver, handleSidebarDragLeave, handleSidebarDrop,
-    selectMode, filtered, t, dayPickerPlace, listImportOpen,
-    fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile, tripId, pushUndo,
+    selectMode, filtered, t, dayPickerPlace,
     ctxMenu, isMobile, pendingDeleteIds, setPendingDeleteIds, onBulkDeleteConfirm,
     categories, selectedIds, exitSelectMode, onBulkChangeCategory, categoryPickerOpen, setCategoryPickerOpen,
   } = S
@@ -26,13 +22,8 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
   return (
     <div
       data-touch-drag={dragDisabled ? undefined : ''}
-      onDragEnter={dragDisabled ? undefined : handleSidebarDragEnter}
-      onDragOver={dragDisabled ? undefined : handleSidebarDragOver}
-      onDragLeave={dragDisabled ? undefined : handleSidebarDragLeave}
-      onDrop={dragDisabled ? undefined : handleSidebarDrop}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: "var(--font-system)", position: 'relative' }}
     >
-      {!dragDisabled && sidebarDragOver && <PlacesDropOverlay {...S} />}
       {/* Kopfbereich */}
       <PlacesHeader {...S} />
 
@@ -61,14 +52,6 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
       <PlacesList {...S} />
 
       {dayPickerPlace && <MobileDayPickerSheet {...S} />}
-      {listImportOpen && <ListImportModal {...S} />}
-      <FileImportModal
-        isOpen={fileImportOpen}
-        onClose={() => { setFileImportOpen(false); setSidebarDropFile(null) }}
-        tripId={tripId}
-        pushUndo={pushUndo}
-        initialFile={sidebarDropFile}
-      />
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
       {categoryPickerOpen && (
         <PlacesBulkCategoryModal

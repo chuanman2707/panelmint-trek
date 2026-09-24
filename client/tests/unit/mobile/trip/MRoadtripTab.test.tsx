@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
-import { resetAllStores, seedStore } from '../../../helpers/store'
-import { useTripStore } from '../../../../src/store/tripStore'
+import { resetAllStores } from '../../../helpers/store'
 import MRoadtripTab from '../../../../src/mobile/screens/trip/roadtrip/MRoadtripTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { Day, Place, Reservation } from '../../../../src/types'
@@ -27,13 +26,6 @@ vi.mock('../../../../src/hooks/useRoadtripSettings', () => ({
 
 // The picture asks the photo service for any place without an image of its own. Stubbed to
 // know nothing and fetch nothing, so no test of the bar ever reaches for the network.
-vi.mock('../../../../src/services/photoService', () => ({
-  getCached: () => null,
-  isLoading: () => false,
-  fetchPhoto: vi.fn(),
-  onThumbReady: () => () => {},
-}))
-
 // The swipe itself is the plan tab's, tested there; this keeps the real hook and only
 // records what the road trip tab hands it.
 vi.mock('../../../../src/mobile/screens/trip/plan/useMPlanDaySwipe', async importOriginal => {

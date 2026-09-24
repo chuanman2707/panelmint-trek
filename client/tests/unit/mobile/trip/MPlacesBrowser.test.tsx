@@ -315,12 +315,6 @@ describe('MPlacesBrowser', () => {
     expect(planner.setShowPlaceForm).toHaveBeenCalledWith(true)
   })
 
-  it('FE-MOB-PBROW-025: the ellipsis opens the import sheet', () => {
-    const { shell } = renderBrowser()
-    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.importPlaces' }))
-    expect(shell.openSheet).toHaveBeenCalledWith('import')
-  })
-
   it('FE-MOB-PBROW-026: a read-only member keeps the filters but loses every mutation', () => {
     renderBrowser(makePlanner({ can: vi.fn(() => false) } as Partial<TripPlanner>))
     expect(screen.getByRole('button', { name: 'places.all' })).toBeInTheDocument()

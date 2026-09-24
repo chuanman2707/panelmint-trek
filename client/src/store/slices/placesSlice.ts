@@ -12,11 +12,38 @@ export interface PlacesSlice {
   refreshPlaces: (tripId: number | string) => Promise<void>
   addPlace: (tripId: number | string, placeData: Partial<Place> & { name: string }) => Promise<Place>
   updatePlace: (tripId: number | string, placeId: number, placeData: Partial<Place>) => Promise<Place>
-  uploadPlaceImage: (tripId: number | string, placeId: number, file: File) => Promise<Place>
   ratePlace: (tripId: number | string, placeId: number, rating: number | null) => Promise<Place>
   deletePlace: (tripId: number | string, placeId: number) => Promise<void>
   deletePlacesMany: (tripId: number | string, placeIds: number[]) => Promise<void>
   updatePlacesMany: (tripId: number | string, placeIds: number[], patch: Partial<Place>) => Promise<void>
+}
+
+/**
+ * The ids a local place delete carried back in its `cancelled` side channel —
+ * the rows the server used to announce by broadcasting `reservation:deleted`
+ * and `budget:deleted` to every tab, the deleter's included. Replayed through
+ * `applyLocalEffect` so the store (and the Dexie write-through) sees the same
+ * events it would have seen on the socket. `accommodationIds` has no store
+ * applier — stays are planner-local state — so it dispatches the same
+ * `accommodations:refresh` nudge the other cascades use.
+ */
+interface PlaceDeleteCancelled {
+  reservationIds?: number[]
+  budgetItemIds?: number[]
+  accommodationIds?: number[]
+}
+
+function replayCancelled(get: GetState, cancelled: PlaceDeleteCancelled | undefined | null): void {
+  if (!cancelled) return
+  for (const reservationId of cancelled.reservationIds ?? []) {
+    get().applyLocalEffect('reservation:deleted', { reservationId })
+  }
+  for (const itemId of cancelled.budgetItemIds ?? []) {
+    get().applyLocalEffect('budget:deleted', { itemId })
+  }
+  if (cancelled.accommodationIds?.length) {
+    window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+  }
 }
 
 /**
@@ -96,18 +123,6 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
     }
   },
 
-  uploadPlaceImage: async (tripId, placeId, file) => {
-    // Uploads are online-only (binary multipart), so they bypass the offline repo.
-    // The server broadcast is echo-suppressed for us, so apply the returned place.
-    try {
-      const data = await placesApi.uploadImage(tripId, placeId, file)
-      applyUpdatedPlace(set, placeId, data.place)
-      return data.place
-    } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error uploading image'))
-    }
-  },
-
   ratePlace: async (tripId, placeId, rating) => {
     // Casts (or clears, rating null) the current user's own star vote (#1435)
     // and applies the returned place with the fresh average.
@@ -122,7 +137,9 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
 
   deletePlace: async (tripId, placeId) => {
     try {
-      await placeRepo.delete(tripId, placeId)
+      const result = (await placeRepo.delete(tripId, placeId)) as
+        { cancelled?: PlaceDeleteCancelled } | undefined
+      replayCancelled(get, result?.cancelled)
       set(state => {
         const updatedAssignments = { ...state.assignments }
         let changed = false
@@ -145,7 +162,9 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
   deletePlacesMany: async (tripId, placeIds) => {
     if (placeIds.length === 0) return
     try {
-      await placeRepo.deleteMany(tripId, placeIds)
+      const result = (await placeRepo.deleteMany(tripId, placeIds)) as
+        { cancelled?: PlaceDeleteCancelled } | undefined
+      replayCancelled(get, result?.cancelled)
       const idSet = new Set(placeIds)
       set(state => {
         const updatedAssignments = { ...state.assignments }
