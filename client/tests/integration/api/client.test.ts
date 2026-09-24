@@ -13,7 +13,6 @@ const {
   filesApi,
   reservationsApi,
   weatherApi,
-  settingsApi,
   accommodationsApi,
   dayNotesApi,
 } = await import('../../../src/api/client');
@@ -47,13 +46,13 @@ describe('API client interceptors', () => {
   it('FE-API-002: read requests carry no idempotency key', async () => {
     let receivedKey: string | null = 'sentinel';
     server.use(
-      http.get('/api/settings', ({ request }) => {
+      http.get('/api/tags', ({ request }) => {
         receivedKey = request.headers.get('X-Idempotency-Key');
         return HttpResponse.json({ settings: {} });
       })
     );
 
-    await settingsApi.get();
+    await tagsApi.list();
     expect(receivedKey).toBeNull();
   });
 
@@ -65,10 +64,10 @@ describe('API client interceptors', () => {
     const originalHref = window.location.href;
 
     server.use(
-      http.get('/api/settings', () => HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 }))
+      http.get('/api/tags', () => HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 }))
     );
 
-    await expect(settingsApi.get()).rejects.toThrow();
+    await expect(tagsApi.list()).rejects.toThrow();
     expect(window.location.href).toBe(originalHref);
   });
 
@@ -82,9 +81,9 @@ describe('API client interceptors', () => {
   });
 
   it('FE-API-005: successful API call returns response data', async () => {
-    server.use(http.get('/api/settings', () => HttpResponse.json({ settings: { theme: 'dark' } })));
+    server.use(http.get('/api/tags', () => HttpResponse.json({ settings: { theme: 'dark' } })));
 
-    const data = await settingsApi.get();
+    const data = await tagsApi.list();
     expect(data).toMatchObject({ settings: { theme: 'dark' } });
   });
 
@@ -111,10 +110,10 @@ describe('API client interceptors', () => {
 
   it('FE-API-007: non-401 errors are passed through as rejections', async () => {
     server.use(
-      http.get('/api/settings', () => HttpResponse.json({ error: 'Internal error' }, { status: 500 }))
+      http.get('/api/tags', () => HttpResponse.json({ error: 'Internal error' }, { status: 500 }))
     );
 
-    await expect(settingsApi.get()).rejects.toThrow();
+    await expect(tagsApi.list()).rejects.toThrow();
   });
 });
 
@@ -166,11 +165,6 @@ describe('API namespace smoke tests', () => {
   it('weatherApi.get fetches weather data', async () => {
     server.use(http.get('/api/weather', () => HttpResponse.json({ temp: 20 })));
     await expect(weatherApi.get(48.8, 2.3, '2025-06-01')).resolves.toMatchObject({ temp: 20 });
-  });
-
-  it('settingsApi.get fetches settings', async () => {
-    server.use(http.get('/api/settings', () => HttpResponse.json({ dark_mode: false })));
-    await expect(settingsApi.get()).resolves.toMatchObject({ dark_mode: false });
   });
 
   it('accommodationsApi.list fetches accommodations', async () => {
@@ -279,13 +273,6 @@ describe('API namespace smoke tests', () => {
   it('reservationsApi.delete deletes a reservation', async () => {
     server.use(http.delete('/api/trips/1/reservations/1', () => HttpResponse.json({ ok: true })));
     await expect(reservationsApi.delete(1, 1)).resolves.toMatchObject({ ok: true });
-  });
-
-  // ── settingsApi additional methods ───────────────────────────────────────────
-
-  it('settingsApi.set updates a setting', async () => {
-    server.use(http.put('/api/settings', () => HttpResponse.json({ ok: true })));
-    await expect(settingsApi.set('dark_mode', true)).resolves.toMatchObject({ ok: true });
   });
 
   // ── accommodationsApi additional methods ─────────────────────────────────────

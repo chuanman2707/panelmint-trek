@@ -78,10 +78,9 @@ export function resolveTileUrl(template: string | null | undefined, fallback: st
  * The basemap a map should draw, in the one shape every caller can act on.
  *
  * Two kinds exist since the move off CARTO. A raster template goes into a
- * Leaflet TileLayer as before; a vector style is a MapLibre style document that
- * Leaflet cannot render on its own and that VectorBasemap hangs into the tile
- * pane instead. Callers switch on `kind` rather than sniffing the URL, so a
- * self-hosted raster template keeps working exactly as it did.
+ * Leaflet TileLayer; a vector style is a MapLibre style document that the
+ * raster-only app can no longer draw — callers map `kind: 'vector'` onto the
+ * raster fallback rather than sniffing the URL themselves.
  */
 export type Basemap =
   | { kind: 'raster'; url: string }
@@ -120,8 +119,9 @@ export function isGcj02Basemap(url: string | null | undefined): boolean {
  * What a map should draw, given the user's template and the app's default.
  *
  * `template` is the user's own choice and wins whenever they made one.
- * `fallback` is the app default and is a vector style now, so an unconfigured
- * map — and one left on a keyless CARTO template — gets OpenFreeMap.
+ * `fallback` is the app default (the raster OSM template). A stored vector
+ * style still resolves as `kind: 'vector'` — the raster-only maps then draw
+ * the fallback instead.
  */
 export function resolveBasemap(
   template: string | null | undefined,

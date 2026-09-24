@@ -26,8 +26,8 @@
 import type { Place } from '../types'
 import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
 import { isStoragePersisted } from './persistentStorage'
-import { normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
-import { OFM_POSITRON } from '../constants/mapDefaults'
+import { isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
+import { RASTER_FALLBACK_TILE_URL } from '../constants/mapDefaults'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -69,7 +69,7 @@ const TILE_PX = 256
 /** Map size to assume where there is no window (SSR, plain-node callers). */
 const FALLBACK_MAP_PX = { width: 1024, height: 768 }
 
-const DEFAULT_TILE_URL = OFM_POSITRON
+const DEFAULT_TILE_URL = RASTER_FALLBACK_TILE_URL
 
 /**
  * Must stay identical to Leaflet's `subdomains` default ('abc'), because the
@@ -396,7 +396,10 @@ export async function prefetchTilesForTrip(
 ): Promise<void> {
   // Resolved rather than taken raw, so a keyless CARTO template pre-downloads the
   // basemap the map will actually draw instead of a few thousand watermarks.
-  const template = resolveTileUrl(tileUrlTemplate, DEFAULT_TILE_URL, cartoKey)
+  // A vector style has no {z}/{x}/{y} to enumerate — the map falls back to the
+  // raster default for it, so prefetch does the same.
+  const resolved = resolveTileUrl(tileUrlTemplate, DEFAULT_TILE_URL, cartoKey)
+  const template = isVectorStyle(resolved) ? RASTER_FALLBACK_TILE_URL : resolved
   const bbox = computeBbox(places)
   if (!bbox) return
 

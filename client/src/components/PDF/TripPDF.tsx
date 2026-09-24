@@ -13,7 +13,6 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry'
 import { buildTripMapSvg } from './tripMapSvg'
-import { renderTripMapImage } from './tripMapImage'
 import { formatDistance } from '../../utils/units'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
@@ -270,14 +269,12 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
     // looking. The export itself carries on — the itinerary matters more than the map.
     console.warn('[tripPdfMap] routing the trip failed; the export continues without a map', err)
   }
-  // A real basemap first — at city scale the bundled outlines are a country-sized
-  // blank, and only streets carry context that small. The outline map is what is left
-  // when there is no WebGL, no network, or a style that will not load.
+  // The bundled outline map is all the PDF draws: the offscreen GL basemap render
+  // went away with maplibre-gl, and the preview iframe runs with no scripts, so
+  // nothing may still be loading when printing starts.
   const mapFrame = { width: 720, height: 420, formatDistance: (km: number) => formatDistance(km, unit) }
   const tripMapSvg = tripRoute
-    // No style override: the maplibre_style setting was pruned with the GL
-    // renderer, so the renderer's built-in default style applies.
-    ? (await renderTripMapImage(tripRoute.days, mapFrame)) ?? buildTripMapSvg(tripRoute.days, mapFrame)
+    ? buildTripMapSvg(tripRoute.days, mapFrame)
     : null
   // The other way to end up mapless, and the one that is not a failure: nothing in the
   // trip routed. Only worth saying when there were stops to route — a trip nobody has

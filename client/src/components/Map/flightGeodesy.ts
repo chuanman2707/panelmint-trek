@@ -1,5 +1,4 @@
-// Great-circle geometry for transport routes (flights, cruises, ferries),
-// shared by the Leaflet and Mapbox/MapLibre renderers (#1411).
+// Great-circle geometry for transport routes (flights, cruises, ferries) (#1411).
 
 const toRad = (d: number) => d * Math.PI / 180
 const toDeg = (r: number) => r * 180 / Math.PI

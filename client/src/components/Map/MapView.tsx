@@ -54,10 +54,9 @@ import { NightPauseDrag } from './NightPauseDrag'
 import type { DayBoundaryControls } from './dayBoundaryDrag'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
-import { OFM_POSITRON, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_MAX_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_MAXZOOM, AMAP_SATELLITE, attributionForTile } from '../../constants/mapDefaults'
+import { RASTER_FALLBACK_TILE_URL, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_MAX_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_MAXZOOM, AMAP_SATELLITE, attributionForTile } from '../../constants/mapDefaults'
 import { crsForBasemap } from './gcj02Crs'
 import { isGcj02Basemap, resolveBasemap } from '../../utils/tileUrl'
-import VectorBasemap from './VectorBasemap'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MapLayerSwitcher, MAP_LAYER_SWITCHER_INSET } from './MapLayerSwitcher'
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
@@ -439,8 +438,7 @@ function BoundsController({ places, routeCoords, fitKey, paddingOpts, framedOnMo
          * puts the northernmost stop exactly on the top padding line; the nudge
          * then pushed it off the canvas. The map appeared to frame everything
          * correctly and then drift upwards, which is what the report describes
-         * (#1982). MapViewGL never had the nudge, so this also brings the two
-         * renderers back into agreement.
+         * (#1982).
          */
         map.fitBounds(bounds, { ...padding, maxZoom: 16, animate: true })
       }
@@ -547,8 +545,8 @@ import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
 
 // Live-location rendering inside the Leaflet map. Subscribes via the
-// shared useGeolocation hook so the Leaflet and Mapbox variants behave
-// identically. Heading is shown as a rotated conic SVG when available.
+// shared useGeolocation hook. Heading is shown as a rotated conic SVG
+// when available.
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
 
 function LeafletLocationLayer({ position, mode }: { position: GeoPosition | null; mode: TrackingMode }) {
@@ -683,7 +681,7 @@ export const MapView = memo(function MapView({
   zoom = DEFAULT_MAP_ZOOM,
   // Callers hand down a URL that already carries the CARTO key; this is only
   // the shape a caller without one gets.
-  tileUrl = OFM_POSITRON,
+  tileUrl = RASTER_FALLBACK_TILE_URL,
   fitKey = 0,
   dayOrderMap = {},
   leftWidth = 0,
@@ -718,10 +716,11 @@ export const MapView = memo(function MapView({
   onChooseAlternative,
   onHighlightAlternative,
 }: any) {
-  // The caller hands over whatever the user configured; what kind of basemap
-  // that is decides which layer draws it. A saved raster template still wins,
-  // the default is a vector style.
-  const basemap = useMemo(() => resolveBasemap(tileUrl, OFM_POSITRON), [tileUrl])
+  // The caller hands over whatever the user configured. PanelMint is raster-only —
+  // a stored vector style (a pre-conversion setting) resolves as 'vector' here and
+  // is drawn as the OSM fallback rather than leaving the map blank.
+  const basemap = useMemo(() => resolveBasemap(tileUrl, RASTER_FALLBACK_TILE_URL), [tileUrl])
+  const rasterBasemapUrl = basemap.kind === 'raster' ? basemap.url : RASTER_FALLBACK_TILE_URL
   const poiClickRef = useRef(onPoiClick)
   poiClickRef.current = onPoiClick
   /**
@@ -729,7 +728,7 @@ export const MapView = memo(function MapView({
    * decided before the map is constructed, because Leaflet cannot change a map's
    * CRS afterwards — hence the whole map, not just the tile layer.
    */
-  const isGcjBasemap = basemap.kind === 'raster' && isGcj02Basemap(basemap.url)
+  const isGcjBasemap = isGcj02Basemap(rasterBasemapUrl)
   const gcjCrs = useMemo(() => crsForBasemap(isGcjBasemap), [isGcjBasemap])
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
@@ -1074,9 +1073,8 @@ export const MapView = memo(function MapView({
       zoomControl={false}
       // On the map itself, not left to the base layer. Leaflet reads its zoom
       // ceiling from the map options or, failing that, from a GridLayer that
-      // brought one; a vector basemap is neither, so a map drawn by
-      // VectorBasemap had no ceiling at all. MarkerClusterGroup.onAdd throws
-      // outright on an infinite one, which took the whole planner down.
+      // brought one. MarkerClusterGroup.onAdd throws outright on an infinite
+      // one, which took the whole planner down.
       maxZoom={MAP_MAX_ZOOM}
       // Omitted entirely for a WGS-84 basemap, which is every install that has
       // not chosen Amap: passing L.CRS.EPSG3857 explicitly would be the same
@@ -1084,9 +1082,9 @@ export const MapView = memo(function MapView({
       {...(gcjCrs ? { crs: gcjCrs } : {})}
       className="w-full h-full bg-[#e5e7eb]"
     >
-      {/* The basemap is a vector style by default and a raster template when the
-          user brought their own, so the two are drawn by different things. The
-          satellite toggle is always raster.
+      {/* The basemap is the configured raster template, or the OSM fallback when
+          the stored template was a vector style (GL is gone). The satellite
+          toggle is always raster.
           key remounts the raster layer on switch, else attribution/maxZoom stick
           at mount-time values. */}
       {isSatellite ? (
@@ -1104,13 +1102,11 @@ export const MapView = memo(function MapView({
           updateWhenIdle={true}
           referrerPolicy="strict-origin-when-cross-origin"
         />
-      ) : basemap.kind === 'vector' ? (
-        <VectorBasemap style={basemap.style} />
       ) : (
         <TileLayer
           key="raster"
-          url={basemap.url}
-          attribution={attributionForTile(basemap.url)}
+          url={rasterBasemapUrl}
+          attribution={attributionForTile(rasterBasemapUrl)}
           maxZoom={19}
           keepBuffer={8}
           updateWhenZooming={false}

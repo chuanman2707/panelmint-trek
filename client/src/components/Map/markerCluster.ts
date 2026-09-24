@@ -23,8 +23,7 @@ export const CLUSTER_OPTIONS = {
    * branch is measured against.
    *
    * A whole pin's third is affordable precisely because the fold is reversible here:
-   * what comes out of it is a counted bubble the user can click open. The GL renderer
-   * has no fan to offer and folds far tighter — see `COINCIDENT_RADIUS_PX`.
+   * what comes out of it is a counted bubble the user can click open.
    */
   maxClusterRadius: (zoom: number) => (zoom < CLUSTER_UNTIL_ZOOM ? CLUSTER_RADIUS_PX : STACK_RADIUS_PX),
   spiderfyOnMaxZoom: true,

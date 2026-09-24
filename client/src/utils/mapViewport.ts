@@ -3,9 +3,9 @@
  * should open at, so a trip in Japan opens on Japan instead of on the world view followed
  * by a fitBounds flight across the planet.
  *
- * Renderers call this once, at construction — see MapView.tsx / MapViewGL.tsx. Returns
- * null when no point has usable coordinates (a brand-new trip), leaving the caller to fall
- * back to DEFAULT_MAP_CENTER / DEFAULT_MAP_ZOOM.
+ * MapView calls this once, at construction. Returns null when no point has usable
+ * coordinates (a brand-new trip), leaving the caller to fall back to
+ * DEFAULT_MAP_CENTER / DEFAULT_MAP_ZOOM.
  *
  * The bbox min/max here deliberately duplicates the few lines in sync/tilePrefetcher.ts
  * rather than importing them: that module pulls in Dexie at import time, which has no place
@@ -16,26 +16,23 @@
 /** Web Mercator diverges at the poles — projections clamp latitude to this. */
 const MERCATOR_MAX_LAT = 85.0511
 
-/** Leaflet measures zoom against a 256px world tile; MapLibre/Mapbox against 512px. */
+/** Leaflet measures zoom against a 256px world tile. */
 export const TILE_SIZE_RASTER = 256
-export const TILE_SIZE_GL = 512
 
 /**
- * Match the maxZoom the fitBounds in each renderer already clamps to (MapView 16,
- * MapViewGL 15), so the opening camera and any later fit agree instead of fighting.
+ * Match the maxZoom the fitBounds in MapView already clamps to (16), so the opening
+ * camera and any later fit agree instead of fighting.
  */
 export const MAX_ZOOM_RASTER = 16
-export const MAX_ZOOM_GL = 15
 
 /**
  * One place (or several at the same spot) has no extent to fit, so zoom is a choice rather
  * than a calculation: city level, showing the surroundings rather than just the pin.
- * Expressed in the raster scheme; the GL scheme is one level lower for the same scale.
  */
 export const SINGLE_PLACE_ZOOM_RASTER = 12
 
 export interface MapViewport {
-  /** [lat, lng] — the order both renderers take as a prop (MapViewGL swaps it internally). */
+  /** [lat, lng] — the order MapView takes it as a prop. */
   center: [number, number]
   zoom: number
 }
@@ -54,7 +51,7 @@ export interface ViewportPadding {
 }
 
 export interface ViewportOptions {
-  /** 256 for Leaflet, 512 for MapLibre/Mapbox. Drives both the zoom scale and maxZoom. */
+  /** Pixels per world tile at zoom 0 (Leaflet: 256). Drives the zoom scale. */
   tileSize?: number
   /** Map container size in CSS px. Defaults to the window, then to 1024x768 (SSR/jsdom). */
   width?: number
@@ -63,12 +60,6 @@ export interface ViewportOptions {
   padding?: Partial<ViewportPadding>
   maxZoom?: number
   singlePlaceZoom?: number
-  /**
-   * Does the renderer draw markers on the nearest copy of a repeating world? MapLibre/Mapbox
-   * do; Leaflet does not. Only a wrapping renderer can be framed across the antimeridian.
-   * Defaults to true for the GL tile scheme, false for the raster one.
-   */
-  wrapsWorld?: boolean
 }
 
 const NO_PADDING: ViewportPadding = { top: 0, right: 0, bottom: 0, left: 0 }
@@ -104,46 +95,15 @@ function latRad(lat: number): number {
 }
 
 /**
- * The narrowest arc of longitude containing every point, which may cross the antimeridian:
- * a trip spanning Fiji (178) and Samoa (-172) is 10° wide, not 350°.
+ * The plain min..max arc of longitude — the long way round across the antimeridian.
  *
- * Found by locating the widest *gap* between neighbouring longitudes — the places occupy
- * everything the gap doesn't. Comparing plain min/max against its complement instead would
- * be right for two points but wrong for three or more, where the complement of the min-max
- * span can exclude a point sitting inside it.
- *
- * `east` may exceed 180 when the arc wraps; callers project it and let unproject wrap back.
- *
- * Only sound when the renderer wraps the world. MapLibre/Mapbox draw a marker on whichever
- * copy of the world is nearest the camera; Leaflet does not, so a centre reached "the short
- * way" across the antimeridian leaves markers on the far side of the single world it drew,
- * off-screen entirely. For those, take the plain min..max arc — the long way round — which is
- * also what L.latLngBounds would do.
+ * Leaflet draws a single world and places markers at their absolute position, so a centre
+ * reached "the short way" across the antimeridian would leave markers on the far side of
+ * the one world it drew, off-screen entirely. This is also what L.latLngBounds would do.
  */
-function lngExtent(lngs: number[], wrapsWorld: boolean): { west: number; east: number; span: number } {
+function lngExtent(lngs: number[]): { west: number; east: number; span: number } {
   const sorted = [...lngs].sort((a, b) => a - b)
-  const last = sorted.length - 1
-
-  if (!wrapsWorld) {
-    return { west: sorted[0], east: sorted[last], span: sorted[last] - sorted[0] }
-  }
-
-  // The gap that wraps past the antimeridian, from the easternmost point back to the westernmost.
-  let widestGap = sorted[0] + 360 - sorted[last]
-  let west = sorted[0]
-  let east = sorted[last]
-
-  for (let i = 0; i < last; i++) {
-    const gap = sorted[i + 1] - sorted[i]
-    if (gap > widestGap) {
-      widestGap = gap
-      // The arc resumes on the far side of the gap and runs east, across the antimeridian.
-      west = sorted[i + 1]
-      east = sorted[i] + 360
-    }
-  }
-
-  return { west, east, span: east - west }
+  return { west: sorted[0], east: sorted[sorted.length - 1], span: sorted[sorted.length - 1] - sorted[0] }
 }
 
 /** Zoom at which a span covering `fraction` of the world fills `px` pixels. */
@@ -208,11 +168,8 @@ export function computeMapViewport(
   if (pts.length === 0) return null
 
   const tileSize = options.tileSize ?? TILE_SIZE_RASTER
-  const isGl = tileSize === TILE_SIZE_GL
-  const maxZoom = options.maxZoom ?? (isGl ? MAX_ZOOM_GL : MAX_ZOOM_RASTER)
-  const singlePlaceZoom = options.singlePlaceZoom
-    ?? (isGl ? SINGLE_PLACE_ZOOM_RASTER - 1 : SINGLE_PLACE_ZOOM_RASTER)
-  const wrapsWorld = options.wrapsWorld ?? isGl
+  const maxZoom = options.maxZoom ?? MAX_ZOOM_RASTER
+  const singlePlaceZoom = options.singlePlaceZoom ?? SINGLE_PLACE_ZOOM_RASTER
 
   const padding: ViewportPadding = { ...NO_PADDING, ...options.padding }
   const rawWidth = options.width ?? defaultWidth()
@@ -227,7 +184,7 @@ export function computeMapViewport(
   const lats = pts.map(p => p[0])
   const south = Math.min(...lats)
   const north = Math.max(...lats)
-  const { west, east, span } = lngExtent(pts.map(p => p[1]), wrapsWorld)
+  const { west, east, span } = lngExtent(pts.map(p => p[1]))
 
   const latFraction = (latRad(north) - latRad(south)) / Math.PI
   const lngFraction = span / 360

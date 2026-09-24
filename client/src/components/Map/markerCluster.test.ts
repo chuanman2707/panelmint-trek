@@ -10,7 +10,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import L from 'leaflet'
 import 'leaflet.markercluster'
 import { CLUSTER_OPTIONS, CLUSTER_RADIUS_PX, CLUSTER_UNTIL_ZOOM, revealInCluster } from './markerCluster'
-import { COINCIDENT_RADIUS_PX, STACK_RADIUS_PX } from './coincidentPlaces'
+import { STACK_RADIUS_PX } from './coincidentPlaces'
 import { MAP_MAX_ZOOM } from '../../constants/mapDefaults'
 
 /**
@@ -58,9 +58,6 @@ describe('the shared cluster options', () => {
     expect(radius(CLUSTER_UNTIL_ZOOM - 1)).toBe(CLUSTER_RADIUS_PX)
     expect(radius(CLUSTER_UNTIL_ZOOM)).toBe(STACK_RADIUS_PX)
     expect(radius(MAP_MAX_ZOOM)).toBe(STACK_RADIUS_PX)
-    // Wider than what the GL renderer folds at, and meant to stay wider: a bubble here
-    // hands the stops in it back on a click, where a folded GL pin is simply gone.
-    expect(STACK_RADIUS_PX).toBeGreaterThan(COINCIDENT_RADIUS_PX)
   })
 
   it('MARKERCLUSTER-002: carry no clustering cutoff at all, not even an undefined one', () => {

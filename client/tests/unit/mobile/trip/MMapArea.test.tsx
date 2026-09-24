@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => ({
   props: {} as Record<string, unknown>,
 }))
 
-// The real renderer boots Leaflet/MapLibre; the area only ever hands it props.
+// The real renderer boots Leaflet; the area only ever hands it props.
 vi.mock('../../../../src/components/Map/MapViewAuto', () => ({
   MapViewAuto: (props: Record<string, unknown>) => {
     mocks.props = props

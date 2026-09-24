@@ -22,12 +22,11 @@ import { join, relative } from 'node:path';
 let SRC = new URL('../src', import.meta.url).pathname;
 if (process.platform === 'win32' && SRC.startsWith('/')) SRC = SRC.slice(1);
 
-// Surfaces where CSS variables genuinely cannot reach (injected map HTML, WebGL
-// paint, standalone PDF documents) — colors there must stay literal.
+// Surfaces where CSS variables genuinely cannot reach (injected map HTML,
+// standalone PDF documents) — colors there must stay literal.
 const EXEMPT = [
-  /Mapbox/i, /placePopup/i, /marker/i, /popup/i, /TripPDF/, /JourneyBookPDF/,
-  /MapViewGL/, /MapView\./, /JourneyMapGL/, /reservationsMapbox/, /useAtlas/,
-  /ReservationOverlay/, /\.test\./, /\.spec\./,
+  /placePopup/i, /marker/i, /popup/i, /TripPDF/, /JourneyBookPDF/,
+  /MapView\./, /useAtlas/, /ReservationOverlay/, /\.test\./, /\.spec\./,
 ];
 
 const ARB_CLASS = /\b(?:bg|text|border|ring|fill|stroke|from|via|to|shadow|outline|decoration|divide|caret)-\[\s*(?:#|rgba?\(|hsla?\(|oklch\()/;

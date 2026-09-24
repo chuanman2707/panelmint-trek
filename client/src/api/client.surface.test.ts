@@ -17,7 +17,7 @@ import {
   tripsApi, daysApi, placesApi, assignmentsApi, packingApi, todoApi,
   tagsApi, categoriesApi,
   mapsApi, airportsApi, budgetApi, filesApi, reservationsApi, weatherApi,
-  settingsApi, accommodationsApi, dayNotesApi,
+  accommodationsApi, dayNotesApi,
 } from './client'
 
 interface Recorded { method: string; url: string; body: unknown }
@@ -326,9 +326,6 @@ describe('client > endpoint wiring', () => {
       { n: 'weather.get', r: () => weatherApi.get(41.9, 12.5, '2026-06-01'), e: 'GET /api/weather' },
       { n: 'weather.getCurrent', r: () => weatherApi.getCurrent(41.9, 12.5), e: 'GET /api/weather' },
       { n: 'weather.getDetailed', r: () => weatherApi.getDetailed(41.9, 12.5, '2026-06-01'), e: 'GET /api/weather/detailed' },
-      { n: 'settings.get', r: () => settingsApi.get(), e: 'GET /api/settings' },
-      { n: 'settings.set', r: () => settingsApi.set('theme', 'dark'), e: 'PUT /api/settings' },
-      { n: 'settings.setBulk', r: () => settingsApi.setBulk({ theme: 'dark' }), e: 'POST /api/settings/bulk' },
     ])
   })
 })
@@ -376,8 +373,6 @@ describe('client > request payloads', () => {
     expect((await db.days.get(2))?.default_transport_mode).toBe('walk')
     expect(log).toHaveLength(0)
     expect((await traceOne(() => assignmentsApi.updateTransport(1, 7, null))).body).toEqual({ transport_mode: null })
-    expect((await traceOne(() => settingsApi.set('theme', 'dark'))).body).toEqual({ key: 'theme', value: 'dark' })
-    expect((await traceOne(() => settingsApi.setBulk({ a: 1 }))).body).toEqual({ settings: { a: 1 } })
     expect((await traceOne(() => budgetApi.togglePaid(1, 2, 4, false))).body).toEqual({ paid: false })
   })
 

@@ -1675,7 +1675,7 @@ describe('useTripPlanner — misc state', () => {
     seedTrip()
 
     const { result } = await renderPlanner()
-    expect(result.current.mapTileUrl).toContain('openfreemap.org')
+    expect(result.current.mapTileUrl).toContain('tile.openstreetmap.org')
 
     act(() => { setSettings({ map_tile_url: 'https://tiles/{z}/{x}/{y}.png' }) })
     expect(result.current.mapTileUrl).toBe('https://tiles/{z}/{x}/{y}.png')

@@ -49,28 +49,6 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
 .roadtrip-rail-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .roadtrip-rail-scroll::-webkit-scrollbar { display: none; }
 
-/* Journey video: let the player fill the box the lightbox gives it.
- *
- * Plyr sizes its wrapper from the video's intrinsic aspect ratio via a
- * padding-bottom hack, which fights a fixed-height container — a portrait clip
- * then overflowed and pushed its own controls out of reach (#2041). Pinning the
- * wrapper to the box and letting the video letterbox inside it keeps any aspect
- * ratio whole and the control bar on screen. */
-.trek-video-player .plyr,
-.trek-video-player .plyr__video-wrapper {
-  width: 100%;
-  height: 100%;
-  background: #000;
-}
-.trek-video-player .plyr__video-wrapper {
-  padding-bottom: 0 !important;
-}
-.trek-video-player video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
-}
-
 /* Leaflet Popups — Enter-Animation vom Anchor-Tip */
 .leaflet-popup {
   animation: trek-popover-enter 220ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -93,35 +71,6 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
 .leaflet-popup-close-button:hover {
   transform: scale(1.15);
   color: var(--text-primary) !important;
-}
-
-/* GL hover popup — the name/category/address card on marker hover.
-   Matches the Leaflet map's white hover tooltip. pointer-events:none so moving
-   onto the popup never steals the marker's mouseleave and causes flicker. */
-.trek-map-popup { pointer-events: none; }
-.trek-map-popup .mapboxgl-popup-content,
-.trek-map-popup .maplibregl-popup-content {
-  padding: 7px 10px;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
-}
-/* No speech-bubble tail on the hover card. The card stands off its marker by
-   26px and reads as a label, not as a callout pinned to a point — the tail
-   hung off the bottom edge as a stray notch. The popup's offset carries the
-   gap on its own. */
-.trek-map-popup .mapboxgl-popup-tip,
-.trek-map-popup .maplibregl-popup-tip {
-  display: none;
-}
-/* Both engines square off one corner per anchor so the tail meets the card
-   flush (.maplibregl-popup-anchor-bottom-left .maplibregl-popup-content and
-   its three siblings). Same specificity as the rule above, so which one wins
-   comes down to stylesheet order — and with no tail there, a squared corner is
-   just a squared corner. `[class]` buys the extra weight to settle it. */
-.trek-map-popup[class] .mapboxgl-popup-content,
-.trek-map-popup[class] .maplibregl-popup-content {
-  border-radius: 10px;
 }
 
 .atlas-tooltip {
@@ -308,20 +257,15 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
 }
 
 /* ── Press-Feedback + bessere Easings (Emil Kowalski) ─────────── */
-/* Buttons sollen antworten wenn sie gedrückt werden.
-   Map-Marker sind ausgenommen: MapLibre und Mapbox geben ihrem Marker-Element
-   role="button" und schreiben dessen `transform` bei jedem Frame einer Bewegung
-   neu. Mit einem Übergang darauf hinkt die Nadel dem Kartenzug hinterher und
-   springt am Ende an ihren Ort zurück, und ein Klick würde den scale(0.97) über
-   die Positionierung der Bibliothek legen. */
+/* Buttons sollen antworten wenn sie gedrückt werden. */
 button:not(:disabled):not([data-no-press]),
-[role="button"]:not([aria-disabled="true"]):not([data-no-press]):not(.maplibregl-marker):not(.mapboxgl-marker) {
+[role="button"]:not([aria-disabled="true"]):not([data-no-press]) {
   transition-property: transform, color, background-color, border-color, box-shadow, opacity, filter !important;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 }
 button:not(:disabled):not([data-no-press]):active,
-[role="button"]:not([aria-disabled="true"]):not([data-no-press]):not(.maplibregl-marker):not(.mapboxgl-marker):active {
+[role="button"]:not([aria-disabled="true"]):not([data-no-press]):active {
   transform: scale(0.97);
   transition-duration: 80ms;
 }
@@ -1088,8 +1032,6 @@ html[data-no-transparency] .atlas-tooltip::before { border-top-color: var(--bg-c
 html[data-no-transparency] .leaflet-control-zoom a { background: var(--bg-card) !important; }
 html[data-no-transparency] .map-tooltip,
 html[data-no-transparency] .leaflet-tooltip.map-tooltip { background: var(--bg-card) !important; }
-html[data-no-transparency] .trek-map-popup .mapboxgl-popup-content,
-html[data-no-transparency] .trek-map-popup .maplibregl-popup-content { background: var(--bg-card) !important; }
 
 /* ── Compact density ──────────────────────────────────────────────
    Tightens the spacing scale; reach grows as components adopt the tokens. */

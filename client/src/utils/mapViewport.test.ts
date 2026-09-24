@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   computeMapViewport,
-  MAX_ZOOM_GL,
   MAX_ZOOM_RASTER,
   SINGLE_PLACE_ZOOM_RASTER,
-  TILE_SIZE_GL,
   TILE_SIZE_RASTER,
 } from './mapViewport'
 
@@ -23,10 +21,6 @@ function screenPosition(
   viewport: { center: [number, number]; zoom: number },
   tileSize: number,
   size = VIEW,
-  // Only MapLibre/Mapbox redraw a marker on the nearest copy of the world. Leaflet places it
-  // at its absolute projected position, so assuming a wrap here would hide exactly the bug
-  // that puts a marker off-screen in the real app.
-  wrapsWorld = false,
 ): { x: number; y: number } {
   const project = (lat: number, lng: number) => {
     const scale = tileSize * Math.pow(2, viewport.zoom)
@@ -39,11 +33,10 @@ function screenPosition(
   const p = project(point.lat, point.lng)
   const c = project(viewport.center[0], viewport.center[1])
 
-  const worldWidth = tileSize * Math.pow(2, viewport.zoom)
-  const raw = p.x - c.x
-  const dx = wrapsWorld
-    ? ((raw + worldWidth / 2) % worldWidth + worldWidth) % worldWidth - worldWidth / 2
-    : raw
+  // Leaflet places a marker at its absolute projected position on the single world it
+  // draws — no wrap adjustment here, or the test would hide exactly the bug that puts a
+  // marker off-screen in the real app.
+  const dx = p.x - c.x
 
   return { x: dx + size.width / 2, y: p.y - c.y + size.height / 2 }
 }
@@ -115,17 +108,7 @@ describe('computeMapViewport', () => {
   const FIJI = { lat: -18.14, lng: 178.44 }
   const SAMOA = { lat: -13.76, lng: -172.1 }
 
-  it('takes the short way round the antimeridian on a renderer that wraps the world', () => {
-    // Fiji and Samoa are 10 degrees apart, not 350 — MapLibre/Mapbox draw each marker on the
-    // copy of the world nearest the camera, so this centre is safe there.
-    const viewport = computeMapViewport([FIJI, SAMOA], { ...VIEW, tileSize: TILE_SIZE_GL })!
-
-    expect(viewport.center[1]).toBeCloseTo(-176.83, 1)
-    // A 350-degree span would have collapsed the zoom to the world view.
-    expect(viewport.zoom).toBeGreaterThan(3)
-  })
-
-  it('goes the long way round on Leaflet, which does not wrap markers', () => {
+  it('goes the long way round the antimeridian, which does not wrap markers', () => {
     // Leaflet draws a single world and places markers at their absolute position. Centring on
     // the antimeridian would leave one of these two outside it entirely — so span the 350
     // degrees instead, as L.latLngBounds would.
@@ -152,26 +135,16 @@ describe('computeMapViewport', () => {
     expect(viewport.center[0]).toBeLessThanOrEqual(85.0511)
   })
 
-  it('returns a GL zoom exactly one level below the raster zoom for the same view', () => {
-    const raster = computeMapViewport([PARIS, LYON], { ...VIEW, tileSize: TILE_SIZE_RASTER })!
-    const gl = computeMapViewport([PARIS, LYON], { ...VIEW, tileSize: TILE_SIZE_GL })!
-
-    expect(gl.zoom).toBeCloseTo(raster.zoom - 1, 6)
-    expect(gl.center).toEqual(raster.center)
-  })
-
   it('never zooms past the renderer maxZoom for two nearly identical places', () => {
     const almost = { lat: PARIS.lat + 0.00001, lng: PARIS.lng + 0.00001 }
 
     expect(computeMapViewport([PARIS, almost], { ...VIEW, tileSize: TILE_SIZE_RASTER })!.zoom)
       .toBe(MAX_ZOOM_RASTER)
-    expect(computeMapViewport([PARIS, almost], { ...VIEW, tileSize: TILE_SIZE_GL })!.zoom)
-      .toBe(MAX_ZOOM_GL)
   })
 
   // Sydney, Reykjavik and Santiago: the narrowest arc containing all three crosses the
   // antimeridian. On Leaflet that centre put Sydney outside the one world it draws — the
-  // marker simply vanished. Assert against each renderer's real wrapping behaviour.
+  // marker simply vanished.
   const GLOBE = [
     { lat: -33.87, lng: 151.21 },  // Sydney
     { lat: 64.15, lng: -21.94 },   // Reykjavik
@@ -186,18 +159,6 @@ describe('computeMapViewport', () => {
 
     for (const place of GLOBE) {
       const { x, y } = screenPosition(place, viewport, TILE_SIZE_RASTER)
-      expect(x).toBeGreaterThanOrEqual(0)
-      expect(x).toBeLessThanOrEqual(VIEW.width)
-      expect(y).toBeGreaterThanOrEqual(0)
-      expect(y).toBeLessThanOrEqual(VIEW.height)
-    }
-  })
-
-  it('keeps a globe-spanning trip on screen in GL, which does wrap', () => {
-    const viewport = computeMapViewport(GLOBE, { ...VIEW, tileSize: TILE_SIZE_GL })!
-
-    for (const place of GLOBE) {
-      const { x, y } = screenPosition(place, viewport, TILE_SIZE_GL, VIEW, true)
       expect(x).toBeGreaterThanOrEqual(0)
       expect(x).toBeLessThanOrEqual(VIEW.width)
       expect(y).toBeGreaterThanOrEqual(0)

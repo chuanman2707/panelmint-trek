@@ -336,7 +336,7 @@
 
 /* The phone map carries no visible credit.
  *
- * Both engines park a credit at the bottom of the map, and on a phone the map is the
+ * Leaflet parks a credit at the bottom of the map, and on a phone the map is the
  * whole screen, so whatever is put there sits in the middle of the picture. It has been
  * a band across the bottom (#2022) and then a round (i) beside the locate button, and
  * neither reads as part of this shell: a lone control under the locate button is the
@@ -344,16 +344,9 @@
  *
  * So on the phone it is off. The desktop map is untouched and still shows the full
  * credit with its links, which is where this belongs; `.m-root` is the phone shell only.
- * Both engines and both corners, because a phone meets either depending on the screen,
- * and the GL containers hold nothing else — MapViewGL adds no control of its own, so
- * hiding the corner hides the credit and the wordmark and nothing besides.
  *
  * Owner's call, made knowingly: OSM and the tile vendors ask for a visible credit. */
-.m-root .leaflet-control-attribution,
-.m-root .maplibregl-ctrl-bottom-left,
-.m-root .mapboxgl-ctrl-bottom-left,
-.m-root .maplibregl-ctrl-bottom-right,
-.m-root .mapboxgl-ctrl-bottom-right {
+.m-root .leaflet-control-attribution {
   display: none;
 }
 

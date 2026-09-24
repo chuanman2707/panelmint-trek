@@ -15,12 +15,7 @@ vi.mock('../Map/tripRouteGeometry', async (importActual) => {
   return { ...actual, routeTrip: vi.fn(actual.routeTrip) }
 })
 
-// jsdom has no WebGL, so the real renderer always declines — mocked so both the
-// basemap branch and the outline fallback can be exercised.
-vi.mock('./tripMapImage', () => ({ renderTripMapImage: vi.fn(async () => null) }))
-
 const { calculateRouteWithLegs } = await import('../Map/RouteCalculator')
-const { renderTripMapImage } = await import('./tripMapImage')
 const { routeTrip } = await import('../Map/tripRouteGeometry')
 const { downloadTripPDF } = await import('./TripPDF')
 
@@ -132,27 +127,6 @@ describe('trip route map in the PDF', () => {
     // Between the cover and the days, which is where it is meant to read.
     expect(html.indexOf('class="trip-map"')).toBeGreaterThan(html.indexOf('class="cover"'))
     expect(html.indexOf('class="trip-map"')).toBeLessThan(html.indexOf('class="day-section"'))
-  })
-
-  it('FE-COMP-TRIPPDF-MAP-011: prefers the real basemap when it renders', async () => {
-    vi.mocked(renderTripMapImage).mockResolvedValueOnce(
-      '<svg class="trip-map-svg"><image href="data:image/png;base64,AAA"/></svg>',
-    )
-    await downloadTripPDF(args)
-    const html = srcdoc()
-
-    expect(html).toContain('data:image/png;base64,AAA')
-    // The outline map's sea rectangle is the tell that the fallback drew instead.
-    expect(html).not.toContain('#eef3f7')
-  })
-
-  it('FE-COMP-TRIPPDF-MAP-012: falls back to the outline map when the basemap declines', async () => {
-    vi.mocked(renderTripMapImage).mockResolvedValueOnce(null)
-    await downloadTripPDF(args)
-    const html = srcdoc()
-
-    expect(html).toContain('<svg class="trip-map-svg"')
-    expect(html).toContain('#eef3f7')
   })
 
   it('FE-COMP-TRIPPDF-MAP-005: a trip with no planned day prints without a map', async () => {

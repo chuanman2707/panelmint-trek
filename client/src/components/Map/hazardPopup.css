@@ -64,16 +64,6 @@
   margin: 14px 16px;
 }
 
-.trek-hazard-popup .mapboxgl-popup-content,
-.trek-hazard-popup .maplibregl-popup-content {
-  padding: 14px 16px;
-  border: 1px solid var(--border-faint);
-  border-radius: 14px;
-  background: var(--bg-card);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-popover);
-}
-
 .trek-hazard-popup a.trek-hazard-source {
   color: var(--text-secondary);
   text-decoration: none;
@@ -84,9 +74,7 @@
   color: var(--text-primary);
 }
 
-.leaflet-container .trek-hazard-popup a.leaflet-popup-close-button,
-.trek-hazard-popup .mapboxgl-popup-close-button,
-.trek-hazard-popup .maplibregl-popup-close-button {
+.leaflet-container .trek-hazard-popup a.leaflet-popup-close-button {
   top: 10px;
   right: 10px;
   width: 26px;
@@ -104,8 +92,8 @@
   display: none;
 }
 
-.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::before,
-.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::after {
+.trek-hazard-popup .leaflet-popup-close-button::before,
+.trek-hazard-popup .leaflet-popup-close-button::after {
   content: '';
   position: absolute;
   top: 12px;
@@ -117,11 +105,11 @@
   transform: rotate(45deg);
 }
 
-.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button)::after {
+.trek-hazard-popup .leaflet-popup-close-button::after {
   transform: rotate(-45deg);
 }
 
-.trek-hazard-popup :is(.leaflet-popup-close-button, .mapboxgl-popup-close-button, .maplibregl-popup-close-button):hover {
+.trek-hazard-popup .leaflet-popup-close-button:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
   transform: none;

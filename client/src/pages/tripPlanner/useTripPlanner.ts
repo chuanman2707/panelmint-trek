@@ -55,7 +55,7 @@ import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useIsTouch } from '../../hooks/useIsTouch'
 import type { Accommodation, Assignment, TripMember, Day, Place, Reservation } from '../../types'
-import { OFM_POSITRON, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { RASTER_FALLBACK_TILE_URL, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { applyStayStops } from '../../store/stayStops'
 import { resolvePoolAssignmentId } from './tripPlannerModel'
@@ -2401,7 +2401,7 @@ export function useTripPlanner() {
     return da.map(a => a.place).filter(p => p?.lat && p?.lng)
   }, [selectedDayId, assignments])
 
-  const mapTileUrl = useTileUrl(OFM_POSITRON)
+  const mapTileUrl = useTileUrl(RASTER_FALLBACK_TILE_URL)
 
   const fontStyle = { fontFamily: "var(--font-system)" }
 

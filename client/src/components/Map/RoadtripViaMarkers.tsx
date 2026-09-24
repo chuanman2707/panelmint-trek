@@ -30,8 +30,7 @@ interface RoadtripViaMarkersProps {
   onRemoveVia?: (dayId: number, id: number) => void
 }
 
-/** Leaflet's half; the GL renderers draw their own inside `MapViewGL`. */
-/** Below this the handles are not drawn. Shared with the GL renderer's own copy. */
+/** Below this the handles are not drawn. */
 const VIA_MIN_ZOOM = 9
 
 export default function RoadtripViaMarkers({

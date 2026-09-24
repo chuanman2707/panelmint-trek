@@ -7,8 +7,7 @@ export const DEFAULT_MAP_CENTER: [number, number] = [DEFAULT_MAP_LAT, DEFAULT_MA
  * Zoom ceiling for a Leaflet map, set on the map rather than on its base layer.
  *
  * Leaflet answers `getMaxZoom()` from the map options first and only then from a
- * layer that carried one, and only a GridLayer ever contributes: a vector
- * basemap is a GL canvas, so a map drawn by one has no ceiling from anywhere.
+ * layer that carried one, and only a GridLayer ever contributes.
  * `MarkerClusterGroup.onAdd` refuses an infinite ceiling by throwing, which is
  * how a basemap choice could take down the whole planner. Matches the raster and
  * satellite layers so nothing changes for the maps that already had one.
@@ -23,29 +22,21 @@ export const SATELLITE_TILE_ATTRIBUTION =
 export const SATELLITE_TILE_MAXZOOM = 19
 
 /**
- * The basemap for a browser that will not give MapLibre a WebGL context (#2288).
+ * The default basemap, and the stand-in for a stored vector style.
  *
- * OpenFreeMap serves vector tiles only, so the app default needs a GL canvas, and
- * with WebGL off there is nothing to draw it on. Of the keyless raster sources
- * TREK already points at, this is the only street map: the ESRI layer above is
- * imagery, and the CARTO templates below have carried an "API KEY REQUIRED"
- * watermark since 26.08.2026. It is preset one in the Map settings tab, so this
- * aims no new traffic at OSM's servers, and the volume is bounded by how few
- * browsers refuse a context in the first place. Attribution is required and comes
- * from attributionForTile(), which already reads this host as OpenStreetMap.
+ * PanelMint renders raster tiles only — the GL engines and the vector basemap
+ * went away with the maplibre-gl/mapbox-gl dependencies. Of the keyless raster
+ * sources this is the only street map: the ESRI layer above is imagery, and the
+ * CARTO templates below have carried an "API KEY REQUIRED" watermark since
+ * 26.08.2026. Attribution is required and comes from attributionForTile(),
+ * which already reads this host as OpenStreetMap.
  */
 export const RASTER_FALLBACK_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 export const RASTER_FALLBACK_MAX_ZOOM = 19
 
-// OpenFreeMap, the default basemap since CARTO began watermarking keyless tiles
-// on 26.08.2026 and moved its key behind a request by mail. No key, no
-// registration, no request limits, commercial use allowed, attribution required.
-//
-// These are MapLibre STYLE documents, not {z}/{x}/{y} templates: OpenFreeMap
-// serves vector tiles only. Leaflet draws them through VectorBasemap. Positron
-// is the same design CARTO's light basemap was, so the maps look like they did.
-export const OFM_POSITRON = 'https://tiles.openfreemap.org/styles/positron'
-export const OFM_DARK = 'https://tiles.openfreemap.org/styles/dark'
+// Credit for a stored OpenFreeMap style URL — legacy settings rows may still
+// hold one, and it resolves to the raster fallback above; kept so
+// attributionForTile() answers the right licence for it.
 export const OFM_ATTRIBUTION =
   '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 

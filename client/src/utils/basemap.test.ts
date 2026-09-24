@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { isVectorStyle, resolveBasemap, resolveTileUrl } from './tileUrl'
-import { OFM_POSITRON, attributionForTile, OFM_ATTRIBUTION } from '../constants/mapDefaults'
+import { attributionForTile, OFM_ATTRIBUTION } from '../constants/mapDefaults'
 
+// A MapLibre style document URL — no {z}/{x}/{y} placeholders. OpenFreeMap's
+// preset is the real-world case: it is what an unconverted settings row holds.
+const OFM_POSITRON = 'https://tiles.openfreemap.org/styles/positron'
 const CARTO = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 const CUSTOM = 'https://tiles.example.test/{z}/{x}/{y}.png'
 

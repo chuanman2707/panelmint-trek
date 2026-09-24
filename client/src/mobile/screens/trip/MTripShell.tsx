@@ -417,7 +417,7 @@ export default function MTripShell({
         One expression for both map tabs, and it has to stay one: written as two
         (`{trTab === 'plan' && <MapArea/>}{trTab === 'roadtrip' && <MapArea/>}`)
         React sees two positions and remounts the map on every tab switch, which
-        tears down the WebGL context and reloads every tile. The symptom is a flash
+        tears the Leaflet map down and reloads every tile. The symptom is a flash
         on the device, not a failing test.
       */}
       {MAP_TABS.has(trTab) && (

@@ -12,8 +12,6 @@ import {
   mapsReverseResultSchema,
   mapsResolveUrlResultSchema,
   mapsPlaceEnrichmentResultSchema,
-  type SettingUpsertRequest,
-  type SettingsBulkRequest,
   type AssignmentReorderRequest,
   type PackingReorderRequest,
   type PackingCreateBagRequest,
@@ -128,7 +126,7 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
 function translateRateLimit(): string {
   const fallback = RATE_LIMIT_MESSAGES['en']!
   try {
-    const lang = localStorage.getItem('app_language') || localStorage.getItem('app_language_server') || 'en'
+    const lang = localStorage.getItem('app_language') || 'en'
     return RATE_LIMIT_MESSAGES[lang] ?? fallback
   } catch {
     return fallback
@@ -483,18 +481,6 @@ export const weatherApi = {
   get: (lat: number, lng: number, date: string, lang?: string, time?: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, date, lang, time } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.get')),
   getCurrent: (lat: number, lng: number, lang?: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, lang } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.getCurrent')),
   getDetailed: (lat: number, lng: number, date: string, lang?: string): Promise<WeatherResult> => apiClient.get('/weather/detailed', { params: { lat, lng, date, lang } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.getDetailed')),
-}
-
-export const settingsApi = {
-  get: () => apiClient.get('/settings').then(r => r.data),
-  set: (key: string, value: unknown) => {
-    const body: SettingUpsertRequest = { key, value }
-    return apiClient.put('/settings', body).then(r => r.data)
-  },
-  setBulk: (settings: Record<string, unknown>) => {
-    const body: SettingsBulkRequest = { settings }
-    return apiClient.post('/settings/bulk', body).then(r => r.data)
-  },
 }
 
 export const accommodationsApi = {
