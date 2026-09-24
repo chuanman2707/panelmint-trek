@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { roadtripDayBoundaryListSchema, type RoadtripDayBoundary } from '@trek/shared'
 import { apiClient } from '../../api/client'
-import { addListener, removeListener } from '../../api/websocket'
 import { useNetworkMode } from '../../hooks/useNetworkMode'
 
 const EMPTY: RoadtripDayBoundary[] = []
@@ -26,19 +25,6 @@ export function useDayBoundaries(tripId: number | string | null, active: boolean
     }).catch(() => { if (!cancelled) setStale(true) })
     return () => { cancelled = true }
   }, [tripId, active, offline, assignments])
-  useEffect(() => {
-    if (!tripId || !active) return
-    const receive = (event: Record<string, unknown>) => {
-      if (event.type !== 'roadtripBoundary:changed' || String(event.tripId) !== String(tripId)) return
-      const parsed = roadtripDayBoundaryListSchema.safeParse(event)
-      if (!parsed.success) return
-      revision.current++
-      setStored({ tripId, boundaries: parsed.data.boundaries })
-      setStale(false)
-    }
-    addListener(receive)
-    return () => removeListener(receive)
-  }, [tripId, active])
   const save = useCallback(async (day: number, boundary: RoadtripDayBoundary | null) => {
     if (!tripId || offline || busy.current) return false
     busy.current = true

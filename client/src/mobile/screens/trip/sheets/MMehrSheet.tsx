@@ -1,4 +1,4 @@
-import { ChevronRight, FileDown, Settings, Share2 } from 'lucide-react'
+import { ChevronRight, FileDown, Settings } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -35,9 +35,6 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
     if (id === 'dateien') {
       return t('mobileTrip.statDocuments', { count: planner.files.filter(f => !f.deleted_at).length })
     }
-    if (id === 'collab') {
-      return t('mobileTrip.statPeople', { count: planner.tripMembers.length })
-    }
     return null
   }
 
@@ -47,7 +44,6 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   }
 
   const actions: { id: string; icon: LucideIcon; label: string; go: () => void }[] = [
-    { id: 'members', icon: Share2, label: t('members.shareTrip'), go: () => shell.openSheet('members') },
     { id: 'export', icon: FileDown, label: t('mobileTrip.export'), go: () => shell.openSheet('export') },
     ...(canEditTrip
       ? [{ id: 'tripedit', icon: Settings, label: t('dashboard.editTrip'), go: () => shell.openSheet('tripedit') }]

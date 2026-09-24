@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Archive, ArchiveRestore, ArrowRight, Bell, CalendarDays, CalendarPlus, Copy,
+  Archive, ArchiveRestore, ArrowRight, CalendarDays, Copy,
   LayoutGrid, List, MapPin, Pencil, Plus, RefreshCw, Trash2, Users,
 } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
@@ -10,16 +10,9 @@ import {
   type DashboardTrip, MS_PER_DAY, daysUntil, getTripStatus,
 } from '../../../pages/dashboard/dashboardModel'
 import { useAuthStore } from '../../../store/authStore'
-import { useInAppNotificationStore } from '../../../store/inAppNotificationStore'
-import { usePluginStore } from '../../../store/pluginStore'
-import { useTripCardBadges } from '../../../components/Plugins/TripCardBadges'
-import type { TripCardBadge } from '../../../api/client'
 import DemoBanner from '../../../components/Layout/DemoBanner'
-import { IcsSubscribeModal } from '../../../components/Planner/IcsSubscribeModal'
-import PluginWidgets from '../../../components/Plugins/PluginWidgets'
 import { entityGradient } from '../../../utils/gradients'
 import MGlassBar from '../../components/MGlassBar'
-import MIconBtn from '../../components/MIconBtn'
 import MSegmented from '../../components/MSegmented'
 import MSheet from '../../components/MSheet'
 import MUserMenu from './MUserMenu'
@@ -63,25 +56,13 @@ export default function MDashboard(): React.ReactElement {
   } = useDashboard()
 
   const user = useAuthStore(s => s.user)
-  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
-  const unread = useInAppNotificationStore(s => s.unreadCount)
-  const fetchUnreadCount = useInAppNotificationStore(s => s.fetchUnreadCount)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [subOpen, setSubOpen] = useState(false)
-
-  // Plugin dashboard widgets + trip-card badges, mirroring the desktop page:
-  // same slot filter (only true dashboard widgets), one badge fetch for all
-  // visible cards, gated on any plugin being active. Fail-safe like desktop.
-  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail' && p.slot !== 'day-detail' && p.slot !== 'reservation-detail')
-  const anyPluginActive = usePluginStore(s => s.plugins).length > 0
-  const badgesFor = useTripCardBadges(gridTrips.map(trip => trip.id), anyPluginActive)
 
   // Mobile-only dashboard arrangement: the featured trip stays on top, then the
   // trip list + widgets render in the user's chosen order (Settings → Appearance).
   const dashOrder = useMobileDashOrder()
   const dashVisible = useMobileDashVisibility()
 
-  useEffect(() => { if (isAuthenticated) fetchUnreadCount() }, [isAuthenticated, fetchUnreadCount])
 
   const openCreate = () => { setEditingTrip(null); setShowForm(true) }
   const openEdit = (trip: DashboardTrip) => { setEditingTrip(trip); setShowForm(true) }
@@ -151,9 +132,7 @@ export default function MDashboard(): React.ReactElement {
               ]}
             />
           </div>
-          <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="ml-auto" onClick={() => setSubOpen(true)}>
-            <CalendarPlus size={15} strokeWidth={2} className="text-m-muted" />
-          </MIconBtn>
+          <div className="ml-auto" />
           <button
             type="button"
             onClick={toggleViewMode}
@@ -192,7 +171,6 @@ export default function MDashboard(): React.ReactElement {
                 trip={trip}
                 locale={locale}
                 badge={statusLabel(trip)}
-                pluginBadges={badgesFor(trip.id)}
                 actions={actionsFor(trip, 'grid')}
                 onOpen={() => navigate(`/trips/${trip.id}`)}
               />
@@ -207,7 +185,6 @@ export default function MDashboard(): React.ReactElement {
                 locale={locale}
                 t={t}
                 badge={statusLabel(trip)}
-                pluginBadges={badgesFor(trip.id)}
                 actions={actionsFor(trip, 'list')}
                 onOpen={() => navigate(`/trips/${trip.id}`)}
               />
@@ -233,12 +210,6 @@ export default function MDashboard(): React.ReactElement {
           </span>
         </button>
         <div className="min-w-0 flex-1" />
-        <MIconBtn ariaLabel={t('notifications.title')} onClick={() => navigate('/notifications')}>
-          <Bell size={18} strokeWidth={2} />
-          {unread > 0 && (
-            <span aria-hidden className="absolute right-[9px] top-2 h-[7px] w-[7px] rounded-full bg-m-ink" />
-          )}
-        </MIconBtn>
         <button
           type="button"
           onClick={() => setMenuOpen(o => !o)}
@@ -284,11 +255,6 @@ export default function MDashboard(): React.ReactElement {
           <React.Fragment key={id}>{renderBlock(id)}</React.Fragment>
         ))}
 
-        {widgetPlugins.length > 0 && (
-          <div className="mt-3 flex flex-col gap-3">
-            <PluginWidgets plugins={widgetPlugins} tripId={spotlight ? String(spotlight.id) : null} />
-          </div>
-        )}
       </div>
 
       <MNewTripSheet
@@ -319,15 +285,6 @@ export default function MDashboard(): React.ReactElement {
         onConfirm={confirmCopy}
         onClose={() => setCopyTrip(null)}
       />
-
-      {subOpen && (
-        <IcsSubscribeModal
-          endpoint="/api/feed/user"
-          title={t('dashboard.subscribeAllTrips')}
-          description={t('dashboard.subscribeAllTripsDesc')}
-          onClose={() => setSubOpen(false)}
-        />
-      )}
     </>
   )
 }
@@ -459,44 +416,14 @@ function CoverBadge({ label, offset }: { label: string; offset: 8 | 12 }): React
   )
 }
 
-// Plugin-contributed chips on a trip card (tripCardProvider hook). Server-bounded
-// primitives only — same trust model as the desktop TripCardBadges, restyled for
-// the mobile cards since the desktop CSS is scoped to .trek-dash.
-const BADGE_TONE: Record<TripCardBadge['tone'], string> = {
-  default: 'text-m-ink',
-  success: 'text-[color:var(--m-st-confirmed)]',
-  warn: 'text-[color:var(--m-st-pending)]',
-  danger: 'text-[color:var(--m-st-danger)]',
-}
-
-function MTripBadges({ items }: { items: TripCardBadge[] }): React.ReactElement | null {
-  if (!items.length) return null
-  return (
-    <div className="mt-2 flex flex-wrap gap-[6px]">
-      {items.map(b => {
-        const cls = 'inline-flex max-w-full items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-2 py-[3px] font-geist text-[0.625rem]'
-        const inner = (
-          <>
-            <span className={`font-semibold ${BADGE_TONE[b.tone]}`}>{b.label}</span>
-            {b.value != null && b.value !== '' && <span className="truncate text-m-muted">{b.value}</span>}
-          </>
-        )
-        return b.url
-          ? <a key={b.pluginId + b.id} href={b.url} target="_blank" rel="noreferrer noopener" className={cls} onClick={e => e.stopPropagation()}>{inner}</a>
-          : <span key={b.pluginId + b.id} className={cls}>{inner}</span>
-      })}
-    </div>
-  )
-}
-
 function coverStyle(trip: DashboardTrip): React.CSSProperties {
   return trip.cover_image
     ? { backgroundImage: `url(${trip.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { backgroundImage: entityGradient(trip.id) }
 }
 
-function MTripGridCard({ trip, locale, badge, pluginBadges, actions, onOpen }: {
-  trip: DashboardTrip; locale: string; badge: string; pluginBadges: TripCardBadge[]
+function MTripGridCard({ trip, locale, badge, actions, onOpen }: {
+  trip: DashboardTrip; locale: string; badge: string
   actions: CardAction[]; onOpen: () => void
 }): React.ReactElement {
   return (
@@ -523,16 +450,15 @@ function MTripGridCard({ trip, locale, badge, pluginBadges, actions, onOpen }: {
             <span>{fullDate(trip.end_date, locale) ?? '—'}</span>
           </span>
         </div>
-        <MTripBadges items={pluginBadges} />
       </div>
     </div>
   )
 }
 
-function MTripListCard({ trip, locale, t, badge, pluginBadges, actions, onOpen }: {
+function MTripListCard({ trip, locale, t, badge, actions, onOpen }: {
   trip: DashboardTrip; locale: string
   t: (key: string, params?: Record<string, string | number>) => string
-  badge: string; pluginBadges: TripCardBadge[]; actions: CardAction[]; onOpen: () => void
+  badge: string; actions: CardAction[]; onOpen: () => void
 }): React.ReactElement {
   return (
     <div
@@ -566,7 +492,6 @@ function MTripListCard({ trip, locale, t, badge, pluginBadges, actions, onOpen }
           <ListStat value={trip.place_count ?? 0} label={t('dashboard.places')} />
           <ListStat value={trip.shared_count ?? 0} label={trip.shared_count === 1 ? t('dashboard.card.buddyOne') : t('dashboard.members')} />
         </div>
-        <MTripBadges items={pluginBadges} />
       </div>
     </div>
   )

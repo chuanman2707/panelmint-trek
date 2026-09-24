@@ -1,32 +1,21 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
-  Bell,
   ChevronDown,
   ChevronLeft,
-  CloudOff,
   Info,
   Map,
   Palette,
-  Plug,
-  Puzzle,
   Settings2,
   SlidersHorizontal,
-  User,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettings } from '../../../pages/settings/useSettings'
 import { useAuthStore } from '../../../store/authStore'
-import { usePluginStore } from '../../../store/pluginStore'
-import MSettingsPlugins from './MSettingsPlugins'
-import MSettingsOffline from './MSettingsOffline'
 import MSettingsGeneral from './MSettingsGeneral'
 import MSettingsAppearance from './MSettingsAppearance'
 import MSettingsMap from './MSettingsMap'
-import MSettingsNotifications from './MSettingsNotifications'
-import MSettingsIntegrations from './MSettingsIntegrations'
-import MSettingsAccount from './MSettingsAccount'
 import MSettingsAbout from './MSettingsAbout'
 
 interface SectionTab {
@@ -44,20 +33,14 @@ interface SectionTab {
 export default function MSettings() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { hasIntegrations, appVersion, activeTab, setActiveTab } = useSettings()
+  const { appVersion, activeTab, setActiveTab } = useSettings()
   const managed = useAuthStore((s) => s.managed)
-  const hasPlugins = usePluginStore((s) => s.plugins.length > 0)
   const [dropOpen, setDropOpen] = useState(false)
 
   const tabs: SectionTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
     { id: 'appearance', label: t('settings.tabs.appearance'), icon: Palette },
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
-    { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell },
-    ...(hasIntegrations ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }] : []),
-    ...(hasPlugins ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Puzzle }] : []),
-    { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
-    { id: 'account', label: t('settings.tabs.account'), icon: User },
     // Same call as the desktop page: About is about the project — what TREK is,
     // where to file a bug, where to support it — and a customer of a hosted
     // instance is the audience for none of it. The version and the source link
@@ -117,12 +100,6 @@ export default function MSettings() {
       {active.id === 'display' && <MSettingsGeneral />}
       {active.id === 'appearance' && <MSettingsAppearance />}
       {active.id === 'map' && <MSettingsMap />}
-      {active.id === 'notifications' && <MSettingsNotifications />}
-      {active.id === 'integrations' && hasIntegrations && <MSettingsIntegrations />}
-      {/* Per-plugin settings still reuse the existing responsive tab. */}
-      {active.id === 'plugins' && hasPlugins && <MSettingsPlugins />}
-      {active.id === 'offline' && <MSettingsOffline />}
-      {active.id === 'account' && <MSettingsAccount />}
       {active.id === 'about' && appVersion && <MSettingsAbout appVersion={appVersion} />}
 
       {managed && appVersion && (

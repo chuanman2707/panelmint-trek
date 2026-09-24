@@ -1,6 +1,6 @@
+// FE-ADDON-001 to 004 — the static local addon set: packing and budget are always
+// on, there is no server feed to fetch, and loadAddons() re-asserts the set.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../helpers/msw/server';
 import { useAddonStore } from '../../../src/store/addonStore';
 import { resetAllStores } from '../../helpers/store';
 
@@ -10,25 +10,20 @@ beforeEach(() => {
 
 describe('addonStore', () => {
   describe('FE-ADDON-001: loadAddons()', () => {
-    it('fetches and stores enabled addons', async () => {
+    it('re-asserts the static addon set', async () => {
       await useAddonStore.getState().loadAddons();
       const state = useAddonStore.getState();
 
       expect(state.loaded).toBe(true);
-      expect(state.addons.length).toBeGreaterThan(0);
-      expect(state.addons[0]).toHaveProperty('id');
-      expect(state.addons[0]).toHaveProperty('enabled', true);
-      expect(state.bagTracking).toBe(false);
+      expect(state.addons.map(a => a.id)).toEqual(['packing', 'budget']);
+      expect(state.addons.every(a => a.enabled)).toBe(true);
+      expect(state.bagTracking).toBe(true);
     });
 
-    it('captures the global bagTracking flag from the response', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ bagTracking: true, addons: [] })
-        )
-      );
-
+    it('restores the static set after a seed emptied it', async () => {
+      useAddonStore.setState({ addons: [], bagTracking: false, loaded: false });
       await useAddonStore.getState().loadAddons();
+      expect(useAddonStore.getState().addons).toHaveLength(2);
       expect(useAddonStore.getState().bagTracking).toBe(true);
     });
   });
@@ -36,7 +31,8 @@ describe('addonStore', () => {
   describe('FE-ADDON-002: isEnabled returns true for known addon', () => {
     it('returns true when addon is in the list and enabled', async () => {
       await useAddonStore.getState().loadAddons();
-      expect(useAddonStore.getState().isEnabled('vacay')).toBe(true);
+      expect(useAddonStore.getState().isEnabled('packing')).toBe(true);
+      expect(useAddonStore.getState().isEnabled('budget')).toBe(true);
     });
   });
 
@@ -44,22 +40,19 @@ describe('addonStore', () => {
     it('returns false when addon is not in the list', async () => {
       await useAddonStore.getState().loadAddons();
       expect(useAddonStore.getState().isEnabled('nonexistent')).toBe(false);
+      // The cut hosted addons stay off.
+      expect(useAddonStore.getState().isEnabled('documents')).toBe(false);
+      expect(useAddonStore.getState().isEnabled('collab')).toBe(false);
     });
   });
 
-  describe('FE-ADDON-004: API failure', () => {
-    it('sets loaded: true and keeps addons empty on API error', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ error: 'Server error' }, { status: 500 })
-        )
-      );
-
-      await useAddonStore.getState().loadAddons();
-      const state = useAddonStore.getState();
-
-      expect(state.loaded).toBe(true);
-      expect(state.addons).toEqual([]);
+  describe('FE-ADDON-004: no fetch happens', () => {
+    it('loadAddons resolves without any network dependency', async () => {
+      // There is no /api/addons handler in the local build — a fetch would have
+      // surfaced as an msw unhandled-request warning, so a clean resolve is the
+      // assertion.
+      await expect(useAddonStore.getState().loadAddons()).resolves.toBeUndefined();
+      expect(useAddonStore.getState().loaded).toBe(true);
     });
   });
 });

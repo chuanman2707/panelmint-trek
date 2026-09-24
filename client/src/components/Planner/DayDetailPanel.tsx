@@ -5,9 +5,6 @@ import { X, Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, CloudLightning, Wind
 const RES_TYPE_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, transit: TramFront, event: Ticket, tour: Users, parking: ParkingSquare, other: FileText }
 const RES_TYPE_COLORS = { flight: '#3b82f6', hotel: '#8b5cf6', restaurant: '#ef4444', train: '#06b6d4', car: '#6b7280', cruise: '#0ea5e9', transit: '#7c3aed', event: '#f59e0b', tour: '#10b981', parking: '#2563eb', other: '#6b7280' }
 import { weatherApi, accommodationsApi } from '../../api/client'
-import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
-import { usePluginStore } from '../../store/pluginStore'
-import PluginFrame from '../Plugins/PluginFrame'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { applyStayStops } from '../../store/stayStops'
@@ -100,13 +97,6 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
     hotelForm, setHotelForm, handleSelectPlace, handleSaveAccommodation,
     updateAccommodationField, handleRemoveAccommodation,
   } = useDayDetail(day, days, tripId, lat, lng, language, onAccommodationChange)
-  // Plugin-contributed columns/actions for the day view, keyed by day id (#plugins).
-  // day can be null (panel closed) and hooks must run before the early return, so guard it.
-  const dayContributions = usePluginViewContributions('day', tripId)(day?.id ?? -1)
-  // Plugins that declared a day-detail slot mount at the bottom of this panel,
-  // scoped to the open day. Inline-filter like the place-detail site.
-  const dayDetailPlugins = usePluginStore((s) => s.plugins).filter((p) => p.type === 'widget' && p.slot === 'day-detail')
-
   // Publish the panel's live height as a root CSS var so the map's mobile GPS
   // button can sit just above the panel instead of being hidden behind it (#1348).
   // The card grows/shrinks (collapse, content, ≤60vh), so track it live.
@@ -288,7 +278,6 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
           )}
 
           {/* ── Reservations for this day's assignments ── */}
-          {dayContributions.length > 0 && <PluginCardFooter items={dayContributions} tripId={tripId} />}
           {(() => {
             const dayAssignments = assignments[String(day.id)] || []
             const dayReservations = reservations.filter(r => {
@@ -352,16 +341,6 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
               handleSaveAccommodation={handleSaveAccommodation} onAccommodationChange={onAccommodationChange} />
           </div>
 
-          {/* Day-detail plugin slots: sandboxed, scoped to this day. */}
-          {dayDetailPlugins.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-              {dayDetailPlugins.map((p) => (
-                <div key={p.id} className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
-                  <PluginFrame pluginId={p.id} tripId={String(tripId)} dayId={String(day.id)} title={p.name} surface="detail-slot" />
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>

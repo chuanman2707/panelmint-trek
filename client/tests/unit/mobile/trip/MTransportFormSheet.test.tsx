@@ -10,9 +10,9 @@ import { act, fireEvent, render, screen } from '../../../helpers/render'
 
 // FE-MOB-TRFRM-001 to FE-MOB-TRFRM-048
 //
-// The sheet's own pickers (airport/location search, day select, time picker) and
-// the embedded transit panel are replaced by minimal controlled stand-ins so the
-// form's own state machine and payload assembly are what the tests exercise.
+// The sheet's own pickers (airport/location search, day select, time picker) are
+// replaced by minimal controlled stand-ins so the form's own state machine and
+// payload assembly are what the tests exercise.
 
 const { AIRPORTS, LOCATIONS } = vi.hoisted(() => ({
   AIRPORTS: {
@@ -69,24 +69,6 @@ vi.mock('../../../../src/components/Planner/LocationSelect', () => ({
       value={value?.name ?? ''}
       onChange={e => onChange(LOCATIONS[e.target.value] ?? null)}
     />
-  ),
-}))
-
-vi.mock('../../../../src/components/Planner/TransitSearchPanel', () => ({
-  default: ({ day, places, onAdd, initialFrom, initialTime }: {
-    day: { id: number }
-    places: { name: string }[]
-    onAdd: (p: Record<string, unknown>) => void
-    initialFrom: { name: string } | null
-    initialTime: string | null
-  }) => (
-    <div>
-      <span data-testid="transit-day">{day.id}</span>
-      <span data-testid="transit-places">{places.map(p => p.name).join(',')}</span>
-      <span data-testid="transit-from">{initialFrom?.name ?? ''}</span>
-      <span data-testid="transit-time">{initialTime ?? ''}</span>
-      <button type="button" onClick={() => onAdd({ title: 'U4 to Prater', type: 'transit' })}>add-itinerary</button>
-    </div>
   ),
 }))
 
@@ -159,19 +141,14 @@ describe('MTransportFormSheet', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-TRFRM-002: opens in create mode with a disabled save and the manual/automated switch', () => {
+  it('FE-MOB-TRFRM-002: opens in create mode with a disabled save and the manual form (no automated transit mode)', () => {
     renderSheet(makePlanner())
     expect(screen.getByRole('dialog', { name: 'transport.modalTitle.create' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'common.add' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'transport.modeManual' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'transport.modeAutomated' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'transport.modeManual' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'transport.modeAutomated' })).not.toBeInTheDocument()
     // Nothing to delete on a fresh booking.
     expect(screen.queryByRole('button', { name: 'common.delete' })).not.toBeInTheDocument()
-  })
-
-  it('FE-MOB-TRFRM-003: hides the automated switch when the trip has no dates', () => {
-    renderSheet(makePlanner({ trip: { id: 1, title: 'Someday', start_date: null, end_date: null } }))
-    expect(screen.queryByRole('button', { name: 'transport.modeAutomated' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-TRFRM-004: offers every transport type and marks the active one', () => {
@@ -502,14 +479,6 @@ describe('MTransportFormSheet', () => {
     expect(screen.getAllByPlaceholderText('42A')[0]).toHaveValue('5B')
   })
 
-  it('FE-MOB-TRFRM-045: picking a day in the automated tab reveals the transit search', () => {
-    renderSheet(makePlanner({ transportModalAutomated: true }))
-    expect(screen.getByText('transit.pickDay')).toBeInTheDocument()
-    setValue(daySelects()[0], '13')
-    expect(screen.queryByText('transit.pickDay')).not.toBeInTheDocument()
-    expect(screen.getByTestId('transit-day')).toHaveTextContent('13')
-  })
-
   it('FE-MOB-TRFRM-014: reports a failing save through the toast', async () => {
     const planner = makePlanner({ handleSaveTransport: vi.fn(async () => { throw new Error('server said no') }) })
     renderSheet(planner)
@@ -548,35 +517,9 @@ describe('MTransportFormSheet', () => {
     expect(planner.setShowTransportModal).toHaveBeenCalledWith(false)
     expect(planner.setEditingTransport).toHaveBeenCalledWith(null)
     expect(planner.setTransportModalDayId).toHaveBeenCalledWith(null)
-    expect(planner.setTransportModalAutomated).toHaveBeenCalledWith(false)
-    expect(planner.setTransitPrefill).toHaveBeenCalledWith(null)
   })
 
-  it('FE-MOB-TRFRM-018: during an import review the close button advances instead of resetting', () => {
-    const planner = makePlanner({ importReviewActive: true })
-    renderSheet(planner)
-    fireEvent.click(screen.getByRole('button', { name: 'common.close' }))
-    expect(planner.advanceImportReview).toHaveBeenCalledTimes(1)
-    expect(planner.setShowTransportModal).not.toHaveBeenCalled()
-  })
-
-  it('FE-MOB-TRFRM-019: a successful save during an import review advances to the next item', async () => {
-    const planner = makePlanner({ importReviewActive: true, handleSaveTransport: makeSave() })
-    renderSheet(planner)
-    typeTitle('Imported flight')
-    await submit()
-    expect(planner.advanceImportReview).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-MOB-TRFRM-020: a save that returns nothing does not advance the import review', async () => {
-    const planner = makePlanner({ importReviewActive: true, handleSaveTransport: makeSave(null) })
-    renderSheet(planner)
-    typeTitle('Imported flight')
-    await submit()
-    expect(planner.advanceImportReview).not.toHaveBeenCalled()
-  })
-
-  it('FE-MOB-TRFRM-021: seeds the form from the edited flight including the day selects', () => {
+        it('FE-MOB-TRFRM-021: seeds the form from the edited flight including the day selects', () => {
     const editingTransport = {
       id: 42, trip_id: 1, type: 'flight', title: 'LH 716', status: 'confirmed',
       day_id: 11, end_day_id: 12,
@@ -795,47 +738,6 @@ describe('MTransportFormSheet', () => {
     expect(planner.setShowTransportModal).toHaveBeenCalledWith(false)
   })
 
-  it('FE-MOB-TRFRM-029: imports a parsed booking with its day, source file and parsed price', async () => {
-    const handleSaveTransport = makeSave()
-    const addFile = vi.fn(async (_tripId: number, _form: FormData) => undefined)
-    const sourceFile = new File(['pdf'], 'voucher.pdf')
-    const transportPrefill = {
-      type: 'car', title: 'Rental car', status: 'pending',
-      reservation_time: '2026-05-02T09:00', reservation_end_time: '2026-05-03T18:00',
-      metadata: { price: 120 }, endpoints: [], _sourceFiles: [sourceFile],
-    }
-    const planner = makePlanner({
-      transportPrefill, handleSaveTransport, tripActions: { addFile },
-    })
-    renderSheet(planner)
-
-    expect(screen.getByPlaceholderText('reservations.titlePlaceholder')).toHaveValue('Rental car')
-    expect(screen.getByRole('button', { name: 'reservations.type.car' })).toHaveAttribute('aria-pressed', 'true')
-    expect(daySelects().map(s => s.value)).toEqual(['12', '13'])
-    expect(timeInputs().map(i => i.value)).toEqual(['09:00', '18:00'])
-    expect(screen.getByRole('button', { name: 'drop-voucher.pdf' })).toBeInTheDocument()
-
-    await submit()
-    const payload = handleSaveTransport.mock.calls[0][0]
-    expect(payload.create_budget_entry).toEqual({ total_price: 120, category: 'transport' })
-    expect(addFile).toHaveBeenCalledTimes(1)
-    expect(addFile.mock.calls[0][0]).toBe(1)
-    expect((addFile.mock.calls[0][1] as FormData).get('description')).toBe('Rental car')
-  })
-
-  it('FE-MOB-TRFRM-030: a prefill without a price and with the budget addon off skips the cost entry', async () => {
-    seedStore(useAddonStore, { addons: [] })
-    const handleSaveTransport = makeSave()
-    const planner = makePlanner({
-      transportPrefill: { type: 'bus', title: 'Shuttle', metadata: { price: 0 }, endpoints: [] },
-      handleSaveTransport,
-    })
-    renderSheet(planner)
-    expect(screen.queryByRole('button', { name: 'reservations.createExpense' })).not.toBeInTheDocument()
-    await submit()
-    expect(handleSaveTransport.mock.calls[0][0]).not.toHaveProperty('create_budget_entry')
-  })
-
   it('FE-MOB-TRFRM-031: attaching and dropping files only uploads what is left', async () => {
     const handleSaveTransport = makeSave()
     const addFile = vi.fn(async (_tripId: number, _form: FormData) => undefined)
@@ -909,47 +811,6 @@ describe('MTransportFormSheet', () => {
     typeTitle('No costs please')
     await submit()
     expect(onOpenExpense).not.toHaveBeenCalled()
-  })
-
-  it('FE-MOB-TRFRM-038: the automated tab asks for a day before it searches', () => {
-    renderSheet(makePlanner({ transportModalAutomated: true }))
-    expect(screen.getByRole('dialog', { name: 'transit.title' })).toBeInTheDocument()
-    expect(screen.getByText('transit.pickDay')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'common.add' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'common.cancel' })).toBeInTheDocument()
-  })
-
-  it('FE-MOB-TRFRM-039: the transit panel gets the chosen day, its ordered places and the prefill', () => {
-    const planner = makePlanner({
-      transportModalAutomated: true,
-      transportModalDayId: 12,
-      transitPrefill: { from: { name: 'Hotel', lat: 34.7, lng: 135.5 }, to: null, time: '08:15' },
-      places: [{ id: 1, name: 'Fushimi Inari' }, { id: 2, name: 'Nishiki Market' }],
-      assignments: { '12': [{ id: 9, place_id: 2, order_index: 1 }, { id: 8, place_id: 1, order_index: 0 }] },
-    })
-    renderSheet(planner)
-    expect(screen.getByTestId('transit-day')).toHaveTextContent('12')
-    expect(screen.getByTestId('transit-places')).toHaveTextContent('Fushimi Inari,Nishiki Market')
-    expect(screen.getByTestId('transit-from')).toHaveTextContent('Hotel')
-    // A leg picked from the timeline's connector menu carries its departure (#2398).
-    expect(screen.getByTestId('transit-time')).toHaveTextContent('08:15')
-  })
-
-  it('FE-MOB-TRFRM-040: the transit panel saves its itinerary through the shared save path', async () => {
-    const handleSaveTransport = makeSave()
-    renderSheet(makePlanner({ transportModalAutomated: true, transportModalDayId: 12, handleSaveTransport }))
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'add-itinerary' })) })
-    expect(handleSaveTransport).toHaveBeenCalledWith({ title: 'U4 to Prater', type: 'transit' })
-  })
-
-  it('FE-MOB-TRFRM-041: switching between manual and automated swaps the form', () => {
-    renderSheet(makePlanner())
-    expect(screen.getByText('reservations.bookingType')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'transport.modeAutomated' }))
-    expect(screen.queryByText('reservations.bookingType')).not.toBeInTheDocument()
-    expect(screen.getByText('transit.searchHint')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'transport.modeManual' }))
-    expect(screen.getByText('reservations.bookingType')).toBeInTheDocument()
   })
 
   it('FE-MOB-TRFRM-042: a new booking opened from a day preselects that day', () => {

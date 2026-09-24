@@ -6,8 +6,6 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAddonStore } from '../../store/addonStore';
-import { usePluginStore } from '../../store/pluginStore';
-import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -22,10 +20,6 @@ vi.mock('../../api/client', async (importOriginal) => {
     mapsApi: { details: vi.fn().mockResolvedValue({ place: null }) },
   };
 });
-
-vi.mock('../../api/authUrl', () => ({
-  getAuthUrl: vi.fn().mockResolvedValue('http://test/file'),
-}));
 
 vi.mock('../../services/photoService', () => ({
   getCached: vi.fn(() => null),
@@ -1197,87 +1191,6 @@ describe('PlaceInspector', () => {
     fireEvent.click(screen.getByText('+'));
     fireEvent.click(screen.getByText('cleo'));
     expect(onSetParticipants).toHaveBeenCalledWith(9, 1, []);
-  });
-
-  // ── Save to collection ───────────────────────────────────────────────────────
-
-  it('FE-PLANNER-INSPECTOR-081: with collections enabled the footer offers to save the place', async () => {
-    seedStore(useAddonStore, { addons: [{ id: 'collections', name: 'Collections', type: 'addon', icon: 'bookmark', enabled: true }], loaded: true });
-    server.use(
-      http.get('/api/addons/collections/membership', () => HttpResponse.json({ saved: true, collections: [] })),
-    );
-    render(<PlaceInspector {...defaultProps} />);
-    expect(await screen.findByText('Saved')).toBeTruthy();
-  });
-
-  it('FE-PLANNER-INSPECTOR-082: clicking save hands the whole place to the collection picker', async () => {
-    seedStore(useAddonStore, { addons: [{ id: 'collections', name: 'Collections', type: 'addon', icon: 'bookmark', enabled: true }], loaded: true });
-    server.use(
-      http.get('/api/addons/collections/membership', () => HttpResponse.json({ saved: false, collections: [] })),
-    );
-    render(<PlaceInspector {...defaultProps} />);
-    fireEvent.click((await screen.findByText('Save to Collection')).closest('button')!);
-    expect(useSaveToCollectionStore.getState().target).toMatchObject({
-      name: 'Eiffel Tower', source_place_id: place.id, lat: 48.8584, lng: 2.2945,
-    });
-  });
-
-  it('FE-PLANNER-INSPECTOR-083: a failing membership check leaves the unsaved label', async () => {
-    seedStore(useAddonStore, { addons: [{ id: 'collections', name: 'Collections', type: 'addon', icon: 'bookmark', enabled: true }], loaded: true });
-    server.use(
-      http.get('/api/addons/collections/membership', () => new HttpResponse(null, { status: 500 })),
-    );
-    render(<PlaceInspector {...defaultProps} />);
-    expect(await screen.findByText('Save to Collection')).toBeTruthy();
-  });
-
-  // ── Plugin contributions (#1429) ─────────────────────────────────────────────
-
-  it('FE-PLANNER-INSPECTOR-084: placeDetailProvider rows render as label/value and links', async () => {
-    server.use(
-      http.get('/api/place-details/1', () => HttpResponse.json({
-        providers: [
-          { pluginId: 'tides', items: [{ label: 'High tide', value: '14:20' }, { label: 'Forecast', url: 'https://tides.example' }] },
-          // Empty providers are dropped before render.
-          { pluginId: 'empty', items: [] },
-        ],
-      })),
-    );
-    render(<PlaceInspector {...defaultProps} />);
-    expect(await screen.findByText('High tide')).toBeTruthy();
-    expect(screen.getByText('14:20')).toBeTruthy();
-    expect(screen.getByRole('link', { name: '↗' })).toHaveAttribute('href', 'https://tides.example');
-  });
-
-  it('FE-PLANNER-INSPECTOR-085: a failing provider request adds no rows', async () => {
-    server.use(http.get('/api/place-details/1', () => new HttpResponse(null, { status: 500 })));
-    render(<PlaceInspector {...defaultProps} />);
-    await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeTruthy());
-    expect(screen.queryByText('High tide')).toBeNull();
-  });
-
-  it('FE-PLANNER-INSPECTOR-086: a place-detail widget plugin mounts a frame scoped to the place', async () => {
-    seedStore(usePluginStore, {
-      plugins: [
-        { id: 'tide-widget', name: 'Tides', type: 'widget', icon: null, slot: 'place-detail' },
-        { id: 'hero-widget', name: 'Hero', type: 'widget', icon: null, slot: 'hero' },
-      ],
-    });
-    render(<PlaceInspector {...defaultProps} />);
-    await waitFor(() => expect(document.querySelector('iframe[src*="tide-widget"]')).toBeTruthy());
-    expect(document.querySelector('iframe[src*="hero-widget"]')).toBeNull();
-  });
-
-  it('FE-PLANNER-INSPECTOR-087: in collection mode neither provider rows nor plugin frames are fetched', async () => {
-    let called = false;
-    server.use(http.get('/api/place-details/1', () => { called = true; return HttpResponse.json({ providers: [] }); }));
-    seedStore(usePluginStore, {
-      plugins: [{ id: 'tide-widget', name: 'Tides', type: 'widget', icon: null, slot: 'place-detail' }],
-    });
-    render(<PlaceInspector {...defaultProps} mode="collection" onCopyToTrip={vi.fn()} onRemoveFromList={vi.fn()} />);
-    await waitFor(() => expect(screen.getByText('Copy to trip')).toBeTruthy());
-    expect(called).toBe(false);
-    expect(document.querySelector('iframe[src*="tide-widget"]')).toBeNull();
   });
 
   // ── Custom thumbnail callbacks (#1136) ───────────────────────────────────────

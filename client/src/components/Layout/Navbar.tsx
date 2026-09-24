@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useNavigate, useLocation } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
-import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, BookOpen, Bookmark } from 'lucide-react'
+import { Settings, ChevronDown, ArrowLeft, Users, Moon, Sun, CalendarDays, Briefcase, Globe, Compass, Bookmark } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import InAppNotificationBell from './InAppNotificationBell.tsx'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import { visibleManagedNavItems } from '../../managed'
 
@@ -16,7 +15,6 @@ const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe
 
 interface NavbarProps {
   tripTitle?: string
-  tripId?: number | string
   onBack?: () => void
   showBack?: boolean
   onShare?: () => void
@@ -30,12 +28,11 @@ interface Addon {
   enabled: boolean
 }
 
-export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }: NavbarProps): React.ReactElement {
-  const { user, logout, isPrerelease, appVersion } = useAuthStore()
+export default function Navbar({ tripTitle, onBack, showBack, onShare }: NavbarProps): React.ReactElement {
+  const { user, isPrerelease, appVersion } = useAuthStore()
   const { settings, updateSetting } = useSettingsStore()
   const { addons: allAddons, loadAddons } = useAddonStore()
   const { t, locale } = useTranslation()
-  const navigate = useNavigate()
   const location = useLocation()
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false)
   const [scrolled, setScrolled] = useState<boolean>(false)
@@ -60,11 +57,6 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
   useEffect(() => {
     if (user) loadAddons()
   }, [user, location.pathname])
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login', { state: { noRedirect: true } })
-  }
 
   // Keep track of the pending theme-transition cleanup so we can cancel it
   // on unmount. Without this the timer fires after jsdom teardown in unit
@@ -245,10 +237,6 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           style={{ opacity: dark ? 0 : 1, transform: dark ? 'rotate(90deg) scale(0.6)' : 'rotate(0deg) scale(1)' }} />
       </button>
 
-      {/* Notification bell — only in trip view on mobile, everywhere on desktop */}
-      {user && tripId && <InAppNotificationBell />}
-      {user && !tripId && <span className="hidden sm:block"><InAppNotificationBell /></span>}
-
       {/* User menu */}
       {user && (
         <div className="relative">
@@ -277,11 +265,6 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                 <div className="px-4 py-3 border-b border-edge-secondary">
                   <p className="text-sm font-medium text-content">{user.username}</p>
                   <p className="text-xs truncate text-content-muted">{user.email}</p>
-                  {user.role === 'admin' && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium mt-1 text-content-secondary">
-                      <Shield className="w-3 h-3" /> {t('nav.administrator')}
-                    </span>
-                  )}
                 </div>
 
                 <div className="py-1">
@@ -292,32 +275,9 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                     <Settings className="w-4 h-4" />
                     {t('nav.settings')}
                   </Link>
-
-                  <Link to="/help" onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm transition-colors text-content-secondary"
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <BookOpen className="w-4 h-4" />
-                    {t('nav.help')}
-                  </Link>
-
-                  {user.role === 'admin' && (
-                    <Link to="/admin" onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm transition-colors text-content-secondary"
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <Shield className="w-4 h-4" />
-                      {t('nav.admin')}
-                    </Link>
-                  )}
                 </div>
 
                 <div className="py-1 border-t border-edge-secondary">
-                  <button type="button" onClick={handleLogout}
-                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors">
-                    <LogOut className="w-4 h-4" />
-                    {t('nav.logout')}
-                  </button>
                   {appVersion && (
                     <div className="px-4 pt-2 pb-2.5 text-center border-t border-edge-secondary" style={{ marginTop: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>

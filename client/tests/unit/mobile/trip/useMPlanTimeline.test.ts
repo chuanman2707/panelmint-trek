@@ -4,7 +4,6 @@ import { assignmentsApi, reservationsApi, weatherApi } from '../../../../src/api
 import { useMPlanTimeline } from '../../../../src/mobile/screens/trip/plan/useMPlanTimeline'
 import type { TransportEntry } from '../../../../src/mobile/screens/trip/plan/planTimelineModel'
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
-import { usePluginStore, type ActivePlugin } from '../../../../src/store/pluginStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import type { Accommodation, Day, RouteSegment } from '../../../../src/types'
 import { buildAssignment, buildDayNote, buildPlace, buildReservation } from '../../../helpers/factories'
@@ -90,7 +89,6 @@ async function renderTimeline(planner: TripPlanner) {
 describe('useMPlanTimeline', () => {
   beforeEach(() => {
     resetAllStores()
-    usePluginStore.setState({ plugins: [] })
     routeCalc.segments = []
     vi.spyOn(weatherApi, 'get').mockResolvedValue(FORECAST)
     vi.spyOn(assignmentsApi, 'updateTransport').mockResolvedValue({})
@@ -505,8 +503,6 @@ describe('useMPlanTimeline', () => {
     expect(planner.setBookingForAssignmentId).toHaveBeenCalledWith(null)
     expect(planner.setShowReservationModal).toHaveBeenCalledWith(true)
     expect(planner.setEditingTransport).toHaveBeenCalledWith(null)
-    expect(planner.setTransitPrefill).toHaveBeenCalledWith(null)
-    expect(planner.setTransportModalAutomated).toHaveBeenCalledWith(false)
     expect(planner.setTransportModalDayId).toHaveBeenCalledWith(2)
     expect(planner.setShowTransportModal).toHaveBeenCalledWith(true)
   })
@@ -529,18 +525,6 @@ describe('useMPlanTimeline', () => {
     const orphan = buildReservation({ id: 99, type: 'taxi', title: 'Taxi', day_id: 2 }) as TransportEntry
     act(() => { result.current.editTransport(orphan) })
     expect(planner.setEditingTransport).toHaveBeenLastCalledWith(orphan)
-  })
-
-  it('FE-MOB-PLTL-032: opens the journey view for a transit row, falling back to the passed row', async () => {
-    const transit = buildReservation({ id: 61, type: 'transit', title: 'U2', day_id: 2 })
-    const planner = makePlanner({ reservations: [transit] })
-    const { result } = await renderTimeline(planner)
-    act(() => { result.current.openTransitJourney({ ...transit, title: 'stale' } as TransportEntry) })
-    expect(planner.setTransitJourney).toHaveBeenCalledWith(transit)
-
-    const orphan = buildReservation({ id: 99, type: 'transit', title: 'Gone', day_id: 2 }) as TransportEntry
-    act(() => { result.current.openTransitJourney(orphan) })
-    expect(planner.setTransitJourney).toHaveBeenLastCalledWith(orphan)
   })
 
   it('FE-MOB-PLTL-033: optimizes the day order and offers an undo', async () => {
@@ -613,20 +597,12 @@ describe('useMPlanTimeline', () => {
 
   // The two built-in modes were the only labels on this menu written in English
   // instead of looked up, so a German reader got "Driving"/"Walking" between
-  // translated rows — and next to plugin profiles carrying their own label.
-  it('FE-MOB-PLTL-040: offers the built-in travel modes plus every plugin profile', async () => {
-    usePluginStore.setState({
-      plugins: [
-        { id: 'ev', name: 'EV', type: 'integration', icon: null, routeProfiles: [{ id: 'eco', label: 'Eco' }, { id: 'fast', label: 'Fast' }] },
-        { id: 'plain', name: 'Plain', type: 'integration', icon: null },
-      ] as ActivePlugin[],
-    })
+  // translated rows.
+  it('FE-MOB-PLTL-040: offers the built-in travel modes', async () => {
     const { result } = await renderTimeline(makePlanner())
     expect(result.current.routeModeOptions).toEqual([
       { key: 'driving', label: 'mobileTrip.profileDriving' },
       { key: 'walking', label: 'mobileTrip.profileWalking' },
-      { key: 'plugin:ev/eco', label: 'Eco' },
-      { key: 'plugin:ev/fast', label: 'Fast' },
     ])
   })
 

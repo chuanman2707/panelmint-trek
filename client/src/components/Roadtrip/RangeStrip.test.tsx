@@ -53,7 +53,7 @@ describe('RangeStrip', () => {
     render(strip({ rangeKm: null }))
 
     expect(screen.getByRole('img')).toHaveAccessibleName(
-      'Type a range, or fill in the figures below and TREK works it out.',
+      'Type a range, or fill in the figures below and PanelMint works it out.',
     )
   })
 

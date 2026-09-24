@@ -19,7 +19,6 @@ import type { TodoItem } from '../../types'
 import { KAT_COLORS, PRIO_CONFIG, katColor, type FilterType, type Member } from './todoListModel'
 import { useTodoList } from './useTodoList'
 import TodoRow from './TodoRow'
-import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import EmptyState from '../shared/EmptyState'
 
 // Sidebar filter row. Declared at module level so React keeps the same component
@@ -81,8 +80,6 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
     addCategory, catCount,
   } = useTodoList(tripId, items, addItemSignal)
 
-  // Plugin-contributed columns/actions for the todo view, keyed by task id (#plugins).
-  const contribFor = usePluginViewContributions('todos', tripId)
 
   // Drag-to-reorder (#969). Manual ordering only makes sense when the list isn't
   // sorted by priority; a drag within the filtered view is mapped back onto the
@@ -239,7 +236,6 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
           {filtered.length === 0 ? <EmptyState scene="tasks" title={t('todo.empty')} /> : (
             filtered.map(item => {
-              const contributions = contribFor(item.id)
               return (
                 <Fragment key={item.id}>
                   <TodoRow
@@ -261,9 +257,6 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
                       onDrop: handleReorderDrop,
                     } : undefined}
                   />
-                  {contributions.length > 0 && (
-                    <div style={{ padding: '0 20px 8px' }}><PluginCardFooter items={contributions} tripId={tripId} /></div>
-                  )}
                 </Fragment>
               )
             })

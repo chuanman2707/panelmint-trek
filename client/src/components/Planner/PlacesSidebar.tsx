@@ -9,11 +9,6 @@ import { PlacesList } from './PlacesSidebarList'
 import { MobileDayPickerSheet } from './PlacesSidebarMobileDayPicker'
 import { ListImportModal } from './PlacesSidebarListImportModal'
 import { PlacesBulkCategoryModal } from './PlacesBulkCategoryModal'
-import SaveTripPlacesToListModal from '../Collections/SaveTripPlacesToListModal'
-import DawarichSuggestionsPanel from '../Dawarich/DawarichSuggestionsPanel'
-import { formatDayOption } from '../Dawarich/dawarichSuggestionModel'
-import { refreshTripAfterAccept } from '../Dawarich/dawarichTripRefresh'
-import { useTranslation } from '../../i18n'
 
 const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProps) {
   const S = usePlacesSidebar(props)
@@ -23,10 +18,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
     fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile, tripId, pushUndo,
     ctxMenu, isMobile, pendingDeleteIds, setPendingDeleteIds, onBulkDeleteConfirm,
     categories, selectedIds, exitSelectMode, onBulkChangeCategory, categoryPickerOpen, setCategoryPickerOpen,
-    collectionsEnabled, saveToListOpen, setSaveToListOpen, days,
   } = S
-  // The sidebar hook carries `t` but not the locale; day labels need both.
-  const { locale } = useTranslation()
   // Below lg the places sit in their own tab with no plan beside them to drag
   // into. A coarse pointer no longer disables the drag on its own — tablets
   // reach it through a long press (#1616).
@@ -65,27 +57,8 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
         </div>
       )}
 
-      {/* Liste, with the Dawarich stays riding on top of it inside the same scroller —
-          see the `header` prop for why they are not a band of their own. */}
-      <PlacesList
-        {...S}
-        header={(
-          <div style={{ padding: '0 12px 8px' }}>
-            <DawarichSuggestionsPanel
-              tripId={tripId}
-              trips={[{ id: tripId, label: t('dawarich.accept.thisTrip') }]}
-              daysForTrip={() => days.map(day => ({
-                id: day.id,
-                ...formatDayOption(day.day_number, day.date, locale, t),
-              }))}
-              // The place it just created belongs on the map and in the list
-              // now, not after a reload.
-              onAccepted={() => { void refreshTripAfterAccept(tripId) }}
-              initiallyCollapsed
-            />
-          </div>
-        )}
-      />
+      {/* Liste */}
+      <PlacesList {...S} />
 
       {dayPickerPlace && <MobileDayPickerSheet {...S} />}
       {listImportOpen && <ListImportModal {...S} />}
@@ -103,15 +76,6 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
           categories={categories}
           onClose={() => setCategoryPickerOpen(false)}
           onPick={(catId) => { onBulkChangeCategory?.(Array.from(selectedIds), catId); setCategoryPickerOpen(false); exitSelectMode() }}
-        />
-      )}
-      {collectionsEnabled && (
-        <SaveTripPlacesToListModal
-          isOpen={saveToListOpen}
-          tripId={tripId}
-          placeIds={Array.from(selectedIds)}
-          onClose={() => setSaveToListOpen(false)}
-          onDone={exitSelectMode}
         />
       )}
       {isMobile && (

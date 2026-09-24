@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildTrip, buildPlace, buildSettings } from '../../tests/helpers/factories';
+import { buildUser, buildTrip, buildPlace, buildReservation, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { usePermissionsStore } from '../store/permissionsStore';
 import { useSettingsStore } from '../store/settingsStore';
@@ -744,18 +744,16 @@ describe('DashboardPage', () => {
         element.textContent?.replace(/\s+/g, ' ').trim() === text
       );
 
-    beforeEach(() => {
-      server.use(
-        http.get('/api/auth/travel-stats', () =>
-          HttpResponse.json({
-            totalTrips: 1,
-            totalDays: 1,
-            totalPlaces: 1,
-            totalDistanceKm: 10,
-            countries: [],
-          })
-        ),
-      );
+    beforeEach(async () => {
+      // travelStats is local now — seed a ~10 km flight (0.09° of latitude)
+      // in Dexie so the atlas tile reads totalDistanceKm = 10.
+      await db.reservations.put(buildReservation({
+        id: 900, trip_id: PARIS.id, type: 'flight', status: 'confirmed',
+        endpoints: [
+          { role: 'from', name: 'NORTH', sequence: 0, lat: 52.52, lng: 13.405, code: null, timezone: null, local_time: null, local_date: null },
+          { role: 'to', name: 'SOUTH', sequence: 1, lat: 52.43, lng: 13.405, code: null, timezone: null, local_time: null, local_date: null },
+        ],
+      }));
     });
 
     it('renders metric atlas distance as kilometers', async () => {

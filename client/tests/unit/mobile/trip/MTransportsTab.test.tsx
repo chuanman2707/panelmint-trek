@@ -334,29 +334,6 @@ describe('MTransportsTab', () => {
     expect(screen.queryByTitle('Ada')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-TRTAB-027: mounts a reservation-detail plugin on every card, scoped to that reservation (#2440)', () => {
-    seedStore(usePluginStore, {
-      plugins: [
-        FLIGHT_TRACKER,
-        { id: 'dash-widget', name: 'Dash', type: 'widget', icon: null, slot: 'hero' },
-        { id: 'seat-map', name: 'Seat Map', type: 'widget', icon: null, slot: 'place-detail' },
-      ],
-    })
-    const { shell } = renderTab()
-    const frame = within(cardOf('HND to ITM')).getByTestId('plugin-frame')
-    expect(frame).toHaveAttribute('data-plugin', 'flight-tracker')
-    expect(frame).toHaveAttribute('data-trip', '7')
-    expect(frame).toHaveAttribute('data-reservation', '101')
-    expect(frame).toHaveAttribute('data-surface', 'detail-slot')
-    // the slot sits outside the card's body button: a tap in it opens no sheet
-    fireEvent.click(frame)
-    expect(shell.openSheet).not.toHaveBeenCalled()
-    expect(within(cardOf('Metro to hotel')).getByTestId('plugin-frame')).toHaveAttribute('data-reservation', '104')
-    // one frame per transport card, and only for the reservation-detail slot
-    expect(screen.getAllByTestId('plugin-frame')).toHaveLength(5)
-    expect(document.querySelector('[data-plugin="dash-widget"]')).toBeNull()
-    expect(document.querySelector('[data-plugin="seat-map"]')).toBeNull()
-  })
 
   it('FE-MOB-TRTAB-028: compact mode drops the plugin frames with the rest of the body', () => {
     seedStore(usePluginStore, { plugins: [FLIGHT_TRACKER] })

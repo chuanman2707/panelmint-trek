@@ -1,10 +1,10 @@
 import { lazyWithRetry } from '../../utils/lazyWithRetry'
 
 /**
- * The six ways into a GL map, one chunk per engine.
+ * The ways into a GL map, one chunk per engine.
  *
- * mapbox-gl and maplibre-gl used to be static imports inside MapViewGL,
- * JourneyMapGL and the settings preview, so rollup put both SDKs into a single
+ * mapbox-gl and maplibre-gl used to be static imports inside the map
+ * components and the settings preview, so rollup put both SDKs into a single
  * 2.8 MB chunk. Every map user downloaded 1.8 MB of mapbox plus 1.1 MB of
  * maplibre and then ran exactly one of them.
  *
@@ -30,29 +30,6 @@ export const MapViewGLMaplibre = lazyWithRetry(async () => {
   const MapViewGL = component.MapViewGL
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return { default: (props: any) => <MapViewGL {...props} gl={engine.default} /> }
-})
-
-export const JourneyMapGLMapbox = lazyWithRetry(async () => {
-  const [component, engine] = await Promise.all([
-    import('../Journey/JourneyMapGL'),
-    import('./engines/mapbox'),
-  ])
-  const JourneyMapGL = component.default
-  // The journey map exposes an imperative handle (highlightMarker / focusMarker /
-  // invalidateSize). Since React 19 its ref is an ordinary prop, so it rides
-  // through the spread and the binding needs no forwardRef wrapper.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <JourneyMapGL {...props} gl={engine.default} /> }
-})
-
-export const JourneyMapGLMaplibre = lazyWithRetry(async () => {
-  const [component, engine] = await Promise.all([
-    import('../Journey/JourneyMapGL'),
-    import('./engines/maplibre'),
-  ])
-  const JourneyMapGL = component.default
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <JourneyMapGL {...props} gl={engine.default} /> }
 })
 
 export const GlMapPreviewMapbox = lazyWithRetry(async () => {

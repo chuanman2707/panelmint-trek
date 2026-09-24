@@ -10,18 +10,6 @@ import { server } from './helpers/msw/server';
 // testTimeout, so a genuinely broken assertion fails, it just takes longer.
 configure({ asyncUtilTimeout: 5000 });
 
-// Mock the websocket module so stores don't try to open real connections
-vi.mock('../src/api/websocket', () => ({
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  getSocketId: vi.fn(() => null),
-  setRefetchCallback: vi.fn(),
-  setPreReconnectHook: vi.fn(),
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-  emitLocalEvent: vi.fn(),
-}));
-
 // MSW lifecycle. A cross-origin request nobody mocked is the dangerous kind: 'warn'
 // lets it through, so the runner really talks to frankfurter or a tile server and settles
 // a promise after the test environment is gone (see handlers/external.ts). Those fail now.

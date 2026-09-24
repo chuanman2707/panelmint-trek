@@ -1,15 +1,5 @@
 // FE-COMP-BOTTOMNAV-001 to FE-COMP-BOTTOMNAV-010
 
-vi.mock('../../api/websocket', () => ({
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  getSocketId: vi.fn(() => null),
-  setRefetchCallback: vi.fn(),
-  setPreReconnectHook: vi.fn(),
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-}));
-
 const mockNavigate = vi.fn();
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');

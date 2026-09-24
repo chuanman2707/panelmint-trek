@@ -25,7 +25,6 @@ const defaultProps = {
   onAdd: vi.fn(),
   onEdit: vi.fn(),
   onDelete: vi.fn(),
-  onNavigateToFiles: vi.fn(),
 };
 
 beforeEach(() => {
@@ -629,31 +628,7 @@ describe('ReservationsPanel', () => {
 
   // ── Toolbar actions ─────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-RESP-057: the import and AirTrail buttons appear only when enabled and call their handlers', async () => {
-    const user = userEvent.setup();
-    const onImport = vi.fn();
-    const onAirTrailImport = vi.fn();
-    const { rerender } = render(<ReservationsPanel {...defaultProps} onImport={onImport} onAirTrailImport={onAirTrailImport} />);
-    // Both handlers given but the server features are off — nothing rendered.
-    expect(screen.queryByTitle('Import booking confirmations')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('Import from AirTrail')).not.toBeInTheDocument();
-
-    rerender(<ReservationsPanel {...defaultProps} onImport={onImport} bookingImportAvailable onAirTrailImport={onAirTrailImport} airTrailAvailable />);
-    const importBtn = screen.getByTitle('Import booking confirmations');
-    const airtrailBtn = screen.getByTitle('Import from AirTrail');
-    for (const btn of [importBtn, airtrailBtn]) {
-      act(() => { btn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-      expect(btn.style.opacity).toBe('0.75');
-      act(() => { btn.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
-      expect(btn.style.opacity).toBe('1');
-    }
-    await user.click(importBtn);
-    await user.click(airtrailBtn);
-    expect(onImport).toHaveBeenCalled();
-    expect(onAirTrailImport).toHaveBeenCalled();
-  });
-
-  it('FE-PLANNER-RESP-058: the add button dims on hover and restores on leave', () => {
+    it('FE-PLANNER-RESP-058: the add button dims on hover and restores on leave', () => {
     render(<ReservationsPanel {...defaultProps} />);
     const add = screen.getAllByText('Manual Booking')[0].closest('button') as HTMLButtonElement;
     act(() => { add.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
@@ -844,31 +819,7 @@ describe('ReservationsPanel', () => {
 
   // ── Reservation-detail plugin slot ──────────────────────────────────────────
 
-  it('FE-PLANNER-RESP-072: a reservation-detail plugin mounts a frame on both card kinds', async () => {
-    seedStore(usePluginStore, {
-      plugins: [
-        { id: 'seat-map', name: 'Seat Map', type: 'widget', icon: null, slot: 'reservation-detail' },
-        { id: 'dash-widget', name: 'Dash', type: 'widget', icon: null, slot: 'hero' },
-      ],
-    });
-    const booking = buildReservation({ id: 1, title: 'Flight out', type: 'flight', status: 'confirmed' });
-    render(<ReservationsPanel {...defaultProps} reservations={[booking, transitJourney()]} />);
-    await waitFor(() => expect(document.querySelectorAll('iframe[src*="seat-map"]')).toHaveLength(2));
-    expect(document.querySelector('iframe[src*="dash-widget"]')).toBeNull();
-  });
 
-  it('FE-PLANNER-RESP-073: interacting with a transit card\'s travelers or plugin frame does not open the journey', async () => {
-    seedStore(usePluginStore, {
-      plugins: [{ id: 'seat-map', name: 'Seat Map', type: 'widget', icon: null, slot: 'reservation-detail' }],
-    });
-    const onEdit = vi.fn();
-    const res = transitJourney({ travelers: [{ user_id: 1, username: 'ada', avatar_url: null }] });
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} onEdit={onEdit} />);
-    const frame = await waitFor(() => document.querySelector('iframe[src*="seat-map"]') as HTMLIFrameElement);
-    fireEvent.click(frame.parentElement!.parentElement!);
-    fireEvent.click(screen.getByText('ada').parentElement!);
-    expect(onEdit).not.toHaveBeenCalled();
-  });
 
   it('FE-PLANNER-RESP-074: the transit delete dialog closes on a backdrop click without deleting', async () => {
     const user = userEvent.setup();

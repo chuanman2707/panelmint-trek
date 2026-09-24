@@ -1,4 +1,4 @@
-// FE-PLANNER-EXPORTMODAL-001 to FE-PLANNER-EXPORTMODAL-014
+// FE-PLANNER-EXPORTMODAL-001 to FE-PLANNER-EXPORTMODAL-006
 import { render, screen, waitFor } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { downloadTripPDF } from '../PDF/TripPDF'
@@ -6,17 +6,6 @@ import { buildDay, buildDayNote, buildTrip } from '../../../tests/helpers/factor
 import { TripExportModal } from './TripExportModal'
 
 vi.mock('../PDF/TripPDF', () => ({ downloadTripPDF: vi.fn().mockResolvedValue(undefined) }))
-
-// The subscribe dialog fetches its feed token on mount; it is exercised in its
-// own test, here we only care that the entry mounts it.
-vi.mock('./IcsSubscribeModal', () => ({
-  IcsSubscribeModal: ({ title, onClose }: { title: string; onClose: () => void }) => (
-    <div data-testid="ics-subscribe-modal">
-      {title}
-      <button onClick={onClose}>close-subscribe</button>
-    </div>
-  ),
-}))
 
 const t = (key: string, params?: Record<string, unknown>) =>
   params ? `${key}|${Object.values(params).join('|')}` : key
@@ -51,23 +40,9 @@ function makeProps(overrides: Partial<React.ComponentProps<typeof TripExportModa
   } as React.ComponentProps<typeof TripExportModal>
 }
 
-let clickedHref: string | null
-
 beforeEach(() => {
   vi.clearAllMocks()
-  clickedHref = null
-  // jsdom has neither of these, and an anchor click would navigate.
-  globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock')
-  globalThis.URL.revokeObjectURL = vi.fn()
-  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-    clickedHref = this.href
-  })
 })
-
-afterEach(() => vi.restoreAllMocks())
-
-const okResponse = (body = '<gpx/>') =>
-  ({ ok: true, status: 200, blob: async () => new Blob([body]) }) as unknown as Response
 
 describe('TripExportModal', () => {
   it('FE-PLANNER-EXPORTMODAL-001: closed, it renders nothing', () => {
@@ -75,18 +50,15 @@ describe('TripExportModal', () => {
     expect(screen.queryByText('dayplan.export')).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-EXPORTMODAL-002: open, every export sits in its own section', () => {
+  it('FE-PLANNER-EXPORTMODAL-002: open, the PDF export is the only section — the hosted ICS/GPX/feed formats are cut', () => {
     render(<TripExportModal {...makeProps()} />)
     expect(screen.getByText('dayplan.exportDocument')).toBeInTheDocument()
-    expect(screen.getByText('dayplan.exportCalendar')).toBeInTheDocument()
-    expect(screen.getByText('dayplan.exportMaps · GPX')).toBeInTheDocument()
-    for (const label of ['dayplan.pdf', 'mobileTrip.icsDownload', 'mobileTrip.icsSubscribe',
+    expect(screen.getByText('dayplan.pdf')).toBeInTheDocument()
+    for (const label of ['dayplan.exportCalendar', 'mobileTrip.icsDownload', 'mobileTrip.icsSubscribe',
       'dayplan.gpxAll', 'dayplan.gpxPlaces', 'dayplan.gpxDays']) {
-      expect(screen.getByText(label)).toBeInTheDocument()
+      expect(screen.queryByText(label)).not.toBeInTheDocument()
     }
   })
-
-  // ── PDF ───────────────────────────────────────────────────────────────────
 
   it('FE-PLANNER-EXPORTMODAL-003: the PDF row exports the trip with the day notes flattened', async () => {
     const user = userEvent.setup()
@@ -127,97 +99,5 @@ describe('TripExportModal', () => {
     render(<TripExportModal {...makeProps({ toast })} />)
     await user.click(screen.getByText('dayplan.pdf'))
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.pdfError: boom'))
-  })
-
-  // ── Calendar ──────────────────────────────────────────────────────────────
-
-  it('FE-PLANNER-EXPORTMODAL-007: the ICS row fetches the export and hands it to a download link', async () => {
-    const user = userEvent.setup()
-    const fetchMock = vi.fn(async () => okResponse('BEGIN:VCALENDAR'))
-    vi.stubGlobal('fetch', fetchMock)
-    render(<TripExportModal {...makeProps()} />)
-    await user.click(screen.getByText('mobileTrip.icsDownload'))
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/trips/1/export.ics', { credentials: 'include' }))
-    await waitFor(() => expect(clickedHref).toBe('blob:mock'))
-  })
-
-  it('FE-PLANNER-EXPORTMODAL-008: a rejected ICS export shows the failure toast', async () => {
-    const user = userEvent.setup()
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response))
-    const toast = makeToast()
-    render(<TripExportModal {...makeProps({ toast })} />)
-    await user.click(screen.getByText('mobileTrip.icsDownload'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('planner.icsExportFailed'))
-    expect(clickedHref).toBeNull()
-  })
-
-  it('FE-PLANNER-EXPORTMODAL-009: the subscribe row opens the subscribe dialog and closes again', async () => {
-    const user = userEvent.setup()
-    render(<TripExportModal {...makeProps()} />)
-    await user.click(screen.getByText('mobileTrip.icsSubscribe'))
-    expect(screen.getByTestId('ics-subscribe-modal')).toBeInTheDocument()
-    await user.click(screen.getByText('close-subscribe'))
-    expect(screen.queryByTestId('ics-subscribe-modal')).not.toBeInTheDocument()
-  })
-
-  // The subscription mints a link that reads the trip without an account, so it
-  // needs share_manage; the one-off download is a file this member may already
-  // read. Leaving the entry visible would only produce a dialog whose enable
-  // button the server refuses.
-  it('FE-PLANNER-EXPORTMODAL-010: without share_manage the download stays and the subscription goes', () => {
-    render(<TripExportModal {...makeProps({ canManageShare: false })} />)
-    expect(screen.getByText('mobileTrip.icsDownload')).toBeInTheDocument()
-    expect(screen.queryByText('mobileTrip.icsSubscribe')).not.toBeInTheDocument()
-  })
-
-  // ── GPX (#1442) ───────────────────────────────────────────────────────────
-
-  it('FE-PLANNER-EXPORTMODAL-011: each scope asks the server for exactly its own selection', async () => {
-    const user = userEvent.setup()
-    const fetchMock = vi.fn(async () => okResponse())
-    vi.stubGlobal('fetch', fetchMock)
-    for (const [label, expected] of [
-      ['dayplan.gpxAll', '/api/trips/1/places/export.gpx'],
-      ['dayplan.gpxPlaces', '/api/trips/1/places/export.gpx?dayRoutes=false'],
-      ['dayplan.gpxDays', '/api/trips/1/places/export.gpx?waypoints=false&tracks=false'],
-    ] as const) {
-      const view = render(<TripExportModal {...makeProps()} />)
-      await user.click(screen.getByText(label))
-      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expected, { credentials: 'include' }))
-      fetchMock.mockClear()
-      view.unmount()
-    }
-  })
-
-  it('FE-PLANNER-EXPORTMODAL-012: a download names the file after the trip', async () => {
-    const user = userEvent.setup()
-    vi.stubGlobal('fetch', vi.fn(async () => okResponse()))
-    render(<TripExportModal {...makeProps()} />)
-    await user.click(screen.getByText('dayplan.gpxAll'))
-    await waitFor(() => expect(clickedHref).toBe('blob:mock'))
-    await waitFor(() => expect(globalThis.URL.revokeObjectURL).toHaveBeenCalled())
-  })
-
-  it('FE-PLANNER-EXPORTMODAL-013: an empty trip says so instead of reporting a failure', async () => {
-    const user = userEvent.setup()
-    const toast = makeToast()
-    const onClose = vi.fn()
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 }) as unknown as Response))
-    render(<TripExportModal {...makeProps({ toast, onClose })} />)
-    await user.click(screen.getByText('dayplan.gpxAll'))
-    await waitFor(() => expect(toast.info).toHaveBeenCalledWith('dayplan.gpxEmpty'))
-    expect(toast.error).not.toHaveBeenCalled()
-    expect(clickedHref).toBeNull()
-    // Nothing was downloaded, so the dialog stays put.
-    expect(onClose).not.toHaveBeenCalled()
-  })
-
-  it('FE-PLANNER-EXPORTMODAL-014: a real failure toasts the error', async () => {
-    const user = userEvent.setup()
-    const toast = makeToast()
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response))
-    render(<TripExportModal {...makeProps({ toast })} />)
-    await user.click(screen.getByText('dayplan.gpxAll'))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.gpxFailed'))
   })
 })

@@ -3,7 +3,7 @@ import { MoreHorizontal, Link2 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useTripStore } from '../../store/tripStore'
 import { googleRouteRepo } from '../../repo/googleRouteRepo'
-import { generateUUID } from '../../sync/mutationQueue'
+import { randomId } from '../../utils/randomId'
 import { getApiErrorMessage } from '../../types'
 import type { GoogleRoutePreview } from '@trek/shared'
 import Modal from '../shared/Modal'
@@ -49,7 +49,7 @@ export default function GoogleRouteImport({ tripId, dayId }: { tripId: number; d
   const show = () => {
     setUrl(''); setPreview(null); setFailure(''); setSaved(false)
     setTarget(String(dayId ?? days[0]?.id ?? ''))
-    requestId.current = generateUUID(); setOpen(true)
+    requestId.current = randomId(); setOpen(true)
   }
   const resolved = preview?.stops.filter(s => s.lat != null && s.lng != null) ?? []
   return <>
@@ -65,7 +65,7 @@ export default function GoogleRouteImport({ tripId, dayId }: { tripId: number; d
         <p className="text-caption text-content-muted">{t('roadtrip.import.note')}</p>
         {!preview ? <input type="url" value={url} disabled={busy} onChange={e => setUrl(e.target.value)} aria-label="Google Maps URL" placeholder="https://maps.app.goo.gl/…"
           className="w-full rounded-xl border border-edge bg-surface-input p-3 text-body text-content" /> : <>
-          <CustomSelect value={target} onChange={value => { setTarget(String(value)); requestId.current = generateUUID() }}
+          <CustomSelect value={target} onChange={value => { setTarget(String(value)); requestId.current = randomId() }}
             options={days.map(day => ({ value: String(day.id), label: day.title || `${t('roadtrip.import.day')} ${day.day_number}` }))} disabled={busy || saved} />
           <ol className="max-h-64 space-y-2 overflow-auto">
             {preview.stops.map((stop, index) => <li key={index} className="flex items-baseline gap-3 text-body text-content">

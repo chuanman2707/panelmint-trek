@@ -52,7 +52,9 @@ interface SetupOptions {
 
 async function setup(opts: SetupOptions = {}) {
   seedStore(useAuthStore, { user: buildUser({ id: ME, role: opts.admin ? 'admin' : 'user' }) })
-  if (opts.bagTracking) seedStore(useAddonStore, { bagTracking: true })
+  // bagTracking defaults on in the static addon store — seed it explicitly so
+  // tests that want it off are not at the mercy of the default.
+  seedStore(useAddonStore, { bagTracking: opts.bagTracking === true })
   const planner = buildPlanner({ tripId: 3, packingItems: opts.items ?? ITEMS, ...opts.planner })
   let view!: RenderResult
   await act(async () => { view = render(<MPackingListTab planner={planner} />) })

@@ -9,3 +9,4 @@
 // instance is deleted (plan task A9). Conventions: ./README.md.
 export { tripsApi } from './trips'
 export { daysApi } from './days'
+export { dashboardApi } from './dashboard'

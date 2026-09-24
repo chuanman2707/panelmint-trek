@@ -619,19 +619,3 @@ describe('KategorieGruppe — drag to reorder', () => {
   })
 })
 
-describe('KategorieGruppe — plugin contributions', () => {
-  it('FE-W5CAT-040: a plugin column is rendered below its item row', async () => {
-    server.use(
-      http.get('/api/view-contributions/:view/:tripId', () =>
-        HttpResponse.json({
-          contributions: [
-            { kind: 'column', pluginId: 'weather', entityId: 1, id: 'c1', label: 'Forecast', value: 'Sunny', tone: 'default' },
-          ],
-        })),
-    )
-    setup({ items: [buildPackingItem({ id: 1, name: 'Tent' })] })
-
-    expect(await screen.findByText('Sunny')).toBeInTheDocument()
-    expect(screen.getByText('Forecast')).toBeInTheDocument()
-  })
-})

@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { render, screen, fireEvent, waitFor } from '../../../helpers/render';
 import { server } from '../../../helpers/msw/server';
@@ -25,15 +24,6 @@ function fxHandler(body: unknown = RATES) {
   server.use(http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json(body)));
 }
 
-function collectionsHandler(collections: unknown[]) {
-  server.use(http.get('/api/addons/collections', () => HttpResponse.json({ collections })));
-}
-
-function LocationEcho() {
-  const location = useLocation();
-  return <span data-testid="loc">{location.pathname}</span>;
-}
-
 function enableCollectionsAddon(enabled: boolean) {
   useAddonStore.setState({
     addons: [{ id: 'collections', name: 'Collections', type: 'global', icon: 'bookmark', enabled }],
@@ -44,7 +34,6 @@ function enableCollectionsAddon(enabled: boolean) {
 beforeEach(() => {
   resetAllStores();
   fxHandler();
-  collectionsHandler([]);
 });
 
 afterEach(() => {
@@ -212,49 +201,6 @@ describe('MCurrencyWidget', () => {
   });
 });
 
-describe('MCollectionsWidget', () => {
-  it('FE-MOB-DWID-016: shows the empty hint when there is no list', async () => {
-    render(<MobileDashWidget id="collections" upcoming={[]} />);
-
-    expect(await screen.findByText('No saved places yet')).toBeInTheDocument();
-  });
-
-  it('FE-MOB-DWID-017: renders at most four lists with their place counts', async () => {
-    collectionsHandler([
-      { id: 1, name: 'Tokyo eats', color: '#ff0000', place_count: 12 },
-      { id: 2, name: 'Museums', color: null, place_count: 3 },
-      { id: 3, name: 'Bars', color: null, place_count: null },
-      { id: 4, name: 'Parks', color: null, place_count: 1 },
-      { id: 5, name: 'Hidden', color: null, place_count: 9 },
-    ]);
-    render(<MobileDashWidget id="collections" upcoming={[]} />);
-
-    expect(await screen.findByText('Tokyo eats')).toBeInTheDocument();
-    expect(screen.getByText('Parks')).toBeInTheDocument();
-    expect(screen.queryByText('Hidden')).not.toBeInTheDocument();
-    // A list without a stored count renders a zero rather than blank.
-    expect(screen.getByText('0')).toBeInTheDocument();
-  });
-
-  it('FE-MOB-DWID-032: the header arrow and a badge open the collections pages', async () => {
-    collectionsHandler([{ id: 7, name: 'Tokyo eats', color: '#f00', place_count: 2 }]);
-    render(<><MobileDashWidget id="collections" upcoming={[]} /><LocationEcho /></>);
-
-    fireEvent.click(await screen.findByText('Tokyo eats'));
-    expect(screen.getByTestId('loc')).toHaveTextContent('/collections/7');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Collections' }));
-    expect(screen.getByTestId('loc')).toHaveTextContent('/collections');
-  });
-
-  it('FE-MOB-DWID-018: a failed fetch falls back to the empty hint', async () => {
-    server.use(http.get('/api/addons/collections', () => new HttpResponse(null, { status: 500 })));
-    render(<MobileDashWidget id="collections" upcoming={[]} />);
-
-    expect(await screen.findByText('No saved places yet')).toBeInTheDocument();
-  });
-});
-
 describe('MTimezonesWidget', () => {
   it('FE-MOB-DWID-019: renders the stored zones with their local time', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ dashboard_timezones: ['Asia/Tokyo'] }) });
@@ -345,12 +291,14 @@ describe('MTimezonesWidget', () => {
   });
 
   it('FE-MOB-DWID-027: keeps the legacy value when the write fails', async () => {
-    server.use(
-      http.put('/api/settings', () => new HttpResponse(null, { status: 500 })),
-      http.post('/api/settings/bulk', () => new HttpResponse(null, { status: 500 })),
-    );
+    // The write path is local Dexie now: seed an updateSetting that applies the
+    // value then rejects the persist step — the same contract the real one has.
+    const updateSetting = vi.fn((key: string, value: unknown) => {
+      useSettingsStore.setState(s => ({ settings: { ...s.settings, [key]: value } }));
+      return Promise.reject(new Error('persist failed'));
+    });
     localStorage.setItem('trek_dashboard_tz', JSON.stringify(['America/New_York']));
-    seedStore(useSettingsStore, { settings: buildSettings(), isLoaded: true });
+    seedStore(useSettingsStore, { settings: buildSettings(), isLoaded: true, updateSetting } as never);
 
     render(<MobileDashWidget id="timezones" upcoming={[]} />);
 

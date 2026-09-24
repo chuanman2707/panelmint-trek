@@ -249,6 +249,20 @@ class TrekOfflineDb extends Dexie {
   }
 }
 
+// Monotonic counter for optimistic (negative) ids on locally-created rows —
+// same-millisecond creates must not collide (bulk import, rapid tapping).
+let _lastTempId = 0;
+
+/**
+ * Mint a collision-free temporary (negative) id for a locally-created entity.
+ * Monotonic across the session so same-millisecond creates never collide.
+ */
+export function nextTempId(): number {
+  const now = Date.now();
+  _lastTempId = now > _lastTempId ? now : _lastTempId + 1;
+  return -_lastTempId;
+}
+
 // The live instance is swapped on login/logout via reopenForUser/reopenAnonymous.
 // A Proxy keeps the exported `offlineDb` binding stable for the ~19 modules that
 // import it directly, while every access forwards to the current connection.

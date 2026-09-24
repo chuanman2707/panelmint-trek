@@ -15,16 +15,8 @@ vi.mock('../components/Settings/MapSettingsTab', () => ({
   default: () => <div data-testid="map-settings-tab">Map Settings</div>,
 }));
 
-vi.mock('../components/Settings/NotificationsTab', () => ({
-  default: () => <div data-testid="notifications-tab">Notifications Settings</div>,
-}));
-
-vi.mock('../components/Settings/IntegrationsTab', () => ({
-  default: () => <div data-testid="integrations-tab">Integrations Settings</div>,
-}));
-
-vi.mock('../components/Settings/AccountTab', () => ({
-  default: () => <div data-testid="account-tab">Account Settings</div>,
+vi.mock('../components/Settings/AppearanceSettingsTab', () => ({
+  default: () => <div data-testid="appearance-settings-tab">Appearance Settings</div>,
 }));
 
 vi.mock('../components/Settings/AboutTab', () => ({
@@ -72,58 +64,37 @@ describe('SettingsPage', () => {
       });
     });
 
-    it('switching to Account tab shows account settings', async () => {
+    it('switching to Appearance tab shows appearance settings', async () => {
       const user = userEvent.setup();
       render(<SettingsPage />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /account/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /appearance/i })).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /account/i }));
+      await user.click(screen.getByRole('button', { name: /appearance/i }));
 
       await waitFor(() => {
-        expect(screen.getByTestId('account-tab')).toBeInTheDocument();
+        expect(screen.getByTestId('appearance-settings-tab')).toBeInTheDocument();
       });
     });
 
-    it('switching to Notifications tab shows notifications content', async () => {
-      const user = userEvent.setup();
-      render(<SettingsPage />);
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByRole('button', { name: /notifications/i }));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('notifications-tab')).toBeInTheDocument();
-      });
-    });
   });
 
   describe('FE-PAGE-SETTINGS-004: All standard tabs are present', () => {
-    it('renders General, Map, Notifications, Account tabs', async () => {
+    it('renders General, Appearance, Map tabs', async () => {
       render(<SettingsPage />);
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /general/i })).toBeInTheDocument();
       });
 
+      expect(screen.getByRole('button', { name: /appearance/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^map$/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /account/i })).toBeInTheDocument();
-    });
-  });
-
-  describe('FE-PAGE-SETTINGS-005: MFA redirect switches to Account tab', () => {
-    it('auto-switches to account tab when ?mfa=required is in URL', async () => {
-      render(<SettingsPage />, { initialEntries: ['/settings?mfa=required'] });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('account-tab')).toBeInTheDocument();
-      });
+      // The hosted account/integrations/notifications tabs are gone in the
+      // local build.
+      expect(screen.queryByRole('button', { name: /account/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /notifications/i })).not.toBeInTheDocument();
     });
   });
 

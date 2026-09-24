@@ -10,7 +10,6 @@ import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
 import type { TripMember, CategoryAssignee } from './usePackingListPanel'
 import { ArtikelZeile } from './PackingListPanelItemRow'
-import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import GuestBadge from '../shared/GuestBadge'
 
 interface KategorieGruppeProps {
@@ -45,7 +44,6 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
   const [offen, setOffen] = useState(true)
   const [dragId, setDragId] = useState<number | null>(null)
   const [overId, setOverId] = useState<number | null>(null)
-  const contribFor = usePluginViewContributions('packing', tripId)
 
   const handleReorderDrop = (targetId: number) => {
     const from = dragId
@@ -274,7 +272,6 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
       {offen && (
         <div style={{ padding: '4px 4px 6px' }}>
           {items.map(item => {
-            const contributions = contribFor(item.id)
             return (
               <React.Fragment key={item.id}>
                 <ArtikelZeile item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit}
@@ -287,7 +284,6 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                     onEnd: () => { setDragId(null); setOverId(null) },
                     onDrop: handleReorderDrop,
                   } : undefined} />
-                {contributions.length > 0 && <div style={{ padding: '0 8px 2px' }}><PluginCardFooter items={contributions} tripId={tripId} /></div>}
               </React.Fragment>
             )
           })}

@@ -1,17 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
-  ArrowRight, ArrowRightLeft, Bookmark, Calendar, ChevronDown, ChevronRight,
+  ArrowRight, ArrowRightLeft, Calendar, ChevronDown, ChevronRight,
   Clock, Hotel, LogIn, LogOut, MapPin, Plane, Plus, RefreshCw, Ticket, Utensils, X,
 } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useAddonStore } from '../../../store/addonStore'
-import { collectionsApi } from '../../../api/collections'
 import { entityGradient } from '../../../utils/gradients'
 import { CURRENCIES } from '../../../components/Budget/BudgetPanel.constants'
 import { formatTime, splitReservationDateTime } from '../../../utils/formatters'
-import { normalizeAppearance, MOBILE_DASH_TOKENS, type MobileDashToken, type Collection } from '@trek/shared'
+import { normalizeAppearance, MOBILE_DASH_TOKENS, type MobileDashToken } from '@trek/shared'
 import { upcomingKey, type UpcomingReservation } from '../../../pages/dashboard/dashboardModel'
 
 const RES_ICON: Record<string, React.ReactElement> = {
@@ -73,7 +72,6 @@ export function useMobileDashVisibility(): Record<MobileDashToken, boolean> {
 export function MobileDashWidget({ id, upcoming }: { id: MobileDashToken; upcoming: UpcomingReservation[] }): React.ReactElement | null {
   switch (id) {
     case 'currency': return <MCurrencyWidget />
-    case 'collections': return <MCollectionsWidget />
     case 'timezones': return <MTimezonesWidget />
     case 'upcomingReservations': return <MUpcomingWidget items={upcoming} />
     default: return null
@@ -225,55 +223,6 @@ function CurrencyPicker({ value, currencies, onChange }: {
         {currencies.map(c => <option key={c} value={c}>{c}</option>)}
       </select>
     </span>
-  )
-}
-
-// ── Collections ──────────────────────────────────────────────────────────────
-function MCollectionsWidget(): React.ReactElement {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const [lists, setLists] = useState<Collection[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    collectionsApi.list()
-      .then(data => { if (!cancelled) setLists(data.collections) })
-      .catch(() => { if (!cancelled) setLists([]) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [])
-
-  return (
-    <WidgetPanel
-      icon={<Bookmark size={12} strokeWidth={2.2} />}
-      title={t('collections.widget.title')}
-      action={
-        <button type="button" aria-label={t('collections.widget.title')} onClick={() => navigate('/collections')} className="flex text-m-faint">
-          <ArrowRight size={13} strokeWidth={2} />
-        </button>
-      }
-    >
-      {loading ? null : lists.length === 0 ? (
-        <div className="mt-[11px] font-geist text-[0.6875rem] text-m-muted">{t('collections.widget.empty')}</div>
-      ) : (
-        lists.slice(0, 4).map(list => (
-          <button
-            key={list.id}
-            type="button"
-            onClick={() => navigate(`/collections/${list.id}`)}
-            className="mt-[11px] flex w-full items-center rounded-[14px] p-[15px_14px] text-left text-white"
-            style={{ background: list.color || entityGradient(list.id) }}
-          >
-            <span className="min-w-0 flex-1 truncate text-[0.875rem] font-bold">{list.name}</span>
-            <span className="ml-auto flex flex-none items-center gap-1 rounded-full bg-white/[.22] px-[10px] py-[3px] font-geist text-[0.625rem] font-bold">
-              <MapPin size={10} strokeWidth={2.4} />
-              {list.place_count ?? 0}
-            </span>
-          </button>
-        ))
-      )}
-    </WidgetPanel>
   )
 }
 

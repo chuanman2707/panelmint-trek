@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router'
-import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import CustomTimePicker from '../shared/CustomTimePicker'
@@ -13,14 +13,13 @@ import { useAddonStore } from '../../store/addonStore'
 import { formatDate, splitReservationDateTime, resolveDayId } from '../../utils/formatters'
 import { openFile } from '../../utils/fileDownload'
 import apiClient from '../../api/client'
-import type { Day, Place, Accommodation, Reservation, ReservationEndpoint, TripFile, BudgetItem, AssignmentsMap } from '../../types'
+import type { Day, Reservation, ReservationEndpoint, TripFile, BudgetItem } from '../../types'
 import { parseReservationMetadata, orderedEndpoints } from '../../utils/flightLegs'
 import { BookingCostsSection } from './BookingCostsSection'
 import { TravelerPicker } from './TravelerPicker'
 import type { TripMember } from '../Budget/BudgetPanelMemberChips'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { BookingReviewDraft } from './parsedItemToDraft'
-import TransitSearchPanel, { type PickedPlace } from './TransitSearchPanel'
 import { typeToCostCategory } from '@trek/shared'
 
 const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'] as const
@@ -176,22 +175,11 @@ interface TransportModalProps {
   // Pre-fill a brand-new transport booking from a parsed import item (review-
   // before-save); like `reservation` for the form but stays in create mode.
   prefill?: BookingReviewDraft | null
-  /** Data for the Automated (public transit) mode's quick picks. */
-  places?: Place[]
-  /** Day→assignments map, used to scope the quick picks to the chosen day (#1460). */
-  assignments?: AssignmentsMap
-  accommodations?: Accommodation[]
-  /** Open directly in the Automated public-transit mode (day-header tram button, "change route"). */
-  initialAutomated?: boolean
-  /** Transit search needs real dates to depart on, so the Automated mode is hidden on a dateless trip. */
-  tripHasDates?: boolean
-  /** Pre-seed the transit search — used by "change route" and by per-leg planning. */
-  transitPrefill?: { from?: PickedPlace | null; to?: PickedPlace | null; time?: string | null } | null
   /** Trip members + guests, for the traveler picker (#1517). */
   tripMembers?: TripMember[]
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, places = [], assignments = {}, accommodations = [], initialAutomated = false, transitPrefill = null, tripHasDates = true, tripMembers = [] }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, tripMembers = [] }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
@@ -204,8 +192,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   // the post-save handler knows to open the Costs editor for the saved booking.
   const expenseIntentRef = useRef<{ editItem?: BudgetItem; create?: boolean } | null>(null)
   const [form, setForm] = useState({ ...defaultForm })
-  // Manual vs Automated (public transit search) creation mode (#1065).
-  const [automated, setAutomated] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [fromPick, setFromPick] = useState<EndpointPick>({})
   const [toPick, setToPick] = useState<EndpointPick>({})
@@ -256,7 +242,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     // Either way the init reads the same fields — `reservation` still decides
     // edit-vs-create at submit time.
     const src = (reservation ?? prefill) as Reservation | null
-    if (src) setAutomated(initialAutomated)
     // On a review-import, seed the booking's Files with the parsed source document.
     setPendingFiles(!reservation && prefill?._sourceFiles ? prefill._sourceFiles : [])
     if (src) {
@@ -401,7 +386,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       }
     } else {
       setForm({ ...defaultForm, start_day_id: selectedDayId ?? '', end_day_id: selectedDayId ?? '' })
-      setAutomated(initialAutomated)
       setFromPick({})
       setToPick({})
       setWaypoints([emptyWaypoint(selectedDayId ?? ''), emptyWaypoint(selectedDayId ?? '')])
@@ -729,79 +713,19 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={automated ? t('transit.title') : reservation ? t('transport.modalTitle.edit') : t('transport.modalTitle.create')}
+      title={reservation ? t('transport.modalTitle.edit') : t('transport.modalTitle.create')}
       size="2xl"
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button type="button" onClick={onClose} className="text-content-muted" style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('common.cancel')}
           </button>
-          {!automated && (
           <button type="button" onClick={handleSubmit} disabled={isSaving || !form.title.trim()} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: isSaving || !form.title.trim() ? 0.5 : 1 }}>
             {isSaving ? t('common.saving') : reservation ? t('common.update') : t('common.add')}
           </button>
-          )}
         </div>
       }
     >
-      {/* Manual vs Automated creation switch (#1065) — creating only; editing a
-          journey re-enters via "change route" with the switch hidden. Without
-          trip dates there is nothing to plan a departure against, so Automated
-          is not offered and only the manual form shows. */}
-      {!reservation && tripHasDates && (
-        <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 11, padding: 3, gap: 2, marginBottom: 14 }}>
-          {([['manual', t('transport.modeManual')], ['automated', t('transport.modeAutomated')]] as const).map(([m, label]) => {
-            const active = (m === 'automated') === automated
-            return (
-              <button key={m} type="button" onClick={() => setAutomated(m === 'automated')}
-                className={active ? 'bg-surface-card text-content' : 'text-content-muted'}
-                style={{ flex: 1, padding: '8px 6px', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, borderRadius: 8, border: 0, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', background: active ? undefined : 'transparent', boxShadow: active ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      )}
-
-      {automated ? (
-        /* ── Automated: public transit search (#1065) ── */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* search header: what this is + the day it plans for */}
-          <div className="bg-surface-tertiary" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14, flexWrap: 'wrap' }}>
-            <div style={{ width: 42, height: 42, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: '#7c3aed18' }}>
-              <TramFront size={20} strokeWidth={1.8} color="#7c3aed" />
-            </div>
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, letterSpacing: '-0.01em' }}>{t('transit.title')}</div>
-              <div className="text-content-faint" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', marginTop: 1 }}>{t('transit.searchHint')}</div>
-            </div>
-            <div style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 210, flexShrink: 0 }}>
-              <CustomSelect value={form.start_day_id} onChange={v => set('start_day_id', v)} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
-            </div>
-          </div>
-          {(() => {
-            const transitDay = days.find(d => d.id === Number(form.start_day_id))
-            if (!transitDay) return <div className="text-content-faint" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', padding: '4px 2px 12px' }}>{t('transit.pickDay')}</div>
-            // Quick picks offer the chosen day's itinerary, not the whole trip (#1460).
-            const dayPlaces = (assignments[String(transitDay.id)] || [])
-              .slice().sort((a, b) => a.order_index - b.order_index)
-              .map(a => places.find(p => p.id === a.place_id))
-              .filter((p): p is Place => p != null)
-            return (
-              <TransitSearchPanel
-                day={transitDay}
-                days={days}
-                places={dayPlaces}
-                accommodations={accommodations}
-                onAdd={(payload) => onSave(payload as Record<string, any> & { title: string })}
-                initialFrom={transitPrefill?.from ?? null}
-                initialTo={transitPrefill?.to ?? null}
-                initialTime={transitPrefill?.time ?? null}
-              />
-            )
-          })()}
-        </div>
-      ) : (
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Type selector */}
@@ -1251,7 +1175,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         )}
 
       </form>
-      )}
     </Modal>
   )
 }

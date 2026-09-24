@@ -28,11 +28,15 @@ describe('MSettings', () => {
 
     await user.click(screen.getByRole('button', { name: /General/ }));
     expect(screen.getByRole('button', { name: 'Appearance' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Map' })).toBeInTheDocument();
+    // The hosted Account and Notifications sections are gone in the local build.
+    expect(screen.queryByRole('button', { name: 'Account' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Notifications' })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Notifications' }));
-    // Pill now shows the active section; the General card is gone.
-    expect(screen.getByRole('button', { name: /Notifications/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Map' }));
+    // Pill now shows the active section (exact name — the Map card itself holds
+    // a "Map Template" button); the General card is gone.
+    expect(screen.getByRole('button', { name: 'Map' })).toBeInTheDocument();
     expect(screen.queryByText('Language & region')).not.toBeInTheDocument();
   });
 });

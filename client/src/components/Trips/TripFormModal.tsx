@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
 import { Calendar, Camera, Search, X, UserPlus, Bell } from 'lucide-react'
-import { tripsApi, authApi } from '../../api/client'
+import { tripsApi } from '../../api/client'
+import { db } from '../../db/panelmintDb'
 import CustomSelect from '../shared/CustomSelect'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -47,7 +48,6 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const currentUser = useAuthStore(s => s.user)
   const defaultCurrency = useSettingsStore(s => s.settings.default_currency) || 'EUR'
   const tripRemindersEnabled = useAuthStore(s => s.tripRemindersEnabled)
-  const setTripRemindersEnabled = useAuthStore(s => s.setTripRemindersEnabled)
   const can = useCanDo()
   const canUploadCover = !isEditing || can('trip_cover_upload', trip)
   const canEditTrip = !isEditing || can('trip_edit', trip)
@@ -122,10 +122,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     // The planner keeps this modal mounted while it is closed, so nothing may be
     // fetched until it is actually open.
     if (isOpen) {
-      authApi.getAppConfig().then((c: { trip_reminders_enabled?: boolean }) => {
-        if (c?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(c.trip_reminders_enabled)
-      }).catch(() => {})
-      authApi.listUsers().then(d => setAllUsers(d.users || [])).catch(() => {})
+      // The member picker's roster is the local localUsers table.
+      db.localUsers.toArray()
+        .then(users => setAllUsers(users.map(u => ({ id: u.id, username: u.name }))))
+        .catch(() => {})
       if (trip) {
         tripsApi.getMembers(trip.id).then(d => setExistingMembers(d.members || [])).catch(() => {})
       }

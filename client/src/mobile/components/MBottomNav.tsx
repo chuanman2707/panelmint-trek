@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, useMatch } from 'react-router'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { useJourneyStore } from '../../store/journeyStore'
-import { ChevronRight, MoreHorizontal, Plus, Search, Upload } from 'lucide-react'
+import { ChevronRight, MoreHorizontal, Plus, Upload } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { normalizeAppearance } from '@trek/shared'
 import { useNavItems, splitMobileNav } from '../../components/Layout/navItems'
@@ -12,60 +11,23 @@ import MFab from './MFab'
 interface NavItem { to: string; label: string; icon: LucideIcon }
 
 // The centre "+" means something different per context: inside a trip it adds a
-// place, on the journey list it starts a journey (deliberate deviation from the
-// demo, which reserves the FAB for entries — the list has no journey to add
-// into yet), inside a journey it adds an entry, on the atlas it opens the
-// country search, on collections it adds a place to the active list —
-// everywhere else it creates a new trip. Pages pick the intent up from the
-// query params. The result is unused on /vacay: that screen draws its own centre
-// FAB, so the dock yields the slot instead (see screenFabSlot below, #1811).
+// place (or a reservation/transport/expense matching the active tab), everywhere
+// else it creates a new trip. Pages pick the intent up from the query params.
 function useCreateAction(): { label: string; run: () => void; upload?: boolean } {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const galleryOpen = useJourneyStore(state => state.mobileGalleryOpen)
   const inTrip = useMatch('/trips/:id')
-  const inJourney = useMatch('/journey/:id')
-  const onJourneyList = useMatch('/journey')
-  const onAtlas = useMatch('/atlas')
-  const onCollections = useMatch('/collections')
-  const inCollection = useMatch('/collections/:id')
 
   if (inTrip) {
     // The "+" is context-aware per active tab: Bookings → reservation,
     // Transports → transport, Costs → expense. Tabs without a create modal
-    // (lists / files / collab) fall through to adding a place. #1349
+    // (lists) fall through to adding a place. #1349
     const id = inTrip.params.id
     const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${id}`) : null
     if (tripTab === 'finanzplan') return { label: t('costs.addExpense'), run: () => navigate(`/trips/${id}?create=expense`) }
     if (tripTab === 'buchungen') return { label: t('reservations.addManual'), run: () => navigate(`/trips/${id}?create=reservation`) }
     if (tripTab === 'transports') return { label: t('transport.addManual'), run: () => navigate(`/trips/${id}?create=transport`) }
     return { label: t('places.addPlace'), run: () => navigate(`/trips/${id}?create=place`) }
-  }
-  if (inJourney) {
-    // Context-aware per tab, like the trip's "+": the Gallery holds photos, so
-    // there the one big action is uploading one. Read from sessionStorage
-    // because the tab is the screen's own state and the dock is a sibling —
-    // exactly how the trip tabs hand theirs over.
-    const journeyId = inJourney.params.id
-    if (galleryOpen) {
-      return { label: t('common.upload'), run: () => navigate(`/journey/${journeyId}?create=photo`), upload: true }
-    }
-    return { label: t('journey.detail.addEntry'), run: () => navigate(`/journey/${journeyId}?create=entry`) }
-  }
-  if (onJourneyList) {
-    return { label: t('journey.new'), run: () => navigate('/journey?create=1') }
-  }
-  if (onAtlas) {
-    return { label: t('atlas.searchCountry'), run: () => navigate('/atlas?search=1') }
-  }
-  if (onCollections || inCollection) {
-    // Picking a list moves the route to /collections/:id, so the exact match
-    // alone dropped the "+" through to creating a trip — the one state the
-    // screen is normally used in (#1930). The handoff keeps the id, otherwise
-    // adding would land on "All saved" and the sheet would ask for the list the
-    // user is already looking at.
-    const path = inCollection ? `/collections/${inCollection.params.id}` : '/collections'
-    return { label: t('collections.addPlace'), run: () => navigate(`${path}?create=place`) }
   }
   return { label: t('dashboard.newTrip'), run: () => navigate('/dashboard?create=1') }
 }
@@ -102,14 +64,8 @@ export default function MBottomNav() {
   const moreActive = moreItems.some(item => isActive(item.to))
 
   // The FAB gives way to a decorative logo slot on screens without an add
-  // action (settings/admin, demo Z. 1372/1429).
-  const logoSlot = location.pathname.startsWith('/settings') || location.pathname.startsWith('/admin')
-  const searchFab = location.pathname.startsWith('/atlas')
-  // /vacay owns the centre slot itself: MVacay draws its year/edit toggle into
-  // exactly this 56px circle. The dock keeps the geometry but stays empty there,
-  // so the generic "+" can never sit underneath as a second, different action:
-  // not while the lazy screen chunk loads, and not while its data loads (#1811).
-  const screenFabSlot = location.pathname.startsWith('/vacay')
+  // action (settings).
+  const logoSlot = location.pathname.startsWith('/settings')
 
   // Split so the raised centre slot sits dead centre; the More slot always
   // closes the right group.
@@ -178,17 +134,11 @@ export default function MBottomNav() {
             <img src="/icons/icon-dark.svg" alt="" className="block h-6 w-6 opacity-75 dark:hidden" />
             <img src="/icons/icon-white.svg" alt="" className="hidden h-6 w-6 opacity-75 dark:block" />
           </span>
-        ) : screenFabSlot ? (
-          // Same box as MFab (56px, flex-none, mx-2) so both tab groups keep
-          // sitting symmetrically around the centre in every dock configuration.
-          <span aria-hidden="true" className="mx-2 h-14 w-14 flex-none" />
         ) : (
           <MFab onClick={create.run} ariaLabel={create.label} className="mx-2">
-            {searchFab
-              ? <Search size={24} strokeWidth={2.4} />
-              : create.upload
-                ? <Upload size={23} strokeWidth={2.4} />
-                : <Plus size={26} strokeWidth={2.4} />}
+            {create.upload
+              ? <Upload size={23} strokeWidth={2.4} />
+              : <Plus size={26} strokeWidth={2.4} />}
           </MFab>
         )}
 

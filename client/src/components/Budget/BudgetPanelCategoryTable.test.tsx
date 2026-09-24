@@ -259,12 +259,6 @@ describe('BudgetCategoryTable — rows', () => {
     expect(screen.getByText('—')).toBeInTheDocument()
   })
 
-  it('FE-W4BCT-021: appends a plugin footer row when a plugin contributes', () => {
-    contribFor.mockReturnValue([{ kind: 'column' }])
-    setup()
-
-    expect(screen.getByTestId('plugin-footer')).toHaveTextContent('1')
-  })
 
   it('FE-W4BCT-022: adding an item routes the payload into the category', () => {
     const { handleAddItem } = setup()

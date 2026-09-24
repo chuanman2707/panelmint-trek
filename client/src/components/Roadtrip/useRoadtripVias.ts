@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { addListener, removeListener } from '../../api/websocket'
 import { roadtripApi } from '../../api/client'
 import { useNetworkMode } from '../../hooks/useNetworkMode'
 import { isEmptyReanchoring, type Reanchoring } from './roadtripModel'
@@ -155,35 +154,6 @@ export function useRoadtripVias(tripId: number | string | null, active: boolean)
 
   useEffect(() => { void reload() }, [reload])
 
-  /**
-   * What somebody else did to the drive, applied as it happens.
-   *
-   * Its own listener rather than a slice in the store, the way the collab tabs do it:
-   * these points live in this hook and nowhere else, and giving them a store slice would
-   * be a second copy of the same list to keep in step.
-   *
-   * The server sends the whole day's list, so applying it is a replace rather than a
-   * merge — and it excludes the socket that wrote, so a drag never gets its own point
-   * handed back mid-gesture.
-   */
-  useEffect(() => {
-    if (!tripId || !active) return
-    const handler = (event: Record<string, unknown>) => {
-      if (String(event.tripId) !== String(tripId)) return
-      const dayId = Number(event.dayId)
-      if (!Number.isFinite(dayId)) return
-      if (event.type === 'roadtripVia:changed') {
-        const vias = (event.vias ?? []) as RoadtripVia[]
-        setByDay(prev => (vias.length ? { ...prev, [dayId]: vias } : omit(prev, dayId)))
-      }
-      if (event.type === 'roadtripTrack:changed') {
-        const track = event.track as RoadtripDayTrack | null
-        setTrackByDay(prev => (track ? { ...prev, [dayId]: track } : omit(prev, dayId)))
-      }
-    }
-    addListener(handler)
-    return () => removeListener(handler)
-  }, [tripId, active])
 
   const add = useCallback(async (dayId: number, afterOrderIndex: number, lat: number, lng: number) => {
     if (!tripId) return

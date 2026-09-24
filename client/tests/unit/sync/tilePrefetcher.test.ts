@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * tilePrefetcher unit tests.
  *
@@ -24,12 +25,10 @@ import {
 } from '../../../src/sync/tilePrefetcher';
 import { offlineDb, clearAll, upsertSyncMeta } from '../../../src/db/offlineDb';
 import { requestPersistentStorage, _resetPersistentStorage } from '../../../src/sync/persistentStorage';
-import { setAuthed } from '../../../src/sync/authGate';
 import { buildPlace } from '../../helpers/factories';
 
 beforeEach(async () => {
   await clearAll();
-  setAuthed(true);
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   // Stub fetch + serviceWorker so prefetch path is exercised
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
@@ -41,7 +40,6 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  setAuthed(false);
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -268,21 +266,6 @@ describe('prefetchTiles — throttling', () => {
 
     expect(fetched).toBe(state.calls);
     expect(state.inFlight).toBe(0);
-  });
-
-  it('stops fetching when the user logs out mid-run', async () => {
-    let calls = 0;
-    vi.stubGlobal('fetch', vi.fn(() => {
-      if (++calls === TILE_CONCURRENCY) setAuthed(false);
-      return Promise.resolve({ ok: true });
-    }));
-    const bbox: TileBbox = { minLat: 48.0, maxLat: 49.0, minLng: 2.0, maxLng: 3.0 };
-
-    await prefetchTiles(bbox, 'https://{s}.example.com/{z}/{x}/{y}.png', 10, 12);
-
-    // The workers finish their current tile, then bail — nowhere near the ~336
-    // tiles this bbox enumerates.
-    expect(calls).toBeLessThan(2 * TILE_CONCURRENCY);
   });
 
   it('goes quiet when the connection drops mid-run', async () => {

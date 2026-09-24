@@ -2,10 +2,16 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ExternalLink, Download, X, FileText, ChevronLeft, ChevronRight, FileImage } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { getAuthUrl } from '../../api/authUrl'
-import { openFile as openFileUrl } from '../../utils/fileDownload'
-import { triggerDownload, isImage } from '../Files/FileManager.helpers'
+import { openFile as openFileUrl, downloadFile } from '../../utils/fileDownload'
 import type { BudgetItemReceipt } from '../../types'
+
+function isImage(mimeType?: string | null) {
+  return !!mimeType && mimeType.startsWith('image/')
+}
+
+function triggerDownload(url: string, filename: string) {
+  downloadFile(url, filename).catch(() => {})
+}
 
 interface ReceiptPreviewModalProps {
   receipts: BudgetItemReceipt[]
@@ -23,25 +29,13 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
   const isImg = isImage(current?.mime_type)
   const isPdf = current?.mime_type === 'application/pdf' || current?.original_name?.toLowerCase().endsWith('.pdf')
 
+  const currentUrl = current?.url
   useEffect(() => {
-    if (!current) return
-    let cancelled = false
-    setLoading(true)
-    setSignedUrl('')
-
-    getAuthUrl(current.url, 'download')
-      .then(url => {
-        if (!cancelled) {
-          setSignedUrl(url)
-          setLoading(false)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => { cancelled = true }
-  }, [current?.url])
+    if (!currentUrl) return
+    // Local files are blob/data URLs — no token exchange needed.
+    setSignedUrl(currentUrl)
+    setLoading(false)
+  }, [currentUrl])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {

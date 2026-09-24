@@ -3,7 +3,6 @@ import { Check, ExternalLink, FileText, Hotel, Link2, ParkingSquare, Plus, Ticke
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
-import { resolveDayId } from '../../../../utils/formatters'
 import { parseReservationMetadata } from '../../../../utils/flightLegs'
 import { typeToCostCategory } from '@trek/shared'
 import CustomSelect from '../../../../components/shared/CustomSelect'
@@ -49,18 +48,17 @@ const EMPTY = {
 /**
  * Add/edit booking sheet — the mobile counterpart of the desktop ReservationModal,
  * driven by the planner's own editor flags (showReservationModal / editingReservation /
- * reservationPrefill / bookingForAssignmentId) so every entry point (bookings tab, day
- * sheet, timeline, import review) opens it unchanged. Saving reuses
+ * bookingForAssignmentId) so every entry point (bookings tab, day
+ * sheet, timeline) opens it unchanged. Saving reuses
  * planner.handleSaveReservation, which owns the accommodation split, file upload and undo.
  */
 export default function MReservationSheet({ planner, onOpenExpense }: MReservationSheetProps) {
   const {
     t, toast, tripId, days, places, tripAccommodations, tripMembers, selectedDayId,
     showReservationModal, setShowReservationModal,
-    editingReservation, setEditingReservation, reservationPrefill,
+    editingReservation, setEditingReservation,
     bookingForAssignmentId, setBookingForAssignmentId,
     assignments, files,
-    importReviewActive, advanceImportReview,
     handleSaveReservation, canUploadFiles, tripActions,
   } = planner
   const { locale } = useTranslation()
@@ -118,26 +116,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         hotel_place_id: acc?.place_id || '', hotel_start_day: acc?.start_day_id || '', hotel_end_day: acc?.end_day_id || '',
         hotel_address: places.find(p => p.id == acc?.place_id)?.address || res.location || '',
       })
-    } else if (reservationPrefill) {
-      const pf = reservationPrefill
-      const meta = (pf.metadata && typeof pf.metadata === 'object' ? pf.metadata : {}) as Record<string, string>
-      const rawEnd = typeof pf.reservation_end_time === 'string' ? pf.reservation_end_time : ''
-      let endDate = '', endTime = rawEnd
-      if (rawEnd.includes('T')) { endDate = rawEnd.split('T')[0]; endTime = rawEnd.split('T')[1]?.slice(0, 5) || '' }
-      else if (/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) { endDate = rawEnd; endTime = '' }
-      setForm({
-        ...EMPTY,
-        title: pf.title || '', type: pf.type || 'other', status: pf.status || 'pending',
-        reservation_time: typeof pf.reservation_time === 'string' ? pf.reservation_time.slice(0, 16) : '',
-        reservation_end_time: endTime, end_date: endDate,
-        location: pf.location || '', confirmation_number: pf.confirmation_number || '',
-        notes: pf.notes || '', url: (pf as { url?: string }).url || '',
-        meta_check_in_time: meta.check_in_time || '', meta_check_out_time: meta.check_out_time || '',
-        hotel_start_day: resolveDayId(days, pf._accommodation?.check_in),
-        hotel_end_day: resolveDayId(days, pf._accommodation?.check_out),
-        hotel_address: pf._venue?.address || '',
-      })
-      setPendingFiles(pf._sourceFiles ?? [])
     } else {
       // Opened from a day's toolbar: start on that day rather than on a blank
       // date the user has to look up again (#1998). A hotel spans to the next
@@ -224,7 +202,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   const tripMaxDate = tripDates[tripDates.length - 1]
 
   const handleClose = () => {
-    if (importReviewActive) { advanceImportReview(); return }
     planner.setReservationModalDayId(null)
     setShowReservationModal(false)
     setEditingReservation(null)
@@ -306,7 +283,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
       if (withExpense && saved?.id) {
         onOpenExpense({ prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) } })
       }
-      if (importReviewActive && saved) advanceImportReview()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     } finally {

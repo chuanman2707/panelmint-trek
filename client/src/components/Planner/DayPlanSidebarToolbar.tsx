@@ -29,12 +29,6 @@ interface DayPlanSidebarToolbarProps {
   setUndoHover: (v: boolean) => void
   lastActionLabel: string | null
   canEditDays?: boolean
-  /**
-   * Gates "Subscribe to calendar" in the export dialog only. Defaults to true so
-   * a caller that has not wired the permission through keeps today's entries
-   * rather than silently losing one.
-   */
-  canManageShare?: boolean
   onReorderDays?: (orderedIds: number[]) => void
   onAddDay?: (position?: number) => void
 }
@@ -44,7 +38,7 @@ export function DayPlanSidebarToolbar({
   allConnectionsShown = false, onToggleAllConnections,
   t, locale, toast,
   expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
-  canEditDays, canManageShare = true, onReorderDays, onAddDay,
+  canEditDays, onReorderDays, onAddDay,
 }: DayPlanSidebarToolbarProps) {
   const [reorderOpen, setReorderOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
@@ -52,9 +46,8 @@ export function DayPlanSidebarToolbar({
   return (
     <div className="border-b border-edge-faint" style={{ padding: '12px 16px', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-        {/* One export button instead of three: PDF, ICS and GPX each carried
-            their own hover menu, and on a narrower sidebar the row ran out of
-            width and pushed them off the edge. The dialog holds every option. */}
+        {/* One export button feeding the dialog. On a narrower sidebar a row of
+            per-format buttons ran out of width; the dialog cannot. */}
         <Tooltip label={t('dayplan.exportIntro')} placement="bottom">
           <button
             type="button"
@@ -87,7 +80,6 @@ export function DayPlanSidebarToolbar({
           t={t}
           locale={locale}
           toast={toast}
-          canManageShare={canManageShare}
         />
         {(() => {
           const allExpanded = days.length > 0 && days.every(d => expandedDays.has(d.id))

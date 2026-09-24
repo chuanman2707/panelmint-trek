@@ -7,7 +7,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
-import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Bookmark, BookmarkCheck, Copy, Route, StickyNote } from 'lucide-react'
+import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Route, StickyNote } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
 import PlaceRating from '../shared/StarRating'
@@ -15,21 +15,13 @@ import TrackColorPicker from '../shared/TrackColorPicker'
 import { resolveTrackColor, inheritedTrackColor } from '../Map/trackColors'
 import { filesForPlace } from '../../utils/placeFiles'
 import GuestBadge from '../shared/GuestBadge'
-import StatusBadge from '../Collections/StatusBadge'
-import { mapsApi, pluginsApi } from '../../api/client'
-import { collectionsApi } from '../../api/collections'
+import { mapsApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useAddonStore } from '../../store/addonStore'
-import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { getCategoryIcon } from '../shared/categoryIcons'
-import DawarichIcon from '../shared/DawarichIcon'
 import { Tooltip } from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 import { useTranslation, translateApiError } from '../../i18n'
-import { usePluginStore } from '../../store/pluginStore'
-import PluginFrame from '../Plugins/PluginFrame'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
-import type { CollectionStatus } from '@trek/shared'
 import { splitReservationDateTime, formatTime, formatMoney } from '../../utils/formatters'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -144,11 +136,7 @@ interface PlaceInspectorProps {
   roadtripStay?: RoadtripStayControl
   place: Place | null
   categories: Category[]
-  /** 'trip' (default) keeps every existing trip-planner behaviour byte-identical;
-   *  'collection' hides the day/reservation/file sub-panels and swaps the footer
-   *  for the saved-place actions (copy to trip, status, remove from list). */
-  mode?: 'trip' | 'collection'
-  // ── Trip-only props (optional so the collection detail panel can omit them) ──
+  // ── Optional props ──
   days?: Day[]
   selectedDayId?: number | null
   selectedAssignmentId?: number | null
@@ -175,48 +163,27 @@ interface PlaceInspectorProps {
   onRate?: (placeId: number, rating: number | null) => Promise<void> | void
   leftWidth?: number
   rightWidth?: number
-  // ── Collection-mode props ──
-  collectionStatus?: CollectionStatus
-  onCopyToTrip?: () => void
-  onSetStatus?: (status: CollectionStatus) => void
-  onRemoveFromList?: () => void
 }
 
 export default function PlaceInspector({
-  place, categories, mode = 'trip', days = [], selectedDayId = null, selectedAssignmentId = null,
+  place, categories, days = [], selectedDayId = null, selectedAssignmentId = null,
   assignments = {}, reservations = [], onEditTransport, onEditReservation,
   onClose, onEdit: editPlace, onDelete: deletePlace, onAssignToDay, onRemoveAssignment,
   files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onUploadImage, onRate,
   leftWidth = 0, rightWidth = 0,
-  collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList, roadtripEndDay, roadtripStay, roadtripActive,
+  roadtripEndDay, roadtripStay, roadtripActive,
 }: PlaceInspectorProps) {
   // Editing the place is a place right. The planner hands the handlers over
   // regardless, and a member without the right saw Edit, Delete and the inline
-  // rename and got the server's 403 for each (#2446). Collection mode gates
-  // its own actions.
+  // rename and got the server's 403 for each (#2446).
   const can = useCanDo()
   const trip = useTripStore(s => s.trip)
-  const mayEditPlace = mode !== 'trip' || can('place_edit', trip)
+  const mayEditPlace = can('place_edit', trip)
   const onEdit = mayEditPlace ? editPlace : undefined
   const onDelete = mayEditPlace ? deletePlace : undefined
   const onUpdatePlace = mayEditPlace ? updatePlace : undefined
-  // Plugins that declared a place-detail slot mount at the bottom of this panel,
-  // scoped to the open place (trip mode only). Inline-filter like the other sites.
-  const placeDetailPlugins = usePluginStore((s) => s.plugins).filter((p) => p.type === 'widget' && p.slot === 'place-detail')
-  // Extra native rows contributed by placeDetailProvider plugins (#1429). Fail-safe:
-  // any provider error/timeout is dropped server-side, so this only ever adds rows.
-  const [providerDetails, setProviderDetails] = useState<Array<{ pluginId: string; items: Array<{ label: string; value?: string; url?: string }> }>>([])
   const [navOpen, setNavOpen] = useState(false)
   const navBtnRef = useRef<HTMLButtonElement>(null)
-  const placeIdForDetails = mode === 'trip' ? place?.id : undefined
-  useEffect(() => {
-    if (placeIdForDetails == null) { setProviderDetails([]); return }
-    let cancelled = false
-    pluginsApi.placeDetails(placeIdForDetails)
-      .then((d) => { if (!cancelled) setProviderDetails((d.providers || []).filter((p) => Array.isArray(p.items) && p.items.length > 0)) })
-      .catch(() => { if (!cancelled) setProviderDetails([]) })
-    return () => { cancelled = true }
-  }, [placeIdForDetails])
   const { t, locale, language } = useTranslation()
   // Currency-less prices mean "the trip's currency"; null in collection mode (EUR fallback below).
   const tripCurrency = useTripStore(s => s.trip?.currency)
@@ -229,10 +196,6 @@ export default function PlaceInspector({
   const toast = useToast()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit) || 'metric'
-  const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
-  const openSavePicker = useSaveToCollectionStore(s => s.open)
-  const saveVersion = useSaveToCollectionStore(s => s.version)
-  const [savedInCollection, setSavedInCollection] = useState(false)
   const [hoursExpanded, setHoursExpanded] = useState(false)
   const [filesExpanded, setFilesExpanded] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -241,49 +204,6 @@ export default function PlaceInspector({
   const nameInputRef = useRef(null)
   const fileInputRef = useRef(null)
   const googleDetails = usePlaceDetails(place?.google_place_id, place?.osm_id, language)
-
-  // Library-wide "is this place already saved anywhere I can see?" indicator for
-  // the trip-planner footer bookmark. Re-checks when the place changes or after
-  // the save picker reports a change (saveVersion bump).
-  const showSaveToCollection = mode === 'trip' && collectionsEnabled
-  useEffect(() => {
-    if (!showSaveToCollection || !place) { setSavedInCollection(false); return }
-    let cancelled = false
-    collectionsApi.membership({
-      google_place_id: place.google_place_id ?? undefined,
-      google_ftid: place.google_ftid ?? undefined,
-      name: place.name,
-      lat: place.lat ?? undefined,
-      lng: place.lng ?? undefined,
-    }).then(m => { if (!cancelled) setSavedInCollection(m.saved) }).catch(() => { if (!cancelled) setSavedInCollection(false) })
-    return () => { cancelled = true }
-    // Re-check on place identity + after the picker reports a change; the other
-    // place fields are read at fire-time only, like the existing detail caches.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showSaveToCollection, place?.id, saveVersion])
-
-  const handleSaveToCollection = useCallback(() => {
-    if (!place) return
-    openSavePicker({
-      name: place.name,
-      source_trip_id: place.trip_id ?? null,
-      source_place_id: place.id,
-      description: place.description ?? null,
-      lat: place.lat ?? null,
-      lng: place.lng ?? null,
-      address: place.address ?? null,
-      category_id: place.category_id ?? null,
-      price: place.price ?? null,
-      currency: place.currency ?? null,
-      notes: place.notes ?? null,
-      image_url: place.image_url ?? null,
-      google_place_id: place.google_place_id ?? null,
-      google_ftid: place.google_ftid ?? null,
-      osm_id: place.osm_id ?? null,
-      website: place.website ?? null,
-      phone: place.phone ?? null,
-    })
-  }, [place, openSavePicker])
 
   // Sits above the `if (!place)` bail-out below: a hook after an early return is
   // only reached while a place is selected, so deselecting one mid-session
@@ -396,7 +316,7 @@ export default function PlaceInspector({
         <PlaceInspectorHeader openNow={openNow} place={place} category={category} t={t} editingName={editingName}
           nameInputRef={nameInputRef} nameValue={nameValue} setNameValue={setNameValue} commitNameEdit={commitNameEdit}
           handleNameKeyDown={handleNameKeyDown} startNameEdit={startNameEdit} onUpdatePlace={onUpdatePlace}
-          onUploadImage={mode === 'trip' && onUpdatePlace ? onUploadImage : undefined}
+          onUploadImage={onUpdatePlace ? onUploadImage : undefined}
           locale={locale} timeFormat={timeFormat} onClose={onClose} />
 
         {/* Content — scrollable */}
@@ -424,7 +344,7 @@ export default function PlaceInspector({
           </div>
 
           {/* Collaborative rating (#1435) — every member's own vote, shown as the average. */}
-          {mode === 'trip' && onRate && (
+          {onRate && (
             <div className="bg-surface-hover" style={{ borderRadius: 10, padding: '8px 12px' }}>
               <PlaceRating
                 ratings={place.ratings ?? []}
@@ -476,7 +396,7 @@ export default function PlaceInspector({
           )}
 
           {/* Reservation + Participants — trip-only (collections have no days) */}
-          {mode === 'trip' && (
+          {(
             <PlaceReservationParticipants selectedAssignmentId={selectedAssignmentId} reservations={reservations}
               assignments={assignments} selectedDayId={selectedDayId} tripMembers={tripMembers} locale={locale}
               timeFormat={timeFormat} t={t} onSetParticipants={onSetParticipants}
@@ -490,46 +410,10 @@ export default function PlaceInspector({
             fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isUploading={isUploading}
             distanceUnit={distanceUnit} onUpdatePlace={onUpdatePlace} />
 
-          {/* Extra native rows from placeDetailProvider plugins (#1429). */}
-          {mode === 'trip' && providerDetails.length > 0 && (
-            <div className="bg-surface-hover" style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {providerDetails.flatMap((p) => p.items.map((it, i) => (
-                <div key={`${p.pluginId}-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontSize: 'calc(12.5px * var(--fs-scale-body, 1))' }}>
-                  <span className="text-content-secondary" style={{ fontWeight: 500, flexShrink: 0 }}>{it.label}</span>
-                  {it.url
-                    ? <a href={it.url} target="_blank" rel="noreferrer noopener" className="text-accent" style={{ textDecoration: 'none', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.value ?? '↗'}</a>
-                    : <span className="text-content-muted" style={{ textAlign: 'right' }}>{it.value}</span>}
-                </div>
-              )))}
-            </div>
-          )}
-
-          {/* Place-detail plugin slots (#1429): sandboxed, scoped to this place. */}
-          {mode === 'trip' && placeDetailPlugins.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {placeDetailPlugins.map((p) => {
-                const tid = (place as { trip_id?: number | string }).trip_id
-                return (
-                  <div key={p.id} className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
-                    <PluginFrame pluginId={p.id} tripId={tid != null ? String(tid) : null} placeId={String(place.id)} title={p.name} surface="detail-slot" />
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
         </div>
 
         {/* Footer actions */}
         <div className="border-t border-edge-faint" style={{ padding: '10px 16px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
-          {/* Collection mode — copy to trip + per-place status */}
-          {mode === 'collection' && onCopyToTrip && (
-            <ActionButton onClick={onCopyToTrip} variant="primary" icon={<Copy size={13} />}
-              label={<span className="hidden sm:inline">{t('collections.copyToTrip')}</span>} />
-          )}
-          {mode === 'collection' && collectionStatus && onSetStatus && (
-            <StatusBadge status={collectionStatus} onChange={onSetStatus} t={t} />
-          )}
           {/* Trip mode — day assignment.
               A stop a lodging booking put there is not offered either way. Taking it off
               the day would leave the booking behind with nothing on the drive and no way
@@ -537,19 +421,13 @@ export default function PlaceInspector({
               duplicate the stop exists to prevent. The booking is removed where it is
               made: in the day's overnight block, or by turning the night back into a
               pause in road trip mode. */}
-          {mode === 'trip' && !!selectedDayId && !bookedNight && (
+          {!!selectedDayId && !bookedNight && (
             assignmentInDay ? (
               <ActionButton onClick={() => onRemoveAssignment?.(selectedDayId, assignmentInDay.id)} variant="ghost" icon={<Minus size={13} />}
                 label={<span className="hidden sm:inline">{t('inspector.removeFromDay')}</span>} />
             ) : (
               <ActionButton onClick={() => onAssignToDay?.(place.id)} variant="primary" icon={<Plus size={13} />} label={t('inspector.addToDay')} />
             )
-          )}
-          {/* Save to Collection — trip mode, independent of the Google Maps link */}
-          {showSaveToCollection && (
-            <ActionButton onClick={handleSaveToCollection} variant="ghost"
-              icon={savedInCollection ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
-              label={<span className="hidden sm:inline">{savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}</span>} />
           )}
           {navigationTargets.length > 0 && (
             <>
@@ -583,17 +461,12 @@ export default function PlaceInspector({
               label={<span className="hidden sm:inline">{t('inspector.website')}</span>} />
           )}
           <div style={{ flex: 1 }} />
-          {mode === 'trip' && onEdit && (
+          {onEdit && (
             <ActionButton onClick={onEdit} variant="ghost" icon={<Edit2 size={13} />} label={<span className="hidden sm:inline">{t('common.edit')}</span>} />
           )}
-          {mode === 'collection'
-            ? (onRemoveFromList && (
-                <ActionButton onClick={onRemoveFromList} variant="danger" icon={<Trash2 size={13} />}
-                  label={<span className="hidden sm:inline">{t('collections.removeFromList')}</span>} />
-              ))
-            : (onDelete && (
-                <ActionButton onClick={onDelete} variant="danger" icon={<Trash2 size={13} />} label={<span className="hidden sm:inline">{t('common.delete')}</span>} />
-              ))}
+          {onDelete && (
+            <ActionButton onClick={onDelete} variant="danger" icon={<Trash2 size={13} />} label={<span className="hidden sm:inline">{t('common.delete')}</span>} />
+          )}
         </div>
       </div>
     </div>
@@ -824,17 +697,6 @@ function PlaceInspectorHeader({ openNow, place, category, t, editingName, nameIn
                   className="text-content"
                   style={{ fontWeight: 600, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', lineHeight: '1.3', cursor: onUpdatePlace ? 'text' : 'default' }}
                 >{place.name}</span>
-              )}
-              {/* Where the place came from, when it did not come from somebody
-                  typing it: a stay accepted out of their own recordings. The
-                  mark alone — the name beside it is already the place's name,
-                  and a word here would only repeat the tooltip. */}
-              {place.source === 'dawarich' && (
-                <Tooltip label={t('dawarich.place.fromDawarich')} placement="top">
-                  <span style={{ display: 'inline-flex', flexShrink: 0, overflow: 'hidden', borderRadius: 5 }}>
-                    <DawarichIcon size={16} />
-                  </span>
-                </Tooltip>
               )}
               {category && (() => {
                 const CatIcon = getCategoryIcon(category.icon)

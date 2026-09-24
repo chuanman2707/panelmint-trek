@@ -7,7 +7,7 @@ import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useTripStore } from '../store/tripStore';
-import { usePluginStore } from '../store/pluginStore';
+import { useAddonStore } from '../store/addonStore';
 import { useSettingsStore } from '../store/settingsStore';
 import TripPlannerPage from './TripPlannerPage';
 import { server } from '../../tests/helpers/msw/server';
@@ -48,12 +48,6 @@ vi.mock('leaflet', () => {
   return { default: L, ...L };
 });
 
-// Mock the WebSocket hook so we can verify it's called
-const mockUseTripWebSocket = vi.fn();
-vi.mock('../hooks/useTripWebSocket', () => ({
-  useTripWebSocket: (...args: unknown[]) => mockUseTripWebSocket(...args),
-}));
-
 // Prop-capturing refs for mock components — populated on each render
 const capturedDayPlanSidebarProps: { current: Record<string, any> } = { current: {} };
 const capturedPlacesSidebarProps: { current: Record<string, any> } = { current: {} };
@@ -93,10 +87,6 @@ vi.mock('../components/Memories/MemoriesPanel', () => ({
   default: () => React.createElement('div', { 'data-testid': 'memories-panel' }),
 }));
 
-vi.mock('../components/Collab/CollabPanel', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'collab-panel' }),
-}));
-
 // The trip-open splash cycles its mascot scenes on an infinite setInterval. Under
 // fake timers that interval never settles, so vi.runAllTimers() aborts with
 // "assuming an infinite loop". The animation is irrelevant to page wiring — stub it
@@ -104,14 +94,6 @@ vi.mock('../components/Collab/CollabPanel', () => ({
 vi.mock('../components/shared/TripLoadingSplash', () => ({
   default: ({ title }: { title?: string }) =>
     React.createElement('div', { 'data-testid': 'trip-loading-splash', role: 'status' }, title || 'PanelMint'),
-}));
-
-const capturedFileManagerProps: { current: Record<string, any> } = { current: {} };
-vi.mock('../components/Files/FileManager', () => ({
-  default: (props: Record<string, any>) => {
-    capturedFileManagerProps.current = props;
-    return React.createElement('div', { 'data-testid': 'file-manager' });
-  },
 }));
 
 vi.mock('../components/Budget/CostsPanel', () => ({
@@ -273,7 +255,6 @@ beforeEach(async () => {
   });
   await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
   await db.trips.put(buildTrip({ id: 42, title: 'Test Trip' }));
-  mockUseTripWebSocket.mockReset();
   mockSetSelectedPlaceId.mockReset();
   mockSelectAssignment.mockReset();
   mockPlaceSelectionState.selectedPlaceId = null;
@@ -288,7 +269,6 @@ beforeEach(async () => {
   capturedDayDetailPanelProps.current = {};
   capturedTripFormModalProps.current = {};
   capturedTripMembersModalProps.current = {};
-  capturedFileManagerProps.current = {};
   capturedPlaceInspectorProps.current = {};
   capturedRoadtripSidebarProps.current = {};
   capturedTransportDetailModalProps.current = {};
@@ -412,18 +392,6 @@ describe('TripPlannerPage', () => {
     });
   });
 
-  describe('FE-PAGE-PLANNER-008: WebSocket hook mounted', () => {
-    it('calls useTripWebSocket with the trip ID from URL params', async () => {
-      seedTripStore({ id: 15 });
-
-      renderPlannerPage(15);
-
-      await waitFor(() => {
-        expect(mockUseTripWebSocket).toHaveBeenCalledWith(15);
-      });
-    });
-  });
-
   describe('FE-PAGE-PLANNER-009: Map view renders after splash', () => {
     it('shows the MapView component after the splash screen is dismissed', async () => {
       vi.useFakeTimers();
@@ -513,60 +481,6 @@ describe('TripPlannerPage', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('costs-panel')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('FE-PAGE-PLANNER-013: Files tab renders FileManager', () => {
-    it('shows FileManager after clicking the Files tab with documents addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] })
-        )
-      );
-
-      vi.useFakeTimers();
-
-      seedTripStore({ id: 42 });
-
-      renderPlannerPage(42);
-
-      act(() => { vi.runAllTimers(); });
-
-      vi.useRealTimers();
-
-      const filesTab = await screen.findByRole('button', { name: 'Files' });
-      fireEvent.click(filesTab);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('file-manager')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('FE-PAGE-PLANNER-014: Collab tab renders CollabPanel', () => {
-    it('shows CollabPanel after clicking the Collab tab with collab addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })
-        )
-      );
-
-      vi.useFakeTimers();
-
-      seedTripStore({ id: 42 });
-
-      renderPlannerPage(42);
-
-      act(() => { vi.runAllTimers(); });
-
-      vi.useRealTimers();
-
-      const collabTab = await screen.findByRole('button', { name: 'Collab' });
-      fireEvent.click(collabTab);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('collab-panel')).toBeInTheDocument();
       });
     });
   });
@@ -751,30 +665,6 @@ describe('TripPlannerPage', () => {
       // would only fight that.
       expect(capturedMapViewProps.current.center).toBeUndefined();
       expect(capturedMapViewProps.current.zoom).toBeUndefined();
-    });
-  });
-
-  describe('FE-PAGE-PLANNER-020b: the transit (tram) action needs trip dates', () => {
-    async function renderWithTripDates(dates: { start_date: string | null; end_date: string | null }) {
-      vi.useFakeTimers();
-      const { trip } = seedTripStore({ id: 42 });
-      seedStore(useTripStore, { trip: { ...trip, ...dates } } as any);
-      renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
-      vi.useRealTimers();
-      await waitFor(() => {
-        expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
-      });
-    }
-
-    it('passes onPlanTransit when the trip has a start and end date', async () => {
-      await renderWithTripDates({ start_date: '2025-06-01', end_date: '2025-06-05' });
-      expect(capturedDayPlanSidebarProps.current.onPlanTransit).toBeInstanceOf(Function);
-    });
-
-    it('omits onPlanTransit — hiding the tram button — when the trip has no dates', async () => {
-      await renderWithTripDates({ start_date: null, end_date: null });
-      expect(capturedDayPlanSidebarProps.current.onPlanTransit).toBeUndefined();
     });
   });
 
@@ -1376,73 +1266,6 @@ describe('TripPlannerPage', () => {
     });
   });
 
-  describe('FE-PAGE-PLANNER-044: FileManager callbacks cover file operation lambdas', () => {
-    it('calls FileManager onUpload/onDelete/onUpdate to cover inline lambda bodies', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] })
-        )
-      );
-
-      vi.useFakeTimers();
-
-      seedTripStore({ id: 42 });
-
-      renderPlannerPage(42);
-
-      act(() => { vi.runAllTimers(); });
-
-      vi.useRealTimers();
-
-      const filesTab = await screen.findByRole('button', { name: 'Files' });
-      fireEvent.click(filesTab);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('file-manager')).toBeInTheDocument();
-      });
-
-      // Call FileManager callbacks — covers lines 928-930 lambda bodies
-      await act(async () => {
-        const fd = new FormData();
-        await capturedFileManagerProps.current.onUpload?.(fd).catch(() => {});
-      });
-
-      await act(async () => {
-        await capturedFileManagerProps.current.onDelete?.(1).catch(() => {});
-      });
-
-      await act(async () => {
-        capturedFileManagerProps.current.onUpdate?.(1, {});
-      });
-    });
-  });
-
-  describe('FE-PAGE-PLANNER-045: ReservationsPanel onNavigateToFiles covers inline lambda', () => {
-    it('calls onNavigateToFiles to cover the inline lambda body', async () => {
-      vi.useFakeTimers();
-
-      seedTripStore({ id: 42 });
-
-      renderPlannerPage(42);
-
-      act(() => { vi.runAllTimers(); });
-
-      vi.useRealTimers();
-
-      const bookingsTab = await screen.findByRole('button', { name: 'Bookings' });
-      fireEvent.click(bookingsTab);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('reservations-panel')).toBeInTheDocument();
-      });
-
-      // Covers line 907 lambda: () => handleTabChange('dateien')
-      await act(async () => {
-        capturedReservationsPanelProps.current.onNavigateToFiles?.();
-      });
-    });
-  });
-
   describe('FE-PAGE-PLANNER-046: Invalid session tab resets to plan', () => {
     it('resets activeTab to "plan" when saved tab is no longer in TRIP_TABS', async () => {
       // Save a tab id that requires the "memories" addon (disabled by default)
@@ -1452,43 +1275,6 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(42);
 
       // The useEffect should detect the invalid tab and reset it
-      await waitFor(() => {
-        expect(sessionStorage.getItem('trip-tab-42')).toBe('plan');
-      });
-    });
-  });
-
-  describe('FE-PAGE-PLANNER-048: trip-page plugins can replace core tabs and pick a position', () => {
-    afterEach(() => usePluginStore.setState({ plugins: [], loaded: false }));
-
-    it('hides the replaced core tab and splices the plugin tab at its position', async () => {
-      usePluginStore.setState({
-        plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'], position: 1 } }],
-        loaded: true,
-      });
-      seedTripStore({ id: 42 });
-
-      renderPlannerPage(42);
-
-      // the plugin tab is present, the replaced Transports tab is not (the splash
-      // screen holds the page for 1.5s, so give the query room)
-      const pluginTab = await screen.findByRole('button', { name: 'Transit Pro' }, { timeout: 4000 });
-      expect(pluginTab).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Transports' })).not.toBeInTheDocument();
-      // an unreplaced core tab stays reachable
-      expect(screen.getByRole('button', { name: 'Bookings' })).toBeInTheDocument();
-    });
-
-    it('a saved session tab that a plugin replaced resets to plan once plugins load', async () => {
-      sessionStorage.setItem('trip-tab-42', 'transports');
-      usePluginStore.setState({
-        plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'] } }],
-        loaded: true,
-      });
-      seedTripStore({ id: 42 });
-
-      renderPlannerPage(42);
-
       await waitFor(() => {
         expect(sessionStorage.getItem('trip-tab-42')).toBe('plan');
       });
@@ -1753,8 +1539,13 @@ describe('TripPlannerPage', () => {
     // The rail is mounted only with the addon on and the mode on for this trip; the
     // road-trip hooks then read their own endpoints, answered empty here.
     const enterRoadtrip = () => {
+      // The addon feed is gone — the roadtrip row is seeded straight into the
+      // store. The roadtrip endpoints still ride MSW.
+      seedStore(useAddonStore, {
+        addons: [{ id: 'roadtrip', name: 'Road trip', type: 'trip', icon: '', enabled: true }],
+        loaded: true,
+      } as never);
       server.use(
-        http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'roadtrip', type: 'roadtrip' }] })),
         http.get('/api/trips/42/roadtrip/vias', () => HttpResponse.json({ vias: [], tracks: [] })),
         http.get('/api/trips/42/roadtrip/preferences', () => HttpResponse.json({ tripId: 42, preferences: {} })),
       );

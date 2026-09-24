@@ -2,7 +2,7 @@ import { useRef, useState, type MouseEvent } from 'react'
 import {
   ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut,
   MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2,
-  Car, Footprints, Zap, RotateCcw, TramFront,
+  Car, Footprints, Zap, RotateCcw,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
@@ -15,14 +15,12 @@ import type { HotelChip, PlanRow } from './planTimelineModel'
 import { useMPlanDragReorder } from './useMPlanDragReorder'
 import { useTouchDragBridge } from '../../../../hooks/useTouchDragBridge'
 import { useIsTouch } from '../../../../hooks/useIsTouch'
-import { ConnRow, HotelConnRow, NoteRow, PlaceRow, PlanScheduleRow, ReorderStack, TransitRow, TransportRow } from './MPlanTimelineRows'
+import { ConnRow, HotelConnRow, NoteRow, PlaceRow, ReorderStack, TransitRow, TransportRow } from './MPlanTimelineRows'
 import type { RowDrag } from './MPlanTimelineRows'
-import { usePluginDaySchedule } from '../../../../components/Plugins/PluginDaySchedule'
 import { Fragment } from 'react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import type { MPlanTimelineProps } from '../MTripShell'
 import type { MergedItem } from '../../../../utils/dayMerge'
-import type { RouteSegment } from '../../../../types'
 import type { Assignment } from '../../../../types'
 import type { ComponentType, ReactNode } from 'react'
 import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
@@ -47,19 +45,13 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   // Per-segment travel mode (#1281): tap a connector → pick the leg's mode.
   const legMenu = useContextMenu()
   const modeIcon = (key: string) => (key === 'walking' ? Footprints : key.startsWith('plugin:') ? Zap : Car)
-  const openLegMenu = (e: MouseEvent, assignmentId: number, seg: RouteSegment) => {
-    // Public transit sits under the road profiles, as on the desktop (#2398).
-    const transitLeg = tl.transitLegFor(seg)
+  const openLegMenu = (e: MouseEvent, assignmentId: number) => {
     legMenu.open(e, [
       ...tl.routeModeOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => tl.setLegMode(assignmentId, o.key) })),
-      ...(transitLeg ? [{ label: t('transit.title'), icon: TramFront, onClick: () => tl.planTransitLeg(transitLeg) }] : []),
       { divider: true },
       { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => tl.setLegMode(assignmentId, null) },
     ])
   }
-  // Plugin time contributions in the day plan (dayScheduleProvider hook) —
-  // slotted under their anchor rows, same as the desktop sidebar.
-  const daySchedule = usePluginDaySchedule(planner.tripId)
   const day = tl.day
   const dayId = day?.id
   // A stay chip opens the stay, the same way the stay card in the day sheet
@@ -81,12 +73,6 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const dayLabel = day
     ? day.title || t('planner.dayN', { n: day.day_number || planner.days.indexOf(day) + 1 })
     : ''
-  const dayScheduleFor = (anchor: 'assignment' | 'reservation', id: number) =>
-    (dayId != null
-      ? (anchor === 'assignment' ? daySchedule.byAssignment[dayId]?.[id] : daySchedule.byReservation[dayId]?.[id])
-      : undefined
-    )?.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)
-
   // Selecting the place is enough — the place inspector sheet opens off the
   // planner's selection, same contract as map marker taps.
   const openPlace = (assignment: Assignment) => {
@@ -188,7 +174,6 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         {tl.hotelLegs.top && (
           <HotelConnRow seg={tl.hotelLegs.top.seg} name={tl.hotelLegs.top.name} placement="top" />
         )}
-        {dayId != null && daySchedule.byPosition[dayId]?.start.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
 
         {day && tl.rows.map(row => {
           switch (row.kind) {
@@ -206,7 +191,6 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                     onEdit={canEditPlaces ? () => tl.editAssignment(row.assignment) : undefined}
                     onRemove={() => tl.removeAssignment(row.assignment)}
                   />
-                  {dayScheduleFor('assignment', row.assignment.id)}
                 </Fragment>
               )
             case 'transport':
@@ -223,7 +207,6 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                       else shell.openSheet('transport', { reservationId: row.res.id })
                     }}
                   />
-                  {dayScheduleFor('reservation', row.res.id)}
                 </Fragment>
               )
             case 'transit':
@@ -238,9 +221,8 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                     reorder={reorderFor(row.item)}
                     drag={dragFor(row)}
                     onToggle={() => tl.toggleTransit(row.key)}
-                    onOpenJourney={() => tl.openTransitJourney(row.res)}
+                    onOpenJourney={() => tl.editTransport(row.res)}
                   />
-                  {dayScheduleFor('reservation', row.res.id)}
                 </Fragment>
               )
             case 'note':
@@ -255,11 +237,10 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                 />
               )
             case 'conn':
-              return <ConnRow key={row.key} seg={row.seg} onTap={editing && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!, row.seg) : undefined} />
+              return <ConnRow key={row.key} seg={row.seg} onTap={editing && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!) : undefined} />
           }
         })}
 
-        {dayId != null && daySchedule.byPosition[dayId]?.end.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
         {tl.hotelLegs.bottom && (
           <HotelConnRow seg={tl.hotelLegs.bottom.seg} name={tl.hotelLegs.bottom.name} placement="bottom" />
         )}

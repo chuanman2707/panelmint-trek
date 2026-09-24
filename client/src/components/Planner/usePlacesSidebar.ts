@@ -5,13 +5,10 @@ import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useContextMenu } from '../shared/ContextMenu'
 import { placesApi } from '../../api/client'
-import { collectionsApi } from '../../api/collections'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useAuthStore } from '../../store/authStore'
 import { useAddonStore } from '../../store/addonStore'
-import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
-import { placeToSaveTarget } from '../Collections/saveTarget'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
 import { safeHttpUrl } from '../../utils/safeUrl'
@@ -78,7 +75,6 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const loadTrip = useTripStore((s) => s.loadTrip)
   const can = useCanDo()
   const canEditPlaces = can('place_edit', trip)
-  const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
   // Places-API enrichment (#886) needs a Google Maps key. Not the places
   // *provider* choice: enrichment's photos and summary come from Google (and,
   // keyless, from Wikimedia), which is independent of which provider answers
@@ -183,33 +179,10 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[] | null>(null)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
-  const [saveToListOpen, setSaveToListOpen] = useState(false)
 
-  const [markVisitedBusy, setMarkVisitedBusy] = useState(false)
 
   const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()) }
 
-  /**
-   * "I have been to these" for the selection, applied wherever the places are
-   * saved in the library (#1469). The server does the matching, so a place saved
-   * under a different name in a list is still found.
-   */
-  const markSelectionVisited = useCallback(async () => {
-    const ids = Array.from(selectedIds)
-    if (ids.length === 0 || markVisitedBusy) return
-    setMarkVisitedBusy(true)
-    try {
-      const { updated, places: matchedPlaces } = await collectionsApi.setStatusFromTrip(props.tripId, ids, 'visited')
-      if (updated === 0) toast.info(t('collections.markVisitedNone'))
-      else toast.success(t('collections.markedVisitedTrip', { count: matchedPlaces ?? 0 }))
-      exitSelectMode()
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setMarkVisitedBusy(false)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, markVisitedBusy, props.tripId, t])
 
   // Auto-exit when all selected places have been removed from the store (e.g. after bulk delete)
   useEffect(() => {
@@ -334,11 +307,10 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
       selDayId && { label: t('planner.addToDay'), icon: CalendarDays, onClick: () => props.onAssignToDay(place.id, selDayId) },
       safeHttpUrl(place.website) && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(safeHttpUrl(place.website)!, '_blank', 'noopener,noreferrer') },
       googleMapsUrl && { label: t('inspector.google'), icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
-      collectionsEnabled && { label: t('inspector.saveToCollection'), icon: Bookmark, onClick: () => useSaveToCollectionStore.getState().open(placeToSaveTarget(place)) },
       { divider: true },
       canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => props.onDeletePlace(place.id) },
     ])
-  }, [ctxMenu.open, canEditPlaces, collectionsEnabled, t, props.onEditPlace, props.onAssignToDay, props.onDeletePlace])
+  }, [ctxMenu.open, canEditPlaces, t, props.onEditPlace, props.onAssignToDay, props.onDeletePlace])
 
   return {
     ...props,
@@ -355,8 +327,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     starDropOpen, setStarDropOpen,
     selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     categoryPickerOpen, setCategoryPickerOpen,
-    saveToListOpen, setSaveToListOpen, collectionsEnabled, tripId,
-    markSelectionVisited, markVisitedBusy,
+    tripId,
     exitSelectMode, toggleSelected, toggleCategoryFilter, dayPickerPlace, setDayPickerPlace,
     catDropOpen, setCatDropOpen, mobileShowDays, setMobileShowDays,
     hasTracks, plannedIds, plannedFilterIds, dayScoped, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet, openContextMenu,

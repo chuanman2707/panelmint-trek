@@ -2,8 +2,6 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip } from '../../../tests/helpers/factories';
 import { TranslationProvider } from '../../i18n/TranslationContext';
@@ -65,11 +63,6 @@ beforeEach(async () => {
   });
   await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
   await seedTrips([PARIS, TOKYO, ROME]);
-  server.use(
-    http.get('/api/auth/travel-stats', () => HttpResponse.json({ totalTrips: 2, countries: ['fr'] })),
-    http.get('/api/reservations/upcoming', () =>
-      HttpResponse.json({ reservations: [{ id: 5, trip_id: 101, title: 'Louvre', type: 'ticket' }] })),
-  );
 });
 
 afterEach(() => {
@@ -79,12 +72,20 @@ afterEach(() => {
 
 describe('useDashboard', () => {
   it('FE-HOOK-DASH-001: loads trips, stats and the upcoming reservations', async () => {
+    // The feed is local now: stats count the seeded Dexie trips (the archived
+    // Rome still counts — same as the server) and upcoming reads the seeded
+    // reservation row.
+    await db.reservations.put({
+      id: 5, trip_id: 101, title: 'Louvre', type: 'ticket', status: 'confirmed',
+      reservation_time: '2099-01-01T10:00:00',
+    } as never);
     const { result } = await mountLoaded();
 
     expect(result.current.spotlight?.title).toBe('Tokyo Trip');
     expect(result.current.loadError).toBe(false);
-    await waitFor(() => expect(result.current.stats?.totalTrips).toBe(2));
+    await waitFor(() => expect(result.current.stats?.totalTrips).toBe(3));
     await waitFor(() => expect(result.current.upcoming).toHaveLength(1));
+    expect(result.current.upcoming[0].title).toBe('Louvre');
   });
 
   it('FE-HOOK-DASH-002: the planned filter drops finished trips, completed keeps only them', async () => {

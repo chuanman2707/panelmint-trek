@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores, seedStore } from '../../helpers/store';
@@ -7,18 +7,6 @@ import { buildDay, buildDayNote, buildTrip } from '../../helpers/factories';
 import { server } from '../../helpers/msw/server';
 import { db } from '../../../src/db/panelmintDb';
 import type { DayRow } from '../../../src/api/local/dexieStore';
-
-vi.mock('../../../src/api/websocket', () => ({
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  getSocketId: vi.fn(() => null),
-  joinTrip: vi.fn(),
-  leaveTrip: vi.fn(),
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-  setRefetchCallback: vi.fn(),
-  setPreReconnectHook: vi.fn(),
-}));
 
 beforeEach(async () => {
   resetAllStores();

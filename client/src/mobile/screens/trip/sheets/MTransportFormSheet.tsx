@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bike, Bus, Car, CarTaxiFront, Check, ChevronDown, ChevronUp, Plane, Plus, Route, Sailboat, Ship, Train, TrainFront, TramFront, Trash2, X } from 'lucide-react'
+import { Bike, Bus, Car, CarTaxiFront, Check, ChevronDown, ChevronUp, Plane, Plus, Route, Sailboat, Ship, Train, TrainFront, Trash2, X } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
@@ -10,14 +10,12 @@ import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import AirportSelect, { type Airport } from '../../../../components/Planner/AirportSelect'
 import LocationSelect, { type LocationPoint } from '../../../../components/Planner/LocationSelect'
-import TransitSearchPanel from '../../../../components/Planner/TransitSearchPanel'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import PlFileAttach from './PlFileAttach'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
 import { useTripStore } from '../../../../store/tripStore'
-import type { Day, Place, Reservation, ReservationEndpoint, TripMember } from '../../../../types'
-import type { BookingReviewDraft } from '../../../../components/Planner/parsedItemToDraft'
+import type { Day, Reservation, ReservationEndpoint, TripMember } from '../../../../types'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import type { TripPlanner } from '../MTripShell'
 
@@ -134,21 +132,18 @@ const EMPTY = {
 /**
  * Add/edit transport sheet — the mobile counterpart of the desktop
  * TransportModal, driven by the planner's own editor flags (showTransportModal /
- * editingTransport / transportPrefill / transportModalAutomated) so every entry
- * point (transports tab, day header, timeline, "change route", import review)
- * opens it unchanged. The manual tab supports single- and multi-leg flights /
- * trains; the automated tab embeds the shared TransitSearchPanel. Saving reuses
+ * editingTransport / transportModalDayId) so every entry
+ * point (transports tab, day header, timeline, import review)
+ * opens it unchanged. The form supports single- and multi-leg flights /
+ * trains. Saving reuses
  * planner.handleSaveTransport, whose payload shape is preserved byte-for-byte.
  */
 export default function MTransportFormSheet({ planner, onOpenExpense }: MTransportFormSheetProps) {
   const {
-    t, toast, tripId, trip, days, places, assignments, tripAccommodations, tripMembers,
+    t, toast, tripId, days, tripMembers,
     showTransportModal, setShowTransportModal,
     editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
-    transportModalAutomated, setTransportModalAutomated,
-    transportPrefill, transitPrefill, setTransitPrefill,
-    importReviewActive, advanceImportReview,
     handleSaveTransport, handleDeleteReservation,
     canUploadFiles, tripActions,
   } = planner
@@ -156,10 +151,8 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
 
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
-  const tripHasDates = Boolean(trip?.start_date && trip?.end_date)
 
   const [form, setForm] = useState({ ...EMPTY })
-  const [automated, setAutomated] = useState(false)
   const [fromPick, setFromPick] = useState<EndpointPick>({})
   const [toPick, setToPick] = useState<EndpointPick>({})
   const [waypoints, setWaypoints] = useState<WaypointForm[]>([emptyWaypoint(), emptyWaypoint()])
@@ -175,22 +168,19 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   const expenseIntentRef = useRef(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
   // Open-time snapshot so the sheet content survives the exit animation.
-  const [snap, setSnap] = useState<{ res: Reservation | null; prefill: BookingReviewDraft | null }>({ res: null, prefill: null })
+  const [snap, setSnap] = useState<{ res: Reservation | null }>({ res: null })
 
   useEffect(() => {
     if (!showTransportModal) return
-    setSnap({ res: editingTransport, prefill: transportPrefill })
-    setAutomated(transportModalAutomated)
+    setSnap({ res: editingTransport })
     expenseIntentRef.current = false
     setDeleteArmed(false)
-    // On a review-import, seed the booking's Files with the parsed source document.
-    setPendingFiles(!editingTransport && transportPrefill?._sourceFiles ? transportPrefill._sourceFiles : [])
+    setPendingFiles([])
     setTravelerIds(new Set((editingTransport?.travelers || []).map(tv => tv.user_id)))
 
-    // Edit uses the saved `editingTransport`; a review-import populates from the
-    // prefill. Either way the init reads the same fields; the reservation still
+    // Edit uses the saved `editingTransport`; the reservation still
     // decides edit-vs-create at submit time.
-    const src = (editingTransport ?? transportPrefill) as Reservation | null
+    const src = editingTransport
     if (src) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const meta = typeof src.metadata === 'string' ? JSON.parse(src.metadata || '{}') : ((src.metadata as any) || {})
@@ -202,8 +192,8 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         title: src.title || '',
         type,
         status: src.status === 'confirmed' ? 'confirmed' : 'pending',
-        // For an edit, keep the saved day; for an imported prefill (no day_id),
-        // resolve it from the parsed pick-up/return date so it isn't lost.
+        // For an edit, keep the saved day; a reservation without one resolves
+        // its day from the pick-up date so it isn't lost.
         start_day_id: src.day_id ?? resolveDayId(days, splitReservationDateTime(src.reservation_time).date),
         end_day_id: src.end_day_id ?? resolveDayId(days, splitReservationDateTime(src.reservation_end_time).date),
         departure_time: splitReservationDateTime(src.reservation_time).time ?? '',
@@ -211,11 +201,9 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         confirmation_number: src.confirmation_number || '',
         notes: src.notes || '',
       })
-      // Only an import prefill carries a per-endpoint local_date without a day_id. On an
-      // edit the saved day wins: local_date is denormalised and can lag behind after a
-      // day drag, insertDay or a trip-date shift (mirrors TransportModal).
-      const endpointDayId = (ep?: { local_date?: string | null } | null) =>
-        editingTransport ? '' : resolveDayId(days, ep?.local_date)
+      // On an edit the saved day wins: local_date is denormalised and can lag
+      // behind after a day drag, insertDay or a trip-date shift (mirrors
+      // TransportModal), so endpoints never seed a day.
       // Origin and destination fall back to the reservation's own day columns. An
       // intermediate stop has none, so when metadata.legs is missing (imported or
       // MCP-created bookings) its local_date is the only day left to seed from.
@@ -235,9 +223,9 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
             const stopDay = !isFirst && !isLast ? stopDayId(ep) : ''
             return {
               airport: airportFromEndpoint(ep),
-              arrDayId: legInto?.arr_day_id ?? (endpointDayId(ep) || (isLast ? (src.end_day_id ?? '') : stopDay)),
+              arrDayId: legInto?.arr_day_id ?? ((isLast ? (src.end_day_id ?? '') : stopDay)),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (endpointDayId(ep) || (isFirst ? (src.day_id ?? '') : stopDay)),
+              depDayId: legOut?.dep_day_id ?? ((isFirst ? (src.day_id ?? '') : stopDay)),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               airline: legOut?.airline ?? (isFirst ? (meta.airline ?? '') : ''),
               flight_number: legOut?.flight_number ?? (isFirst ? (meta.flight_number ?? '') : ''),
@@ -248,13 +236,13 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
             }
           })
         } else {
-          const dep = emptyWaypoint(endpointDayId(from) || (src.day_id ?? ''))
+          const dep = emptyWaypoint((src.day_id ?? ''))
           dep.airport = airportFromEndpoint(from)
           dep.depTime = splitReservationDateTime(src.reservation_time).time ?? ''
           dep.airline = meta.airline ?? ''
           dep.flight_number = meta.flight_number ?? ''
           dep.seat = meta.seat ?? ''
-          const arr = emptyWaypoint(endpointDayId(to) || (src.end_day_id ?? src.day_id ?? ''))
+          const arr = emptyWaypoint((src.end_day_id ?? src.day_id ?? ''))
           arr.airport = airportFromEndpoint(to)
           arr.arrTime = splitReservationDateTime(src.reservation_end_time).time ?? ''
           wps = [dep, arr]
@@ -276,9 +264,9 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
             const stopDay = !isFirst && !isLast ? stopDayId(ep) : ''
             return {
               location: locationFromEndpoint(ep),
-              arrDayId: legInto?.arr_day_id ?? (endpointDayId(ep) || (isLast ? (src.end_day_id ?? '') : stopDay)),
+              arrDayId: legInto?.arr_day_id ?? ((isLast ? (src.end_day_id ?? '') : stopDay)),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (endpointDayId(ep) || (isFirst ? (src.day_id ?? '') : stopDay)),
+              depDayId: legOut?.dep_day_id ?? ((isFirst ? (src.day_id ?? '') : stopDay)),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               train_number: legOut?.train_number ?? (isFirst ? (meta.train_number ?? '') : ''),
               platform: legOut?.platform ?? (isFirst ? (meta.platform ?? '') : ''),
@@ -288,13 +276,13 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
             }
           })
         } else {
-          const dep = emptyStationWaypoint(endpointDayId(from) || (src.day_id ?? ''))
+          const dep = emptyStationWaypoint((src.day_id ?? ''))
           dep.location = locationFromEndpoint(from)
           dep.depTime = splitReservationDateTime(src.reservation_time).time ?? ''
           dep.train_number = meta.train_number ?? ''
           dep.platform = meta.platform ?? ''
           dep.seat = meta.seat ?? ''
-          const arr = emptyStationWaypoint(endpointDayId(to) || (src.end_day_id ?? src.day_id ?? ''))
+          const arr = emptyStationWaypoint((src.end_day_id ?? src.day_id ?? ''))
           arr.location = locationFromEndpoint(to)
           arr.arrTime = splitReservationDateTime(src.reservation_end_time).time ?? ''
           wps = [dep, arr]
@@ -331,7 +319,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   }, [showTransportModal])
 
   const res = snap.res
-  const prefill = snap.prefill
   const set = (field: keyof typeof EMPTY, value: string | number) => setForm(prev => ({ ...prev, [field]: value }))
 
   const moveCarStop = (index: number, delta: number): void => {
@@ -364,8 +351,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         </span>
       )
 
-  const showModeToggle = !res && tripHasDates
-
   const dayOptions = [
     { value: '', label: '—' },
     ...days.map(d => {
@@ -382,20 +367,15 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   const writesTrainLegs = trainWaypoints.filter(w => w.location).length > 2
 
   const handleClose = () => {
-    if (importReviewActive) { advanceImportReview(); return }
     setShowTransportModal(false)
     setEditingTransport(null)
     setTransportModalDayId(null)
-    setTransportModalAutomated(false)
-    setTransitPrefill(null)
   }
 
-  // The single save path shared by the manual submit and the automated panel —
   // handleSaveTransport closes the sheet on success; on an import review it also
   // advances to the next parsed item (mirrors the desktop MTripSheets wrapper).
   const saveTransport = async (data: Record<string, unknown> & { title: string }) => {
     const r = await handleSaveTransport(data as never)
-    if (importReviewActive && r) advanceImportReview()
     return r
   }
 
@@ -572,15 +552,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         endpoints,
         needs_review: false,
       }
-      // Imported booking → auto-create the linked cost from the parsed price
-      // (only on create and only when a price is present).
-      if (!res && prefill && isBudgetEnabled) {
-        const pmeta = prefill.metadata && typeof prefill.metadata === 'object' ? (prefill.metadata as Record<string, unknown>) : {}
-        const price = Number(pmeta.price)
-        if (Number.isFinite(price) && price > 0) {
-          payload.create_budget_entry = { total_price: price, category: typeToCostCategory(form.type) }
-        }
-      }
       const saved = await saveTransport(payload)
       // Persist the traveler assignment once we have the reservation id (from the
       // save result on create, or the edited reservation) — only when it changed.
@@ -621,7 +592,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     handleClose()
   }
 
-  const headerTitle = automated ? t('transit.title') : res ? t('transport.modalTitle.edit') : t('transport.modalTitle.create')
+  const headerTitle = res ? t('transport.modalTitle.edit') : t('transport.modalTitle.create')
 
   return (
     <MSheet
@@ -637,81 +608,8 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         closeLabel={t('common.close')}
       />
 
-      {/* Manual vs Automated switch — creating only; editing a journey re-enters
-          via "change route" with the switch hidden. Without trip dates there is
-          nothing to plan a departure against, so Automated is not offered. */}
-      {showModeToggle && (
-        <div className="flex-none px-[18px] pb-2">
-          <div className="flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
-            {([['manual', t('transport.modeManual')], ['automated', t('transport.modeAutomated')]] as const).map(([m, label]) => {
-              const active = (m === 'automated') === automated
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setAutomated(m === 'automated')}
-                  className={`flex-1 rounded-full py-[7px] text-[0.71875rem] font-semibold ${
-                    active ? 'bg-m-act text-m-actfg' : 'text-m-muted'
-                  }`}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]">
-        {automated ? (
-          /* ── Automated: public transit search ── */
-          <>
-            <div className="mt-2 flex items-center gap-[10px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[11px]">
-              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)]">
-                <TramFront size={17} strokeWidth={1.8} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[0.8125rem] font-bold text-m-ink">{t('transit.title')}</div>
-                <div className="truncate font-geist text-[0.65625rem] text-m-faint">{t('transit.searchHint')}</div>
-              </div>
-            </div>
-            <div className="mt-3">
-              <CustomSelect
-                value={form.start_day_id}
-                onChange={v => set('start_day_id', v)}
-                placeholder={t('dayplan.dayN', { n: '?' })}
-                options={dayOptions}
-                size="sm"
-              />
-            </div>
-            {(() => {
-              const transitDay = days.find(d => d.id === Number(form.start_day_id))
-              if (!transitDay) {
-                return <div className="mt-3 font-geist text-[0.78125rem] text-m-faint">{t('transit.pickDay')}</div>
-              }
-              // Quick picks offer the chosen day's itinerary, not the whole trip.
-              const dayPlaces = (assignments[String(transitDay.id)] || [])
-                .slice().sort((a, b) => a.order_index - b.order_index)
-                .map(a => places.find(p => p.id === a.place_id))
-                .filter((p): p is Place => p != null)
-              return (
-                <div className="mt-4">
-                  <TransitSearchPanel
-                    day={transitDay}
-                    days={days}
-                    places={dayPlaces}
-                    accommodations={tripAccommodations}
-                    onAdd={(p) => saveTransport(p as Record<string, unknown> & { title: string })}
-                    initialFrom={transitPrefill?.from ?? null}
-                    initialTo={transitPrefill?.to ?? null}
-                    initialTime={transitPrefill?.time ?? null}
-                  />
-                </div>
-              )
-            })()}
-          </>
-        ) : (
-          /* ── Manual booking form ── */
+          {/* ── Manual booking form ── */}
           <>
             {/* BOOKING TYPE */}
             <Eyebrow className="mb-[6px] mt-2 uppercase">{t('reservations.bookingType')}</Eyebrow>
@@ -1119,31 +1017,18 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               </>
             )}
           </>
-        )}
       </div>
 
-      {automated ? (
-        <div className="flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="ml-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold text-m-ink"
-          >
-            {t('common.cancel')}
-          </button>
-        </div>
-      ) : (
-        <FormSheetFooter
-          onDelete={res ? handleDelete : undefined}
-          deleteLabel={t('common.delete')}
-          deleteArmed={deleteArmed}
-          onCancel={handleClose}
-          cancelLabel={t('common.cancel')}
-          onSubmit={handleSubmit}
-          submitLabel={isSaving ? t('common.saving') : res ? t('common.update') : t('common.add')}
-          submitDisabled={!form.title.trim() || isSaving}
-        />
-      )}
+      <FormSheetFooter
+        onDelete={res ? handleDelete : undefined}
+        deleteLabel={t('common.delete')}
+        deleteArmed={deleteArmed}
+        onCancel={handleClose}
+        cancelLabel={t('common.cancel')}
+        onSubmit={handleSubmit}
+        submitLabel={isSaving ? t('common.saving') : res ? t('common.update') : t('common.add')}
+        submitDisabled={!form.title.trim() || isSaving}
+      />
     </MSheet>
   )
 }

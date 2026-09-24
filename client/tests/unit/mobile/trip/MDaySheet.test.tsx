@@ -3,7 +3,6 @@ import type { WeatherResult } from '@trek/shared'
 import { weatherApi } from '../../../../src/api/client'
 import MDaySheet from '../../../../src/mobile/screens/trip/sheets/MDaySheet'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
-import { usePluginStore } from '../../../../src/store/pluginStore'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import type { Accommodation, Assignment, Day, DayNote, Reservation } from '../../../../src/types'
@@ -108,8 +107,6 @@ function makePlanner(overrides: Record<string, unknown> = {}) {
     setShowTransportModal: vi.fn(),
     setEditingReservation: vi.fn(),
     setShowReservationModal: vi.fn(),
-    setTransitPrefill: vi.fn(),
-    setTransportModalAutomated: vi.fn(),
     TRANSPORT_TYPES: new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other']),
     can: vi.fn(() => true),
     toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
@@ -128,7 +125,6 @@ async function renderSheet(planner: TripPlanner = makePlanner(), shell: MTripShe
 describe('MDaySheet', () => {
   beforeEach(() => {
     resetAllStores()
-    usePluginStore.setState({ plugins: [] })
     seedStore(useTripStore, { dayNotes: { '2': DAY_NOTES } })
     vi.spyOn(weatherApi, 'getDetailed').mockResolvedValue(FORECAST)
     vi.spyOn(window, 'open').mockImplementation(() => null)
@@ -243,18 +239,12 @@ describe('MDaySheet', () => {
     expect(screen.getByRole('button', { name: 'Route' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('FE-MOB-DAYSH-015: offers plugin route profiles next to the built-ins', async () => {
-    usePluginStore.setState({
-      plugins: [{
-        id: 'brouter', name: 'BRouter', type: 'integration', icon: null,
-        routeProfiles: [{ id: 'bike', label: 'Bike' }],
-      }],
-    })
+  it('FE-MOB-DAYSH-015: offers the built-in route profiles and switches between them', async () => {
     const { planner } = await renderSheet()
     expect(screen.getByRole('button', { name: 'Driving' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Walking' })).toHaveAttribute('aria-pressed', 'false')
-    fireEvent.click(screen.getByRole('button', { name: 'Bike' }))
-    expect(planner.setRouteProfile).toHaveBeenCalledWith('plugin:brouter/bike')
+    fireEvent.click(screen.getByRole('button', { name: 'Walking' }))
+    expect(planner.setRouteProfile).toHaveBeenCalledWith('walking')
   })
 
   it('FE-MOB-DAYSH-016: exports the day stops plus the evening hotel to Google Maps', async () => {
@@ -282,15 +272,9 @@ describe('MDaySheet', () => {
     expect(screen.getByRole('button', { name: 'Route' })).toBeInTheDocument()
   })
 
-  it('FE-MOB-DAYSH-019: opens the automated transport modal for public transit', async () => {
-    const { planner, shell } = await renderSheet()
-    fireEvent.click(screen.getByRole('button', { name: 'Public transit' }))
-    expect(planner.setTransportModalDayId).toHaveBeenCalledWith(2)
-    expect(planner.setEditingTransport).toHaveBeenCalledWith(null)
-    expect(planner.setTransitPrefill).toHaveBeenCalledWith(null)
-    expect(planner.setTransportModalAutomated).toHaveBeenCalledWith(true)
-    expect(planner.setShowTransportModal).toHaveBeenCalledWith(true)
-    expect(shell.closeSheet).toHaveBeenCalled()
+  it('FE-MOB-DAYSH-019: no public-transit action — the transit planner went away with the hosted build', async () => {
+    await renderSheet()
+    expect(screen.queryByRole('button', { name: 'Public transit' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-DAYSH-020: lists the day bookings without hotels and opens the matching editor', async () => {

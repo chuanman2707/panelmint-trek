@@ -1,9 +1,7 @@
 import { assignmentSchema } from '@trek/shared'
 import { saveAssignmentEndDay } from '../api/assignmentEndDay'
 import { assignmentsApi } from '../api/client'
-import { offlineDb } from '../db/offlineDb'
 import { cacheAssignment } from '../db/cacheAssignment'
-import { generateUUID, mutationQueue } from '../sync/mutationQueue'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import type { Assignment } from '../types'
 
@@ -21,14 +19,7 @@ export const assignmentRepo = {
       return saved
     }
     const updated = { ...assignment, end_day: endDay }
-    await offlineDb.transaction('rw', offlineDb.days, offlineDb.mutationQueue, async () => {
-      await mutationQueue.enqueue({
-        id: generateUUID(), tripId: Number(tripId), method: 'PUT',
-        url: `/trips/${tripId}/assignments/${assignment.id}/end-day`,
-        body: { end_day: endDay }, resource: 'assignments', entityId: assignment.id,
-      })
-      await cacheAssignment(updated)
-    })
+    await cacheAssignment(updated)
     return updated
   },
 
@@ -45,14 +36,7 @@ export const assignmentRepo = {
       return saved
     }
     const updated = { ...assignment, assignment_time: times.place_time, assignment_end_time: times.end_time }
-    await offlineDb.transaction('rw', offlineDb.days, offlineDb.mutationQueue, async () => {
-      await mutationQueue.enqueue({
-        id: generateUUID(), tripId: Number(tripId), method: 'PUT',
-        url: `/trips/${tripId}/assignments/${assignment.id}/time`,
-        body: times, resource: 'assignments', entityId: assignment.id,
-      })
-      await cacheAssignment(updated)
-    })
+    await cacheAssignment(updated)
     return updated
   },
 }

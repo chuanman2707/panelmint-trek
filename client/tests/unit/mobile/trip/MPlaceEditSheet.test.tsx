@@ -433,6 +433,8 @@ describe('MPlaceEditSheet', () => {
     })
 
     it('FE-MOB-PLEDIT-033: the button only appears while the Budget addon is on', () => {
+      // Budget is on in the static addon set — empty the list to switch it off.
+      useAddonStore.setState({ addons: [], loaded: true })
       const { unmount } = setup()
       expect(screen.queryByRole('button', { name: 'reservations.createExpense' })).not.toBeInTheDocument()
       unmount()

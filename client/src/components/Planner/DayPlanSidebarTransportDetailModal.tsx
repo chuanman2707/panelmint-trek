@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Ticket, FileText, ExternalLink, Footprints, ArrowRight, Pencil } from 'lucide-react'
+import { Ticket, FileText, Footprints, ArrowRight, Pencil } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -13,7 +13,6 @@ import type { Reservation } from '../../types'
 interface DayPlanSidebarTransportDetailModalProps {
   transportDetail: Reservation | null
   setTransportDetail: (v: Reservation | null) => void
-  onNavigateToFiles?: () => void
   /** Opens the edit form for this reservation (shown as a footer action). */
   onEdit?: (res: Reservation) => void
   t: (key: string, params?: Record<string, any>) => string
@@ -22,7 +21,7 @@ interface DayPlanSidebarTransportDetailModalProps {
 }
 
 export function DayPlanSidebarTransportDetailModal({
-  transportDetail, setTransportDetail, onNavigateToFiles, onEdit, t, locale, timeFormat,
+  transportDetail, setTransportDetail, onEdit, t, locale, timeFormat,
 }: DayPlanSidebarTransportDetailModalProps) {
   if (!transportDetail) return null
   return createPortal(
@@ -229,24 +228,20 @@ export function DayPlanSidebarTransportDetailModal({
                     <div className="text-content-faint" style={{ fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {resFiles.map(f => (
-                        <button key={f.id}
-                          type="button"
-                          onClick={() => { setTransportDetail(null); onNavigateToFiles?.() }}
+                        // Informational only — the files tab is gone; attachments
+                        // are managed in the reservation editor.
+                        <div key={f.id}
                           className="bg-surface-tertiary"
                           style={{
                             display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                            borderRadius: 8, cursor: 'pointer', border: 'none', textAlign: 'left', fontFamily: 'inherit',
-                            transition: 'background 0.1s',
+                            borderRadius: 8, fontFamily: 'inherit',
                           }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                         >
                           <FileText size={14} className="text-content-muted" style={{ flexShrink: 0 }} />
                           <span className="text-content" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {f.original_name}
                           </span>
-                          <ExternalLink size={11} className="text-content-faint" style={{ flexShrink: 0 }} />
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </div>

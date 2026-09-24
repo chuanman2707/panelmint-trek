@@ -3,14 +3,14 @@ import 'fake-indexeddb/auto';
 import type { Mock } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
+import { delay } from 'msw';
+import { act } from '@testing-library/react';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip } from '../../../tests/helpers/factories';
-import { server } from '../../../tests/helpers/msw/server';
 import type { Trip } from '../../types';
 import { MAX_TRIP_DAYS } from '@trek/shared';
 import TripFormModal from './TripFormModal';
@@ -46,6 +46,11 @@ async function seedLocalData() {
   await db.localUsers.put({ id: 1, name: 'me', is_self: 1 });
   await db.trips.bulkPut([buildTrip({ id: 1 }), buildTrip({ id: 5 }), buildTrip({ id: 99 })]);
 }
+
+/** The member picker's roster is the localUsers table — the old suite fed it
+ *  through /api/auth/users over msw, but the local adapter reads Dexie. */
+const seedRoster = (...names: { id: number; name: string }[]) =>
+  db.localUsers.bulkPut(names.map(u => ({ id: u.id, name: u.name, is_self: 0 as const })));
 
 /** Search results for the cover picker — searchCoverImages is a hosted-only
  *  integration, so the local adapter returns an empty list; tests that need
@@ -253,11 +258,7 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-023: member selector appears when creating and other users exist', async () => {
-    server.use(
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })
-      )
-    );
+    await seedRoster({ id: 100, name: 'alice' });
     render(<TripFormModal {...defaultProps} trip={null} />);
     expect(await screen.findByText('Travel buddies')).toBeInTheDocument();
   });
@@ -265,11 +266,7 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-024: selecting a member adds a chip', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
-    server.use(
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })
-      )
-    );
+    await seedRoster({ id: 100, name: 'alice' });
     render(<TripFormModal {...defaultProps} trip={null} />);
     // Wait for member section to load
     await screen.findByText('Travel buddies');
@@ -286,11 +283,7 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-025: removing a member chip deselects them', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
-    server.use(
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })
-      )
-    );
+    await seedRoster({ id: 100, name: 'alice' });
     render(<TripFormModal {...defaultProps} trip={null} />);
     await screen.findByText('Travel buddies');
     // Select alice
@@ -530,17 +523,21 @@ describe('TripFormModal', () => {
 
   // ── App config / prefill fallbacks ────────────────────────────────────────
 
-  it('FE-COMP-TRIPFORM-039: app config re-enables the reminder section', async () => {
-    server.use(http.get('/api/auth/app-config', () => HttpResponse.json({ trip_reminders_enabled: true })));
+  it('FE-COMP-TRIPFORM-039: flipping the local flag re-enables the reminder section', async () => {
+    // The hosted build pulled this from /api/auth/app-config; locally the flag
+    // lives on the auth store and the modal reacts to it live.
+    seedStore(useAuthStore, { tripRemindersEnabled: false });
     render(<TripFormModal {...defaultProps} trip={null} />);
-    // Store default is false, so the section starts as the disabled hint.
     expect(screen.getByText(/Trip reminders are disabled/i)).toBeInTheDocument();
+    act(() => seedStore(useAuthStore, { tripRemindersEnabled: true }));
     await screen.findByRole('button', { name: 'Custom' });
     expect(useAuthStore.getState().tripRemindersEnabled).toBe(true);
   });
 
-  it('FE-COMP-TRIPFORM-040: a users payload without a list hides the member section', async () => {
-    server.use(http.get('/api/auth/users', () => HttpResponse.json({})));
+  it('FE-COMP-TRIPFORM-040: a roster holding only self hides the member section', async () => {
+    // localUsers has self alone — nobody else can be picked, so the section
+    // stays hidden (the old version fed an empty /api/auth/users payload).
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
     render(<TripFormModal {...defaultProps} trip={null} />);
     await screen.findByText('Cover Image');
     expect(screen.queryByText('Travel buddies')).not.toBeInTheDocument();
@@ -582,9 +579,7 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
     const identifiers: string[] = [];
-    server.use(
-      http.get('/api/auth/users', () => HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })),
-    );
+    await seedRoster({ id: 100, name: 'alice' });
     // addMember is local — capture the identifier the modal passes.
     vi.spyOn(tripsApi, 'addMember').mockImplementation(async (_id, identifier) => {
       identifiers.push(identifier);
@@ -607,9 +602,7 @@ describe('TripFormModal', () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
-    server.use(
-      http.get('/api/auth/users', () => HttpResponse.json({ users: [{ id: 100, username: 'alice' }] })),
-    );
+    await seedRoster({ id: 100, name: 'alice' });
     vi.spyOn(tripsApi, 'addMember').mockRejectedValue(new LocalApiError(500, 'nope'));
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
     render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} onClose={onClose} />);
@@ -799,9 +792,13 @@ describe('TripFormModal', () => {
     await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
     await user.click(await screen.findByRole('button', { name: /Use Unsplash photo by Bob/i }));
 
-    await waitFor(() => expect(putBody).toMatchObject({ cover_image: 'https://img/regular.jpg' }));
-    expect(onCoverUpdate).toHaveBeenCalledWith(1, 'https://img/regular.jpg');
-    expect(addToast).toHaveBeenCalledWith('Cover image saved', 'success', undefined);
+    await waitFor(() => {
+      // putBody flips inside the spy before the awaited update resolves — hold
+      // the follow-up assertions in the same wait so the save can finish.
+      expect(putBody).toMatchObject({ cover_image: 'https://img/regular.jpg' });
+      expect(onCoverUpdate).toHaveBeenCalledWith(1, 'https://img/regular.jpg');
+      expect(addToast).toHaveBeenCalledWith('Cover image saved', 'success', undefined);
+    });
   });
 
   it('FE-COMP-TRIPFORM-057: a failing Unsplash save while editing shows the server error', async () => {
@@ -1033,13 +1030,9 @@ describe('TripFormModal', () => {
   // ── Members while editing ─────────────────────────────────────────────────
 
   /** The member chips are `getMembers(1).members` — tripMembers rows joined to
-   *  the localUsers roster. auth/users stays HTTP: it is the account picker. */
+   *  the localUsers roster. The picker options come from the same table. */
   const editMembersSeed = async (members: { id: number; username: string }[]) => {
-    server.use(
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [{ id: 1, username: 'me' }, { id: 100, username: 'alice' }, { id: 200, username: 'bob' }] })
-      ),
-    );
+    await seedRoster({ id: 100, name: 'alice' }, { id: 200, name: 'bob' });
     await db.tripMembers.bulkPut(members.map(m => ({
       tripId: 1, id: m.id, username: m.username, role: 'member',
       added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'me', is_guest: false,
@@ -1240,12 +1233,15 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-083: a closed modal fetches nothing until it is opened', async () => {
-    // The trip planner keeps the modal mounted behind the page. getMembers is a
-    // local Dexie read — the spy records the call the way the msw handler did.
+    // The trip planner keeps the modal mounted behind the page. Both roster and
+    // members are local Dexie reads — the spies record the calls the way the
+    // msw handlers did.
     const seen: string[] = [];
-    server.use(
-      http.get('/api/auth/users', () => { seen.push('users'); return HttpResponse.json({ users: [] }); }),
-    );
+    const realToArray = db.localUsers.toArray.bind(db.localUsers);
+    vi.spyOn(db.localUsers, 'toArray').mockImplementation(() => {
+      seen.push('users');
+      return realToArray();
+    });
     const realGetMembers = tripsApi.getMembers.bind(tripsApi);
     vi.spyOn(tripsApi, 'getMembers').mockImplementation(async (id) => {
       seen.push('members');

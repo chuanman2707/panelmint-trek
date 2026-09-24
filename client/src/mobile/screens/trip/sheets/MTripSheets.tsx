@@ -1,9 +1,5 @@
 import { useState } from 'react'
-import TransitJourneyModal from '../../../../components/Planner/TransitJourneyModal'
-import BookingImportModal from '../../../../components/Planner/BookingImportModal'
-import AirTrailImportModal from '../../../../components/Planner/AirTrailImportModal'
 import TripFormModal from '../../../../components/Trips/TripFormModal'
-import TripMembersModal from '../../../../components/Trips/TripMembersModal'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { useAuthStore } from '../../../../store/authStore'
 import { useSettingsStore } from '../../../../store/settingsStore'
@@ -39,7 +35,7 @@ import type { MTripSheetsProps } from '../MTripShell'
  * transport, bract, note, import, export, mehr — the place inspector keys off
  * the planner's place selection instead), and the planner-flag editors that
  * every entry point (?create=, import review, timeline, map long-press) opens
- * through useTripPlanner state. The transport/booking/transit/import/member
+ * through useTripPlanner state. The transport/booking/import/member
  * editors reuse the shared desktop modals until they get mobile counterparts;
  * they carry the full behaviour (undo, WS sync, review flow) unchanged.
  */
@@ -96,51 +92,6 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
 
       <MTransportFormSheet planner={planner} onOpenExpense={openBookingExpense} />
 
-      {/* Journey view for a saved public-transit entry (#1065) */}
-      {planner.transitJourney && (
-        <TransitJourneyModal
-          reservation={planner.reservations.find(r => r.id === planner.transitJourney!.id) ?? planner.transitJourney}
-          canEdit={planner.can('day_edit', trip)}
-          onClose={() => planner.setTransitJourney(null)}
-          onSave={async (fields) => {
-            await tripActions.updateReservation(tripId, planner.transitJourney!.id, fields)
-            planner.setTransitJourney(null)
-          }}
-          onDelete={async () => {
-            await planner.handleDeleteReservation(planner.transitJourney!.id)
-            planner.setTransitJourney(null)
-          }}
-          onChangeRoute={() => {
-            // Re-enter the transit search seeded with this journey's route; the
-            // existing reservation is replaced on save.
-            const journey = planner.transitJourney!
-            const eps = journey.endpoints || []
-            const from = eps.find(e => e.role === 'from')
-            const to = eps.find(e => e.role === 'to')
-            planner.setTransitPrefill({
-              from: from ? { name: from.name, lat: from.lat, lng: from.lng } : null,
-              to: to ? { name: to.name, lat: to.lat, lng: to.lng } : null,
-            })
-            planner.setEditingTransport(journey)
-            planner.setTransportModalDayId(journey.day_id ?? null)
-            planner.setTransportModalAutomated(true)
-            planner.setTransitJourney(null)
-            planner.setShowTransportModal(true)
-          }}
-          onEditDetails={() => {
-            // Hand off to the full transport editor for the booking fields —
-            // same target as the transports tab's pencil (#2148).
-            const journey = planner.reservations.find(r => r.id === planner.transitJourney!.id) ?? planner.transitJourney!
-            planner.setEditingTransport(journey)
-            planner.setTransportModalDayId(journey.day_id ?? null)
-            planner.setTransportModalAutomated(false)
-            planner.setTransitPrefill(null)
-            planner.setTransitJourney(null)
-            planner.setShowTransportModal(true)
-          }}
-        />
-      )}
-
       {bookingExpense && (
         <MCostSheet
           tripId={tripId}
@@ -154,8 +105,6 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         />
       )}
 
-      <BookingImportModal isOpen={planner.showBookingImport} onClose={() => planner.setShowBookingImport(false)} tripId={tripId} kind={planner.bookingImportKind} />
-      <AirTrailImportModal isOpen={planner.showAirTrailImport} onClose={() => planner.setShowAirTrailImport(false)} tripId={tripId} pushUndo={planner.pushUndo} />
 
       {/* Trip edit + share/members, opened from the Mehr sheet. */}
       <TripFormModal
@@ -169,13 +118,6 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         onCoverUpdate={(_, coverUrl) => useTripStore.setState(state => ({
           trip: state.trip ? { ...state.trip, cover_image: coverUrl } : state.trip,
         }))}
-      />
-      <TripMembersModal
-        isOpen={sheet?.id === 'members'}
-        onClose={shell.closeSheet}
-        tripId={tripId}
-        tripTitle={trip?.title}
-        onMembersChanged={planner.refreshMembers}
       />
 
       {/* Delete-place confirm behind handleDeletePlace (the place edit sheet

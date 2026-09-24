@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { tripsApi, authApi, reservationsApi } from '../../api/client'
+import { tripsApi, dashboardApi } from '../../api/client'
 import { tripRepo } from '../../repo/tripRepo'
 import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
@@ -34,7 +34,6 @@ export function useDashboard() {
   const [deleteTrip, setDeleteTrip] = useState<DashboardTrip | null>(null)
   const [copyTrip, setCopyTrip] = useState<DashboardTrip | null>(null)
   const [tripFilter, setTripFilter] = useState<'planned' | 'archive' | 'completed'>('planned')
-  const [allSubOpen, setAllSubOpen] = useState<boolean>(false)
   const [loadError, setLoadError] = useState<boolean>(false)
 
   const [stats, setStats] = useState<TravelStats | null>(null)
@@ -45,7 +44,7 @@ export function useDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const toast = useToast()
   const { t, locale } = useTranslation()
-  const { demoMode, authCheckFailed, loadUser } = useAuthStore()
+  const { demoMode, authCheckFailed } = useAuthStore()
 
   const toggleViewMode = () => {
     setViewMode(prev => {
@@ -67,8 +66,8 @@ export function useDashboard() {
   // Travel stats + upcoming reservations power the atlas row and the sidebar.
   // Both are best-effort: a failure just leaves that section empty.
   useEffect(() => {
-    authApi.travelStats().then(setStats).catch(() => {})
-    reservationsApi.upcoming().then((r: { reservations: UpcomingReservation[] }) => setUpcoming(r.reservations || [])).catch(() => {})
+    dashboardApi.travelStats().then(setStats).catch(() => {})
+    dashboardApi.upcoming().then((r: { reservations: UpcomingReservation[] }) => setUpcoming(r.reservations || [])).catch(() => {})
   }, [])
 
   const loadTrips = async () => {
@@ -86,10 +85,7 @@ export function useDashboard() {
     }
   }
 
-  // Re-run both the trip fetch and the auth check so a recovered backend clears
-  // the error banner (loadUser resets authCheckFailed on success). #1283
   const retryLoad = () => {
-    loadUser({ silent: true })
     loadTrips()
   }
 
@@ -207,7 +203,6 @@ export function useDashboard() {
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
-    allSubOpen, setAllSubOpen,
     // actions
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
   }

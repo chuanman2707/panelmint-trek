@@ -8,7 +8,6 @@ import { useTranslation } from '../../i18n'
 import { packingApi, tripsApi } from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
 import { useNetworkMode } from '../../hooks/useNetworkMode'
-import { useBagTotalsPing } from './useBagTotalsPing'
 import type { PackingItem, PackingBag } from '../../types'
 import { BAG_COLORS, PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants'
 import { parseImportLines } from './packingListPanel.helpers'
@@ -237,11 +236,6 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   useEffect(() => { void reloadBags() }, [reloadBags])
 
   // Bag weights are summed server-side across every member (#2191), so an item
-  // this viewer may not even see still moves them. The item events cannot carry
-  // that — a private item is delivered only to its owner, which is the very rule
-  // that made the totals wrong — so the server pings the room content-free and
-  // we re-read the numbers.
-  useBagTotalsPing(bagTrackingEnabled, reloadBags)
 
   // Bags are not part of the offline cache (no repo, no Dexie table), so while
   // offline the server totals are frozen at the last online read and cannot see

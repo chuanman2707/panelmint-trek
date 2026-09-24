@@ -189,14 +189,7 @@ describe('MReservationSheet', () => {
     expect(planner.setShowReservationModal).toHaveBeenCalledWith(false)
   })
 
-  it('FE-MOB-RESSH-005: during an import review closing advances the queue instead', () => {
-    const { planner } = setup(makePlanner({ importReviewActive: true }))
-    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
-    expect(planner.advanceImportReview).toHaveBeenCalledTimes(1)
-    expect(planner.setShowReservationModal).not.toHaveBeenCalled()
-  })
-
-  // ── Form basics ────────────────────────────────────────────────────────────
+    // ── Form basics ────────────────────────────────────────────────────────────
 
   it('FE-MOB-RESSH-006: a title unlocks the submit and the default booking is saved as-is', async () => {
     const { planner } = setup()
@@ -547,38 +540,6 @@ describe('MReservationSheet', () => {
     expect(selects()[1]).toHaveAttribute('data-value', '11')
   })
 
-  // ── Prefill from the booking import ────────────────────────────────────────
-
-  it('FE-MOB-RESSH-029: an import prefill seeds the hotel form, its day range and the source file', () => {
-    setup(makePlanner({
-      reservationPrefill: {
-        title: 'Hotel Ibis', type: 'hotel', status: 'confirmed',
-        reservation_time: '2026-05-02T14:00:00', reservation_end_time: '2026-05-03T10:00',
-        location: 'Vienna', confirmation_number: 'PF1', notes: 'late arrival', url: 'https://ibis.test',
-        metadata: { check_in_time: '14:00', check_out_time: '10:00' },
-        _accommodation: { check_in: '2026-05-02', check_out: '2026-05-03' },
-        _venue: { address: 'Mariahilfer 1' },
-        _sourceFiles: [new File(['x'], 'voucher.pdf', { type: 'application/pdf' })],
-      },
-    }))
-    expect(titleField()).toHaveValue('Hotel Ibis')
-    expect(screen.getByPlaceholderText('reservations.confirmationPlaceholder')).toHaveValue('PF1')
-    expect(screen.getByPlaceholderText('reservations.urlPlaceholder')).toHaveValue('https://ibis.test')
-    expect(screen.getByPlaceholderText('15:00')).toHaveValue('14:00')
-    expect(selects()[1]).toHaveAttribute('data-value', '12')
-    expect(selects()[2]).toHaveAttribute('data-value', '13')
-    expect(screen.getByPlaceholderText('reservations.locationPlaceholder')).toHaveValue('Mariahilfer 1')
-    expect(screen.getByText('voucher.pdf')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-RESSH-030: a prefill with a date-only end fills the end-date field', () => {
-    setup(makePlanner({
-      reservationPrefill: { title: 'Tour', type: 'tour', reservation_end_time: '2026-05-03', metadata: null },
-    }))
-    expect(dates()[1]).toHaveValue('2026-05-03')
-    expect(times()[1]).toHaveValue('')
-  })
-
   // ── Travelers ──────────────────────────────────────────────────────────────
 
   it('FE-MOB-RESSH-031: without trip members the traveler list shows its empty note', () => {
@@ -709,14 +670,7 @@ describe('MReservationSheet', () => {
     expect(savedPayload(planner)).toMatchObject({ assignment_id: 42 })
   })
 
-  it('FE-MOB-RESSH-045: a saved import review advances to the next parsed booking', async () => {
-    const { planner } = setup(makePlanner({ importReviewActive: true }))
-    type(titleField(), 'Imported hotel')
-    fireEvent.click(submitBtn())
-    await waitFor(() => expect(planner.advanceImportReview).toHaveBeenCalledTimes(1))
-  })
-
-  it('FE-MOB-RESSH-046: a pending attachment can be dropped again before saving', async () => {
+    it('FE-MOB-RESSH-046: a pending attachment can be dropped again before saving', async () => {
     const { planner } = setup()
     type(titleField(), 'Flight docs')
     const input = document.querySelector('input[type="file"]') as HTMLInputElement

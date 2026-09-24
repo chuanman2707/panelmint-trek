@@ -8,8 +8,6 @@ import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
-import { useAddonStore } from '../../store/addonStore';
-import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
 import { ContextMenu } from '../shared/ContextMenu';
 import type { Place } from '../../types';
 import { usePlacesSidebar, type PlacesSidebarProps, type SidebarState } from './usePlacesSidebar';
@@ -70,18 +68,10 @@ function names(): string[] {
   return S.filtered.map((p) => p.name);
 }
 
-function enableCollections() {
-  seedStore(useAddonStore, {
-    addons: [{ id: 'collections', name: 'Collections', type: 'global', icon: '', enabled: true }],
-    loaded: true,
-  });
-}
-
 const addToast = vi.fn((_message: string, _type?: string, _duration?: number) => 0);
 
 beforeEach(() => {
   resetAllStores();
-  useSaveToCollectionStore.setState({ target: null });
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
   addToast.mockClear();
@@ -615,8 +605,7 @@ describe('usePlacesSidebar list import', () => {
 // ── Row context menu ──────────────────────────────────────────────────────────
 
 describe('usePlacesSidebar context menu', () => {
-  it('FE-PLANNER-PSHOOK-042: a full-permission row offers edit, day, website, maps, collection and delete', () => {
-    enableCollections();
+  it('FE-PLANNER-PSHOOK-042: a full-permission row offers edit, day, website, maps and delete', () => {
     const place = buildPlace({ id: 3, name: 'Cafe', website: 'https://cafe.example', google_place_id: 'ChIJ1' });
     render(<Host {...makeProps({ places: [place], selectedDayId: 6 })} />);
 
@@ -626,7 +615,6 @@ describe('usePlacesSidebar context menu', () => {
     expect(screen.getByRole('button', { name: '+ Day' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open Website' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Google Maps' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save to Collection' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   });
 
@@ -698,19 +686,4 @@ describe('usePlacesSidebar context menu', () => {
     expect(open).toHaveBeenCalledWith('https://www.google.com/maps/search/?api=1&query=48.8584,2.2945', '_blank');
   });
 
-  it('FE-PLANNER-PSHOOK-048: "Save to Collection" arms the picker with the place', async () => {
-    const user = userEvent.setup();
-    enableCollections();
-    const place = buildPlace({ id: 3, name: 'Cafe', address: 'Rue A' });
-    render(<Host {...makeProps({ places: [place] })} />);
-
-    fireEvent.contextMenu(screen.getByTestId('row-3'));
-    await user.click(screen.getByRole('button', { name: 'Save to Collection' }));
-
-    expect(useSaveToCollectionStore.getState().target).toMatchObject({
-      name: 'Cafe',
-      address: 'Rue A',
-      source_place_id: 3,
-    });
   });
-});

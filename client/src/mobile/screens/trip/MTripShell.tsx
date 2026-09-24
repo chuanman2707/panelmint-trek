@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { findFocusDayId } from '../../../components/Planner/today'
 import {
-  CalendarDays, ChevronDown, ChevronLeft, Download, FileDown, List, Map as MapIcon, MoreHorizontal,
-  FolderSync, Plane, Plus, Rows3, Route, SlidersHorizontal, Trash2, Upload,
+  CalendarDays, ChevronDown, ChevronLeft, FileDown, List, Map as MapIcon, MoreHorizontal,
+  Plus, Rows3, Route, SlidersHorizontal, Upload,
 } from 'lucide-react'
 import { useTripPlanner } from '../../../pages/tripPlanner/useTripPlanner'
 import { pickDockTabs } from './dockTabs'
@@ -14,15 +14,11 @@ import MPlacesBrowser from './places/MPlacesBrowser'
 import MTripTabPanel from './tabs/MTripTabPanel'
 import MTripSheets from './sheets/MTripSheets'
 import MTripLoadingSplash from './MTripLoadingSplash'
-import { usePluginDayTints, dayTintBackground } from '../../../components/Plugins/PluginDaySchedule'
 import { stageOf } from '../../../components/Roadtrip/roadtripRowModel'
 import { badgeLabel, distanceBadge } from './roadtrip/stageBadges'
 import type { CorridorReach } from '../../../components/Roadtrip/corridorSearchModel'
 import { useSettingsStore } from '../../../store/settingsStore'
-import { useAuthStore } from '../../../store/authStore'
-import { canManageDocSync } from '../../../components/Files/docsync/useDocSync'
-import { useDocSyncOffered } from '../../../components/Files/docsync/useDocSyncOffered'
-import type { Day, Trip } from '../../../types'
+import type { Day } from '../../../types'
 
 /**
  * Mobile trip screen frame. Owns the chrome the design shares across every
@@ -45,7 +41,6 @@ export type MTripMode = 'go' | 'edit' | 'browse'
 /** The road trip tab's own two halves: the chain, or the same map showing the stage. */
 export type MRtView = 'list' | 'map'
 export type MTripListsTab = 'packing' | 'todo'
-export type MTripCollabTab = 'chat' | 'notes' | 'links' | 'polls'
 
 /**
  * Currently open bottom/floating sheet. Well-known ids (owned by the sheets
@@ -93,7 +88,7 @@ export interface MTripShellApi {
   setRtReach: (value: CorridorReach) => void
   /** Travel/Plan/Places segment: go | edit | browse. */
   mode: MTripMode
-  /** Legacy tab ids: plan · transports · buchungen · listen · finanzplan · dateien · collab · plugin:* */
+  /** Legacy tab ids: plan · roadtrip · transports · buchungen · listen · finanzplan */
   trTab: string
   /** Switch trip tab (persists to sessionStorage['trip-tab-{id}'], resets browse → go). */
   setTrTab: (tabId: string) => void
@@ -109,8 +104,6 @@ export interface MTripShellApi {
   /** Lists header segment; persisted per trip like the desktop sub-tab. */
   listsTab: MTripListsTab
   setListsTab: (tab: MTripListsTab) => void
-  collabTab: MTripCollabTab
-  setCollabTab: (tab: MTripCollabTab) => void
   /** Header compact toggles for the transports / bookings lists. */
   transportsCompact: boolean
   bookingsCompact: boolean
@@ -119,7 +112,6 @@ export interface MTripShellApi {
   exportCostsCsvSignal: number
   uploadFilesSignal: number
   openFilesTrashSignal: number
-  openDocSyncSignal: number
 }
 
 /**
@@ -155,8 +147,8 @@ export interface MPlacesBrowserProps {
 /**
  * Non-plan tab panel, rendered as a full overlay above map/chips. `tab` is the
  * active legacy id (transports, buchungen, listen, finanzplan, dateien,
- * collab, plugin:*). Consumes the shell header state for its tab (compact
- * toggles, listsTab/collabTab, intent signals).
+ * roadtrip, …). Consumes the shell header state for its tab (compact
+ * toggles, listsTab, intent signals).
  */
 export interface MTripTabPanelProps {
   planner: TripPlanner
@@ -205,9 +197,6 @@ export default function MTripShell({
   const planner = useTripPlanner()
   const { t, language, tripId, days, trip, navigate, packingItems, todoItems } = planner
 
-  // Per-day colours from the dayTintProvider plugin hook — the mobile counterpart
-  // of the desktop day-card wash, carried on the day chips. Empty without a plugin.
-  const dayTints = usePluginDayTints(tripId)
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
 
   const [view, setView] = useState<MTripView>('plan')
@@ -223,14 +212,12 @@ export default function MTripShell({
     const saved = sessionStorage.getItem(`trip-lists-subtab-${tripId}`)
     return saved === 'todo' ? 'todo' : 'packing'
   })
-  const [collabTab, setCollabTab] = useState<MTripCollabTab>('chat')
   const [transportsCompact, setTransportsCompact] = useState(false)
   const [bookingsCompact, setBookingsCompact] = useState(false)
   const [addExpenseSignal, setAddExpenseSignal] = useState(0)
   const [exportCostsCsvSignal, setExportCostsCsvSignal] = useState(0)
   const [uploadFilesSignal, setUploadFilesSignal] = useState(0)
   const [openFilesTrashSignal, setOpenFilesTrashSignal] = useState(0)
-  const [openDocSyncSignal, setOpenDocSyncSignal] = useState(0)
 
   // The mobile plan is single-day: make sure a day is active once days arrive.
   // Only seed once so an intentional deselect elsewhere is not fought. Open on
@@ -380,10 +367,9 @@ export default function MTripShell({
   const shell: MTripShellApi = {
     view, rtView, mapFront, toggleRtView, rtReach, setRtReach, mode, trTab, setTrTab, setTravelMode, toggleView, browseFromEdit,
     sheet, openSheet, closeSheet,
-    listsTab, setListsTab, collabTab, setCollabTab,
+    listsTab, setListsTab,
     transportsCompact, bookingsCompact,
     addExpenseSignal, exportCostsCsvSignal, uploadFilesSignal, openFilesTrashSignal,
-    openDocSyncSignal,
   }
 
   // Splash — same gate as the desktop page, in the mobile design language.
@@ -474,7 +460,6 @@ export default function MTripShell({
           <div className="flex flex-1 items-center gap-[2px] overflow-x-auto rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
             {days.map((day, idx) => {
               const active = day.id === planner.selectedDayId
-              const tint = dayTints[day.id]
               return (
                 <button
                   key={day.id}
@@ -482,11 +467,6 @@ export default function MTripShell({
                   type="button"
                   onClick={() => onDayChipTap(day.id)}
                   aria-current={active ? 'true' : undefined}
-                  title={tint?.label || undefined}
-                  // The chip is mobile's day-number badge, so it follows badgeTone.
-                  // Inactive chips only — an inline background would otherwise beat
-                  // the active chip's bg-m-act class.
-                  style={active ? undefined : { background: dayTintBackground(tint, 'badge', '--day-tint-chip') }}
                   className={`flex flex-1 items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-3 py-[5px] text-center text-[0.75rem] font-semibold ${
                     active ? 'bg-m-act text-m-actfg shadow-[0_6px_16px_-6px_rgba(0,0,0,.4)]' : 'text-m-ink'
                   }`}
@@ -556,21 +536,9 @@ export default function MTripShell({
               label={t('transport.addTransport')}
               onClick={() => {
                 planner.setEditingTransport(null)
-                planner.setTransitPrefill(null)
-                planner.setTransportModalAutomated(false)
                 planner.setShowTransportModal(true)
               }}
             />
-            {planner.bookingImportAvailable && (
-              <MIconBtn ariaLabel={t('reservations.import.title')} onClick={() => { planner.setBookingImportKind('transports'); planner.setShowBookingImport(true) }} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
-                <Download size={15} strokeWidth={2} />
-              </MIconBtn>
-            )}
-            {planner.airTrailAvailable && (
-              <MIconBtn ariaLabel={t('reservations.airtrail.title')} onClick={() => planner.setShowAirTrailImport(true)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
-                <Plane size={15} strokeWidth={2} />
-              </MIconBtn>
-            )}
             <CompactToggle active={transportsCompact} onToggle={() => setTransportsCompact(v => !v)} label={t('mobileTrip.compactView')} />
           </div>
         )}
@@ -581,11 +549,6 @@ export default function MTripShell({
               label={t('mobileTrip.newReservation')}
               onClick={() => { planner.setEditingReservation(null); planner.setShowReservationModal(true) }}
             />
-            {planner.bookingImportAvailable && (
-              <MIconBtn ariaLabel={t('reservations.import.title')} onClick={() => { planner.setBookingImportKind('bookings'); planner.setShowBookingImport(true) }} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
-                <Download size={15} strokeWidth={2} />
-              </MIconBtn>
-            )}
             <CompactToggle active={bookingsCompact} onToggle={() => setBookingsCompact(v => !v)} label={t('mobileTrip.compactView')} />
           </div>
         )}
@@ -622,28 +585,6 @@ export default function MTripShell({
           </GlassSegment>
         )}
 
-        {trTab === 'collab' && (
-          <GlassSegment>
-            {([
-              { value: 'chat' as const, label: t('collab.tabs.chat') },
-              { value: 'notes' as const, label: t('collab.tabs.notes') },
-              { value: 'links' as const, label: t('collab.tabs.links') || 'Links' },
-              { value: 'polls' as const, label: t('collab.tabs.polls') },
-            ]).map(seg => (
-              <button
-                key={seg.value}
-                type="button"
-                onClick={() => setCollabTab(seg.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-[0.8125rem] ${
-                  collabTab === seg.value ? 'bg-m-act font-semibold text-m-actfg' : 'font-medium text-m-ink'
-                }`}
-              >
-                {seg.label}
-              </button>
-            ))}
-          </GlassSegment>
-        )}
-
         {/* The stage's own header: the day it shows, and a way into the figures
             behind it. A button rather than the plugin tabs' inert pill, because it
             is the only entry to the driving settings, and the right slot belongs to
@@ -675,33 +616,6 @@ export default function MTripShell({
           </button>
         )}
 
-        {trTab === 'dateien' && (
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[7px]">
-            <PrimaryPill icon={<Upload size={13} strokeWidth={2.2} />} label={t('common.upload')} onClick={() => setUploadFilesSignal(s => s + 1)} />
-            <DocSyncButton tripId={tripId} trip={trip} label={t('docsync.title')} onOpen={() => setOpenDocSyncSignal(s => s + 1)} />
-            <MIconBtn ariaLabel={t('files.trash')} onClick={() => setOpenFilesTrashSignal(s => s + 1)} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
-              <Trash2 size={15} strokeWidth={2} />
-            </MIconBtn>
-          </div>
-        )}
-
-        {/* A plugin tab is the only one that used to arrive without a name: it is
-            not in the dock, so nothing was lit up there either, and the screen
-            gave no clue which plugin was open. Same treatment as the others, from
-            the tab entry the planner already builds (id, label, icon). */}
-        {trTab.startsWith('plugin:') && (() => {
-          const tab = planner.TRIP_TABS.find(x => x.id === trTab)
-          if (!tab) return null
-          const Icon = tab.icon
-          return (
-            <div className="pointer-events-none absolute left-[52px] right-[52px] top-1/2 flex -translate-y-1/2 items-center justify-center gap-[7px]">
-              <div className="flex min-w-0 items-center gap-[7px] rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[13px] py-[7px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
-                {Icon && <Icon size={14} strokeWidth={2} className="flex-none text-m-muted" />}
-                <span className="truncate text-[0.8125rem] font-semibold text-m-ink">{tab.label}</span>
-              </div>
-            </div>
-          )
-        })()}
 
         {/* Same slot, same markup, same icons in both map tabs, so the switch does
             not move or change shape when the tab does. The two views stay separate
@@ -773,23 +687,6 @@ function PrimaryPill({ label, onClick, icon }: { label: string; onClick: () => v
       {icon ?? <Plus size={14} strokeWidth={2.2} />}
       {label}
     </button>
-  )
-}
-
-/**
- * The Files header's sync button, only where there is something behind it.
- *
- * A component of its own so the question is asked while the Files header is
- * up, not on every tab the shell renders.
- */
-function DocSyncButton({ tripId, trip, label, onOpen }: { tripId: number; trip: Trip; label: string; onOpen: () => void }) {
-  const user = useAuthStore(s => s.user)
-  const offered = useDocSyncOffered(tripId, canManageDocSync(user, trip))
-  if (!offered) return null
-  return (
-    <MIconBtn ariaLabel={label} onClick={onOpen} size={40} className="text-m-muted backdrop-blur-[24px] backdrop-saturate-[1.7]">
-      <FolderSync size={15} strokeWidth={2} />
-    </MIconBtn>
   )
 }
 

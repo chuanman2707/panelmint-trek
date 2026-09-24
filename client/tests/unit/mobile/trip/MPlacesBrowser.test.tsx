@@ -2,9 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import MPlacesBrowser from '../../../../src/mobile/screens/trip/places/MPlacesBrowser'
-import { collectionsApi } from '../../../../src/api/collections'
-import type { CollectionListResponse } from '@trek/shared'
-import { useAddonStore } from '../../../../src/store/addonStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
@@ -64,8 +61,6 @@ const row = (name: string) => screen.getByRole('button', { name: new RegExp(name
 describe('MPlacesBrowser', () => {
   beforeEach(() => {
     resetAllStores()
-    seedStore(useAddonStore, { addons: [{ id: 'collections', enabled: true }] })
-    vi.spyOn(collectionsApi, 'list').mockResolvedValue({ collections: [], incomingInvites: [] } as CollectionListResponse)
   })
 
   afterEach(() => {
@@ -236,7 +231,6 @@ describe('MPlacesBrowser', () => {
     renderBrowser()
     fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
     expect(screen.getByRole('button', { name: 'places.changeCategory' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'inspector.saveToCollection' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'places.deleteSelected' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'common.selectAll' })).toBeEnabled()
   })
@@ -310,27 +304,6 @@ describe('MPlacesBrowser', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
     expect(planner.confirmDeletePlaces).not.toHaveBeenCalled()
     expect(screen.getByText('places.selectionCount:1')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PBROW-022: the save-to-collection action opens the list picker', async () => {
-    renderBrowser()
-    fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
-    fireEvent.click(row('Louvre'))
-    fireEvent.click(screen.getByRole('button', { name: 'inspector.saveToCollection' }))
-    await waitFor(() => expect(collectionsApi.list).toHaveBeenCalled())
-    expect(screen.getByRole('dialog', { name: 'Save 1 to a list' })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Save 1 to a list' })).not.toBeInTheDocument())
-    expect(screen.getByText('places.selectionCount:1')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PBROW-023: without the collections addon neither the action nor the sheet exists', () => {
-    seedStore(useAddonStore, { addons: [] })
-    renderBrowser()
-    fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
-    expect(screen.queryByRole('button', { name: 'inspector.saveToCollection' })).not.toBeInTheDocument()
-    expect(collectionsApi.list).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-PBROW-024: the add button opens a blank place form', () => {

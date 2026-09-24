@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { render, screen } from '../../../tests/helpers/render'
 import { act, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -208,6 +208,12 @@ function buildMapPlace(overrides: Record<string, any> = {}) {
 }
 
 const ORIGINAL_WIDTH = window.innerWidth
+
+beforeEach(() => {
+  // The photo-thumbnail suite covers the flag-on path; the local build's
+  // default is off, and resetAllStores restores that default after each test.
+  useAuthStore.setState({ placesPhotosEnabled: true })
+})
 
 afterEach(() => {
   vi.clearAllMocks()

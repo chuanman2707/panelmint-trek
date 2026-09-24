@@ -17,7 +17,6 @@ function makeProps(overrides: Partial<React.ComponentProps<typeof DayPlanSidebar
   return {
     transportDetail: null as Reservation | null,
     setTransportDetail: vi.fn(),
-    onNavigateToFiles: vi.fn(),
     onEdit: vi.fn(),
     t,
     locale: 'en-US',
@@ -201,20 +200,13 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     expect(screen.queryByText('other.pdf')).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DPTRANSPORT-015: clicking a file closes the modal and navigates to the files view', async () => {
-    const user = userEvent.setup()
+  it('FE-PLANNER-DPTRANSPORT-015: attached files render as informational rows — the files tab is gone', () => {
     seedStore(useTripStore, { files: [buildTripFile({ id: 1, original_name: 'boarding.pdf', reservation_id: 41 })] })
-    const setTransportDetail = vi.fn()
-    const onNavigateToFiles = vi.fn()
-    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight(), setTransportDetail, onNavigateToFiles })} />)
-    const row = screen.getByText('boarding.pdf').parentElement!
-    fireEvent.mouseEnter(row)
-    expect(row.style.background).toBe('var(--bg-hover)')
-    fireEvent.mouseLeave(row)
-    expect(row.style.background).toBe('var(--bg-tertiary)')
-    await user.click(row)
-    expect(setTransportDetail).toHaveBeenCalledWith(null)
-    expect(onNavigateToFiles).toHaveBeenCalledTimes(1)
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight() })} />)
+    const row = screen.getByText('boarding.pdf')
+    // No button, no navigation: attachments are managed in the reservation editor.
+    expect(row.closest('button')).toBeNull()
+    expect(row.closest('a')).toBeNull()
   })
 
   it('FE-PLANNER-DPTRANSPORT-016: the edit action hands the reservation back to the caller', async () => {

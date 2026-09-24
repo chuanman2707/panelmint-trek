@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '../../../helpers/render'
 import {
-  ConnRow, HotelConnRow, NoteRow, PlaceRow, PlanScheduleRow, ReorderStack, TransitRow, TransportRow,
+  ConnRow, HotelConnRow, NoteRow, PlaceRow, ReorderStack, TransitRow, TransportRow,
 } from '../../../../src/mobile/screens/trip/plan/MPlanTimelineRows'
 import type { TransitMeta, TransportEntry } from '../../../../src/mobile/screens/trip/plan/planTimelineModel'
-import type { PluginDayScheduleItem } from '../../../../src/api/client'
 import type { Assignment, DayNote, Place, Reservation, RouteSegment, TranslationFn } from '../../../../src/types'
 
 // FE-MOB-PLROW-001 to FE-MOB-PLROW-041
@@ -404,30 +403,6 @@ describe('ConnRow', () => {
     fireEvent.click(screen.getByRole('button'))
 
     expect(onTap).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('PlanScheduleRow', () => {
-  const item = (over: Partial<PluginDayScheduleItem> = {}): PluginDayScheduleItem => ({
-    pluginId: 'ev', id: 'charge-1', dayId: 2, minutes: 95, label: 'Charging stop', tone: 'success',
-    ...over,
-  })
-
-  it('FE-MOB-PLROW-031: renders the label with formatted minutes and the tone colour', () => {
-    const { container } = render(<PlanScheduleRow item={item()} />)
-
-    expect(screen.getByText('Charging stop')).toBeInTheDocument()
-    expect(container.textContent).toContain('1 h 35 min')
-    expect(container.querySelector('svg')).toHaveStyle({ color: '#10b981' })
-  })
-
-  it('FE-MOB-PLROW-032: an unknown tone falls back to the default colour and minutes stay optional', () => {
-    const { container } = render(
-      <PlanScheduleRow item={item({ minutes: undefined, tone: 'chartreuse' as unknown as PluginDayScheduleItem['tone'] })} />,
-    )
-
-    expect(container.textContent).toBe('Charging stop')
-    expect(container.querySelector('svg')).toHaveStyle({ color: '#4F46E5' })
   })
 })
 

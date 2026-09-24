@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
-import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
-  Bookmark, Camera, ChevronRight, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
+Camera, ChevronRight, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
@@ -10,9 +9,6 @@ import { useTranslation, translateApiError } from '../../../../i18n'
 import { normalizeImageFile } from '../../../../utils/convertHeic'
 import { assignmentsApi } from '../../../../api/client'
 import { useTripStore } from '../../../../store/tripStore'
-import { useAddonStore } from '../../../../store/addonStore'
-import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStore'
-import { collectionTargetFromPlace } from '../lib/collectionTarget'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import PlaceRating from '../../../../components/shared/StarRating'
 import MarkdownText from '../../../../components/shared/MarkdownText'
@@ -42,8 +38,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
 
   const canEditPlaces = planner.can('place_edit', planner.trip)
   const canEditDays = planner.can('day_edit', planner.trip)
-  const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
-  const openSavePicker = useSaveToCollectionStore(s => s.open)
 
   const [filesExpanded, setFilesExpanded] = useState(false)
   const [dayPickerOpen, setDayPickerOpen] = useState(false)
@@ -106,7 +100,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     if (planner.TRANSPORT_TYPES.has(res.type)) {
       planner.setEditingTransport(res)
       planner.setTransportModalDayId(res.day_id ?? null)
-      planner.setTransportModalAutomated(false)
       planner.setShowTransportModal(true)
     } else {
       planner.setEditingReservation(res)
@@ -217,11 +210,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     }
   }
 
-  const saveToCollection = () => {
-    if (!place) return
-    openSavePicker(collectionTargetFromPlace(place))
-  }
-
   // Collaborative rating (#1435): every trip member casts their own star vote.
   const handleRate = async (rating: number | null) => {
     if (!place) return
@@ -305,13 +293,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
-                  {/* Accepted out of the traveller's own recordings — the same
-                      mark the desktop inspector carries. */}
-                  {place.source === 'dawarich' && (
-                    <span className="flex-none overflow-hidden rounded-[5px]">
-                      <DawarichIcon size={15} />
-                    </span>
-                  )}
                 </div>
                 {place.address && (
                   <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted">{place.address}</div>
@@ -599,11 +580,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
 
             {/* ── Action row ── */}
             <div className="mt-[14px] flex items-center gap-[7px]">
-              {collectionsEnabled && (
-                <ActionCircle onClick={saveToCollection} label={t('inspector.saveToCollection')}>
-                  <Bookmark size={15} strokeWidth={2} />
-                </ActionCircle>
-              )}
               {navTargets.length > 0 && (
                 <>
                   <ActionCircle

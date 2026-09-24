@@ -2,7 +2,6 @@ import { Fragment, type ReactNode } from 'react'
 import EmptyState from '../shared/EmptyState'
 import { MemoPlaceRow } from './PlacesSidebarRow'
 import type { SidebarState } from './usePlacesSidebar'
-import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 
 export function PlacesList({ header, ...S }: SidebarState & {
   /**
@@ -19,10 +18,8 @@ export function PlacesList({ header, ...S }: SidebarState & {
   const {
     filtered, scrollContainerRef, onScrollTopChange, filter, t, canEditPlaces, onAddPlace,
     categories, selectedPlaceId, plannedIds, inDaySet, selectedIds, selectMode, selectedDayId,
-    isMobile, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow, tripId,
+    isMobile, onPlaceClick, openContextMenu, onAssignToDay, toggleSelected, setDayPickerPlace, registerPlaceRow,
   } = S
-  // Plugin-contributed columns/actions for the places view, keyed by place id (#plugins).
-  const contribFor = usePluginViewContributions('places', tripId)
   return (
     <div className="trek-stagger" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
       {header}
@@ -54,7 +51,6 @@ export function PlacesList({ header, ...S }: SidebarState & {
           const isPlanned = plannedIds.has(place.id)
           const inDay = inDaySet.has(place.id)
           const isChecked = selectedIds.has(place.id)
-          const contributions = contribFor(place.id)
           return (
             <Fragment key={place.id}>
               <MemoPlaceRow
@@ -76,9 +72,6 @@ export function PlacesList({ header, ...S }: SidebarState & {
                 setDayPickerPlace={setDayPickerPlace}
                 registerPlaceRow={registerPlaceRow}
               />
-              {contributions.length > 0 && (
-                <div style={{ padding: '0 14px 8px 16px' }}><PluginCardFooter items={contributions} tripId={tripId} /></div>
-              )}
             </Fragment>
           )
         })

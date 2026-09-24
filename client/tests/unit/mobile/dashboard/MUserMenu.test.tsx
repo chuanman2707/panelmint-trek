@@ -29,13 +29,6 @@ describe('MUserMenu', () => {
     expect(screen.queryByRole('button', { name: 'Admin Settings' })).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-MENU-002: shows the admin entry and badge for admins', () => {
-    seedUser('admin');
-    render(<MUserMenu open onClose={() => {}} />);
-
-    expect(screen.getByRole('button', { name: 'Admin Settings' })).toBeInTheDocument();
-    expect(screen.getByText('Admin')).toBeInTheDocument();
-  });
 
   it('FE-MOB-MENU-003: the theme row cycles dark → light → auto', () => {
     const updateSetting = vi.fn(async () => {});
@@ -81,20 +74,6 @@ describe('MUserMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('FE-MOB-MENU-007: signing out closes the menu and clears the session', async () => {
-    const onClose = vi.fn();
-    const logout = vi.fn(async () => {});
-    useAuthStore.setState({ logout });
-    render(<MUserMenu open onClose={onClose} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
-    });
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(logout).toHaveBeenCalledTimes(1);
   });
 
   it('FE-MOB-MENU-008: an uploaded avatar replaces the initial', () => {

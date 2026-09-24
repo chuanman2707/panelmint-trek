@@ -1269,23 +1269,3 @@ describe('TodoListPanel — remaining paths', () => {
   });
 });
 
-describe('TodoListPanel — plugin contributions', () => {
-  it('FE-COMP-TODO-061: a plugin column is appended under the contributing task', async () => {
-    server.use(
-      http.get('/api/view-contributions/todos/1', () =>
-        HttpResponse.json({
-          contributions: [
-            { kind: 'column', pluginId: 'p1', id: 'c1', entityId: 12, label: 'Weather', value: 'Rainy', tone: 'default' },
-          ],
-        })
-      ),
-    );
-    render(<TodoListPanel tripId={1} items={[
-      buildTodoItem({ id: 12, name: 'Hike', checked: 0 }),
-      buildTodoItem({ id: 13, name: 'Swim', checked: 0 }),
-    ]} />);
-
-    expect(await screen.findByText('Weather')).toBeInTheDocument();
-    expect(screen.getByText('Rainy')).toBeInTheDocument();
-  });
-});

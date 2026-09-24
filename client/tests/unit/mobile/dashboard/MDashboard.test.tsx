@@ -4,25 +4,16 @@ import { render, screen, fireEvent, waitFor, within } from '../../../helpers/ren
 import MDashboard from '../../../../src/mobile/screens/dashboard/MDashboard';
 import { tripsApi } from '../../../../src/api/client';
 import { useAuthStore } from '../../../../src/store/authStore';
-import { useInAppNotificationStore } from '../../../../src/store/inAppNotificationStore';
-import { usePluginStore } from '../../../../src/store/pluginStore';
-import type { TripCardBadge } from '../../../../src/api/client';
 import type { DashboardTrip } from '../../../../src/pages/dashboard/dashboardModel';
 
 // FE-MOB-DASH-001 onwards
 
 const mocks = vi.hoisted(() => ({
   dash: {} as Record<string, unknown>,
-  badges: {} as Record<number, unknown[]>,
 }));
 
 vi.mock('../../../../src/pages/dashboard/useDashboard', () => ({
   useDashboard: () => mocks.dash,
-}));
-
-// The badge lookup is a network hook of its own; the screen only cares what it returns.
-vi.mock('../../../../src/components/Plugins/TripCardBadges', () => ({
-  useTripCardBadges: () => (tripId: number) => mocks.badges[tripId] ?? [],
 }));
 
 // Local-calendar date string — NOT toISOString(), which is the UTC date and
@@ -80,13 +71,10 @@ function buildDash(over: Record<string, unknown> = {}): Record<string, unknown> 
 describe('MDashboard', () => {
   beforeEach(() => {
     mocks.dash = buildDash();
-    mocks.badges = {};
-    usePluginStore.setState({ plugins: [], loaded: true });
     useAuthStore.setState({
       isAuthenticated: true,
       user: { id: 1, username: 'Maurice', email: 'maurice@trek.app', role: 'user', avatar_url: '' } as never,
     });
-    useInAppNotificationStore.setState({ unreadCount: 0, fetchUnreadCount: async () => {} });
   });
 
   it('FE-MOB-DASH-001: renders the ongoing spotlight with badge, progress and grid cards', () => {
@@ -176,18 +164,7 @@ describe('MDashboard', () => {
     expect(screen.getByText(/demo/i)).toBeInTheDocument();
   });
 
-  it('FE-MOB-DASH-009: unread notifications mark the bell and it opens the list', () => {
-    const navigate = vi.fn();
-    mocks.dash = buildDash({ navigate });
-    useInAppNotificationStore.setState({ unreadCount: 3, fetchUnreadCount: async () => {} });
-    render(<MDashboard />);
-
-    const bell = screen.getByRole('button', { name: 'notifications.title' });
-    expect(bell.querySelector('span[aria-hidden]')).toBeInTheDocument();
-
-    fireEvent.click(bell);
-    expect(navigate).toHaveBeenCalledWith('/notifications');
-  });
+  ;
 
   it('FE-MOB-DASH-010: the avatar button toggles the user menu', () => {
     render(<MDashboard />);
@@ -211,12 +188,10 @@ describe('MDashboard', () => {
     expect(avatar.querySelector('img')).toHaveAttribute('src', '/uploads/avatars/m.jpg');
   });
 
-  it('FE-MOB-DASH-012: the calendar action opens the all-trips subscribe dialog', () => {
+  it('FE-MOB-DASH-012: the hosted all-trips calendar feed is gone', () => {
     render(<MDashboard />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'dashboard.subscribeAllTrips' }));
-
-    expect(screen.getByText('dashboard.subscribeAllTripsDesc')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'dashboard.subscribeAllTrips' })).not.toBeInTheDocument();
   });
 
   it('FE-MOB-DASH-013: the delete sheet names the trip and runs the confirm action', () => {
@@ -292,39 +267,6 @@ describe('MDashboard', () => {
       expect(within(card).getByText(label)).toBeInTheDocument();
     },
   );
-
-  it('FE-MOB-DASH-018: plugin badges render as chips, linked ones as anchors', () => {
-    mocks.badges = {
-      8: [
-        { pluginId: 'p', id: 'a', label: 'Weather', value: '21°', tone: 'success' },
-        { pluginId: 'p', id: 'b', label: 'Docs', value: '', tone: 'warn', url: 'https://example.com' },
-      ] as TripCardBadge[],
-    };
-    mocks.dash = buildDash({ gridTrips: [buildTrip({ id: 8, title: 'Oslo' })] });
-    render(<MDashboard />);
-
-    expect(screen.getByText('21°')).toBeInTheDocument();
-    const link = screen.getByText('Docs').closest('a') as HTMLAnchorElement;
-    expect(link).toHaveAttribute('href', 'https://example.com');
-    // The chip must not open the card underneath it.
-    fireEvent.click(link);
-    expect((mocks.dash.navigate as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
-  });
-
-  it('FE-MOB-DASH-019: dashboard widget plugins render below the blocks', () => {
-    usePluginStore.setState({
-      plugins: [
-        { id: 'w1', name: 'Packing helper', type: 'widget', icon: null },
-        { id: 'h1', name: 'Hero widget', type: 'widget', icon: null, slot: 'hero' },
-      ] as never,
-      loaded: true,
-    });
-    mocks.dash = buildDash({ spotlight: buildTrip() });
-    render(<MDashboard />);
-
-    expect(screen.getByText('Packing helper')).toBeInTheDocument();
-    expect(screen.queryByText('Hero widget')).not.toBeInTheDocument();
-  });
 
   it('FE-MOB-DASH-020: a card action does not open the trip underneath it', () => {
     const navigate = vi.fn();
@@ -526,20 +468,6 @@ describe('MDashboard', () => {
     expect(setCopyTrip).toHaveBeenCalledWith(null);
   });
 
-  it('FE-MOB-DASH-037: the subscribe dialog can be closed again', async () => {
-    render(<MDashboard />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'dashboard.subscribeAllTrips' }));
-    expect(screen.getByText('dashboard.subscribeAllTripsDesc')).toBeInTheDocument();
-
-    // The dialog's close control is icon-only; it is the first button of the card.
-    const card = screen.getByText('dashboard.subscribeAllTripsDesc').parentElement as HTMLElement;
-    fireEvent.click(card.querySelector('button') as HTMLElement);
-
-    await waitFor(() =>
-      expect(screen.queryByText('dashboard.subscribeAllTripsDesc')).not.toBeInTheDocument());
-  });
-
   it('FE-MOB-DASH-038: the filter row cannot widen the document on narrow phones (#discord S26)', async () => {
     render(<MDashboard />);
 
@@ -557,12 +485,12 @@ describe('MDashboard', () => {
   it('FE-MOB-DASH-039: the filter pill hugs its chips instead of filling the row', async () => {
     render(<MDashboard />);
 
-    // flex-1 on the scroll box stretched the grey pill track all the way to the
-    // calendar icon on phones from ~400px up; the icons ride on ml-auto instead.
+    // flex-1 on the scroll box stretched the grey pill track all the way across
+    // on phones from ~400px up; a spacer keeps the view toggle right-aligned.
     const chip = await screen.findByText('dashboard.filter.planned');
     const wrapper = chip.closest('button')!.parentElement!.parentElement as HTMLElement;
     expect(wrapper.className).not.toContain('flex-1');
-    expect(screen.getByRole('button', { name: 'dashboard.subscribeAllTrips' }).className)
-      .toContain('ml-auto');
+    const row = wrapper.parentElement as HTMLElement;
+    expect(row.querySelector('.ml-auto')).not.toBeNull();
   });
 });

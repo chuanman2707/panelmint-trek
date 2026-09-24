@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bookmark, Calendar, ChevronDown, ChevronUp, Eye, Pencil, Trash2 } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronUp, Eye, Pencil, Trash2 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
-import { useAddonStore } from '../../../../store/addonStore'
-import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStore'
-import { collectionTargetFromPlace } from '../lib/collectionTarget'
 import type { Place } from '../../../../types'
 
 interface BrowseActionsPayload {
@@ -26,8 +23,6 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
 
   const canEditPlaces = planner.can('place_edit', planner.trip)
   const canEditDays = planner.can('day_edit', planner.trip)
-  const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
-  const openSavePicker = useSaveToCollectionStore(s => s.open)
 
   const [daysOpen, setDaysOpen] = useState(false)
   useEffect(() => { setDaysOpen(open && Boolean(payload.dayPicker)) }, [open, payload.dayPicker])
@@ -49,11 +44,6 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
   const editPlace = () => {
     shell.closeSheet()
     planner.openPlaceEditor(place)
-  }
-
-  const saveToCollection = () => {
-    shell.closeSheet()
-    openSavePicker(collectionTargetFromPlace(place))
   }
 
   const assignToDay = (dayId: number) => {
@@ -88,12 +78,6 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
           <button type="button" onClick={editPlace} className={rowCls}>
             <Pencil size={16} strokeWidth={2} className="flex-none text-m-muted" />
             {t('common.edit')}
-          </button>
-        )}
-        {collectionsEnabled && (
-          <button type="button" onClick={saveToCollection} className={rowCls}>
-            <Bookmark size={16} strokeWidth={2} className="flex-none text-m-muted" />
-            {t('inspector.saveToCollection')}
           </button>
         )}
         {canEditDays && planner.days.length > 0 && (

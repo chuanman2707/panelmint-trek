@@ -1,4 +1,4 @@
-import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator } from '../Studio/countryShapes'
+import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator } from './countryShapes'
 import type { TripOverviewDay } from '../Map/tripRouteGeometry'
 
 /**

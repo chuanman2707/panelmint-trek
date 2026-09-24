@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router'
-import { LogOut, Moon, Settings2, Shield, Sun, SunMoon } from 'lucide-react'
+import { Moon, Settings2, Sun, SunMoon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useAuthStore } from '../../../store/authStore'
@@ -32,15 +32,14 @@ interface MUserMenuProps {
 }
 
 /**
- * Avatar popover of the mobile top bar: profile header (with admin badge),
- * settings, admin panel (admins only), the dark/light/auto theme cycle and
- * sign out.
+ * Avatar popover of the mobile top bar: profile header, settings, and the
+ * dark/light/auto theme cycle. There is no sign-out — the local profile never
+ * ends a session.
  */
 export default function MUserMenu({ open, onClose }: MUserMenuProps): React.ReactElement {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore(s => s.user)
-  const logout = useAuthStore(s => s.logout)
   const darkMode = useSettingsStore(s => s.settings.dark_mode)
   const updateSetting = useSettingsStore(s => s.updateSetting)
 
@@ -50,11 +49,6 @@ export default function MUserMenu({ open, onClose }: MUserMenuProps): React.Reac
 
   const go = (path: string) => { onClose(); navigate(path) }
   const cycleTheme = () => { updateSetting('dark_mode', NEXT_MODE[mode]).catch(() => {}) }
-  const signOut = async () => {
-    onClose()
-    await logout()
-    navigate('/login')
-  }
 
   return (
     <MDropdownPanel open={open} onClose={onClose} className="right-4 top-[calc(var(--m-safe-top,12px)+68px)]">
@@ -67,27 +61,17 @@ export default function MUserMenu({ open, onClose }: MUserMenuProps): React.Reac
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-[6px]">
             <span className="truncate text-[0.875rem] font-bold">{user?.username}</span>
-            {user?.role === 'admin' && (
-              <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-muted">
-                {t('nav.bottomAdminBadge')}
-              </span>
-            )}
           </div>
           <div className="truncate font-geist text-[0.65625rem] text-m-muted">{user?.email}</div>
         </div>
       </div>
       <MListRow icon={Settings2} label={t('nav.bottomSettings')} onClick={() => go('/settings')} />
-      {user?.role === 'admin' && (
-        <MListRow icon={Shield} label={t('nav.bottomAdmin')} onClick={() => go('/admin')} />
-      )}
       <MListRow
         icon={ThemeIcon}
         label={t('settings.colorMode')}
         onClick={cycleTheme}
         trailing={<span className="flex-none font-geist text-[0.65625rem] text-m-muted">{modeLabel}</span>}
       />
-      <div className="mx-2 my-1 h-px bg-[color:var(--m-rowbr)]" />
-      <MListRow icon={LogOut} danger label={t('nav.bottomLogout')} onClick={signOut} />
     </MDropdownPanel>
   )
 }

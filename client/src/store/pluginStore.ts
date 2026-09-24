@@ -1,32 +1,9 @@
 import { create } from 'zustand'
-import { pluginsApi } from '../api/client'
 
 const PLUGIN_SESSION_NAMESPACE = 'trek:plugin-session:'
 
 /**
- * Purges state for plugins absent from a successful active-plugin response.
- * A failed request never calls this, because plugin status is then unknown.
- */
-function clearInactivePluginSessions(activePluginIds: Set<string>) {
-  const keysToRemove: string[] = []
-  for (let i = 0; i < sessionStorage.length; i += 1) {
-    const storageKey = sessionStorage.key(i)
-    if (!storageKey?.startsWith(PLUGIN_SESSION_NAMESPACE)) continue
-    const encodedPluginId = storageKey.slice(PLUGIN_SESSION_NAMESPACE.length).split(':')[1]
-    if (encodedPluginId === undefined) continue
-    try {
-      if (!activePluginIds.has(decodeURIComponent(encodedPluginId))) keysToRemove.push(storageKey)
-    } catch {
-      // Ignore malformed keys outside the host-owned format.
-    }
-  }
-  keysToRemove.forEach((storageKey) => sessionStorage.removeItem(storageKey))
-}
-
-/**
  * Drops every plugin's session state, whatever user or trip it belonged to.
- * Logout calls this so the next user on a shared browser starts clean — the
- * same reason the appearance snapshot and the user-scoped offline DB go.
  */
 export function clearAllPluginSessions() {
   const keysToRemove: string[] = []
@@ -80,19 +57,10 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   plugins: [],
   loaded: false,
 
+  // Plugins are cut for the local build — there is no plugin service to ask.
+  // The store stays so the contribution surfaces keep reading an empty list.
   loadPlugins: async () => {
-    try {
-      const data = await pluginsApi.active()
-      const plugins = (data.plugins as ActivePlugin[]) || []
-      set({ plugins, loaded: true })
-      // After the state is committed: a sessionStorage failure (Safari private
-      // mode, quota) must not cost us the plugin list we just fetched.
-      try {
-        clearInactivePluginSessions(new Set(plugins.map((plugin) => plugin.id)))
-      } catch { /* leaving stale plugin state behind beats losing the nav entries */ }
-    } catch {
-      set({ loaded: true })
-    }
+    set({ plugins: [], loaded: true })
   },
 
   getById: (id) => get().plugins.find((p) => p.id === id),

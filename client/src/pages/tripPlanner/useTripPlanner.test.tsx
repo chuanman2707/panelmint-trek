@@ -8,13 +8,11 @@ import { useTripStore, type TripStoreState } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
-import { usePluginStore } from '../../store/pluginStore'
-import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
+import { useAddonStore } from '../../store/addonStore'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation } from '../../../tests/helpers/factories'
 import {
-  addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi,
-  healthApi, airtrailApi, mapsApi,
+  accommodationsApi, tripsApi, assignmentsApi, mapsApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb } from '../../db/offlineDb'
@@ -38,8 +36,6 @@ vi.mock('react-router', () => ({
   useSearchParams: () => [searchParams, setSearchParams],
 }))
 
-vi.mock('../../hooks/useTripWebSocket', () => ({ useTripWebSocket: vi.fn() }))
-
 const updateRouteForDay = vi.fn(async (_dayId: number | null) => {})
 vi.mock('../../hooks/useRouteCalculation', () => ({
   useRouteCalculation: () => ({
@@ -54,16 +50,7 @@ vi.mock('../../hooks/useRouteCalculation', () => ({
 }))
 
 // Hoisted so the module mocks below can read them at module-evaluation time.
-const env = vi.hoisted(() => ({ airTrailAvailable: false, forcedOffline: false }))
-
-vi.mock('../../hooks/useAirtrailConnection', () => ({
-  useAirtrailConnection: () => ({
-    airtrailEnabled: env.airTrailAvailable,
-    connected: env.airTrailAvailable,
-    available: env.airTrailAvailable,
-    loading: false,
-  }),
-}))
+const env = vi.hoisted(() => ({ forcedOffline: false }))
 
 vi.mock('../../sync/networkMode', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../sync/networkMode')>()
@@ -176,26 +163,19 @@ beforeEach(() => {
   resetAllStores()
   routeParams = { id: '42' }
   searchParams = new URLSearchParams()
-  env.airTrailAvailable = false
   env.forcedOffline = false
   toasts.length = 0
   actions = makeActions()
-  usePluginStore.setState({ plugins: [], loaded: true })
-  useBackgroundTasksStore.setState({ tasks: [] })
   window.__addToast = ((message: string, type: string) => {
     toasts.push({ message, type })
     return 1
   }) as unknown as typeof window.__addToast
   seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true, placesPhotosEnabled: false })
 
-  vi.spyOn(addonsApi, 'enabled').mockResolvedValue({ addons: [] })
-  vi.spyOn(authApi, 'getAppConfig').mockResolvedValue({})
-  vi.spyOn(healthApi, 'features').mockResolvedValue({ bookingImport: false, aiParsing: false })
   vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [], current_user_id: 1 })
   vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
   vi.spyOn(assignmentsApi, 'updateTime').mockResolvedValue({})
   vi.spyOn(assignmentsApi, 'updateNotes').mockResolvedValue({})
-  vi.spyOn(airtrailApi, 'sync').mockResolvedValue({ changed: 0 })
   vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: '', address: '' } as never)
   vi.spyOn(mapsApi, 'search').mockResolvedValue({ places: [] } as never)
   vi.mocked(accommodationRepo.list).mockResolvedValue({ accommodations: [] })
@@ -275,61 +255,14 @@ describe('useTripPlanner — bootstrap', () => {
     expect(tripsApi.getMembers).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-TP-HOOK-006: enabled addons and collab feature flags reach the returned state', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({
-      addons: [{ id: 'packing' }, { id: 'budget' }, { id: 'collab' }],
-      collabFeatures: { chat: true, notes: false, polls: false, whatsnext: true },
-    })
+  it('FE-TP-HOOK-006: the static addon set reaches the returned state', async () => {
     seedTrip()
 
     const { result } = await renderPlanner()
 
-    await waitFor(() => expect(result.current.enabledAddons.collab).toBe(true))
-    expect(result.current.enabledAddons.documents).toBe(false)
-    expect(result.current.collabFeatures.notes).toBe(false)
-  })
-
-  it('FE-TP-HOOK-007: the app config supplies the allowed upload types', async () => {
-    vi.mocked(authApi.getAppConfig).mockResolvedValue({ allowed_file_types: 'pdf,png' })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => expect(result.current.allowedFileTypes).toBe('pdf,png'))
-  })
-
-  it('FE-TP-HOOK-008: the booking-import feature flag comes from /health/features', async () => {
-    vi.mocked(healthApi.features).mockResolvedValue({ bookingImport: true, aiParsing: false })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => expect(result.current.bookingImportAvailable).toBe(true))
-  })
-
-  it('FE-TP-HOOK-009: opening the trip pulls AirTrail changes once and reloads bookings', async () => {
-    env.airTrailAvailable = true
-    vi.mocked(airtrailApi.sync).mockResolvedValue({ changed: 3 })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => expect(actions.loadReservations).toHaveBeenCalledTimes(2))
-    expect(airtrailApi.sync).toHaveBeenCalledTimes(1)
-
-    // A re-render must not fire a second sync for the same trip.
-    act(() => { result.current.setFitKey(9) })
-    expect(airtrailApi.sync).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-TP-HOOK-010: an AirTrail sync with no changes leaves the bookings alone', async () => {
-    env.airTrailAvailable = true
-    seedTrip()
-
-    await renderPlanner()
-
-    await waitFor(() => expect(airtrailApi.sync).toHaveBeenCalled())
-    expect(actions.loadReservations).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(result.current.enabledAddons.packing).toBe(true))
+    expect(result.current.enabledAddons.budget).toBe(true)
+    expect(result.current.enabledAddons.roadtrip).toBe(false)
   })
 
   it('FE-TP-HOOK-011: the accommodations:refresh event reloads the accommodation list', async () => {
@@ -385,20 +318,22 @@ describe('useTripPlanner — bootstrap', () => {
 
 describe('useTripPlanner — tabs', () => {
   it('FE-TP-HOOK-015: addon tabs appear only for enabled addons', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'packing' }, { id: 'documents' }] })
+    seedStore(useAddonStore, {
+      addons: [{ id: 'packing', name: 'Lists', type: 'trip', icon: '', enabled: true }],
+      loaded: true,
+    })
     seedTrip()
 
     const { result } = await renderPlanner()
 
     await waitFor(() => {
       expect(result.current.TRIP_TABS.map(t => t.id)).toEqual(
-        ['plan', 'transports', 'buchungen', 'listen', 'dateien'],
+        ['plan', 'transports', 'buchungen', 'listen'],
       )
     })
   })
 
   it('FE-TP-HOOK-016: switching to the Costs tab loads the budget items and persists the tab', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
     seedTrip()
     const { result } = await renderPlanner()
     await waitFor(() => expect(result.current.TRIP_TABS.map(t => t.id)).toContain('finanzplan'))
@@ -410,19 +345,8 @@ describe('useTripPlanner — tabs', () => {
     expect(actions.loadBudgetItems).toHaveBeenCalledWith(42)
   })
 
-  it('FE-TP-HOOK-017: the Files tab loads files only while none are cached', async () => {
-    seedTrip()
-    const { result } = await renderPlanner()
-
-    act(() => { result.current.handleTabChange('dateien') })
-    expect(actions.loadFiles).toHaveBeenCalledTimes(1)
-
-    act(() => { useTripStore.setState({ files: [{ id: 1 }] as never }) })
-    act(() => { result.current.handleTabChange('dateien') })
-    expect(actions.loadFiles).toHaveBeenCalledTimes(1)
-  })
-
   it('FE-TP-HOOK-018: a saved tab that no addon backs falls back to plan', async () => {
+    seedStore(useAddonStore, { addons: [], loaded: true })
     sessionStorage.setItem('trip-tab-42', 'listen')
     seedTrip()
 
@@ -433,7 +357,6 @@ describe('useTripPlanner — tabs', () => {
   })
 
   it('FE-TP-HOOK-018b: a tab set programmatically is re-validated on the spot', async () => {
-    usePluginStore.setState({ plugins: [], loaded: true })
     seedTrip()
 
     const { result } = await renderPlanner()
@@ -444,70 +367,9 @@ describe('useTripPlanner — tabs', () => {
     expect(sessionStorage.getItem('trip-tab-42')).toBe('plan')
   })
 
-  it('FE-TP-HOOK-019: a positioned trip-page plugin splices its tab and can replace a core tab', async () => {
-    usePluginStore.setState({
-      plugins: [
-        { id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'], position: 1 } },
-        { id: 'tail', name: 'Tail', type: 'trip-page', icon: null, tripPage: {} },
-      ] as never,
-      loaded: true,
-    })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => {
-      expect(result.current.TRIP_TABS.map(t => t.id))
-        .toEqual(['plan', 'plugin:transit-pro', 'buchungen', 'plugin:tail'])
-    })
-  })
-
-  it('FE-TP-HOOK-019b: two positioned plugin tabs keep their relative order', async () => {
-    usePluginStore.setState({
-      plugins: [
-        { id: 'late', name: 'Late', type: 'trip-page', icon: null, tripPage: { position: 3 } },
-        { id: 'early', name: 'Early', type: 'trip-page', icon: 'Map', tripPage: { position: 1 } },
-      ] as never,
-      loaded: true,
-    })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => {
-      expect(result.current.TRIP_TABS.map(t => t.id))
-        .toEqual(['plan', 'plugin:early', 'transports', 'plugin:late', 'buchungen'])
-    })
-  })
-
-  it('FE-TP-HOOK-020: jumping to a plugin-replaced core tab lands on plan instead', async () => {
-    usePluginStore.setState({
-      plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['buchungen'] } }] as never,
-      loaded: true,
-    })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    act(() => { result.current.handleTabChange('buchungen') })
-    expect(result.current.activeTab).toBe('plan')
-    expect(sessionStorage.getItem('trip-tab-42')).toBe('plan')
-  })
-
-  it('FE-TP-HOOK-021: a saved plugin tab survives until the plugin feed has loaded', async () => {
-    sessionStorage.setItem('trip-tab-42', 'plugin:late')
-    usePluginStore.setState({ plugins: [], loaded: false })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    expect(result.current.activeTab).toBe('plugin:late')
-  })
-
   // ── ?tab= deep link (startup destination, shortcuts, wrapper apps) ──────────
 
   it('FE-TP-HOOK-104: ?tab= opens that tab on the very first render and clears the param', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
     searchParams = new URLSearchParams('tab=finanzplan')
     seedTrip()
 
@@ -540,7 +402,6 @@ describe('useTripPlanner — tabs', () => {
 
   // The lazy loads live in handleTabChange, which a deep link never goes through.
   it('FE-TP-HOOK-107: starting on Costs still loads the budget items', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
     searchParams = new URLSearchParams('tab=finanzplan')
     seedTrip()
 
@@ -549,32 +410,8 @@ describe('useTripPlanner — tabs', () => {
     await waitFor(() => expect(actions.loadBudgetItems).toHaveBeenCalledWith(42))
   })
 
-  it('FE-TP-HOOK-108: starting on Files still loads the files', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'documents' }] })
-    searchParams = new URLSearchParams('tab=dateien')
-    seedTrip()
-
-    await renderPlanner()
-
-    await waitFor(() => expect(actions.loadFiles).toHaveBeenCalledWith(42))
-  })
-
-  // enabledAddons is an optimistic guess until the feed answers, and 'collab'
-  // is guessed off — evicting on that guess would drop a requested tab.
-  it('FE-TP-HOOK-109: a requested collab tab survives until the addon feed answers', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'collab' }] })
-    searchParams = new URLSearchParams('tab=collab')
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    expect(result.current.activeTab).toBe('collab')
-    await waitFor(() => expect(result.current.TRIP_TABS.map(t => t.id)).toContain('collab'))
-    expect(result.current.activeTab).toBe('collab')
-  })
-
   it('FE-TP-HOOK-110: but a tab whose addon really is off still falls back to plan', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [] })
+    seedStore(useAddonStore, { addons: [], loaded: true })
     searchParams = new URLSearchParams('tab=finanzplan')
     seedTrip()
 
@@ -1830,167 +1667,6 @@ describe('useTripPlanner — bookings and transports', () => {
     await act(async () => { await result.current.handleDeleteReservation(5) })
 
     expect(toasts.some(t => t.message === 'referenced')).toBe(true)
-  })
-})
-
-describe('useTripPlanner — booking import review', () => {
-  const hotelItem = { type: 'hotel', title: 'Ryokan', source: { fileName: 'mail.pdf' } }
-  const flightItem = { type: 'flight', title: 'NRT → CDG' }
-
-  it('FE-TP-HOOK-089: the review starts on the first item and routes hotels to the booking modal', async () => {
-    seedTrip()
-
-    const { result } = await renderPlanner()
-    const file = new File(['x'], 'mail.pdf')
-
-    act(() => { result.current.startImportReview([hotelItem, flightItem] as never, [file]) })
-
-    expect(result.current.importReviewActive).toBe(true)
-    expect(result.current.showReservationModal).toBe(true)
-    expect(result.current.reservationPrefill?.title).toBe('Ryokan')
-    expect(result.current.reservationPrefill?._sourceFiles).toEqual([file])
-  })
-
-  // #2076 — an item whose type neither form can express used to land in the booking
-  // form, which offers six chips and not one transport among them, so the only
-  // honest pick left was 'other'. The tab the import started from breaks the tie.
-  it('FE-TP-HOOK-112: an unreadable item opens the transport form when the import began there', async () => {
-    seedTrip()
-    const { result } = await renderPlanner()
-    const odd = { type: 'shuttle-voucher', title: 'Airport transfer' }
-
-    // The tab now travels with the review rather than living in component state:
-    // the parse outlives navigation and reload, and the review is triggered by the
-    // global widget, so by then the state has remounted back to its default.
-    act(() => { result.current.startImportReview([odd] as never, [], 'transports') })
-
-    expect(result.current.showTransportModal).toBe(true)
-    expect(result.current.showReservationModal).toBe(false)
-  })
-
-  it('FE-TP-HOOK-113: the same item opens the booking form when the import began there', async () => {
-    seedTrip()
-    const { result } = await renderPlanner()
-    const odd = { type: 'shuttle-voucher', title: 'Airport transfer' }
-
-    act(() => { result.current.startImportReview([odd] as never, [], 'bookings') })
-
-    expect(result.current.showReservationModal).toBe(true)
-    expect(result.current.showTransportModal).toBe(false)
-  })
-
-  // The case that actually occurs. The server only ever emits its eight known
-  // types, so 'shuttle-voucher' above never reaches a real import: a document the
-  // model could not classify arrived as a placeholder 'hotel', which IS a booking
-  // type, so the tie-breaker never ran and the tab lost every time (#2076).
-  it('FE-TP-HOOK-112b: a guessed hotel opens the transport form when the import began there', async () => {
-    seedTrip()
-    const { result } = await renderPlanner()
-    const guessed = { type: 'hotel', title: 'Airport transfer', type_guessed: true }
-
-    act(() => { result.current.startImportReview([guessed] as never, [], 'transports') })
-
-    expect(result.current.showTransportModal).toBe(true)
-    expect(result.current.showReservationModal).toBe(false)
-  })
-
-  it('FE-TP-HOOK-112c: a real hotel from the same tab still opens the booking form', async () => {
-    seedTrip()
-    const { result } = await renderPlanner()
-    const real = { type: 'hotel', title: 'Ryokan' }
-
-    act(() => { result.current.startImportReview([real] as never, [], 'transports') })
-
-    expect(result.current.showReservationModal).toBe(true)
-    expect(result.current.showTransportModal).toBe(false)
-  })
-
-  // A recognised type always wins over the tab: one PDF routinely holds both.
-  it('FE-TP-HOOK-114: a hotel imported from the transports tab still opens the booking form', async () => {
-    seedTrip()
-    const { result } = await renderPlanner()
-
-    act(() => { result.current.setBookingImportKind('transports') })
-    act(() => { result.current.startImportReview([hotelItem] as never) })
-
-    expect(result.current.showReservationModal).toBe(true)
-    expect(result.current.showTransportModal).toBe(false)
-  })
-
-  it('FE-TP-HOOK-090: advancing moves on to the transport item and then finishes the session', async () => {
-    seedTrip()
-    vi.mocked(accommodationsApi.list).mockResolvedValue({ accommodations: [{ id: 2 }] })
-
-    const { result } = await renderPlanner()
-    act(() => { result.current.startImportReview([hotelItem, flightItem] as never) })
-
-    act(() => { result.current.advanceImportReview() })
-    expect(result.current.showTransportModal).toBe(true)
-    expect(result.current.transportPrefill?.title).toBe('NRT → CDG')
-    expect(result.current.showReservationModal).toBe(false)
-
-    act(() => { result.current.advanceImportReview() })
-    expect(result.current.importReviewActive).toBe(false)
-    expect(result.current.showTransportModal).toBe(false)
-    expect(actions.loadBudgetItems).toHaveBeenCalledWith(42)
-    await waitFor(() => expect(result.current.tripAccommodations).toHaveLength(1))
-  })
-
-  it('FE-TP-HOOK-091: an empty import list never opens the review', async () => {
-    seedTrip()
-
-    const { result } = await renderPlanner()
-    act(() => { result.current.startImportReview([]) })
-
-    expect(result.current.importReviewActive).toBe(false)
-    expect(result.current.showReservationModal).toBe(false)
-  })
-
-  it('FE-TP-HOOK-092: a finished background import hands its items to the review and clears the widget', async () => {
-    seedTrip()
-    useBackgroundTasksStore.setState({
-      tasks: [{
-        id: 'job-1', tripId: '42', label: 'mail.pdf', status: 'done', done: 1, total: 1,
-        reviewRequested: true, items: [flightItem], sourceFiles: [new File(['x'], 'mail.pdf')],
-      }] as never,
-    })
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => expect(result.current.showTransportModal).toBe(true))
-    expect(result.current.transportPrefill?.title).toBe('NRT → CDG')
-    expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0)
-  })
-
-  it('FE-TP-HOOK-093: a background import without in-memory files falls back to the IndexedDB copy', async () => {
-    seedTrip()
-    useBackgroundTasksStore.setState({
-      tasks: [{
-        id: 'job-2', tripId: '42', label: 'mail.pdf', status: 'done', done: 1, total: 1,
-        reviewRequested: true, items: [hotelItem],
-      }] as never,
-    })
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => expect(result.current.showReservationModal).toBe(true))
-    expect(result.current.reservationPrefill?._sourceFiles).toBeUndefined()
-  })
-
-  it('FE-TP-HOOK-094: a background task for another trip is left alone', async () => {
-    seedTrip()
-    useBackgroundTasksStore.setState({
-      tasks: [{
-        id: 'job-3', tripId: '99', label: 'mail.pdf', status: 'done', done: 1, total: 1,
-        reviewRequested: true, items: [flightItem],
-      }] as never,
-    })
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => expect(result.current.tripId).toBe(42))
-    expect(result.current.showTransportModal).toBe(false)
-    expect(useBackgroundTasksStore.getState().tasks).toHaveLength(1)
   })
 })
 

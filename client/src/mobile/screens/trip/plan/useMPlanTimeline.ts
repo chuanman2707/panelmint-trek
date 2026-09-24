@@ -2,18 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTripStore } from '../../../../store/tripStore'
 import { useRouteCalculation } from '../../../../hooks/useRouteCalculation'
 import { assignmentsApi, reservationsApi, weatherApi } from '../../../../api/client'
-import { usePluginStore } from '../../../../store/pluginStore'
 import { getDayBookendHotels } from '../../../../utils/dayOrder'
 import { getDisplayTimeForDay, getMergedItems, getTransportForDay, hasCarrierEndpointOnDay } from '../../../../utils/dayMerge'
 import { dayCoMapsUrl, dayGoogleMapsUrl, optimizeDayOrder } from '../lib/dayRoute'
-import { buildTransitLeg, buildTransitNameIndex, type TransitLeg } from '../../../../components/Planner/transitLeg'
 import {
   buildPlanRows, breaksChronology, findUpNext, hotelChipsForDay, hotelLegsForDay, itemHasTime,
   type HotelLegs, type PlanRow, type TransportEntry,
 } from './planTimelineModel'
 import type { TripPlanner } from '../MTripShell'
 import type { WeatherResult } from '@trek/shared'
-import type { Assignment, Place, RouteSegment } from '../../../../types'
+import type { Assignment, Place } from '../../../../types'
 import type { MergedItem } from '../../../../utils/dayMerge'
 
 /**
@@ -276,8 +274,6 @@ export function useMPlanTimeline(planner: TripPlanner) {
 
   const addTransport = useCallback(() => {
     planner.setEditingTransport(null)
-    planner.setTransitPrefill(null)
-    planner.setTransportModalAutomated(false)
     planner.setTransportModalDayId(day?.id ?? null)
     planner.setShowTransportModal(true)
   }, [planner, day])
@@ -291,11 +287,6 @@ export function useMPlanTimeline(planner: TripPlanner) {
       planner.setEditingReservation(target)
       planner.setShowReservationModal(true)
     }
-  }, [planner, reservations])
-
-  /** Transit rows open the journey view (route, fields, delete) instead of the generic form. */
-  const openTransitJourney = useCallback((res: TransportEntry) => {
-    planner.setTransitJourney(reservations.find(x => x.id === res.id) ?? res)
   }, [planner, reservations])
 
   // ── Day-route actions (also reachable from the day sheet) ──
@@ -352,16 +343,12 @@ export function useMPlanTimeline(planner: TripPlanner) {
     ? Math.round(settings.temperature_unit === 'fahrenheit' ? weather.temp * 9 / 5 + 32 : weather.temp)
     : null
 
-  // ── Per-segment travel mode (#1281) ──
-  const activePlugins = usePluginStore(s => s.plugins)
-  const routeModeOptions = useMemo(() => {
-    const opts: Array<{ key: string; label: string }> = [
-      { key: 'driving', label: t('mobileTrip.profileDriving') },
-      { key: 'walking', label: t('mobileTrip.profileWalking') },
-    ]
-    for (const p of activePlugins) for (const prof of p.routeProfiles ?? []) opts.push({ key: `plugin:${p.id}/${prof.id}`, label: prof.label })
-    return opts
-  }, [activePlugins, t])
+  // ── Per-segment travel mode (#1281) ── the two built-in profiles; plugin
+  // route providers went away with the hosted build.
+  const routeModeOptions = useMemo(() => [
+    { key: 'driving', label: t('mobileTrip.profileDriving') },
+    { key: 'walking', label: t('mobileTrip.profileWalking') },
+  ], [t])
 
   // Set the mode of the leg leaving a stop — optimistic, then persisted; null clears
   // the override back to the day default. Sticky against the whole-day picker.
@@ -377,39 +364,16 @@ export function useMPlanTimeline(planner: TripPlanner) {
     })
   }, [day, tripId, toast, t, tripActions])
 
-  // ── Public transit for one leg (#2398) ──
-  // The entry the desktop connector menu carries: the automated search, seeded with
-  // the leg's two ends and the time the stop it leaves is planned for. It needs the
-  // trip's dates, as on the desktop and as the day sheet's own transit button does.
-  const tripHasDates = Boolean(planner.trip?.start_date && planner.trip?.end_date)
-  const transitNames = useMemo(
-    () => buildTransitNameIndex(assignments, tripAccommodations, reservations),
-    [assignments, tripAccommodations, reservations],
-  )
-  const transitLegFor = useCallback((seg: RouteSegment): TransitLeg | null => {
-    if (!day || !tripHasDates) return null
-    return buildTransitLeg(seg, day.id, transitNames, assignments, reservations)
-  }, [day, tripHasDates, transitNames, assignments, reservations])
-
-  const planTransitLeg = useCallback((leg: TransitLeg) => {
-    if (!day) return
-    planner.setTransportModalDayId(day.id)
-    planner.setEditingTransport(null)
-    planner.setTransitPrefill(leg)
-    planner.setTransportModalAutomated(true)
-    planner.setShowTransportModal(true)
-  }, [planner, day])
-
   return {
     day, rows, hotelLegs, merged, hotelChips, weather, weatherTemp, upNext,
     weatherPlaceName: weatherAnchor?.name ?? null,
     language, timeFormat: settings.time_format,
     openTransitKeys, toggleTransit,
-    moveRow, removeAssignment, editAssignment, editTransport, openTransitJourney,
+    moveRow, removeAssignment, editAssignment, editTransport,
     moveRowTo,
     addPlace, addBooking, addTransport,
     optimize, exportGoogleMaps, exportCoMaps, renameDay, fullPlaceOf,
-    routeModeOptions, setLegMode, transitLegFor, planTransitLeg,
+    routeModeOptions, setLegMode,
   }
 }
 

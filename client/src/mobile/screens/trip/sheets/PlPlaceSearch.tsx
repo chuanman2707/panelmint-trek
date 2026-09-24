@@ -3,7 +3,6 @@ import { Loader2, RotateCcw, Search } from 'lucide-react'
 import { mapsApi } from '../../../../api/client'
 import { useAuthStore } from '../../../../store/authStore'
 import { offersGoogleRetry, selectGoogleHoldsSlot, sourceLabelFor } from '../../../../utils/placeSource'
-import { recordPlacePick } from '../../../../api/placeShadow'
 import { PlacesSession } from '../../../../utils/placesSession'
 import { isMapUrl } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { getApiErrorMessage } from '../../../../utils/apiError'
@@ -147,26 +146,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
    */
   const applyPlace = (place: MapsPlace, pick?: { mode: 'search' | 'autocomplete'; rank: number; count: number }) => {
     onPick(placeToPick(place))
-    if (pick) {
-      const meta = pick.mode === 'search' ? searchMetaRef.current : acMetaRef.current
-      const lat = Number(place.lat)
-      const lng = Number(place.lng)
-      if (meta && Number.isFinite(lat) && Number.isFinite(lng)) {
-        recordPlacePick({
-          query: meta.query,
-          lang: language,
-          biasLat: locationBias ? (locationBias.low.lat + locationBias.high.lat) / 2 : undefined,
-          biasLng: locationBias ? (locationBias.low.lng + locationBias.high.lng) / 2 : undefined,
-          source: `${pick.mode}:${meta.source}`,
-          liveRank: pick.rank,
-          liveCount: pick.count,
-          pickedName: String(place.name ?? ''),
-          pickedLat: lat,
-          pickedLng: lng,
-          pickedPlaceId: (place.google_place_id as string) || (place.amap_poi_id as string) || (place.osm_id as string) || null,
-        })
-      }
-    }
+
     setResults([])
     setSuggestions([])
     setQuery('')

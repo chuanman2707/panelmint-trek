@@ -25,11 +25,9 @@
 
 import type { Place } from '../types'
 import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
-import { isAuthed } from './authGate'
 import { isStoragePersisted } from './persistentStorage'
-import { isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
+import { normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
 import { OFM_POSITRON } from '../constants/mapDefaults'
-import { clearVectorCache, prefetchVectorForPlaces } from './glPrefetcher'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -321,8 +319,8 @@ export async function prefetchTiles(
 
   async function worker(): Promise<void> {
     while (cursor < coords.length) {
-      // Going offline or logging out mid-run abandons the rest of the queue.
-      if (!navigator.onLine || !isAuthed()) return
+      // Going offline mid-run abandons the rest of the queue.
+      if (!navigator.onLine) return
 
       const [z, x, y] = coords[cursor++]
       const url = buildTileUrl(tileUrlTemplate, z, x, y, cartoKey)
@@ -356,10 +354,6 @@ export async function clearTileCache(): Promise<void> {
   } catch {
     /* Cache Storage unavailable (no SW / private mode) — nothing to clear */
   }
-
-  // The vector basemap lives in its own runtime cache and has to go with it,
-  // or "clear offline maps" leaves the larger half on disk.
-  await clearVectorCache()
 
   // Drop the recorded bboxes too, otherwise prefetchTilesForTrip would consider
   // these trips done and never refill the cache we just emptied.
@@ -411,22 +405,6 @@ export async function prefetchTilesForTrip(
   // cached.
   const existing = await offlineDb.syncMeta.get(tripId)
   if (!force && existing?.tilesBbox && sameBbox(existing.tilesBbox, bbox)) return
-
-  // The default basemap is a vector style, and walking a {z}/{x}/{y} template
-  // over one would fetch nothing the map ever asks for. A user who configured
-  // their own raster template keeps the path below unchanged.
-  if (isVectorStyle(template)) {
-    const { tiles } = await prefetchVectorForPlaces(places, template, () => !navigator.onLine || !isAuthed())
-    const meta = await offlineDb.syncMeta.get(tripId)
-    if (meta) {
-      await upsertSyncMeta({
-        ...meta,
-        tilesBbox: [bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat],
-      })
-    }
-    if (tiles > 0) console.info(`[tilePrefetch] trip ${tripId}: cached ${tiles} vector tiles`)
-    return
-  }
 
   // Zoom-clamp rather than skip: prefetchTiles fills zooms low→high and stops
   // once MAX_TILES is reached, so large (region / road-trip) bboxes still get

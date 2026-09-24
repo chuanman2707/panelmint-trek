@@ -1,26 +1,20 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
-  Bookmark, Check, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPin, Plus,
+Check, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPin, Plus,
   SlidersHorizontal, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useTripStore } from '../../../../store/tripStore'
-import { useAddonStore } from '../../../../store/addonStore'
 import { useToast } from '../../../../components/shared/Toast'
-import { collectionsApi } from '../../../../api/collections'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import { resolveTrackColor } from '../../../../components/Map/trackColors'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { MPlacesBrowserProps } from '../MTripShell'
-import DawarichSuggestionsPanel from '../../../../components/Dawarich/DawarichSuggestionsPanel'
-import { formatDayOption } from '../../../../components/Dawarich/dawarichSuggestionModel'
-import { refreshTripAfterAccept } from '../../../../components/Dawarich/dawarichTripRefresh'
 import { useTranslation } from '../../../../i18n'
 import type { Place } from '../../../../types'
 import MPlacesBulkCategorySheet from './MPlacesBulkCategorySheet'
-import MPlacesSaveToCollectionSheet from './MPlacesSaveToCollectionSheet'
 import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBrowserModel'
 
 /**
@@ -39,7 +33,6 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   // The planner hook carries `t` but not the locale; day labels need both.
   const { locale } = useTranslation()
   const canEditPlaces = planner.can('place_edit', trip)
-  const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
 
   const filter = useTripStore(s => s.placesFilter)
   const setFilter = useTripStore(s => s.setPlacesFilter)
@@ -51,8 +44,6 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
-  const [saveToListOpen, setSaveToListOpen] = useState(false)
-  const [markVisitedBusy, setMarkVisitedBusy] = useState(false)
   const toast = useToast()
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
@@ -101,22 +92,6 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
       return next
     })
 
-  /** Mark the selection visited in every list it is saved to (#1469). */
-  const markSelectionVisited = async () => {
-    const ids = [...selectedIds]
-    if (ids.length === 0 || markVisitedBusy) return
-    setMarkVisitedBusy(true)
-    try {
-      const { updated, places: matched } = await collectionsApi.setStatusFromTrip(trip.id, ids, 'visited')
-      if (updated === 0) toast.info(t('collections.markVisitedNone'))
-      else toast.success(t('collections.markedVisitedTrip', { count: matched ?? 0 }))
-      exitSelectMode()
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setMarkVisitedBusy(false)
-    }
-  }
 
   // Compare the ids, not just the counts: a place removed remotely while another
   // one is selected keeps the sizes equal without the sets matching.
@@ -238,23 +213,6 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
           )}
         </div>
 
-        {/* Stays Dawarich recorded on these dates (#2279). Same component as the
-            desktop rail — the rows are the same rows, and the panel renders
-            nothing when there is nothing pending. */}
-        <div className="mt-3">
-          <DawarichSuggestionsPanel
-            tripId={planner.tripId}
-            trips={[{ id: planner.tripId, label: t('dawarich.accept.thisTrip') }]}
-            daysForTrip={() => days.map(day => ({
-              id: day.id,
-              ...formatDayOption(day.day_number, day.date, locale, t),
-            }))}
-            // The place it just created belongs on the map and in the list
-            // now, not after a reload.
-            onAccepted={() => { void refreshTripAfterAccept(planner.tripId) }}
-            initiallyCollapsed
-          />
-        </div>
 
         {/* ── Selection toolbar ── */}
         {selectMode && (
@@ -269,20 +227,6 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               <BulkBtn label={t('places.changeCategory')} disabled={selectedIds.size === 0} onClick={() => setCategoryPickerOpen(true)}>
                 <Tag size={14} strokeWidth={2} />
               </BulkBtn>
-              {collectionsEnabled && (
-                <BulkBtn label={t('inspector.saveToCollection')} disabled={selectedIds.size === 0} onClick={() => setSaveToListOpen(true)}>
-                  <Bookmark size={14} strokeWidth={2} />
-                </BulkBtn>
-              )}
-              {collectionsEnabled && (
-                <BulkBtn
-                  label={t('collections.markVisitedSelection')}
-                  disabled={selectedIds.size === 0 || markVisitedBusy}
-                  onClick={markSelectionVisited}
-                >
-                  {markVisitedBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} strokeWidth={2} />}
-                </BulkBtn>
-              )}
               <BulkBtn label={t('places.deleteSelected')} disabled={selectedIds.size === 0} onClick={() => setConfirmDeleteOpen(true)}>
                 <Trash2 size={14} strokeWidth={2} />
               </BulkBtn>
@@ -405,15 +349,6 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
           exitSelectMode()
         }}
       />
-      {collectionsEnabled && (
-        <MPlacesSaveToCollectionSheet
-          open={saveToListOpen}
-          tripId={planner.tripId}
-          placeIds={[...selectedIds]}
-          onClose={() => setSaveToListOpen(false)}
-          onDone={exitSelectMode}
-        />
-      )}
       <MConfirmSheet
         open={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}

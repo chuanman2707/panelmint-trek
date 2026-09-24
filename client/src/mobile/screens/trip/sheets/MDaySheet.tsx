@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CalendarDays, Car, Compass, Footprints, Hotel, MapPin, Pencil, Plus, RotateCcw,
-  Route as RouteIcon, TramFront, Zap,
+  Route as RouteIcon, Zap,
 } from 'lucide-react'
 import type { WeatherResult } from '@trek/shared'
 import MSheet from '../../../components/MSheet'
@@ -9,7 +9,6 @@ import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
 import { weatherApi } from '../../../../api/client'
 import { useSettingsStore } from '../../../../store/settingsStore'
-import { usePluginStore } from '../../../../store/pluginStore'
 import { useDayNotes } from '../../../../hooks/useDayNotes'
 import { RES_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
@@ -30,7 +29,7 @@ interface DaySheetPayload {
  * Day-detail sheet ('day', glass card): 16-day weather (Open-Meteo via the
  * weather service, climate fallback), the day's bookings and notes, the
  * accommodation block and the day actions (rename, route on/off + profile,
- * optimize, transit search, Google-Maps export).
+ * optimize, Google-Maps export).
  */
 export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
   const { t, locale } = useTranslation()
@@ -42,21 +41,13 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
   const dayIndex = day ? planner.days.indexOf(day) : -1
   const canEditDays = planner.can('day_edit', planner.trip)
   const canEditReservations = planner.can('reservation_edit', planner.trip)
-  const tripHasDates = Boolean(planner.trip?.start_date && planner.trip?.end_date)
 
-  // Route-profile pills: the built-ins plus every profile an active routeProvider
-  // plugin declared (same key format as the desktop picker, 'plugin:<id>/<profile>').
-  const activePlugins = usePluginStore(s => s.plugins)
-  const routeProfileOptions = useMemo(() => {
-    const opts: Array<{ key: string; label: string }> = [
-      { key: 'driving', label: t('mobileTrip.profileDriving') },
-      { key: 'walking', label: t('mobileTrip.profileWalking') },
-    ]
-    for (const p of activePlugins) {
-      for (const prof of p.routeProfiles ?? []) opts.push({ key: `plugin:${p.id}/${prof.id}`, label: prof.label })
-    }
-    return opts
-  }, [activePlugins, t])
+  // Route-profile pills: the built-ins (plugin route providers are gone with
+  // the hosted build).
+  const routeProfileOptions = useMemo(() => [
+    { key: 'driving', label: t('mobileTrip.profileDriving') },
+    { key: 'walking', label: t('mobileTrip.profileWalking') },
+  ], [t])
 
   const isFahrenheit = useSettingsStore(s => s.settings.temperature_unit) === 'fahrenheit'
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
@@ -154,16 +145,6 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     } else {
       return
     }
-    shell.closeSheet()
-  }
-
-  const planTransit = () => {
-    if (!day) return
-    planner.setTransportModalDayId(day.id)
-    planner.setEditingTransport(null)
-    planner.setTransitPrefill(null)
-    planner.setTransportModalAutomated(true)
-    planner.setShowTransportModal(true)
     shell.closeSheet()
   }
 
@@ -326,7 +307,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
               )
             )}
 
-            {/* ── Day actions: route / Google Maps / optimize / profile / transit ── */}
+            {/* ── Day actions: route / Google Maps / optimize / profile ── */}
             {(routable || canEditDays) && (
               <div className="mt-[14px] flex flex-wrap items-center gap-[7px]">
                 {routable && (
@@ -391,16 +372,6 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                   >
                     <RotateCcw size={13} strokeWidth={2} />
                     {t('dayplan.optimize')}
-                  </button>
-                )}
-                {canEditDays && tripHasDates && (
-                  <button
-                    type="button"
-                    onClick={planTransit}
-                    className={`flex items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold text-m-ink ${INNER_CLS}`}
-                  >
-                    <TramFront size={13} strokeWidth={2} />
-                    {t('transit.title')}
                   </button>
                 )}
               </div>

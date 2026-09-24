@@ -1,9 +1,9 @@
-import { Check, CheckCircle2, Loader2, Tag, Trash2, Bookmark } from 'lucide-react'
+import { Check, Tag, Trash2 } from 'lucide-react'
 import Tooltip from '../shared/Tooltip'
 import type { SidebarState } from './usePlacesSidebar'
 
 export function PlacesSelectionBar(S: SidebarState) {
-  const { t, selectedIds, filtered, setSelectedIds, isMobile, setPendingDeleteIds, onBulkDeletePlaces, setCategoryPickerOpen, collectionsEnabled, setSaveToListOpen, markSelectionVisited, markVisitedBusy } = S
+  const { t, selectedIds, filtered, setSelectedIds, isMobile, setPendingDeleteIds, onBulkDeletePlaces, setCategoryPickerOpen } = S
   return (
     <div style={{
       margin: '6px 16px', padding: '5px 8px 5px 10px', borderRadius: 8,
@@ -49,44 +49,6 @@ export function PlacesSelectionBar(S: SidebarState) {
         <Tag size={13} strokeWidth={2} />
       </button>
       </Tooltip>
-      {collectionsEnabled && (
-        <Tooltip label={t('inspector.saveToCollection')} placement="bottom">
-        <button type="button"
-          onClick={() => { if (selectedIds.size === 0) return; setSaveToListOpen(true) }}
-          disabled={selectedIds.size === 0}
-          aria-label={t('inspector.saveToCollection')}
-          className={selectedIds.size > 0 ? 'bg-transparent text-content-muted' : 'bg-transparent text-content-faint'}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 24, height: 24, borderRadius: 6, border: 'none',
-            cursor: selectedIds.size > 0 ? 'pointer' : 'default', padding: 0,
-          }}
-          onMouseEnter={e => { if (selectedIds.size > 0) e.currentTarget.style.background = 'var(--bg-hover)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-        >
-          <Bookmark size={13} strokeWidth={2} />
-        </button>
-        </Tooltip>
-      )}
-      {collectionsEnabled && (
-        <Tooltip label={t('collections.markVisitedSelection')} placement="bottom">
-        <button type="button"
-          onClick={() => { if (selectedIds.size === 0) return; void markSelectionVisited() }}
-          disabled={selectedIds.size === 0 || markVisitedBusy}
-          aria-label={t('collections.markVisitedSelection')}
-          className={selectedIds.size > 0 ? 'bg-transparent text-content-muted' : 'bg-transparent text-content-faint'}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 24, height: 24, borderRadius: 6, border: 'none',
-            cursor: selectedIds.size > 0 ? 'pointer' : 'default', padding: 0,
-          }}
-          onMouseEnter={e => { if (selectedIds.size > 0) e.currentTarget.style.background = 'var(--bg-hover)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-        >
-          {markVisitedBusy ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} strokeWidth={2} />}
-        </button>
-        </Tooltip>
-      )}
       <Tooltip label={t('places.deleteSelected')} placement="bottom">
       <button type="button"
         onClick={() => {

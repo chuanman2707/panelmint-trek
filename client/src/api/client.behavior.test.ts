@@ -5,15 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import { weatherResultSchema } from '@trek/shared'
 
-// client.ts probes the health endpoint to tell an edge-proxy auth wall apart
-// from a plain offline boot — the probe result decides whether it tears down
-// the service worker, so the tests drive it directly.
-const { probeNow } = vi.hoisted(() => ({
-  probeNow: vi.fn(async (): Promise<'online' | 'offline' | 'proxy-wall'> => 'offline'),
-}))
-vi.mock('../sync/connectivity', () => ({ probeNow }))
-
-const { apiClient, adminApi, mapsApi, pluginsApi, parseInDev } = await import('./client')
+const { apiClient, mapsApi, parseInDev } = await import('./client')
 
 interface FakeLocation {
   href: string
@@ -52,10 +44,6 @@ function okAdapter(sink: InternalAxiosRequestConfig[]): AxiosAdapter {
   }
 }
 
-/** Rejects the way a CORS/offline failure does: an error with no `response`. */
-const networkErrorAdapter: AxiosAdapter = (config) =>
-  Promise.reject(new AxiosError('Network Error', AxiosError.ERR_NETWORK, config))
-
 async function captureError(run: () => Promise<unknown>): Promise<AxiosError> {
   const err = await run().then(() => null, (e: unknown) => e as AxiosError)
   expect(err, 'expected the request to reject').not.toBeNull()
@@ -63,7 +51,6 @@ async function captureError(run: () => Promise<unknown>): Promise<AxiosError> {
 }
 
 beforeEach(() => {
-  probeNow.mockResolvedValue('offline')
   setLocation('/dashboard')
 })
 
@@ -221,152 +208,6 @@ describe('client > rate-limit translation', () => {
   })
 })
 
-describe('client > proxy auth challenges', () => {
-  function installServiceWorker(unregister: () => Promise<boolean>) {
-    const getRegistration = vi.fn(async () => ({ unregister }))
-    Object.defineProperty(navigator, 'serviceWorker', {
-      writable: true, configurable: true, value: { getRegistration },
-    })
-    return getRegistration
-  }
-
-  it('FE-APIWIRE-011: an HTML 401 behind a confirmed proxy wall unregisters the service worker and reloads', async () => {
-    probeNow.mockResolvedValue('proxy-wall')
-    const unregister = vi.fn(async () => true)
-    installServiceWorker(unregister)
-    server.use(http.get('/api/auth/me', () =>
-      new HttpResponse('<html>login</html>', { status: 401, headers: { 'Content-Type': 'text/html' } })))
-
-    await captureError(() => apiClient.get('/auth/me'))
-
-    expect(unregister).toHaveBeenCalled()
-    expect(reload).toHaveBeenCalledTimes(1)
-    expect(sessionStorage.getItem('proxy_reauth_attempted')).toBe('1')
-  })
-
-  it('FE-APIWIRE-016: an HTML 401 from TREK itself keeps the service worker (#2228)', async () => {
-    // text/html is not proof of a proxy: several of TREK's own routes answer
-    // res.status(401).send('Authentication required'), which Express labels
-    // text/html. Tearing the worker down for one of those costs the user
-    // offline mode for a wall that is not there, so confirm reachability first.
-    probeNow.mockResolvedValue('online')
-    const unregister = vi.fn(async () => true)
-    installServiceWorker(unregister)
-    server.use(http.get('/api/auth/me', () =>
-      new HttpResponse('Authentication required', { status: 401, headers: { 'Content-Type': 'text/html' } })))
-
-    await captureError(() => apiClient.get('/auth/me'))
-
-    expect(probeNow).toHaveBeenCalled()
-    expect(unregister).not.toHaveBeenCalled()
-    expect(reload).not.toHaveBeenCalled()
-    expect(sessionStorage.getItem('proxy_reauth_attempted')).toBeNull()
-  })
-
-  it('FE-APIWIRE-012: the reauth reload only fires once per session', async () => {
-    installServiceWorker(vi.fn(async () => true))
-    sessionStorage.setItem('proxy_reauth_attempted', '1')
-    server.use(http.get('/api/auth/me', () =>
-      new HttpResponse('<html>login</html>', { status: 401, headers: { 'Content-Type': 'text/html' } })))
-
-    await captureError(() => apiClient.get('/auth/me'))
-
-    expect(reload).not.toHaveBeenCalled()
-  })
-
-  it('FE-APIWIRE-013: an HTML 401 on a public path never reloads', async () => {
-    setLocation('/login')
-    server.use(http.get('/api/auth/me', () =>
-      new HttpResponse('<html>login</html>', { status: 401, headers: { 'Content-Type': 'text/html' } })))
-
-    await captureError(() => apiClient.get('/auth/me'))
-
-    expect(reload).not.toHaveBeenCalled()
-    expect(sessionStorage.getItem('proxy_reauth_attempted')).toBeNull()
-  })
-
-  it('FE-APIWIRE-014: a response-less failure that probes proxy-wall reloads', async () => {
-    probeNow.mockResolvedValue('proxy-wall')
-    installServiceWorker(vi.fn(async () => true))
-
-    await captureError(() => apiClient.get('/auth/me', { adapter: networkErrorAdapter }))
-
-    expect(probeNow).toHaveBeenCalled()
-    expect(reload).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-APIWIRE-015: a response-less failure that probes offline keeps the SW (#1346)', async () => {
-    probeNow.mockResolvedValue('offline')
-    const getRegistration = installServiceWorker(vi.fn(async () => true))
-
-    await captureError(() => apiClient.get('/auth/me', { adapter: networkErrorAdapter }))
-
-    expect(getRegistration).not.toHaveBeenCalled()
-    expect(reload).not.toHaveBeenCalled()
-    expect(sessionStorage.getItem('proxy_reauth_attempted')).toBeNull()
-  })
-
-  it('FE-APIWIRE-016: a failing unregister still reloads into the proxy challenge', async () => {
-    probeNow.mockResolvedValue('proxy-wall')
-    Object.defineProperty(navigator, 'serviceWorker', {
-      writable: true, configurable: true,
-      value: { getRegistration: vi.fn(async () => { throw new Error('SW gone') }) },
-    })
-
-    await captureError(() => apiClient.get('/auth/me', { adapter: networkErrorAdapter }))
-
-    expect(reload).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-APIWIRE-017: a proxy-wall probe on a shared page does not reload', async () => {
-    setLocation('/shared/tok123')
-    probeNow.mockResolvedValue('proxy-wall')
-
-    await captureError(() => apiClient.get('/auth/me', { adapter: networkErrorAdapter }))
-
-    expect(reload).not.toHaveBeenCalled()
-  })
-
-  it('FE-APIWIRE-035: a 401 without a content-type is not mistaken for a proxy login page', async () => {
-    installServiceWorker(vi.fn(async () => true))
-    server.use(http.get('/api/auth/me', () => new HttpResponse(null, { status: 401 })))
-
-    await captureError(() => apiClient.get('/auth/me'))
-
-    expect(reload).not.toHaveBeenCalled()
-    expect(sessionStorage.getItem('proxy_reauth_attempted')).toBeNull()
-  })
-
-  it('FE-APIWIRE-018: a successful response clears the reauth marker', async () => {
-    sessionStorage.setItem('proxy_reauth_attempted', '1')
-    server.use(http.get('/api/auth/me', () => HttpResponse.json({ ok: true })))
-
-    await apiClient.get('/auth/me')
-
-    expect(sessionStorage.getItem('proxy_reauth_attempted')).toBeNull()
-  })
-})
-
-describe('client > redirect handling', () => {
-  it('FE-APIWIRE-019: a JSON AUTH_REQUIRED 401 redirects with the full current path', async () => {
-    const loc = setLocation('/trips/7', '?tab=map', '#day-2')
-    server.use(http.get('/api/auth/me', () => HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 })))
-
-    await captureError(() => apiClient.get('/auth/me'))
-
-    expect(loc.href).toBe('/login?redirect=' + encodeURIComponent('/trips/7?tab=map#day-2'))
-  })
-
-  it('FE-APIWIRE-020: an MFA_REQUIRED 403 sends the user to the settings page', async () => {
-    const loc = setLocation('/dashboard')
-    server.use(http.get('/api/auth/me', () => HttpResponse.json({ code: 'MFA_REQUIRED' }, { status: 403 })))
-
-    await captureError(() => apiClient.get('/auth/me'))
-
-    expect(loc.href).toBe('/settings?mfa=required')
-  })
-})
-
 describe('client > dev-only contract drift checks', () => {
   it('FE-APIWIRE-021: parseInDev passes a matching payload straight through', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -387,33 +228,6 @@ describe('client > dev-only contract drift checks', () => {
     )
   })
 
-  it('FE-APIWIRE-037: search-provider hits are appended to the core results and name their index', async () => {
-    server.use(
-      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Core hit' }], source: 'openstreetmap' })),
-      http.get('/api/plugin-search', () =>
-        HttpResponse.json({ places: [{ name: 'Plugin hit', source: 'plugin:demo' }] })),
-    )
-
-    // Appended, not interleaved: the core list keeps the order it earned.
-    await expect(mapsApi.search('Rome')).resolves.toEqual({
-      places: [{ name: 'Core hit' }, { name: 'Plugin hit', source: 'plugin:demo' }],
-      source: 'openstreetmap+plugin:demo',
-    })
-  })
-
-  it('FE-APIWIRE-038: a failing search provider leaves the search exactly as it was', async () => {
-    server.use(
-      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Core hit' }], source: 'openstreetmap' })),
-      http.get('/api/plugin-search', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
-    )
-
-    // The optional index being unwell must never cost the search that worked.
-    await expect(mapsApi.search('Rome')).resolves.toEqual({
-      places: [{ name: 'Core hit' }],
-      source: 'openstreetmap',
-    })
-  })
-
   it('FE-APIWIRE-023: a drifting maps response is reported under its own label', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     server.use(http.post('/api/maps/search', () => HttpResponse.json({ nonsense: true })))
@@ -423,136 +237,5 @@ describe('client > dev-only contract drift checks', () => {
       '[api] maps.search: response did not match the @trek/shared schema',
       expect.anything(),
     )
-  })
-})
-
-describe('client > pluginsApi.invoke namespace guard', () => {
-  it('FE-APIWIRE-024: a relative sub-path stays inside the plugin namespace', async () => {
-    let seen = ''
-    server.use(http.get('/api/plugins/koffi/ping', ({ request }) => {
-      seen = new URL(request.url).pathname
-      return HttpResponse.json({ pong: true })
-    }))
-
-    await expect(pluginsApi.invoke('koffi', '/ping')).resolves.toEqual({ pong: true })
-    expect(seen).toBe('/api/plugins/koffi/ping')
-  })
-
-  it('FE-APIWIRE-025: method, body and query string survive the rewrite', async () => {
-    let received: unknown
-    let query = ''
-    server.use(http.post('/api/plugins/koffi/sync', async ({ request }) => {
-      received = await request.json()
-      query = new URL(request.url).search
-      return HttpResponse.json({ ok: true })
-    }))
-
-    await pluginsApi.invoke('koffi', 'sync?full=1', { method: 'POST', body: { since: 5 } })
-
-    expect(received).toEqual({ since: 5 })
-    expect(query).toBe('?full=1')
-  })
-
-  it('FE-APIWIRE-026: traversal out of the plugin prefix is refused', async () => {
-    await expect(pluginsApi.invoke('koffi', '/../../auth/me'))
-      .rejects.toThrow('plugin route escapes its namespace')
-  })
-
-  it('FE-APIWIRE-027: an absolute off-origin target is refused', async () => {
-    await expect(pluginsApi.invoke('koffi', 'https://evil.test/steal'))
-      .rejects.toThrow('plugin route escapes its namespace')
-  })
-
-  it('FE-APIWIRE-028: an unparseable sub-path is refused before any request', async () => {
-    await expect(pluginsApi.invoke('koffi', 'http://')).rejects.toThrow('invalid plugin route')
-  })
-})
-
-describe('client > adminApi.llmLocalPull', () => {
-  function streamingResponse(chunks: string[]): Response {
-    let i = 0
-    const encoder = new TextEncoder()
-    return {
-      ok: true,
-      status: 200,
-      body: {
-        getReader: () => ({
-          read: async () => (i < chunks.length
-            ? { done: false, value: encoder.encode(chunks[i++]) }
-            : { done: true, value: undefined }),
-          cancel: async () => {},
-        }),
-      },
-    } as unknown as Response
-  }
-
-  it('FE-APIWIRE-029: NDJSON progress lines are reported even when split across chunks', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(streamingResponse([
-      '{"status":"pulling","total":100,"completed":10}\n{"status":"pul',
-      'ling","total":100,"completed":90}\n{"status":"success"}\n',
-    ]))
-    const onProgress = vi.fn((_p: { status?: string }) => {})
-
-    await adminApi.llmLocalPull('http://ollama:11434', 'qwen3:8b', onProgress)
-
-    expect(onProgress.mock.calls.map(c => c[0])).toEqual([
-      { status: 'pulling', total: 100, completed: 10 },
-      { status: 'pulling', total: 100, completed: 90 },
-      { status: 'success' },
-    ])
-  })
-
-  it('FE-APIWIRE-030: blank and half-written lines are skipped instead of throwing', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(streamingResponse([
-      '\n   \n{"status":"a"}\nnot-json\n{"status":"b"}\n',
-    ]))
-    const onProgress = vi.fn((_p: { status?: string }) => {})
-
-    await adminApi.llmLocalPull('http://ollama:11434', 'qwen3:8b', onProgress)
-
-    expect(onProgress.mock.calls.map(c => c[0])).toEqual([{ status: 'a' }, { status: 'b' }])
-  })
-
-  it('FE-APIWIRE-031: a JSON error body becomes the thrown message', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: false, status: 502, body: null,
-      json: async () => ({ error: 'ollama unreachable' }),
-    } as unknown as Response)
-
-    await expect(adminApi.llmLocalPull('http://ollama:11434', 'x', vi.fn()))
-      .rejects.toThrow('ollama unreachable')
-  })
-
-  it('FE-APIWIRE-032: a non-JSON error body falls back to the status code', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: false, status: 500, body: null,
-      json: async () => { throw new SyntaxError('not json') },
-    } as unknown as Response)
-
-    await expect(adminApi.llmLocalPull('http://ollama:11434', 'x', vi.fn()))
-      .rejects.toThrow('Pull failed (500)')
-  })
-
-  it('FE-APIWIRE-036: a throw from onProgress aborts the pull', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(streamingResponse([
-      '{"status":"pulling manifest"}\n{"error":"manifest not found"}\n{"status":"success"}\n',
-    ]))
-    const onProgress = vi.fn((p: { error?: string }) => {
-      if (p.error) throw new Error(p.error)
-    })
-
-    await expect(adminApi.llmLocalPull('http://ollama:11434', 'x', onProgress))
-      .rejects.toThrow('manifest not found')
-    expect(onProgress).toHaveBeenCalledTimes(2)
-  })
-
-  it('FE-APIWIRE-033: a 200 without a readable body reports the missing stream', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: true, status: 200, body: null,
-      json: async () => ({}),
-    } as unknown as Response)
-
-    await expect(adminApi.llmLocalPull('http://ollama:11434', 'x', vi.fn()))
-      .rejects.toThrow('Pull returned no progress stream')
   })
 })

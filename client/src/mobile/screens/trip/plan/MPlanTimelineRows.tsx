@@ -12,8 +12,6 @@ import { splitNoteTime } from '../lib/dayNotes'
 import type { DragRowProps } from './useMPlanDragReorder'
 import type { TransitLegDisplay } from '../../../../components/Planner/transitDisplay'
 import type { Assignment, DayNote, Place, Reservation, RouteSegment, TranslationFn } from '../../../../types'
-import { formatScheduleMinutes } from '../../../../components/Plugins/PluginDaySchedule'
-import type { PluginDayScheduleItem } from '../../../../api/client'
 
 /**
  * The five row types of the mobile day timeline (place / manual transport /
@@ -471,30 +469,6 @@ export function ConnRow({ seg, onTap }: { seg: RouteSegment; onTap?: (e: MouseEv
   return onTap
     ? <button type="button" onClick={onTap} className={cls}>{inner}</button>
     : <div className={cls}>{inner}</div>
-}
-
-// ── b4a) Plugin schedule contribution ("35 min charging at this stop") ───────
-// Host-vetted data from the dayScheduleProvider hook; styled like a connector so
-// it reads as schedule information, not as an itinerary item.
-
-const SCHEDULE_TONE_COLORS: Record<string, string> = {
-  default: '#4F46E5', success: '#10b981', warn: '#f59e0b', danger: '#ef4444',
-}
-
-export function PlanScheduleRow({ item }: { item: PluginDayScheduleItem }) {
-  const color = SCHEDULE_TONE_COLORS[item.tone] ?? SCHEDULE_TONE_COLORS.default
-  const minutes = item.minutes != null ? formatScheduleMinutes(item.minutes) : null
-  return (
-    <div className="mt-[5px] flex items-center gap-2 py-px">
-      <span className="h-px w-4 shrink-0 bg-[color:var(--m-rowbr)]" />
-      <span className="inline-flex min-w-0 items-center gap-[3px] font-geist text-[0.59375rem] font-semibold text-m-faint">
-        <Zap size={10} strokeWidth={2} style={{ color }} className="shrink-0" />
-        {minutes && <span className="shrink-0">{minutes} ·</span>}
-        <span className="truncate">{item.label}</span>
-      </span>
-      <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
-    </div>
-  )
 }
 
 // ── b4b) Accommodation bookend leg (hotel → first stop / last stop → hotel) ──

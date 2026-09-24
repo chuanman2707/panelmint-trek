@@ -5,9 +5,6 @@ import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/rende
 import { ReceiptPreviewModal } from './ReceiptPreviewModal'
 import type { BudgetItemReceipt } from '../../types'
 
-const authUrl = vi.hoisted(() => ({ get: vi.fn() }))
-vi.mock('../../api/authUrl', () => ({ getAuthUrl: (...a: unknown[]) => authUrl.get(...a) }))
-
 function receipt(over: Partial<BudgetItemReceipt> = {}): BudgetItemReceipt {
   return {
     id: 1,
@@ -20,14 +17,11 @@ function receipt(over: Partial<BudgetItemReceipt> = {}): BudgetItemReceipt {
   } as BudgetItemReceipt
 }
 
-beforeEach(() => {
-  authUrl.get.mockReset().mockResolvedValue('/signed/stored.jpg')
-})
-
 describe('ReceiptPreviewModal', () => {
   it('FE-BUDGET-PREVIEW-001: renders an image receipt once the signed url is in', async () => {
     render(<ReceiptPreviewModal receipts={[receipt()]} onClose={vi.fn()} />)
-    await waitFor(() => expect(screen.getByRole('img')).toHaveAttribute('src', '/signed/stored.jpg'))
+    // Local files carry their blob/data url — no signed-url exchange anymore.
+    await waitFor(() => expect(screen.getByRole('img')).toHaveAttribute('src', '/uploads/files/stored.jpg'))
   })
 
   it('FE-BUDGET-PREVIEW-002: renders a PDF in a frame rather than an image', async () => {
@@ -39,17 +33,9 @@ describe('ReceiptPreviewModal', () => {
 
   it('FE-BUDGET-PREVIEW-003: a type it cannot show falls back instead of rendering an empty frame', async () => {
     render(<ReceiptPreviewModal receipts={[receipt({ mime_type: 'application/zip', original_name: 'receipts.zip' })]} onClose={vi.fn()} />)
-    await waitFor(() => expect(authUrl.get).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getAllByText('receipts.zip').length).toBeGreaterThan(0))
     expect(document.body.querySelector('object')).toBeNull()
     expect(screen.queryByRole('img')).toBeNull()
-    expect(screen.getAllByText('receipts.zip').length).toBeGreaterThan(0)
-  })
-
-  it('FE-BUDGET-PREVIEW-004: a rejected signed url leaves the viewer up rather than blank-screening', async () => {
-    authUrl.get.mockRejectedValue(new Error('403'))
-    render(<ReceiptPreviewModal receipts={[receipt()]} onClose={vi.fn()} />)
-    await waitFor(() => expect(authUrl.get).toHaveBeenCalled())
-    expect(screen.getAllByText('lunch.jpg').length).toBeGreaterThan(0)
   })
 
   it('FE-BUDGET-PREVIEW-005: arrows walk the list and stop at both ends', async () => {
@@ -79,7 +65,7 @@ describe('ReceiptPreviewModal', () => {
     document.addEventListener('keydown', parent)
     try {
       render(<ReceiptPreviewModal receipts={[receipt()]} onClose={onClose} />)
-      await waitFor(() => expect(authUrl.get).toHaveBeenCalled())
+      await waitFor(() => expect(screen.getByRole('img')).toBeInTheDocument())
 
       fireEvent.keyDown(window, { key: 'Escape' })
       expect(onClose).toHaveBeenCalledTimes(1)

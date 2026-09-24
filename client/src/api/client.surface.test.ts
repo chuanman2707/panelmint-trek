@@ -14,12 +14,10 @@ import type { LocalTripMember } from '../db/panelmintDb'
 vi.mock('../hooks/useExchangeRates', () => ({ fetchExchangeRates: vi.fn().mockResolvedValue(null) }))
 import {
   apiClient,
-  authApi, oauthApi, tripsApi, daysApi, placesApi, assignmentsApi, packingApi, todoApi,
-  tagsApi, categoriesApi, adminApi, addonsApi, pluginsApi, airtrailApi, journeyApi,
-  mapsApi, airportsApi, budgetApi, filesApi, reservationsApi, healthApi, weatherApi,
-  configApi, helpApi, settingsApi, accommodationsApi, dayNotesApi, collabApi, backupApi,
-  shareApi, transitApi, tripInviteApi, notificationsApi, inAppNotificationsApi, memoriesApi,
-  docsyncApi, DOCSYNC_RUN_TIMEOUT_MS, DOCSYNC_UPSTREAM_TIMEOUT_MS,
+  tripsApi, daysApi, placesApi, assignmentsApi, packingApi, todoApi,
+  tagsApi, categoriesApi,
+  mapsApi, airportsApi, budgetApi, filesApi, reservationsApi, weatherApi,
+  settingsApi, accommodationsApi, dayNotesApi,
 } from './client'
 
 interface Recorded { method: string; url: string; body: unknown }
@@ -108,61 +106,6 @@ async function traceOne(run: () => Promise<unknown>): Promise<Recorded> {
 }
 
 describe('client > endpoint wiring', () => {
-  it('FE-APISURF-001: authApi maps every method to its auth endpoint', async () => {
-    await assertCalls([
-      { n: 'register', r: () => authApi.register({ email: 'a@b.c', password: 'pw' }), e: 'POST /api/auth/register' },
-      { n: 'validateInvite', r: () => authApi.validateInvite('inv-tok'), e: 'GET /api/auth/invite/inv-tok' },
-      { n: 'login', r: () => authApi.login({ email: 'a@b.c', password: 'pw' }), e: 'POST /api/auth/login' },
-      { n: 'verifyMfaLogin', r: () => authApi.verifyMfaLogin({ mfa_token: 'm', code: '123456' }), e: 'POST /api/auth/mfa/verify-login' },
-      { n: 'mfaSetup', r: () => authApi.mfaSetup(), e: 'POST /api/auth/mfa/setup' },
-      { n: 'mfaEnable', r: () => authApi.mfaEnable({ code: '123456' }), e: 'POST /api/auth/mfa/enable' },
-      { n: 'mfaDisable', r: () => authApi.mfaDisable({ password: 'pw', code: '123456' }), e: 'POST /api/auth/mfa/disable' },
-      { n: 'me', r: () => authApi.me(), e: 'GET /api/auth/me' },
-      { n: 'updateMapsKey', r: () => authApi.updateMapsKey('gkey'), e: 'PUT /api/auth/me/maps-key' },
-      { n: 'updateApiKeys', r: () => authApi.updateApiKeys({ google_maps: null }), e: 'PUT /api/auth/me/api-keys' },
-      { n: 'updateSettings', r: () => authApi.updateSettings({ theme: 'dark' }), e: 'PUT /api/auth/me/settings' },
-      { n: 'getSettings', r: () => authApi.getSettings(), e: 'GET /api/auth/me/settings' },
-      { n: 'listUsers', r: () => authApi.listUsers(), e: 'GET /api/auth/users' },
-      { n: 'deleteAvatar', r: () => authApi.deleteAvatar(), e: 'DELETE /api/auth/avatar' },
-      { n: 'getAppConfig', r: () => authApi.getAppConfig(), e: 'GET /api/auth/app-config' },
-      { n: 'updateAppSettings', r: () => authApi.updateAppSettings({ registration_enabled: true }), e: 'PUT /api/auth/app-settings' },
-      { n: 'validateKeys', r: () => authApi.validateKeys(), e: 'GET /api/auth/validate-keys' },
-      { n: 'travelStats', r: () => authApi.travelStats(), e: 'GET /api/auth/travel-stats' },
-      { n: 'changePassword', r: () => authApi.changePassword({ current_password: 'a', new_password: 'b' }), e: 'PUT /api/auth/me/password' },
-      { n: 'forgotPassword', r: () => authApi.forgotPassword({ email: 'a@b.c' }), e: 'POST /api/auth/forgot-password' },
-      { n: 'resetPassword', r: () => authApi.resetPassword({ token: 't', new_password: 'b' }), e: 'POST /api/auth/reset-password' },
-      { n: 'deleteOwnAccount', r: () => authApi.deleteOwnAccount(), e: 'DELETE /api/auth/me' },
-      { n: 'demoLogin', r: () => authApi.demoLogin(), e: 'POST /api/auth/demo-login' },
-      { n: 'mcpTokens.list', r: () => authApi.mcpTokens.list(), e: 'GET /api/auth/mcp-tokens' },
-      { n: 'mcpTokens.create', r: () => authApi.mcpTokens.create('cli'), e: 'POST /api/auth/mcp-tokens' },
-      { n: 'mcpTokens.delete', r: () => authApi.mcpTokens.delete(7), e: 'DELETE /api/auth/mcp-tokens/7' },
-      { n: 'passkey.registerOptions', r: () => authApi.passkey.registerOptions('pw'), e: 'POST /api/auth/passkey/register/options' },
-      { n: 'passkey.registerVerify', r: () => authApi.passkey.registerVerify({ id: 'cred' }, 'Yubikey'), e: 'POST /api/auth/passkey/register/verify' },
-      { n: 'passkey.loginOptions', r: () => authApi.passkey.loginOptions(), e: 'POST /api/auth/passkey/login/options' },
-      { n: 'passkey.loginVerify', r: () => authApi.passkey.loginVerify({ id: 'cred' }), e: 'POST /api/auth/passkey/login/verify' },
-      { n: 'passkey.list', r: () => authApi.passkey.list(), e: 'GET /api/auth/passkey/credentials' },
-      { n: 'passkey.rename', r: () => authApi.passkey.rename(3, 'Phone'), e: 'PATCH /api/auth/passkey/credentials/3' },
-      { n: 'passkey.delete', r: () => authApi.passkey.delete(3, 'pw'), e: 'DELETE /api/auth/passkey/credentials/3' },
-    ])
-  })
-
-  it('FE-APISURF-002: oauthApi maps consent + client/session management endpoints', async () => {
-    const params = {
-      response_type: 'code', client_id: 'cid', redirect_uri: 'https://app/cb',
-      scope: 'trips:read', code_challenge: 'chal', code_challenge_method: 'S256',
-    }
-    await assertCalls([
-      { n: 'validate', r: () => oauthApi.validate(params), e: 'GET /api/oauth/authorize/validate' },
-      { n: 'authorize', r: () => oauthApi.authorize({ ...params, approved: true }), e: 'POST /api/oauth/authorize' },
-      { n: 'clients.list', r: () => oauthApi.clients.list(), e: 'GET /api/oauth/clients' },
-      { n: 'clients.create', r: () => oauthApi.clients.create({ name: 'App', allowed_scopes: ['trips:read'] }), e: 'POST /api/oauth/clients' },
-      { n: 'clients.rotate', r: () => oauthApi.clients.rotate('cid'), e: 'POST /api/oauth/clients/cid/rotate' },
-      { n: 'clients.delete', r: () => oauthApi.clients.delete('cid'), e: 'DELETE /api/oauth/clients/cid' },
-      { n: 'sessions.list', r: () => oauthApi.sessions.list(), e: 'GET /api/oauth/sessions' },
-      { n: 'sessions.revoke', r: () => oauthApi.sessions.revoke(4), e: 'DELETE /api/oauth/sessions/4' },
-    ])
-  })
-
   it('FE-APISURF-003: tripsApi covers the trip, member and guest surface locally', async () => {
     // Every call resolves against the seeded panelmint db and emits no HTTP —
     // the pre-migration version asserted verb+path on /api/trips*.
@@ -308,194 +251,10 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-010: adminApi maps user, addon and settings endpoints', async () => {
-    await assertCalls([
-      { n: 'users', r: () => adminApi.users(), e: 'GET /api/admin/users' },
-      { n: 'createUser', r: () => adminApi.createUser({ email: 'a@b.c' }), e: 'POST /api/admin/users' },
-      { n: 'updateUser', r: () => adminApi.updateUser(2, { role: 'admin' }), e: 'PUT /api/admin/users/2' },
-      { n: 'deleteUser', r: () => adminApi.deleteUser(2), e: 'DELETE /api/admin/users/2' },
-      { n: 'resetUserPasskeys', r: () => adminApi.resetUserPasskeys(2), e: 'DELETE /api/admin/users/2/passkeys' },
-      { n: 'stats', r: () => adminApi.stats(), e: 'GET /api/admin/stats' },
-      { n: 'saveDemoBaseline', r: () => adminApi.saveDemoBaseline(), e: 'POST /api/admin/save-demo-baseline' },
-      { n: 'getOidc', r: () => adminApi.getOidc(), e: 'GET /api/admin/oidc' },
-      { n: 'updateOidc', r: () => adminApi.updateOidc({ enabled: true }), e: 'PUT /api/admin/oidc' },
-      { n: 'addons', r: () => adminApi.addons(), e: 'GET /api/admin/addons' },
-      { n: 'updateAddon', r: () => adminApi.updateAddon(3, { enabled: false }), e: 'PUT /api/admin/addons/3' },
-      { n: 'checkVersion', r: () => adminApi.checkVersion(), e: 'GET /api/admin/version-check' },
-      { n: 'getBagTracking', r: () => adminApi.getBagTracking(), e: 'GET /api/admin/bag-tracking' },
-      { n: 'updateBagTracking', r: () => adminApi.updateBagTracking(true), e: 'PUT /api/admin/bag-tracking' },
-      { n: 'getPlacesPhotos', r: () => adminApi.getPlacesPhotos(), e: 'GET /api/admin/places-photos' },
-      { n: 'updatePlacesPhotos', r: () => adminApi.updatePlacesPhotos(false), e: 'PUT /api/admin/places-photos' },
-      { n: 'getPlacesAutocomplete', r: () => adminApi.getPlacesAutocomplete(), e: 'GET /api/admin/places-autocomplete' },
-      { n: 'updatePlacesAutocomplete', r: () => adminApi.updatePlacesAutocomplete(true), e: 'PUT /api/admin/places-autocomplete' },
-      { n: 'getPlacesDetails', r: () => adminApi.getPlacesDetails(), e: 'GET /api/admin/places-details' },
-      { n: 'updatePlacesDetails', r: () => adminApi.updatePlacesDetails(true), e: 'PUT /api/admin/places-details' },
-      { n: 'getCollabFeatures', r: () => adminApi.getCollabFeatures(), e: 'GET /api/admin/collab-features' },
-      { n: 'updateCollabFeatures', r: () => adminApi.updateCollabFeatures({ polls: true }), e: 'PUT /api/admin/collab-features' },
-      { n: 'getPermissions', r: () => adminApi.getPermissions(), e: 'GET /api/admin/permissions' },
-      { n: 'updatePermissions', r: () => adminApi.updatePermissions({ edit_trip: 'member' }), e: 'PUT /api/admin/permissions' },
-      { n: 'rotateJwtSecret', r: () => adminApi.rotateJwtSecret(), e: 'POST /api/admin/rotate-jwt-secret' },
-      { n: 'sendTestNotification', r: () => adminApi.sendTestNotification({ channel: 'email' }), e: 'POST /api/admin/dev/test-notification' },
-      { n: 'getNotificationPreferences', r: () => adminApi.getNotificationPreferences(), e: 'GET /api/admin/notification-preferences' },
-      { n: 'updateNotificationPreferences', r: () => adminApi.updateNotificationPreferences({ email: { trip_invite: true } }), e: 'PUT /api/admin/notification-preferences' },
-      { n: 'getDefaultUserSettings', r: () => adminApi.getDefaultUserSettings(), e: 'GET /api/admin/default-user-settings' },
-      { n: 'updateDefaultUserSettings', r: () => adminApi.updateDefaultUserSettings({ language: 'de' }), e: 'PUT /api/admin/default-user-settings' },
-      { n: 'getStorage', r: () => adminApi.getStorage(), e: 'GET /api/admin/storage' },
-      { n: 'updateStorage', r: () => adminApi.updateStorage({ backends: [], categories: {}, version: 0 }), e: 'PUT /api/admin/storage' },
-      { n: 'testStorageBackend', r: () => adminApi.testStorageBackend({ name: 'x', type: 'local', options: { root: '/data' } }), e: 'POST /api/admin/storage/test' },
-      { n: 'startStorageBackfill', r: () => adminApi.startStorageBackfill('m'), e: 'POST /api/admin/storage/backends/m/backfill' },
-      { n: 'cancelStorageBackfill', r: () => adminApi.cancelStorageBackfill('m'), e: 'DELETE /api/admin/storage/backends/m/backfill' },
-      { n: 'startStorageMigration', r: () => adminApi.startStorageMigration('files', 'dest'), e: 'POST /api/admin/storage/migrations' },
-      { n: 'cancelStorageMigration', r: () => adminApi.cancelStorageMigration('files'), e: 'DELETE /api/admin/storage/migrations/files' },
-      { n: 'refreshStorageStats', r: () => adminApi.refreshStorageStats(), e: 'POST /api/admin/storage/stats/refresh' },
-      { n: 'mcpTokens', r: () => adminApi.mcpTokens(), e: 'GET /api/admin/mcp-tokens' },
-      { n: 'deleteMcpToken', r: () => adminApi.deleteMcpToken(4), e: 'DELETE /api/admin/mcp-tokens/4' },
-      { n: 'oauthSessions', r: () => adminApi.oauthSessions(), e: 'GET /api/admin/oauth-sessions' },
-      { n: 'revokeOAuthSession', r: () => adminApi.revokeOAuthSession(4), e: 'DELETE /api/admin/oauth-sessions/4' },
-      { n: 'listInvites', r: () => adminApi.listInvites(), e: 'GET /api/admin/invites' },
-      { n: 'listInviteTrips', r: () => adminApi.listInviteTrips(), e: 'GET /api/admin/invites/trips' },
-      { n: 'createInvite', r: () => adminApi.createInvite({ max_uses: 3 }), e: 'POST /api/admin/invites' },
-      { n: 'deleteInvite', r: () => adminApi.deleteInvite(8), e: 'DELETE /api/admin/invites/8' },
-      { n: 'auditLog', r: () => adminApi.auditLog(), e: 'GET /api/admin/audit-log' },
-    ])
-  })
-
-  it('FE-APISURF-011: adminApi maps the plugin management endpoints', async () => {
-    await assertCalls([
-      { n: 'plugins', r: () => adminApi.plugins(), e: 'GET /api/admin/plugins' },
-      { n: 'pluginBrowse', r: () => adminApi.pluginBrowse(), e: 'GET /api/admin/plugins/registry' },
-      { n: 'pluginDetail', r: () => adminApi.pluginDetail('trek/koffi'), e: 'GET /api/admin/plugins/registry/trek%2Fkoffi' },
-      { n: 'pluginInstall', r: () => adminApi.pluginInstall('koffi', { version: '1.0.0' }), e: 'POST /api/admin/plugins/install' },
-      { n: 'pluginActivate', r: () => adminApi.pluginActivate('koffi'), e: 'POST /api/admin/plugins/koffi/activate' },
-      { n: 'pluginDeactivate', r: () => adminApi.pluginDeactivate('koffi'), e: 'POST /api/admin/plugins/koffi/deactivate' },
-      { n: 'pluginUpdate', r: () => adminApi.pluginUpdate('koffi'), e: 'POST /api/admin/plugins/koffi/update' },
-      { n: 'pluginRetrust', r: () => adminApi.pluginRetrust('koffi', '2.0.0', 'PUBKEY'), e: 'POST /api/admin/plugins/koffi/retrust' },
-      { n: 'pluginUninstall', r: () => adminApi.pluginUninstall('koffi', true), e: 'POST /api/admin/plugins/koffi/uninstall' },
-      { n: 'pluginRescan', r: () => adminApi.pluginRescan(), e: 'POST /api/admin/plugins/rescan' },
-      { n: 'pluginLink', r: () => adminApi.pluginLink('/srv/plugin'), e: 'POST /api/admin/plugins/link' },
-      { n: 'pluginReload', r: () => adminApi.pluginReload('koffi'), e: 'POST /api/admin/plugins/koffi/reload' },
-      { n: 'pluginConfig', r: () => adminApi.pluginConfig('koffi'), e: 'GET /api/admin/plugins/koffi/config' },
-      { n: 'pluginSaveConfig', r: () => adminApi.pluginSaveConfig('koffi', { apiUrl: 'x' }), e: 'PUT /api/admin/plugins/koffi/config' },
-      { n: 'runPluginAction', r: () => adminApi.runPluginAction('koffi', 'purge cache'), e: 'POST /api/admin/plugins/koffi/actions/purge%20cache' },
-      { n: 'pluginEgressHosts', r: () => adminApi.pluginEgressHosts('koffi'), e: 'GET /api/admin/plugins/koffi/egress-hosts' },
-      { n: 'pluginSetEgressHosts', r: () => adminApi.pluginSetEgressHosts('koffi', ['a.example']), e: 'PUT /api/admin/plugins/koffi/egress-hosts' },
-      { n: 'pluginErrors', r: () => adminApi.pluginErrors('koffi'), e: 'GET /api/admin/plugins/koffi/errors' },
-      { n: 'pluginAudit', r: () => adminApi.pluginAudit('koffi'), e: 'GET /api/admin/plugins/koffi/audit' },
-      { n: 'llmLocalModels', r: () => adminApi.llmLocalModels('http://ollama:11434'), e: 'GET /api/admin/llm/local/models' },
-    ])
-  })
-
-  it('FE-APISURF-012: adminApi maps the packing-template endpoints', async () => {
-    await assertCalls([
-      { n: 'packingTemplates', r: () => adminApi.packingTemplates(), e: 'GET /api/admin/packing-templates' },
-      { n: 'getPackingTemplate', r: () => adminApi.getPackingTemplate(1), e: 'GET /api/admin/packing-templates/1' },
-      { n: 'createPackingTemplate', r: () => adminApi.createPackingTemplate({ name: 'Ski' }), e: 'POST /api/admin/packing-templates' },
-      { n: 'updatePackingTemplate', r: () => adminApi.updatePackingTemplate(1, { name: 'Ski 2' }), e: 'PUT /api/admin/packing-templates/1' },
-      { n: 'deletePackingTemplate', r: () => adminApi.deletePackingTemplate(1), e: 'DELETE /api/admin/packing-templates/1' },
-      { n: 'addTemplateCategory', r: () => adminApi.addTemplateCategory(1, { name: 'Clothes' }), e: 'POST /api/admin/packing-templates/1/categories' },
-      { n: 'updateTemplateCategory', r: () => adminApi.updateTemplateCategory(1, 2, { name: 'Wear' }), e: 'PUT /api/admin/packing-templates/1/categories/2' },
-      { n: 'deleteTemplateCategory', r: () => adminApi.deleteTemplateCategory(1, 2), e: 'DELETE /api/admin/packing-templates/1/categories/2' },
-      { n: 'addTemplateItem', r: () => adminApi.addTemplateItem(1, 2, { name: 'Gloves' }), e: 'POST /api/admin/packing-templates/1/categories/2/items' },
-      { n: 'updateTemplateItem', r: () => adminApi.updateTemplateItem(1, 3, { name: 'Mittens' }), e: 'PUT /api/admin/packing-templates/1/items/3' },
-      { n: 'deleteTemplateItem', r: () => adminApi.deleteTemplateItem(1, 3), e: 'DELETE /api/admin/packing-templates/1/items/3' },
-    ])
-  })
-
-  it('FE-APISURF-013: pluginsApi maps every host-mediated plugin endpoint', async () => {
-    await assertCalls([
-      { n: 'active', r: () => pluginsApi.active(), e: 'GET /api/plugins' },
-      { n: 'placeDetails', r: () => pluginsApi.placeDetails(5), e: 'GET /api/place-details/5' },
-      { n: 'tripWarnings', r: () => pluginsApi.tripWarnings(1), e: 'GET /api/trip-warnings/1' },
-      { n: 'viewContributions', r: () => pluginsApi.viewContributions('places', 1), e: 'GET /api/view-contributions/places/1' },
-      { n: 'mapMarkers', r: () => pluginsApi.mapMarkers(1), e: 'GET /api/map-markers/1' },
-      { n: 'mapLayers', r: () => pluginsApi.mapLayers(1), e: 'GET /api/map-layers/1' },
-      { n: 'pluginRoute', r: () => pluginsApi.pluginRoute('koffi', 'ev', { tripId: 1, waypoints: [{ lat: 1, lng: 2 }] }), e: 'POST /api/plugin-routes/koffi/ev' },
-      { n: 'daySchedule', r: () => pluginsApi.daySchedule(1), e: 'GET /api/day-schedule/1' },
-      { n: 'pdfSections', r: () => pluginsApi.pdfSections(1), e: 'GET /api/pdf-sections/1' },
-      { n: 'atlasLayers', r: () => pluginsApi.atlasLayers(), e: 'GET /api/atlas-layers' },
-      { n: 'journalEntryRows', r: () => pluginsApi.journalEntryRows(9), e: 'GET /api/journal-entry-rows/9' },
-      { n: 'tripCardContributions', r: () => pluginsApi.tripCardContributions([1, 2]), e: 'GET /api/trip-card-contributions' },
-      { n: 'myActivity', r: () => pluginsApi.myActivity(), e: 'GET /api/plugin-activity' },
-      { n: 'userSettings', r: () => pluginsApi.userSettings('koffi'), e: 'GET /api/plugin-settings/koffi' },
-      { n: 'runAction', r: () => pluginsApi.runAction('koffi', 'test connection'), e: 'POST /api/plugin-settings/koffi/actions/test%20connection' },
-      { n: 'saveUserSettings', r: () => pluginsApi.saveUserSettings('koffi', { key: 'v' }), e: 'POST /api/plugin-settings/koffi' },
-      { n: 'oauthStatus', r: () => pluginsApi.oauthStatus('koffi'), e: 'GET /api/plugin-oauth/koffi/status' },
-      { n: 'oauthConnect', r: () => pluginsApi.oauthConnect('koffi'), e: 'POST /api/plugin-oauth/koffi/connect' },
-      { n: 'oauthDisconnect', r: () => pluginsApi.oauthDisconnect('koffi'), e: 'POST /api/plugin-oauth/koffi/disconnect' },
-    ])
-  })
-
-  it('FE-APISURF-014: airtrailApi maps the integration endpoints', async () => {
-    await assertCalls([
-      { n: 'getSettings', r: () => airtrailApi.getSettings(), e: 'GET /api/integrations/airtrail/settings' },
-      { n: 'saveSettings', r: () => airtrailApi.saveSettings({ url: 'https://at' }), e: 'PUT /api/integrations/airtrail/settings' },
-      { n: 'status', r: () => airtrailApi.status(), e: 'GET /api/integrations/airtrail/status' },
-      { n: 'test', r: () => airtrailApi.test({ url: 'https://at' }), e: 'POST /api/integrations/airtrail/test' },
-      { n: 'sync', r: () => airtrailApi.sync(), e: 'POST /api/integrations/airtrail/sync' },
-      { n: 'flights', r: () => airtrailApi.flights(), e: 'GET /api/integrations/airtrail/flights' },
-      { n: 'import', r: () => airtrailApi.import(1, ['f1']), e: 'POST /api/trips/1/reservations/import/airtrail' },
-    ])
-  })
-
-  it('FE-APISURF-015: journeyApi maps journal, entry and photo endpoints', async () => {
-    await assertCalls([
-      { n: 'list', r: () => journeyApi.list(), e: 'GET /api/journeys' },
-      { n: 'create', r: () => journeyApi.create({ title: 'Asia' }), e: 'POST /api/journeys' },
-      { n: 'get', r: () => journeyApi.get(2), e: 'GET /api/journeys/2' },
-      { n: 'update', r: () => journeyApi.update(2, { title: 'Asia 24' }), e: 'PATCH /api/journeys/2' },
-      { n: 'delete', r: () => journeyApi.delete(2), e: 'DELETE /api/journeys/2' },
-      { n: 'suggestions', r: () => journeyApi.suggestions(), e: 'GET /api/journeys/suggestions' },
-      { n: 'availableTrips', r: () => journeyApi.availableTrips(), e: 'GET /api/journeys/available-trips' },
-      { n: 'addTrip', r: () => journeyApi.addTrip(2, 1), e: 'POST /api/journeys/2/trips' },
-      { n: 'removeTrip', r: () => journeyApi.removeTrip(2, 1), e: 'DELETE /api/journeys/2/trips/1' },
-      { n: 'listEntries', r: () => journeyApi.listEntries(2), e: 'GET /api/journeys/2/entries' },
-      { n: 'createEntry', r: () => journeyApi.createEntry(2, { title: 'Day 1' }), e: 'POST /api/journeys/2/entries' },
-      { n: 'updateEntry', r: () => journeyApi.updateEntry(9, { title: 'Day 2' }), e: 'PATCH /api/journeys/entries/9' },
-      { n: 'deleteEntry', r: () => journeyApi.deleteEntry(9), e: 'DELETE /api/journeys/entries/9' },
-      { n: 'reorderEntries', r: () => journeyApi.reorderEntries(2, [9, 8]), e: 'PUT /api/journeys/2/entries/reorder' },
-      { n: 'addProviderPhotosToGallery', r: () => journeyApi.addProviderPhotosToGallery(2, 'immich', ['a1']), e: 'POST /api/journeys/2/gallery/provider-photos' },
-      { n: 'addProviderPhoto', r: () => journeyApi.addProviderPhoto(9, 'immich', 'a1'), e: 'POST /api/journeys/entries/9/provider-photos' },
-      { n: 'addProviderPhotos', r: () => journeyApi.addProviderPhotos(9, 'immich', ['a1']), e: 'POST /api/journeys/entries/9/provider-photos' },
-      { n: 'linkPhoto', r: () => journeyApi.linkPhoto(9, 11), e: 'POST /api/journeys/entries/9/link-photo' },
-      { n: 'unlinkPhoto', r: () => journeyApi.unlinkPhoto(9, 11), e: 'DELETE /api/journeys/entries/9/photos/11' },
-      { n: 'deleteGalleryPhoto', r: () => journeyApi.deleteGalleryPhoto(2, 11), e: 'DELETE /api/journeys/2/gallery/11' },
-      { n: 'updatePhoto', r: () => journeyApi.updatePhoto(11, { caption: 'x' }), e: 'PATCH /api/journeys/photos/11' },
-      { n: 'deletePhoto', r: () => journeyApi.deletePhoto(11), e: 'DELETE /api/journeys/photos/11' },
-      { n: 'addContributor', r: () => journeyApi.addContributor(2, 4, 'editor'), e: 'POST /api/journeys/2/contributors' },
-      { n: 'updateContributor', r: () => journeyApi.updateContributor(2, 4, 'viewer'), e: 'PATCH /api/journeys/2/contributors/4' },
-      { n: 'removeContributor', r: () => journeyApi.removeContributor(2, 4), e: 'DELETE /api/journeys/2/contributors/4' },
-      { n: 'updatePreferences', r: () => journeyApi.updatePreferences(2, { hide_skeletons: true }), e: 'PATCH /api/journeys/2/preferences' },
-      { n: 'getShareLink', r: () => journeyApi.getShareLink(2), e: 'GET /api/journeys/2/share-link' },
-      { n: 'createShareLink', r: () => journeyApi.createShareLink(2, { share_map: true }), e: 'POST /api/journeys/2/share-link' },
-      { n: 'deleteShareLink', r: () => journeyApi.deleteShareLink(2), e: 'DELETE /api/journeys/2/share-link' },
-      { n: 'getPublicJourney', r: () => journeyApi.getPublicJourney('pub-tok'), e: 'GET /api/public/journey/pub-tok' },
-    ])
-  })
-
-  it('FE-APISURF-053: memoriesApi maps the photo-provider endpoints', async () => {
-    await assertCalls([
-      { n: 'status', r: () => memoriesApi.status('immich'), e: 'GET /api/integrations/memories/immich/status' },
-      { n: 'search', r: () => memoriesApi.search('immich', { from: '2026-01-01', to: '2026-01-02', page: 1, size: 50 }), e: 'POST /api/integrations/memories/immich/search' },
-      { n: 'albums', r: () => memoriesApi.albums('immich'), e: 'GET /api/integrations/memories/immich/albums' },
-      { n: 'albumPhotos', r: () => memoriesApi.albumPhotos('immich', 'alb-1'), e: 'GET /api/integrations/memories/immich/albums/alb-1/photos' },
-    ])
-  })
-
-  it('FE-APISURF-054: memoriesApi passes the album passphrase as a query parameter', async () => {
-    const rec = await traceOne(() => memoriesApi.albumPhotos('synologyphotos', 'alb-2', 'p/w?'))
-    expect(rec.url).toBe('/api/integrations/memories/synologyphotos/albums/alb-2/photos?passphrase=p%2Fw%3F')
-  })
-
-  /**
-   * The one call in this file that is deliberately TWO requests, which is why it is not
-   * in the list above: a search asks TREK's own indexes and any installed search-provider
-   * plugin at the same time, and the caller gets one list back (#2221).
-   */
-  it('FE-APISURF-055: mapsApi.search asks the core index and the plugin providers side by side', async () => {
+  it('FE-APISURF-055: mapsApi.search asks only the core index — plugin providers are gone', async () => {
     log = []
     await mapsApi.search('Rome')
-    expect(log.map(r => `${r.method} ${r.url.split('?')[0]}`).sort()).toEqual([
-      'GET /api/plugin-search',
+    expect(log.map(r => `${r.method} ${r.url.split('?')[0]}`)).toEqual([
       'POST /api/maps/search',
     ])
   })
@@ -550,14 +309,11 @@ describe('client > endpoint wiring', () => {
   it('FE-APISURF-019: reservationsApi and accommodationsApi map booking endpoints', async () => {
     await assertCalls([
       { n: 'reservations.list', r: () => reservationsApi.list(1), e: 'GET /api/trips/1/reservations' },
-      { n: 'reservations.upcoming', r: () => reservationsApi.upcoming(), e: 'GET /api/reservations/upcoming' },
       { n: 'reservations.create', r: () => reservationsApi.create(1, { title: 'Hotel' }), e: 'POST /api/trips/1/reservations' },
       { n: 'reservations.update', r: () => reservationsApi.update(1, 2, { title: 'Hostel' }), e: 'PUT /api/trips/1/reservations/2' },
       { n: 'reservations.delete', r: () => reservationsApi.delete(1, 2), e: 'DELETE /api/trips/1/reservations/2' },
       { n: 'reservations.setTravelers', r: () => reservationsApi.setTravelers(1, 2, [4]), e: 'PUT /api/trips/1/reservations/2/travelers' },
       { n: 'reservations.updatePositions', r: () => reservationsApi.updatePositions(1, [{ id: 2, day_plan_position: 0 }], 3), e: 'PUT /api/trips/1/reservations/positions' },
-      { n: 'reservations.importBookingConfirm', r: () => reservationsApi.importBookingConfirm(1, []), e: 'POST /api/trips/1/reservations/import/booking/confirm' },
-      { n: 'reservations.importJobStatus', r: () => reservationsApi.importJobStatus(1, 'job-1'), e: 'GET /api/trips/1/reservations/import/jobs/job-1' },
       { n: 'accommodations.list', r: () => accommodationsApi.list(1), e: 'GET /api/trips/1/accommodations' },
       { n: 'accommodations.create', r: () => accommodationsApi.create(1, { place_id: 5, start_day_id: 1, end_day_id: 2 }), e: 'POST /api/trips/1/accommodations' },
       { n: 'accommodations.update', r: () => accommodationsApi.update(1, 4, { end_day_id: 3 }), e: 'PUT /api/trips/1/accommodations/4' },
@@ -565,70 +321,14 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-020: collabApi maps note, poll and message endpoints', async () => {
-    await assertCalls([
-      { n: 'getNotes', r: () => collabApi.getNotes(1), e: 'GET /api/trips/1/collab/notes' },
-      { n: 'createNote', r: () => collabApi.createNote(1, { title: 'Ideas' }), e: 'POST /api/trips/1/collab/notes' },
-      { n: 'updateNote', r: () => collabApi.updateNote(1, 2, { title: 'More' }), e: 'PUT /api/trips/1/collab/notes/2' },
-      { n: 'deleteNote', r: () => collabApi.deleteNote(1, 2), e: 'DELETE /api/trips/1/collab/notes/2' },
-      { n: 'deleteNoteFile', r: () => collabApi.deleteNoteFile(1, 2, 3), e: 'DELETE /api/trips/1/collab/notes/2/files/3' },
-      { n: 'getPolls', r: () => collabApi.getPolls(1), e: 'GET /api/trips/1/collab/polls' },
-      { n: 'createPoll', r: () => collabApi.createPoll(1, { question: 'Where?', options: ['A', 'B'] }), e: 'POST /api/trips/1/collab/polls' },
-      { n: 'votePoll', r: () => collabApi.votePoll(1, 2, 1), e: 'POST /api/trips/1/collab/polls/2/vote' },
-      { n: 'closePoll', r: () => collabApi.closePoll(1, 2), e: 'PUT /api/trips/1/collab/polls/2/close' },
-      { n: 'deletePoll', r: () => collabApi.deletePoll(1, 2), e: 'DELETE /api/trips/1/collab/polls/2' },
-      { n: 'getMessages', r: () => collabApi.getMessages(1), e: 'GET /api/trips/1/collab/messages' },
-      { n: 'sendMessage', r: () => collabApi.sendMessage(1, { text: 'hi' }), e: 'POST /api/trips/1/collab/messages' },
-      { n: 'deleteMessage', r: () => collabApi.deleteMessage(1, 2), e: 'DELETE /api/trips/1/collab/messages/2' },
-      { n: 'reactMessage', r: () => collabApi.reactMessage(1, 2, '👍'), e: 'POST /api/trips/1/collab/messages/2/react' },
-      { n: 'linkPreview', r: () => collabApi.linkPreview(1, 'https://x.test/a?b=1'), e: 'GET /api/trips/1/collab/link-preview' },
-    ])
-  })
-
   it('FE-APISURF-021: the remaining namespaces map their endpoints', async () => {
     await assertCalls([
-      { n: 'addons.enabled', r: () => addonsApi.enabled(), e: 'GET /api/addons' },
-      { n: 'health.features', r: () => healthApi.features(), e: 'GET /api/health/features' },
       { n: 'weather.get', r: () => weatherApi.get(41.9, 12.5, '2026-06-01'), e: 'GET /api/weather' },
       { n: 'weather.getCurrent', r: () => weatherApi.getCurrent(41.9, 12.5), e: 'GET /api/weather' },
       { n: 'weather.getDetailed', r: () => weatherApi.getDetailed(41.9, 12.5, '2026-06-01'), e: 'GET /api/weather/detailed' },
-      { n: 'config.getPublicConfig', r: () => configApi.getPublicConfig(), e: 'GET /api/config' },
-      { n: 'help.index', r: () => helpApi.index(), e: 'GET /api/help/index' },
-      { n: 'help.page', r: () => helpApi.page('getting started'), e: 'GET /api/help/page/getting%20started' },
       { n: 'settings.get', r: () => settingsApi.get(), e: 'GET /api/settings' },
       { n: 'settings.set', r: () => settingsApi.set('theme', 'dark'), e: 'PUT /api/settings' },
       { n: 'settings.setBulk', r: () => settingsApi.setBulk({ theme: 'dark' }), e: 'POST /api/settings/bulk' },
-      { n: 'backup.list', r: () => backupApi.list(), e: 'GET /api/backup/list' },
-      { n: 'backup.create', r: () => backupApi.create(), e: 'POST /api/backup/create' },
-      { n: 'backup.delete', r: () => backupApi.delete('b.zip'), e: 'DELETE /api/backup/b.zip' },
-      { n: 'backup.restore', r: () => backupApi.restore('b.zip'), e: 'POST /api/backup/restore/b.zip' },
-      { n: 'backup.getAutoSettings', r: () => backupApi.getAutoSettings(), e: 'GET /api/backup/auto-settings' },
-      { n: 'backup.setAutoSettings', r: () => backupApi.setAutoSettings({ enabled: true }), e: 'PUT /api/backup/auto-settings' },
-      { n: 'share.getLink', r: () => shareApi.getLink(1), e: 'GET /api/trips/1/share-link' },
-      { n: 'share.createLink', r: () => shareApi.createLink(1, { edit: false }), e: 'POST /api/trips/1/share-link' },
-      { n: 'share.deleteLink', r: () => shareApi.deleteLink(1), e: 'DELETE /api/trips/1/share-link' },
-      { n: 'share.getSharedTrip', r: () => shareApi.getSharedTrip('tok'), e: 'GET /api/shared/tok' },
-      { n: 'transit.geocode', r: () => transitApi.geocode('Roma Termini'), e: 'GET /api/transit/geocode' },
-      { n: 'transit.plan', r: () => transitApi.plan({ from: 'a', to: 'b' }), e: 'GET /api/transit/plan' },
-      { n: 'tripInvite.getLink', r: () => tripInviteApi.getLink(1), e: 'GET /api/trips/1/invite-link' },
-      { n: 'tripInvite.createLink', r: () => tripInviteApi.createLink(1, 7), e: 'POST /api/trips/1/invite-link' },
-      { n: 'tripInvite.deleteLink', r: () => tripInviteApi.deleteLink(1), e: 'DELETE /api/trips/1/invite-link' },
-      { n: 'tripInvite.preview', r: () => tripInviteApi.preview('tok'), e: 'GET /api/trip-invites/tok' },
-      { n: 'tripInvite.accept', r: () => tripInviteApi.accept('tok'), e: 'POST /api/trip-invites/tok/accept' },
-      { n: 'notifications.getPreferences', r: () => notificationsApi.getPreferences(), e: 'GET /api/notifications/preferences' },
-      { n: 'notifications.updatePreferences', r: () => notificationsApi.updatePreferences({ email: { trip_invite: true } }), e: 'PUT /api/notifications/preferences' },
-      { n: 'notifications.testSmtp', r: () => notificationsApi.testSmtp('a@b.c'), e: 'POST /api/notifications/test-smtp' },
-      { n: 'notifications.testWebhook', r: () => notificationsApi.testWebhook('https://hook'), e: 'POST /api/notifications/test-webhook' },
-      { n: 'notifications.testNtfy', r: () => notificationsApi.testNtfy({ topic: 't' }), e: 'POST /api/notifications/test-ntfy' },
-      { n: 'notifications.testChannel', r: () => notificationsApi.testChannel('plugin/ch'), e: 'POST /api/notifications/test/plugin%2Fch' },
-      { n: 'inApp.list', r: () => inAppNotificationsApi.list(), e: 'GET /api/notifications/in-app' },
-      { n: 'inApp.unreadCount', r: () => inAppNotificationsApi.unreadCount(), e: 'GET /api/notifications/in-app/unread-count' },
-      { n: 'inApp.markRead', r: () => inAppNotificationsApi.markRead(3), e: 'PUT /api/notifications/in-app/3/read' },
-      { n: 'inApp.markUnread', r: () => inAppNotificationsApi.markUnread(3), e: 'PUT /api/notifications/in-app/3/unread' },
-      { n: 'inApp.markAllRead', r: () => inAppNotificationsApi.markAllRead(), e: 'PUT /api/notifications/in-app/read-all' },
-      { n: 'inApp.delete', r: () => inAppNotificationsApi.delete(3), e: 'DELETE /api/notifications/in-app/3' },
-      { n: 'inApp.deleteAll', r: () => inAppNotificationsApi.deleteAll(), e: 'DELETE /api/notifications/in-app/all' },
-      { n: 'inApp.respond', r: () => inAppNotificationsApi.respond(3, 'positive'), e: 'POST /api/notifications/in-app/3/respond' },
     ])
   })
 })
@@ -649,7 +349,6 @@ describe('client > request payloads', () => {
     expect((await traceOne(() => budgetApi.reorderItems(1, [4, 5]))).body).toEqual({ orderedIds: [4, 5] })
     expect((await traceOne(() => budgetApi.reorderCategories(1, ['Food', 'Fun']))).body)
       .toEqual({ orderedCategories: ['Food', 'Fun'] })
-    expect((await traceOne(() => journeyApi.reorderEntries(2, [8, 7]))).body).toEqual({ orderedIds: [8, 7] })
   })
 
   it('FE-APISURF-023: user-id collections are sent as user_ids', async () => {
@@ -660,9 +359,8 @@ describe('client > request payloads', () => {
   })
 
   it('FE-APISURF-024: single-value helpers wrap their argument in the documented key', async () => {
-    expect((await traceOne(() => authApi.updateMapsKey(null))).body).toEqual({ maps_api_key: null })
     // tripsApi/daysApi are local — assert the argument lands in the row the
-    // server's documented field used to set. `log` still holds the auth call.
+    // server's documented field used to set.
     log = []
     await db.trips.put(buildTrip({ id: 1 }))
     await db.localUsers.put({ id: 9, name: 'bob@x.test', is_self: 1 })
@@ -678,16 +376,9 @@ describe('client > request payloads', () => {
     expect((await db.days.get(2))?.default_transport_mode).toBe('walk')
     expect(log).toHaveLength(0)
     expect((await traceOne(() => assignmentsApi.updateTransport(1, 7, null))).body).toEqual({ transport_mode: null })
-    expect((await traceOne(() => collabApi.votePoll(1, 2, 3))).body).toEqual({ option_index: 3 })
-    expect((await traceOne(() => collabApi.reactMessage(1, 2, '🎉'))).body).toEqual({ emoji: '🎉' })
     expect((await traceOne(() => settingsApi.set('theme', 'dark'))).body).toEqual({ key: 'theme', value: 'dark' })
     expect((await traceOne(() => settingsApi.setBulk({ a: 1 }))).body).toEqual({ settings: { a: 1 } })
     expect((await traceOne(() => budgetApi.togglePaid(1, 2, 4, false))).body).toEqual({ paid: false })
-    expect((await traceOne(() => adminApi.updateBagTracking(true))).body).toEqual({ enabled: true })
-    expect((await traceOne(() => adminApi.updatePermissions({ edit: 'owner' }))).body)
-      .toEqual({ permissions: { edit: 'owner' } })
-    expect((await traceOne(() => pluginsApi.saveUserSettings('koffi', { k: 'v' }))).body)
-      .toEqual({ config: { k: 'v' } })
   })
 
   it('FE-APISURF-025: tripsApi.archive/unarchive flip the stored is_archived flag', async () => {
@@ -717,63 +408,15 @@ describe('client > request payloads', () => {
     expect(set.body).toEqual({ rating: 4 })
   })
 
-  it('FE-APISURF-028: airtrailApi.import only sends connections when there are any', async () => {
-    expect((await traceOne(() => airtrailApi.import(1, ['f1', 'f2']))).body).toEqual({ flightIds: ['f1', 'f2'] })
-    expect((await traceOne(() => airtrailApi.import(1, ['f1'], []))).body).toEqual({ flightIds: ['f1'] })
-    expect((await traceOne(() => airtrailApi.import(1, ['f1', 'f2'], [['f1', 'f2']]))).body)
-      .toEqual({ flightIds: ['f1', 'f2'], connections: [['f1', 'f2']] })
-  })
-
-  it('FE-APISURF-029: journeyApi provider-photo calls omit optional passphrase and media types', async () => {
-    expect((await traceOne(() => journeyApi.addProviderPhotosToGallery(2, 'immich', ['a1']))).body)
-      .toEqual({ provider: 'immich', asset_ids: ['a1'] })
-    expect((await traceOne(() => journeyApi.addProviderPhotosToGallery(2, 'immich', ['a1'], 'secret', ['video']))).body)
-      .toEqual({ provider: 'immich', asset_ids: ['a1'], passphrase: 'secret', media_types: ['video'] })
-    expect((await traceOne(() => journeyApi.addProviderPhoto(9, 'immich', 'a1', 'cap', 'secret'))).body)
-      .toEqual({ provider: 'immich', asset_id: 'a1', caption: 'cap', passphrase: 'secret' })
-    expect((await traceOne(() => journeyApi.addProviderPhotos(9, 'immich', ['a1'], 'cap'))).body)
-      .toEqual({ provider: 'immich', asset_ids: ['a1'], caption: 'cap' })
-    expect((await traceOne(() => journeyApi.addProviderPhotos(9, 'immich', ['a1'], 'cap', 'secret', ['image', 'video']))).body)
-      .toEqual({ provider: 'immich', asset_ids: ['a1'], caption: 'cap', passphrase: 'secret', media_types: ['image', 'video'] })
-  })
-
-  it('FE-APISURF-030: adminApi.pluginActivate only sends consent when granted', async () => {
-    expect((await traceOne(() => adminApi.pluginActivate('koffi'))).body).toEqual({})
-    expect((await traceOne(() => adminApi.pluginActivate('koffi', true))).body).toEqual({ consent: true })
-  })
-
-  it('FE-APISURF-031: adminApi.pluginInstall spreads its options next to the id', async () => {
-    expect((await traceOne(() => adminApi.pluginInstall('koffi'))).body).toEqual({ id: 'koffi' })
-    expect((await traceOne(() => adminApi.pluginInstall('koffi', { version: '2.0.0', withDependencies: true }))).body)
-      .toEqual({ id: 'koffi', version: '2.0.0', withDependencies: true })
-  })
-
-  it('FE-APISURF-032: tripInviteApi.createLink normalises a missing expiry to null', async () => {
-    expect((await traceOne(() => tripInviteApi.createLink(1))).body).toEqual({ expires_in_days: null })
-    expect((await traceOne(() => tripInviteApi.createLink(1, 14))).body).toEqual({ expires_in_days: 14 })
-  })
-
-  it('FE-APISURF-033: tripsApi.copy and shareApi.createLink default to an empty body', async () => {
+  it('FE-APISURF-033: tripsApi.copy clones the trip locally with no request', async () => {
     // Local copy: no request body exists — assert the no-arg call clones trip 3.
     await seedTripAndDays()
     const { trip: copy } = await tripsApi.copy(3)
     expect(copy.id).not.toBe(3)
     expect(await db.trips.get(copy.id)).toBeDefined()
     expect(log).toHaveLength(0)
-    expect((await traceOne(() => shareApi.createLink(1))).body).toEqual({})
   })
 
-  it('FE-APISURF-034: authApi.passkey.delete sends the password in the DELETE body', async () => {
-    const rec = await traceOne(() => authApi.passkey.delete(3, 'hunter2'))
-    expect(rec.method).toBe('DELETE')
-    expect(rec.body).toEqual({ password: 'hunter2' })
-  })
-
-  it('FE-APISURF-056: docsyncApi.createScope names the connection in the path only', async () => {
-    const rec = await traceOne(() => docsyncApi.createScope(1, 5, 'Norway'))
-    expect(`${rec.method} ${rec.url}`).toBe('POST /api/trips/1/docsync/connections/5/scopes')
-    expect(rec.body).toEqual({ name: 'Norway' })
-  })
 })
 
 describe('client > query parameters', () => {
@@ -803,26 +446,6 @@ describe('client > query parameters', () => {
     expect((await traceOne(() => budgetApi.settlement(1, 'EUR'))).url).toBe('/api/trips/1/budget/settlement?base=EUR')
   })
 
-  it('FE-APISURF-038: collabApi.getMessages appends the before cursor', async () => {
-    expect((await traceOne(() => collabApi.getMessages(1))).url).toBe('/api/trips/1/collab/messages')
-    expect((await traceOne(() => collabApi.getMessages(1, '2026-01-01'))).url)
-      .toBe('/api/trips/1/collab/messages?before=2026-01-01')
-  })
-
-  it('FE-APISURF-039: adminApi.pluginBrowse only sets refresh when forced', async () => {
-    expect((await traceOne(() => adminApi.pluginBrowse())).url).toBe('/api/admin/plugins/registry')
-    expect((await traceOne(() => adminApi.pluginBrowse(true))).url).toBe('/api/admin/plugins/registry?refresh=1')
-  })
-
-  it('FE-APISURF-040: adminApi.auditLog and llmLocalModels pass their params through', async () => {
-    const audit = await traceOne(() => adminApi.auditLog({ limit: 50, offset: 100 }))
-    expect(new URLSearchParams(audit.url.split('?')[1]).get('limit')).toBe('50')
-    expect(new URLSearchParams(audit.url.split('?')[1]).get('offset')).toBe('100')
-
-    const models = await traceOne(() => adminApi.llmLocalModels('http://ollama:11434'))
-    expect(new URLSearchParams(models.url.split('?')[1]).get('baseUrl')).toBe('http://ollama:11434')
-  })
-
   it('FE-APISURF-041: mapsApi flattens the POI bbox into the query string', async () => {
     const rec = await traceOne(() => mapsApi.pois('cafe', { south: 41.8, west: 12.4, north: 42.0, east: 12.6 }, 'de'))
     const qs = new URLSearchParams(rec.url.split('?')[1])
@@ -843,13 +466,6 @@ describe('client > query parameters', () => {
     expect(new URLSearchParams(current.url.split('?')[1]).get('lang')).toBe('de')
   })
 
-  it('FE-APISURF-043: pluginsApi joins trip ids and defaults the activity limit', async () => {
-    expect((await traceOne(() => pluginsApi.tripCardContributions([1, 2, 3]))).url)
-      .toBe('/api/trip-card-contributions?tripIds=1,2,3')
-    expect((await traceOne(() => pluginsApi.myActivity())).url).toBe('/api/plugin-activity?limit=200')
-    expect((await traceOne(() => pluginsApi.myActivity(5))).url).toBe('/api/plugin-activity?limit=5')
-  })
-
   it('FE-APISURF-044: packing/todo category assignees encode the category name', async () => {
     const packing = await traceOne(() => packingApi.setCategoryAssignees(1, 'Rain gear/Wet', [4]))
     expect(packing.url).toBe('/api/trips/1/packing/category-assignees/Rain%20gear%2FWet')
@@ -860,10 +476,6 @@ describe('client > query parameters', () => {
     expect(todo.body).toEqual({ user_ids: [5] })
   })
 
-  it('FE-APISURF-045: collabApi.linkPreview URL-encodes the previewed link', async () => {
-    const rec = await traceOne(() => collabApi.linkPreview(1, 'https://x.test/a?b=1&c=2'))
-    expect(rec.url).toBe('/api/trips/1/collab/link-preview?url=https%3A%2F%2Fx.test%2Fa%3Fb%3D1%26c%3D2')
-  })
 })
 
 describe('client > multipart uploads', () => {
@@ -878,7 +490,6 @@ describe('client > multipart uploads', () => {
     const post = spyPost()
     const fd = new FormData()
 
-    await authApi.uploadAvatar(fd)
     // tripsApi.uploadCover is local — the file lands on the trip row as a
     // data: URL, no axios call is made.
     await db.trips.put(buildTrip({ id: 3 }))
@@ -888,20 +499,9 @@ describe('client > multipart uploads', () => {
     expect(cover.cover_image).toMatch(/^data:image\/png/)
     expect((await db.trips.get(3))?.cover_image).toBe(cover.cover_image)
     await filesApi.upload(1, fd)
-    await journeyApi.uploadPhotos(9, fd)
-    await journeyApi.uploadGalleryPhotos(2, fd)
-    await journeyApi.uploadGalleryVideo(2, fd)
-    await journeyApi.uploadCover(2, fd)
-    await collabApi.uploadNoteFile(1, 2, fd)
 
     expect(post.mock.calls.map(c => c[0])).toEqual([
-      '/auth/avatar',
       '/trips/1/files',
-      '/journeys/entries/9/photos',
-      '/journeys/2/gallery/photos',
-      '/journeys/2/gallery/video',
-      '/journeys/2/cover',
-      '/trips/1/collab/notes/2/files',
     ])
     for (const call of post.mock.calls) {
       expect(call[1]).toBeInstanceOf(FormData)
@@ -976,90 +576,4 @@ describe('client > multipart uploads', () => {
     expect(flagged.get('importPaths')).toBe('false')
   })
 
-  it('FE-APISURF-051: booking import posts every file plus the extraction mode', async () => {
-    const post = spyPost()
-    const files = [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')]
-
-    await reservationsApi.importBookingPreview(1, files, 'force-ai')
-    expect(post.mock.calls[0][0]).toBe('/trips/1/reservations/import/booking')
-    const preview = post.mock.calls[0][1] as FormData
-    expect(preview.getAll('files')).toHaveLength(2)
-    expect(preview.get('mode')).toBe('force-ai')
-
-    await reservationsApi.importBookingAsync(1, files)
-    expect(post.mock.calls[1][0]).toBe('/trips/1/reservations/import/booking/async')
-    expect((post.mock.calls[1][1] as FormData).get('mode')).toBe('no-ai')
-  })
-
-  it('FE-APISURF-052: adminApi.pluginUpload and backupApi.uploadRestore name their form fields', async () => {
-    const post = spyPost()
-
-    await adminApi.pluginUpload(new File(['zip'], 'plugin.zip'))
-    expect(post.mock.calls[0][0]).toBe('/admin/plugins/upload')
-    expect(((post.mock.calls[0][1] as FormData).get('file') as File).name).toBe('plugin.zip')
-
-    await backupApi.uploadRestore(new File(['zip'], 'backup.zip'))
-    expect(post.mock.calls[1][0]).toBe('/backup/upload-restore')
-    expect(((post.mock.calls[1][1] as FormData).get('backup') as File).name).toBe('backup.zip')
-  })
-
-  it('FE-APISURF-053: every channel test outlives the 8s global timeout', async () => {
-    const post = spyPost()
-
-    // The server budgets up to 20s for an SMTP dial and 10s for a webhook or
-    // ntfy ping; aborting at 8s threw away the reason and left the admin with a
-    // bare "failed" (#2196).
-    await notificationsApi.testSmtp('a@b.c')
-    await notificationsApi.testWebhook('https://hook')
-    await notificationsApi.testNtfy({ topic: 't' })
-    await notificationsApi.testChannel('plugin/ch')
-
-    expect(post.mock.calls).toHaveLength(4)
-    for (const call of post.mock.calls) {
-      expect(call[2]).toMatchObject({ timeout: 40000 })
-    }
-  })
-
-  it('FE-APISURF-057: every document-sync call that reaches the store outlives the 8s global timeout', async () => {
-    const post = spyPost()
-    const get = vi.spyOn(apiClient, 'get').mockResolvedValue({ data: { ok: true } } as unknown as AxiosResponse)
-    const del = vi.spyOn(apiClient, 'delete').mockResolvedValue({ data: { ok: true } } as unknown as AxiosResponse)
-
-    // The server allows each request to a store 15 s, and a run waits for the
-    // whole listing and every transfer; cut off at 8 s the browser reported a
-    // failure while the server carried on and finished.
-    await docsyncApi.testConnection(1, { providerId: 'paperless' })
-    await docsyncApi.createScope(1, 5, 'Norway')
-    await docsyncApi.createLink(1, { connectionId: 5 })
-    await docsyncApi.listScopes(1, 5)
-    await docsyncApi.deleteLink(1, 9)
-
-    expect(post.mock.calls.map(c => c[0])).toEqual([
-      '/trips/1/docsync/connections/test',
-      '/trips/1/docsync/connections/5/scopes',
-      '/trips/1/docsync/links',
-    ])
-    for (const call of post.mock.calls) {
-      expect(call[2]).toMatchObject({ timeout: DOCSYNC_UPSTREAM_TIMEOUT_MS })
-    }
-    expect(get.mock.calls[0][0]).toBe('/trips/1/docsync/connections/5/scopes')
-    expect(get.mock.calls[0][1]).toMatchObject({ timeout: DOCSYNC_UPSTREAM_TIMEOUT_MS })
-    expect(del.mock.calls[0][0]).toBe('/trips/1/docsync/links/9')
-    expect(del.mock.calls[0][1]).toMatchObject({ timeout: DOCSYNC_UPSTREAM_TIMEOUT_MS })
-    expect(DOCSYNC_UPSTREAM_TIMEOUT_MS).toBeGreaterThan(8000)
-
-    // A run, and a conflict choice that runs the binding afterwards.
-    post.mockClear()
-    await docsyncApi.syncNow(1, 9)
-    await docsyncApi.resolve(1, 4, 'trek')
-
-    expect(post.mock.calls.map(c => c[0])).toEqual([
-      '/trips/1/docsync/links/9/sync',
-      '/trips/1/docsync/items/4/resolve',
-    ])
-    for (const call of post.mock.calls) {
-      expect(call[2]).toMatchObject({ timeout: DOCSYNC_RUN_TIMEOUT_MS })
-    }
-    expect(DOCSYNC_RUN_TIMEOUT_MS).toBeGreaterThan(DOCSYNC_UPSTREAM_TIMEOUT_MS)
-  })
 })

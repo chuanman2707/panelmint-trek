@@ -297,23 +297,6 @@ describe('MBookingsTab', () => {
     expect(within(card).getAllByText('09:00')).toHaveLength(2)
   })
 
-  it('FE-MOB-BKTAB-022: mounts a reservation-detail plugin on every booking card, scoped to that booking (#2440)', () => {
-    seedStore(usePluginStore, {
-      plugins: [SEAT_MAP, { id: 'dash-widget', name: 'Dash', type: 'widget', icon: null, slot: 'sidebar' }],
-    })
-    const { planner: p } = renderTab()
-    const frame = within(cardOf('Hotel Granvia')).getByTestId('plugin-frame')
-    expect(frame).toHaveAttribute('data-plugin', 'seat-map')
-    expect(frame).toHaveAttribute('data-trip', '7')
-    expect(frame).toHaveAttribute('data-reservation', '201')
-    expect(frame).toHaveAttribute('data-surface', 'detail-slot')
-    // the slot sits outside the card's body button: a tap in it opens no editor
-    fireEvent.click(frame)
-    expect(p.setShowReservationModal).not.toHaveBeenCalled()
-    expect(within(cardOf('Bamboo walk')).getByTestId('plugin-frame')).toHaveAttribute('data-reservation', '204')
-    expect(screen.getAllByTestId('plugin-frame')).toHaveLength(4)
-    expect(document.querySelector('[data-plugin="dash-widget"]')).toBeNull()
-  })
 
   it('FE-MOB-BKTAB-023: compact mode drops the plugin frames with the rest of the body', () => {
     seedStore(usePluginStore, { plugins: [SEAT_MAP] })

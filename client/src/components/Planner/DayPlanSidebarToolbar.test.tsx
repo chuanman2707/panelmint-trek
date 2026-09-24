@@ -8,17 +8,6 @@ import type { Reservation } from '../../types'
 
 vi.mock('../PDF/TripPDF', () => ({ downloadTripPDF: vi.fn().mockResolvedValue(undefined) }))
 
-// The subscribe dialog fetches its feed token on mount; it is exercised in its
-// own test, and TripExportModal covers the entry that opens it.
-vi.mock('./IcsSubscribeModal', () => ({
-  IcsSubscribeModal: ({ title, onClose }: { title: string; onClose: () => void }) => (
-    <div data-testid="ics-subscribe-modal">
-      {title}
-      <button onClick={onClose}>close-subscribe</button>
-    </div>
-  ),
-}))
-
 const t = (key: string, params?: Record<string, unknown>) =>
   params ? `${key}|${Object.values(params).join('|')}` : key
 
@@ -72,9 +61,8 @@ beforeEach(() => {
 
 describe('DayPlanSidebarToolbar', () => {
   // ── Export ─────────────────────────────────────────────────────
-  // PDF, ICS and GPX each used to be their own button with its own hover menu.
-  // The mechanics now live in TripExportModal and are tested there; what is left
-  // here is the single button that opens it.
+  // The export mechanics live in TripExportModal and are tested there; what is
+  // left here is the single button that opens it.
 
   it('FE-PLANNER-DPTOOLBAR-001: the toolbar carries one export button, not three', () => {
     render(<DayPlanSidebarToolbar {...makeProps()} />)
@@ -92,7 +80,6 @@ describe('DayPlanSidebarToolbar', () => {
     await user.click(btn)
     expect(btn).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('dayplan.exportDocument')).toBeInTheDocument()
-    expect(screen.getByText('dayplan.exportCalendar')).toBeInTheDocument()
     await user.click(screen.getByText('dayplan.pdf'))
     await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(screen.queryByText('dayplan.exportDocument')).not.toBeInTheDocument())
@@ -124,12 +111,14 @@ describe('DayPlanSidebarToolbar', () => {
     await waitFor(() => expect(parseFloat(tip.style.left)).toBeGreaterThanOrEqual(0))
   })
 
-  it('FE-PLANNER-DPTOOLBAR-005: the dialog inherits the share permission from the toolbar', async () => {
+  it('FE-PLANNER-DPTOOLBAR-005: the export dialog carries no hosted formats', async () => {
     const user = userEvent.setup()
-    render(<DayPlanSidebarToolbar {...makeProps({ canManageShare: false })} />)
+    render(<DayPlanSidebarToolbar {...makeProps()} />)
     await user.click(screen.getByRole('button', { name: 'dayplan.export' }))
-    expect(screen.getByText('mobileTrip.icsDownload')).toBeInTheDocument()
+    // ICS download, calendar feed and GPX all called server export endpoints.
+    expect(screen.queryByText('mobileTrip.icsDownload')).not.toBeInTheDocument()
     expect(screen.queryByText('mobileTrip.icsSubscribe')).not.toBeInTheDocument()
+    expect(screen.queryByText('dayplan.gpxAll')).not.toBeInTheDocument()
   })
 
   // ── Expand / collapse all ────────────────────────────────────────────────

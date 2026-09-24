@@ -429,21 +429,6 @@ describe('PlPlaceSearch', () => {
     await waitFor(() => expect(screen.queryByText('Louvre')).not.toBeInTheDocument())
   })
 
-  it('FE-MOB-PLSRCH-019: a list the index answered offers Google instead, and the line sends the same query there alone', async () => {
-    seedStore(useAuthStore, { hasMapsKey: true })
-    server.use(recordGoogleRetry())
-    const { input } = setup()
-    fireEvent.change(input, { target: { value: 'Tokyo Station' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(await screen.findByText('Weigh station')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'places.searchGoogleInstead' }))
-    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument()
-    expect(searchBodies[0]).not.toHaveProperty('provider')
-    expect(searchBodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' })
-    // A list Google produced has nowhere further to go.
-    expect(screen.queryByRole('button', { name: 'places.searchGoogleInstead' })).not.toBeInTheDocument()
-  })
 
   it('FE-MOB-PLSRCH-020: without a Google key the list offers nothing', async () => {
     server.use(recordGoogleRetry())
@@ -466,34 +451,5 @@ describe('PlPlaceSearch', () => {
     expect(screen.queryByRole('button', { name: 'places.searchGoogleInstead' })).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-PLSRCH-022: the line sends the query the list came from, whatever the field holds by then', async () => {
-    seedStore(useAuthStore, { hasMapsKey: true })
-    server.use(recordAutocomplete([]), recordGoogleRetry())
-    const { input } = setup()
-    fireEvent.change(input, { target: { value: 'Tokyo Station' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(await screen.findByText('Weigh station')).toBeInTheDocument()
 
-    // The list stays while the field is retyped; the line still means this list.
-    fireEvent.change(input, { target: { value: 'Kyoto' } })
-    fireEvent.click(screen.getByRole('button', { name: 'places.searchGoogleInstead' }))
-    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument()
-    expect(searchBodies).toHaveLength(2)
-    expect(searchBodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' })
-  })
-
-  it('FE-MOB-PLSRCH-022b: the line still works after the field was cleared', async () => {
-    seedStore(useAuthStore, { hasMapsKey: true })
-    server.use(recordGoogleRetry())
-    const { input } = setup()
-    fireEvent.change(input, { target: { value: 'Tokyo Station' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(await screen.findByText('Weigh station')).toBeInTheDocument()
-
-    // An empty field used to make the tap a silent no-op.
-    fireEvent.change(input, { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: 'places.searchGoogleInstead' }))
-    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument()
-    expect(searchBodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' })
-  })
 })

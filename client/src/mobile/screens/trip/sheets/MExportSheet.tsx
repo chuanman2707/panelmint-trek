@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { CalendarPlus, ChevronRight, FileDown, Share2 } from 'lucide-react'
+import { ChevronRight, FileDown } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
-import { IcsSubscribeModal } from '../../../../components/Planner/IcsSubscribeModal'
 import { useTripStore } from '../../../../store/tripStore'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings'
@@ -12,9 +11,8 @@ import type { LucideIcon } from 'lucide-react'
 
 /**
  * Export sheet ('export', opened from the Mehr sheet): the desktop day-plan
- * toolbar's PDF export, GPX download, ICS download and calendar subscription in
- * one place. The subscription dialog is the shared IcsSubscribeModal — it owns the
- * enable/rotate/disable token flow.
+ * toolbar's PDF export. The ICS download/subscribe and GPX download were
+ * hosted endpoints and are cut in the local build.
  */
 export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const { t, locale } = useTranslation()
@@ -26,14 +24,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const showServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false, planner.tripId)
   const open = shell.sheet?.id === 'export'
   const dayNotes = useTripStore(s => s.dayNotes)
-  const [subscribeOpen, setSubscribeOpen] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
-  const [icsBusy, setIcsBusy] = useState(false)
-  const [gpxBusy, setGpxBusy] = useState(false)
-  // The subscription link reads the trip without an account, so it needs the
-  // same permission as the public share link. The ICS download beside it does
-  // not: that is a file this member may already read.
-  const canManageShare = planner.can('share_manage', planner.trip)
 
   const exportPdf = async () => {
     if (!planner.trip || pdfBusy) return
@@ -65,56 +56,6 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
     }
   }
 
-  const downloadIcs = async () => {
-    if (icsBusy) return
-    setIcsBusy(true)
-    try {
-      const res = await fetch(`/api/trips/${planner.tripId}/export.ics`, { credentials: 'include' })
-      if (!res.ok) throw new Error()
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${planner.trip?.title || 'trip'}.ics`
-      document.body.appendChild(a)
-      a.click()
-      // Firefox/Safari cancel the download when the object URL is revoked
-      // before they picked the blob up.
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove() }, 100)
-      shell.closeSheet()
-    } catch {
-      planner.toast.error(t('planner.icsExportFailed'))
-    } finally {
-      setIcsBusy(false)
-    }
-  }
-
-  // Everything in one file here: the desktop menu's three scopes are a hover
-  // affordance the phone does not have, and "the whole trip" is what you want
-  // on a device anyway.
-  const downloadGpx = async () => {
-    if (gpxBusy) return
-    setGpxBusy(true)
-    try {
-      const res = await fetch(`/api/trips/${planner.tripId}/places/export.gpx`, { credentials: 'include' })
-      if (res.status === 404) { planner.toast.info(t('dayplan.gpxEmpty')); return }
-      if (!res.ok) throw new Error()
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${planner.trip?.title || 'trip'}.gpx`
-      document.body.appendChild(a)
-      a.click()
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove() }, 100)
-      shell.closeSheet()
-    } catch {
-      planner.toast.error(t('dayplan.gpxFailed'))
-    } finally {
-      setGpxBusy(false)
-    }
-  }
-
   return (
     <MSheet open={open} onClose={shell.closeSheet} variant="card" material="glass" ariaLabel={t('mobileTrip.export')}>
       <div className="flex-none px-[18px] pt-4">
@@ -134,37 +75,8 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
             sub={t('dayplan.pdfTooltip')}
             onClick={() => void exportPdf()}
           />
-          <ExportRow
-            icon={FileDown}
-            title={icsBusy ? t('common.loading') : t('mobileTrip.icsDownload')}
-            sub={`${planner.trip?.title || 'trip'}.ics`}
-            onClick={() => void downloadIcs()}
-          />
-          <ExportRow
-            icon={Share2}
-            title={gpxBusy ? t('common.loading') : t('dayplan.gpxAll')}
-            sub={t('dayplan.gpxTooltip')}
-            onClick={() => void downloadGpx()}
-          />
-          {canManageShare && (
-            <ExportRow
-              icon={CalendarPlus}
-              title={t('mobileTrip.icsSubscribe')}
-              sub={t('mobileTrip.icsSubscribeSub')}
-              onClick={() => setSubscribeOpen(true)}
-            />
-          )}
         </div>
       </div>
-
-      {subscribeOpen && canManageShare && (
-        <IcsSubscribeModal
-          endpoint={`/api/trips/${planner.tripId}/feed`}
-          title={t('mobileTrip.icsSubscribe')}
-          description={t('mobileTrip.icsSubscribeSub')}
-          onClose={() => setSubscribeOpen(false)}
-        />
-      )}
     </MSheet>
   )
 }

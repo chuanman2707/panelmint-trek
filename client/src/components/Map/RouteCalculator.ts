@@ -1,11 +1,8 @@
 import { useSettingsStore } from '../../store/settingsStore'
-import { pluginsApi } from '../../api/client'
 import type { DistanceUnit, RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
 import { haversineKm } from '../../utils/geo'
 import { formatDistance } from '../../utils/units'
-import { countRoute } from './routeUsageCounter'
 import { valhallaRouteAvoiding, valhallaRun, valhallaAvailable, legAvoids, type AvoidClass } from './valhallaRoute'
-import type { RouteUsageSurface } from '@trek/shared'
 
 // FOSSGIS hosts OSRM with real per-profile routing (car/foot/bike) — the
 // project-osrm.org demo is car-only (it ignores the profile in the URL). Use
@@ -79,47 +76,22 @@ function uTurnParam(waypoints: readonly Waypoint[]): string {
 }
 
 /**
- * `fetch`, with the request counted.
+ * `fetch`, with the `continue_straight` fallback for hosts that refuse it.
  *
- * Every route TREK draws goes out from here, and nowhere else, which makes this the one
- * place that can answer how much routing an instance really does — the number behind
- * "could we host an engine ourselves". Counted: how many requests, of what kind, how
- * many waypoints, roughly how far, and whether the host refused. Not counted, because it
- * is never sent: where any of it was.
- *
- * Distance is the straight line along the waypoint chain rather than the routed length,
- * which is only in the answer and differs per response shape. It is a floor on the real
- * figure, and a floor is enough to tell a 1500 km per-request limit from a 150 km one.
- *
+ * Every route PanelMint draws goes out from here, and nowhere else, so the
+ * refused-parameter retry lives in this one place rather than at every caller.
  * An aborted request is not a failure: the map cancels constantly while someone drags.
  */
 async function routedFetch(
   url: string,
   signal: AbortSignal | undefined,
-  kind: RouteUsageSurface,
-  profile: 'driving' | 'walking' | 'cycling',
-  waypoints: readonly Waypoint[],
 ): Promise<Response> {
-  const selfHosted = !!useSettingsStore.getState().settings.routing_base_url?.trim()
-  let km = 0
-  for (let i = 1; i < waypoints.length; i++) km += haversineKm(waypoints[i - 1], waypoints[i])
-  const sample = { profile, surface: kind, selfHosted, waypoints: waypoints.length, km }
   const asked = withoutUTurnIfRefused(url)
-  try {
-    const response = await fetch(asked, { signal })
-    countRoute({ ...sample, failed: !response.ok })
-    if (response.ok || !asked.includes(U_TURN_PARAM)) return response
-    const plain = await droppedUTurn(asked, response)
-    if (!plain) return response
-    const second = await fetch(plain, { signal })
-    countRoute({ ...sample, failed: !second.ok })
-    return second
-  } catch (err) {
-    if (!(err instanceof DOMException && err.name === 'AbortError')) {
-      countRoute({ ...sample, failed: true })
-    }
-    throw err
-  }
+  const response = await fetch(asked, { signal })
+  if (response.ok || !asked.includes(U_TURN_PARAM)) return response
+  const plain = await droppedUTurn(asked, response)
+  if (!plain) return response
+  return await fetch(plain, { signal })
 }
 
 /**
@@ -202,19 +174,11 @@ const routeCache = new Map<string, RouteWithLegs>()
 const ROUTE_CACHE_MAX = 200
 
 /**
- * A route profile is either one of the built-in OSRM profiles or a plugin profile
- * key `plugin:<pluginId>/<profileId>` — the route toggle offers those for every
- * active routeProvider plugin, and calculateRouteWithLegs dispatches on the prefix.
+ * A route profile is one of the built-in OSRM profiles. The key stays an open
+ * string union — callers hand it whatever was stored — and anything unknown
+ * falls through to the driving default below.
  */
 export type RouteProfileKey = 'driving' | 'walking' | 'cycling' | (string & {})
-
-export function parsePluginProfile(profile: string): { pluginId: string; profileId: string } | null {
-  if (!profile.startsWith('plugin:')) return null
-  const rest = profile.slice('plugin:'.length)
-  const slash = rest.indexOf('/')
-  if (slash <= 0 || slash === rest.length - 1) return null
-  return { pluginId: rest.slice(0, slash), profileId: rest.slice(slash + 1) }
-}
 
 /** Fetches a full route via OSRM and returns coordinates, distance, and duration estimates for driving/walking. */
 export async function calculateRoute(
@@ -229,7 +193,7 @@ export async function calculateRoute(
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
   const url = `${routeBaseFor(profile)}/${coords}?overview=full&geometries=geojson&steps=false${uTurnParam(waypoints)}`
 
-  const response = await routedFetch(url, signal, 'route', profile, waypoints)
+  const response = await routedFetch(url, signal)
   if (!response.ok) {
     throw new RoutingRefusedError(response.status, retryAfterMs(response))
   }
@@ -436,7 +400,7 @@ export async function calculateSegments(
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
   const url = `${routeBaseFor('driving')}/${coords}?overview=false&geometries=geojson&steps=false&annotations=distance,duration${uTurnParam(waypoints)}`
 
-  const response = await routedFetch(url, signal, 'segments', 'driving', waypoints)
+  const response = await routedFetch(url, signal)
   if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
@@ -467,9 +431,12 @@ export async function calculateSegments(
  */
 export async function calculateRouteWithLegs(
   waypoints: Waypoint[],
-  { signal, profile = 'driving', tripId, dayId, avoid = [] }: {
+  { signal, profile = 'driving', avoid = [] }: {
     signal?: AbortSignal
     profile?: RouteProfileKey
+    /** Kept on the options shape: callers that route per-day pass their context
+     * through, and it costs nothing to ignore it now that plugin profiles (the
+     * only context-sensitive routes) are gone. */
     tripId?: number | string | null
     dayId?: number | null
     /** Road classes to weight away. Only the driving profile has any, and only Valhalla can. */
@@ -487,9 +454,6 @@ export async function calculateRouteWithLegs(
   const coords = waypoints.map((p) => `${p.lng},${p.lat}`).join(';')
   // The cached result carries formatted leg distances, so the active distance unit is
   // part of the key — otherwise switching km↔mi would return stale text (#1300).
-  // A plugin route is trip-/day-specific (it may return different charging stops for
-  // the same coordinates on a different day), so its key includes tripId/dayId;
-  // the built-in OSRM profiles are context-free and leave those out.
   //
   // The avoidance belongs in the key for two reasons pointing opposite ways. Without it
   // turning the switch on returns the tolled route out of cache in under a millisecond,
@@ -499,9 +463,8 @@ export async function calculateRouteWithLegs(
   // under the plain key would hand them a road nobody drives and a second engine's
   // times. `avoiding` is empty whenever the request goes to OSRM after all, so the key
   // also separates the two engines.
-  const pluginScope = profile.startsWith('plugin:') ? `:${tripId ?? ''}:${dayId ?? ''}` : ''
   const avoidScope = avoiding.length ? `:avoid=${avoiding.join(',')}` : ''
-  const cacheKey = `${profile}:${getDistanceUnit()}:${coords}${pluginScope}${avoidScope}`
+  const cacheKey = `${profile}:${getDistanceUnit()}:${coords}${avoidScope}`
   const cached = routeCache.get(cacheKey)
   if (cached) return cached
 
@@ -516,54 +479,12 @@ export async function calculateRouteWithLegs(
     }
   }
 
-  // Plugin profile (`plugin:<id>/<profile>`): the server invokes that routeProvider
-  // and normalizes its answer; null means the provider failed or refused, and the
-  // throw makes callers fall back to straight lines exactly like an OSRM outage.
-  const pluginProfile = parsePluginProfile(profile)
-  if (pluginProfile) {
-    if (tripId == null) throw new Error('Plugin routing needs a trip context')
-    const { route } = await pluginsApi.pluginRoute(pluginProfile.pluginId, pluginProfile.profileId, {
-      tripId,
-      dayId: dayId ?? null,
-      waypoints: waypoints.map((p) => ({ lat: p.lat, lng: p.lng })),
-    }, { signal })
-    if (!route) throw new Error('No route found')
-    const legs: RouteSegment[] = route.legs.map((leg, i): RouteSegment => {
-      const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
-      const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
-      const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
-      return {
-        mid, from, to,
-        distance: leg.distance,
-        duration: leg.duration,
-        walkingText: formatDuration(leg.distance / (5000 / 3600)),
-        drivingText: formatDuration(leg.duration),
-        distanceText: formatRouteDistance(leg.distance),
-        durationText: formatDuration(leg.duration),
-        ...(leg.note ? { noteText: leg.note } : {}),
-      }
-    })
-    const result: RouteWithLegs = {
-      coordinates: route.coordinates,
-      distance: route.distance,
-      duration: route.duration,
-      legs,
-      ...(route.viaPoints.length ? { vias: route.viaPoints } : {}),
-    }
-    routeCache.set(cacheKey, result)
-    if (routeCache.size > ROUTE_CACHE_MAX) {
-      const oldest = routeCache.keys().next().value
-      if (oldest !== undefined) routeCache.delete(oldest)
-    }
-    return result
-  }
-
-  // Written as literals rather than narrowing `profile`: its type is an open string union
-  // (plugins name their own modes), which no comparison narrows to the three OSRM knows.
+  // Written as literals rather than narrowing `profile`: its type is an open string
+  // union, which no comparison narrows to the three OSRM knows.
   const osrmProfile: 'driving' | 'walking' | 'cycling' =
     profile === 'walking' ? 'walking' : profile === 'cycling' ? 'cycling' : 'driving'
   const url = `${routeBaseFor(osrmProfile)}/${coords}?overview=full&geometries=geojson&annotations=distance,duration${uTurnParam(waypoints)}`
-  const response = await routedFetch(url, signal, 'legs', osrmProfile, waypoints)
+  const response = await routedFetch(url, signal)
   if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()
@@ -622,18 +543,7 @@ async function routeAvoidingWithLegs(
   avoid: AvoidClass[],
   signal?: AbortSignal,
 ): Promise<RouteWithLegs | null> {
-  const sample = {
-    profile: 'driving' as const,
-    surface: 'legs' as const,
-    selfHosted: !!useSettingsStore.getState().settings.routing_base_url?.trim(),
-    waypoints: waypoints.length,
-    km: waypoints.slice(1).reduce((sum, point, i) => sum + haversineKm(waypoints[i], point), 0),
-  }
   const run = await valhallaRun(waypoints, 'driving', avoid, signal)
-  // Counted by hand because the adapter speaks to a different engine with a different
-  // verb, and the counter exists to answer "how much routing does this instance do" —
-  // an engine it cannot see is exactly the traffic that would go missing from it.
-  if (!signal?.aborted) countRoute({ ...sample, failed: !run })
   if (!run) return null
 
   const legs: RouteSegment[] = run.legs.map((leg, i): RouteSegment => {
@@ -850,17 +760,7 @@ async function valhallaExcluding(
   signal?: AbortSignal,
 ): Promise<RouteAlternative | null> {
   if (!valhallaAvailable()) return null
-  const sample = {
-    profile,
-    surface: 'alternatives' as const,
-    selfHosted: !!useSettingsStore.getState().settings.routing_base_url?.trim(),
-    waypoints: 2,
-    km: haversineKm(from, to),
-  }
   const leg = await valhallaRouteAvoiding(from, to, profile, exclude, signal)
-  // Counted here rather than in the adapter, so the adapter stays a format translator
-  // and every routing request an instance makes still lands in the one counter.
-  if (!signal?.aborted) countRoute({ ...sample, failed: !leg })
   if (!leg || !legAvoids(leg, exclude)) return null
   return {
     coordinates: leg.coordinates,
@@ -884,7 +784,7 @@ async function osrmExcluding(
   try {
     const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`
     const url = `${base}/${coords}?exclude=${exclude}&overview=full&geometries=geojson`
-    const response = await routedFetch(url, signal, 'alternatives', profile, [from, to])
+    const response = await routedFetch(url, signal)
     if (!response.ok) {
       // 400 is the router saying the parameter itself is not available here, which is
       // true of every leg from now on. Anything else is about this request alone.
@@ -926,7 +826,7 @@ export async function calculateAlternatives(
 ): Promise<RouteAlternative[]> {
   const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`
   const url = `${routeBaseFor(profile)}/${coords}?alternatives=${limit}&overview=full&geometries=geojson`
-  const response = await routedFetch(url, signal, 'alternatives', profile, [from, to])
+  const response = await routedFetch(url, signal)
   if (!response.ok) throw new RoutingRefusedError(response.status, retryAfterMs(response))
 
   const data = await response.json()

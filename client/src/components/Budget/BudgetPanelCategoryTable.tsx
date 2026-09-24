@@ -1,7 +1,6 @@
 import { Fragment, type CSSProperties, type Dispatch, type SetStateAction } from 'react'
 import { Trash2, Pencil, GripVertical } from 'lucide-react'
 import type { BudgetItem } from '../../types'
-import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import { currencyDecimals } from '../../utils/formatters'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { calcPP, calcPD, calcPPD, hasCustomMemberSplit } from './BudgetPanel.helpers'
@@ -54,7 +53,6 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
   handleRenameCategory, handleDeleteCategory, handleDeleteItem, handleUpdateField, handleAddItem,
   tripId, currency, locale, t, fmt, hasMultipleMembers, tripMembers, setBudgetItemMembers, toggleBudgetMemberPaid, th, td }: BudgetCategoryTableProps) {
   const items = grouped.get(cat) || []
-  const contribFor = usePluginViewContributions('costs', tripId)
   const subtotal = items.reduce((s, x) => s + (x.total_price || 0), 0)
   const color = categoryColor(cat)
   return (
@@ -157,8 +155,6 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                         const pp = customSplit ? null : calcPP(item.total_price, item.persons)
                         const pd = calcPD(item.total_price, item.days)
                         const ppd = customSplit ? null : calcPPD(item.total_price, item.persons, item.days)
-                        const hasMembers = (item.members?.length ?? 0) > 0
-                        const contributions = contribFor(item.id)
                         return (
                           <Fragment key={item.id}>
                           <tr
@@ -254,13 +250,6 @@ export default function BudgetCategoryTable({ cat, grouped, categoryColor, canEd
                               )}
                             </td>
                           </tr>
-                          {contributions.length > 0 && (
-                            <tr>
-                              <td colSpan={10} style={{ padding: '0 8px 6px 20px' }}>
-                                <PluginCardFooter items={contributions} tripId={tripId} />
-                              </td>
-                            </tr>
-                          )}
                           </Fragment>
                         )
                       })}

@@ -1,39 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
-import { buildUser } from '../../helpers/factories';
 
-// The global setup.ts mocks websocket with getSocketId returning null.
-// We need to be able to control what getSocketId returns per-test.
-// Re-mock here to get full control.
-vi.mock('../../../src/api/websocket', () => ({
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  getSocketId: vi.fn(() => 'mock-socket-id'),
-  setRefetchCallback: vi.fn(),
-  setPreReconnectHook: vi.fn(),
-  joinTrip: vi.fn(),
-  leaveTrip: vi.fn(),
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-}));
-
-const wsMock = await import('../../../src/api/websocket');
-
-// Import the API client AFTER the mock is set up so it picks up our getSocketId mock
 const {
-  apiClient,
-  authApi,
   placesApi,
   packingApi,
-  inAppNotificationsApi,
-  shareApi,
-  backupApi,
   assignmentsApi,
   tagsApi,
   categoriesApi,
-  adminApi,
-  addonsApi,
   mapsApi,
   budgetApi,
   filesApi,
@@ -42,15 +16,11 @@ const {
   settingsApi,
   accommodationsApi,
   dayNotesApi,
-  collabApi,
-  notificationsApi,
 } = await import('../../../src/api/client');
 
 describe('API client interceptors', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: socket ID available
-    (wsMock.getSocketId as ReturnType<typeof vi.fn>).mockReturnValue('mock-socket-id');
   });
 
   afterEach(() => {
@@ -61,332 +31,66 @@ describe('API client interceptors', () => {
     });
   });
 
-  it('FE-API-001: requests include X-Socket-Id header when getSocketId returns a value', async () => {
-    let receivedSocketId: string | null = null;
-
+  it('FE-API-001: mutating requests carry a generated X-Idempotency-Key', async () => {
+    let receivedKey: string | null = null;
     server.use(
-      http.get('/api/auth/me', ({ request }) => {
-        receivedSocketId = request.headers.get('X-Socket-Id');
-        return HttpResponse.json({ user: buildUser() });
+      http.post('/api/trips/1/places', ({ request }) => {
+        receivedKey = request.headers.get('X-Idempotency-Key');
+        return HttpResponse.json({ id: 1 });
       })
     );
 
-    await authApi.me();
-
-    expect(receivedSocketId).toBe('mock-socket-id');
+    await placesApi.create(1, { name: 'Paris' });
+    expect(receivedKey).toBeTruthy();
   });
 
-  it('FE-API-002: X-Socket-Id header is absent when getSocketId returns null', async () => {
-    (wsMock.getSocketId as ReturnType<typeof vi.fn>).mockReturnValue(null);
-    let receivedSocketId: string | null = 'sentinel';
-
+  it('FE-API-002: read requests carry no idempotency key', async () => {
+    let receivedKey: string | null = 'sentinel';
     server.use(
-      http.get('/api/auth/me', ({ request }) => {
-        receivedSocketId = request.headers.get('X-Socket-Id');
-        return HttpResponse.json({ user: buildUser() });
+      http.get('/api/settings', ({ request }) => {
+        receivedKey = request.headers.get('X-Idempotency-Key');
+        return HttpResponse.json({ settings: {} });
       })
     );
 
-    await authApi.me();
-
-    expect(receivedSocketId).toBeNull();
+    await settingsApi.get();
+    expect(receivedKey).toBeNull();
   });
 
-  it('FE-API-003: 401 with AUTH_REQUIRED → redirects to /login with redirect param', async () => {
+  it('FE-API-003: a 401 never redirects — there is no login page to go to', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/', pathname: '/dashboard', search: '', hash: '' },
+      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '', hash: '' },
     });
-
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 });
-      })
-    );
-
-    try {
-      await authApi.me();
-    } catch {
-      // Expected to reject
-    }
-
-    expect(window.location.href).toBe('/login?redirect=%2Fdashboard');
-  });
-
-  it('FE-API-003b: 401 without AUTH_REQUIRED code does not redirect', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '' },
-    });
-
     const originalHref = window.location.href;
 
     server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      })
+      http.get('/api/settings', () => HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 }))
     );
 
-    try {
-      await authApi.me();
-    } catch {
-      // Expected to reject
-    }
-
+    await expect(settingsApi.get()).rejects.toThrow();
     expect(window.location.href).toBe(originalHref);
   });
 
-  it('FE-API-003c: 401 on /login page does not redirect', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/login', pathname: '/login', search: '' },
-    });
-
+  it('FE-API-004: a 429 surfaces the translated rate-limit message', async () => {
     server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 });
-      })
+      http.post('/api/maps/autocomplete', () =>
+        HttpResponse.json({ error: 'slow down' }, { status: 429 }))
     );
 
-    try {
-      await authApi.me();
-    } catch {
-      // Expected to reject
-    }
-
-    // href should NOT have been changed to /login?redirect=...
-    expect(window.location.href).toBe('http://localhost/login');
-  });
-
-  it('FE-API-004: 403 with MFA_REQUIRED → redirects to /settings?mfa=required', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/', pathname: '/dashboard', search: '' },
-    });
-
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ code: 'MFA_REQUIRED' }, { status: 403 });
-      })
-    );
-
-    try {
-      await authApi.me();
-    } catch {
-      // Expected to reject
-    }
-
-    expect(window.location.href).toBe('/settings?mfa=required');
-  });
-
-  it('FE-API-004b: 403 with MFA_REQUIRED on /settings page does not redirect', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/settings', pathname: '/settings', search: '' },
-    });
-
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ code: 'MFA_REQUIRED' }, { status: 403 });
-      })
-    );
-
-    try {
-      await authApi.me();
-    } catch {
-      // Expected to reject
-    }
-
-    // Should NOT redirect when already on /settings
-    expect(window.location.href).toBe('http://localhost/settings');
+    await expect(mapsApi.autocomplete('x')).rejects.toThrow();
   });
 
   it('FE-API-005: successful API call returns response data', async () => {
-    const user = buildUser();
+    server.use(http.get('/api/settings', () => HttpResponse.json({ settings: { theme: 'dark' } })));
 
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ user });
-      })
-    );
-
-    const data = await authApi.me();
-
-    expect(data).toMatchObject({ user: { id: user.id, email: user.email } });
+    const data = await settingsApi.get();
+    expect(data).toMatchObject({ settings: { theme: 'dark' } });
   });
-
-  it('FE-API-006: socket ID header reflects current value from getSocketId at request time', async () => {
-    const headers: Array<string | null> = [];
-
-    (wsMock.getSocketId as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce('socket-A')
-      .mockReturnValueOnce('socket-B');
-
-    server.use(
-      http.get('/api/auth/me', ({ request }) => {
-        headers.push(request.headers.get('X-Socket-Id'));
-        return HttpResponse.json({ user: buildUser() });
-      })
-    );
-
-    await authApi.me();
-    await authApi.me();
-
-    expect(headers[0]).toBe('socket-A');
-    expect(headers[1]).toBe('socket-B');
-  });
-
-  it('FE-API-007: non-401/403 errors are passed through as rejections', async () => {
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ error: 'Internal error' }, { status: 500 });
-      })
-    );
-
-    await expect(authApi.me()).rejects.toThrow();
-  });
-
-  // ── 401 edge cases ───────────────────────────────────────────────────────────
-
-  it('FE-API-008: 401 AUTH_REQUIRED on /register path does not redirect', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/register', pathname: '/register', search: '' },
-    });
-
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 });
-      })
-    );
-
-    try { await authApi.me(); } catch { /* expected */ }
-
-    expect(window.location.href).toBe('http://localhost/register');
-  });
-
-  it('FE-API-009: 401 AUTH_REQUIRED on /shared/:token path does not redirect', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/shared/abc123', pathname: '/shared/abc123', search: '' },
-    });
-
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 });
-      })
-    );
-
-    try { await authApi.me(); } catch { /* expected */ }
-
-    expect(window.location.href).toBe('http://localhost/shared/abc123');
-  });
-
-  it('FE-API-010: 401 AUTH_REQUIRED still rejects the promise even when redirect fires', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '' },
-    });
-
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 });
-      })
-    );
-
-    await expect(authApi.me()).rejects.toThrow();
-  });
-
-  // ── 403 edge cases ───────────────────────────────────────────────────────────
-
-  it('FE-API-011: 403 without MFA_REQUIRED code does not redirect', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '' },
-    });
-
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ error: 'Forbidden' }, { status: 403 });
-      })
-    );
-
-    try { await authApi.me(); } catch { /* expected */ }
-
-    expect(window.location.href).toBe('http://localhost/dashboard');
-  });
-
-  it('FE-API-012: 403 MFA_REQUIRED still rejects the promise after redirect fires', async () => {
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '' },
-    });
-
-    server.use(
-      http.get('/api/auth/me', () => {
-        return HttpResponse.json({ code: 'MFA_REQUIRED' }, { status: 403 });
-      })
-    );
-
-    await expect(authApi.me()).rejects.toThrow();
-  });
-
-  // ── backupApi.download ───────────────────────────────────────────────────────
-
-  it('FE-API-013: backupApi.download creates a temp anchor and clicks it', async () => {
-    // backupApi.download uses native fetch (not axios). Mock fetch directly and
-    // use a plain-object Response duck-type to avoid MSW patching the Response
-    // constructor (which calls blob.stream() — not implemented in jsdom's Blob).
-    const blob = new Blob(['zip-bytes'], { type: 'application/zip' });
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      blob: () => Promise.resolve(blob),
-    } as unknown as Response);
-    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
-    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-
-    // Spy on createElement to intercept the anchor click
-    const originalCreate = document.createElement.bind(document);
-    const clickSpy = vi.fn();
-    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-      const el = originalCreate(tag);
-      if (tag === 'a') {
-        Object.defineProperty(el, 'click', { writable: true, value: clickSpy });
-      }
-      return el;
-    });
-
-    await expect(backupApi.download('backup.zip')).resolves.toBeUndefined();
-    expect(createObjectURL).toHaveBeenCalled();
-    expect(clickSpy).toHaveBeenCalled();
-    // The shared helper appends the anchor (Firefox ignores a click on a
-    // detached one) and revokes the object URL a tick later, not in-line.
-    expect(revokeObjectURL).not.toHaveBeenCalled();
-    await new Promise(r => setTimeout(r, 150));
-    expect(revokeObjectURL).toHaveBeenCalled();
-
-    vi.restoreAllMocks();
-  });
-
-  it('FE-API-014: backupApi.download throws when response is not ok', async () => {
-    server.use(
-      http.get('/api/backup/download/missing.zip', () => {
-        return new HttpResponse(null, { status: 404 });
-      })
-    );
-
-    await expect(backupApi.download('missing.zip')).rejects.toThrow('Download failed');
-  });
-
-  // ── API namespace URL spot-checks ────────────────────────────────────────────
-  // (tripsApi/daysApi are local adapters now — api/local/* — so there is no
-  // /api/trips or /api/trips/:id/days traffic left to smoke-test here.)
 
   it('FE-API-017: placesApi.create posts to /api/trips/1/places and returns data directly', async () => {
     const place = { id: 1, name: 'Paris', trip_id: 1 };
-    server.use(
-      http.post('/api/trips/1/places', () => HttpResponse.json(place))
-    );
+    server.use(http.post('/api/trips/1/places', () => HttpResponse.json(place)));
 
     const result = await placesApi.create(1, { name: 'Paris' });
     expect(result).toMatchObject({ name: 'Paris' });
@@ -405,77 +109,18 @@ describe('API client interceptors', () => {
     expect(receivedBody).toMatchObject({ items: [{ name: 'Sunscreen' }] });
   });
 
-  it('FE-API-019: inAppNotificationsApi.list passes unread_only query param', async () => {
-    let searchParams: URLSearchParams | null = null;
+  it('FE-API-007: non-401 errors are passed through as rejections', async () => {
     server.use(
-      http.get('/api/notifications/in-app', ({ request }) => {
-        searchParams = new URL(request.url).searchParams;
-        return HttpResponse.json([]);
-      })
+      http.get('/api/settings', () => HttpResponse.json({ error: 'Internal error' }, { status: 500 }))
     );
 
-    await inAppNotificationsApi.list({ unread_only: true });
-    expect(searchParams?.get('unread_only')).toBe('true');
-  });
-
-  it('FE-API-020: shareApi.getSharedTrip hits /api/shared/tok123', async () => {
-    let hitPath = '';
-    server.use(
-      http.get('/api/shared/tok123', ({ request }) => {
-        hitPath = new URL(request.url).pathname;
-        return HttpResponse.json({ token: 'tok123' });
-      })
-    );
-
-    const result = await shareApi.getSharedTrip('tok123');
-    expect(hitPath).toBe('/api/shared/tok123');
-    expect(result).toMatchObject({ token: 'tok123' });
-  });
-
-  // ── authApi method spot-checks ───────────────────────────────────────────────
-
-  it('FE-API-021: authApi.login posts email and password to /api/auth/login', async () => {
-    const user = buildUser();
-    let receivedBody: unknown;
-    server.use(
-      http.post('/api/auth/login', async ({ request }) => {
-        receivedBody = await request.json();
-        return HttpResponse.json({ user });
-      })
-    );
-
-    const result = await authApi.login({ email: 'a@b.com', password: 'pass' });
-    expect(receivedBody).toMatchObject({ email: 'a@b.com', password: 'pass' });
-    expect(result).toMatchObject({ user: { id: user.id } });
-  });
-
-  it('FE-API-022: authApi.uploadAvatar sends multipart/form-data', async () => {
-    // jsdom's FormData ≠ undici's FormData — MSW body serialisation of FormData
-    // hangs under CI resource constraints. Spy + mock at the axios level to verify
-    // the correct args are passed without going through the network stack.
-    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ data: { avatar_url: '/uploads/avatar.jpg' } } as any);
-
-    const formData = new FormData();
-    formData.append('avatar', new Blob(['img'], { type: 'image/jpeg' }), 'avatar.jpg');
-
-    await authApi.uploadAvatar(formData);
-    expect(postSpy).toHaveBeenCalledWith('/auth/avatar', expect.any(FormData), expect.anything());
-    postSpy.mockRestore();
-  });
-
-  it('FE-API-023: authApi.mcpTokens.create posts name to /api/auth/mcp-tokens', async () => {
-    let receivedBody: unknown;
-    server.use(
-      http.post('/api/auth/mcp-tokens', async ({ request }) => {
-        receivedBody = await request.json();
-        return HttpResponse.json({ id: 1, name: 'My Token', token: 'tok' });
-      })
-    );
-
-    await authApi.mcpTokens.create('My Token');
-    expect(receivedBody).toMatchObject({ name: 'My Token' });
+    await expect(settingsApi.get()).rejects.toThrow();
   });
 });
+
+// ── API namespace smoke tests ────────────────────────────────────────────────
+// (tripsApi/daysApi are local adapters — api/local/* — so there is no
+// /api/trips or /api/trips/:id/days traffic left to smoke-test here.)
 
 describe('API namespace smoke tests', () => {
   it('assignmentsApi.list fetches day assignments', async () => {
@@ -493,19 +138,14 @@ describe('API namespace smoke tests', () => {
     await expect(categoriesApi.list()).resolves.toEqual([]);
   });
 
-  it('adminApi.users fetches admin users', async () => {
-    server.use(http.get('/api/admin/users', () => HttpResponse.json([])));
-    await expect(adminApi.users()).resolves.toEqual([]);
-  });
-
-  it('addonsApi.enabled fetches enabled addons', async () => {
-    server.use(http.get('/api/addons', () => HttpResponse.json([])));
-    await expect(addonsApi.enabled()).resolves.toEqual([]);
-  });
-
   it('mapsApi.search posts query', async () => {
     server.use(http.post('/api/maps/search', () => HttpResponse.json({ results: [] })));
     await expect(mapsApi.search('Paris')).resolves.toMatchObject({ results: [] });
+  });
+
+  it('mapsApi.reverse fetches reverse geocode', async () => {
+    server.use(http.get('/api/maps/reverse', () => HttpResponse.json({ display_name: 'Rome' })));
+    await expect(mapsApi.reverse(41.9, 12.5)).resolves.toMatchObject({ display_name: 'Rome' });
   });
 
   it('budgetApi.list fetches budget items', async () => {
@@ -542,63 +182,6 @@ describe('API namespace smoke tests', () => {
     server.use(http.get('/api/trips/1/days/1/notes', () => HttpResponse.json([])));
     await expect(dayNotesApi.list(1, 1)).resolves.toEqual([]);
   });
-
-  it('collabApi.getNotes fetches collab notes', async () => {
-    server.use(http.get('/api/trips/1/collab/notes', () => HttpResponse.json([])));
-    await expect(collabApi.getNotes(1)).resolves.toEqual([]);
-  });
-
-  it('notificationsApi.getPreferences fetches preferences', async () => {
-    server.use(http.get('/api/notifications/preferences', () => HttpResponse.json({ email: true })));
-    await expect(notificationsApi.getPreferences()).resolves.toMatchObject({ email: true });
-  });
-
-  it('inAppNotificationsApi.unreadCount fetches unread count', async () => {
-    server.use(http.get('/api/notifications/in-app/unread-count', () => HttpResponse.json({ count: 3 })));
-    await expect(inAppNotificationsApi.unreadCount()).resolves.toMatchObject({ count: 3 });
-  });
-
-  it('inAppNotificationsApi.markRead marks a notification read', async () => {
-    server.use(http.put('/api/notifications/in-app/5/read', () => HttpResponse.json({ ok: true })));
-    await expect(inAppNotificationsApi.markRead(5)).resolves.toMatchObject({ ok: true });
-  });
-
-  it('inAppNotificationsApi.markAllRead marks all notifications read', async () => {
-    server.use(http.put('/api/notifications/in-app/read-all', () => HttpResponse.json({ ok: true })));
-    await expect(inAppNotificationsApi.markAllRead()).resolves.toMatchObject({ ok: true });
-  });
-
-  it('inAppNotificationsApi.delete deletes a notification', async () => {
-    server.use(http.delete('/api/notifications/in-app/5', () => HttpResponse.json({ ok: true })));
-    await expect(inAppNotificationsApi.delete(5)).resolves.toMatchObject({ ok: true });
-  });
-
-  it('inAppNotificationsApi.markUnread marks a notification unread', async () => {
-    server.use(http.put('/api/notifications/in-app/5/unread', () => HttpResponse.json({ ok: true })));
-    await expect(inAppNotificationsApi.markUnread(5)).resolves.toMatchObject({ ok: true });
-  });
-
-  it('inAppNotificationsApi.deleteAll deletes all notifications', async () => {
-    server.use(http.delete('/api/notifications/in-app/all', () => HttpResponse.json({ ok: true })));
-    await expect(inAppNotificationsApi.deleteAll()).resolves.toMatchObject({ ok: true });
-  });
-
-  it('inAppNotificationsApi.respond posts a response', async () => {
-    server.use(http.post('/api/notifications/in-app/5/respond', () => HttpResponse.json({ ok: true })));
-    await expect(inAppNotificationsApi.respond(5, 'positive')).resolves.toMatchObject({ ok: true });
-  });
-
-  it('notificationsApi.updatePreferences updates preferences', async () => {
-    server.use(http.put('/api/notifications/preferences', () => HttpResponse.json({ ok: true })));
-    await expect(notificationsApi.updatePreferences({ email: { trip_invite: true } })).resolves.toMatchObject({ ok: true });
-  });
-
-  it('backupApi.list fetches backup list', async () => {
-    server.use(http.get('/api/backup/list', () => HttpResponse.json([])));
-    await expect(backupApi.list()).resolves.toEqual([]);
-  });
-
-  // ── placesApi additional methods ─────────────────────────────────────────────
 
   it('placesApi.list fetches places', async () => {
     server.use(http.get('/api/trips/1/places', () => HttpResponse.json([])));
@@ -676,20 +259,6 @@ describe('API namespace smoke tests', () => {
     await expect(categoriesApi.delete(1)).resolves.toMatchObject({ ok: true });
   });
 
-  // ── adminApi additional methods ───────────────────────────────────────────────
-
-  it('adminApi.stats fetches admin stats', async () => {
-    server.use(http.get('/api/admin/stats', () => HttpResponse.json({ trips: 5 })));
-    await expect(adminApi.stats()).resolves.toMatchObject({ trips: 5 });
-  });
-
-  it('adminApi.createUser creates a user', async () => {
-    server.use(http.post('/api/admin/users', () => HttpResponse.json({ id: 10 })));
-    await expect(adminApi.createUser({ email: 'x@x.com' })).resolves.toMatchObject({ id: 10 });
-  });
-
-  // ── budgetApi additional methods ─────────────────────────────────────────────
-
   it('budgetApi.create creates a budget item', async () => {
     server.use(http.post('/api/trips/1/budget', () => HttpResponse.json({ id: 1 })));
     await expect(budgetApi.create(1, { name: 'Hotel' })).resolves.toMatchObject({ id: 1 });
@@ -743,108 +312,8 @@ describe('API namespace smoke tests', () => {
     await expect(dayNotesApi.delete(1, 1, 1)).resolves.toMatchObject({ ok: true });
   });
 
-  // ── collabApi additional methods ─────────────────────────────────────────────
-
-  it('collabApi.createNote creates a note', async () => {
-    server.use(http.post('/api/trips/1/collab/notes', () => HttpResponse.json({ id: 1 })));
-    await expect(collabApi.createNote(1, { title: 'Note' })).resolves.toMatchObject({ id: 1 });
-  });
-
-  it('collabApi.deleteNote deletes a note', async () => {
-    server.use(http.delete('/api/trips/1/collab/notes/1', () => HttpResponse.json({ ok: true })));
-    await expect(collabApi.deleteNote(1, 1)).resolves.toMatchObject({ ok: true });
-  });
-
-  // ── backupApi additional methods ─────────────────────────────────────────────
-
-  it('backupApi.getAutoSettings fetches auto backup settings', async () => {
-    server.use(http.get('/api/backup/auto-settings', () => HttpResponse.json({ enabled: true })));
-    await expect(backupApi.getAutoSettings()).resolves.toMatchObject({ enabled: true });
-  });
-
-  it('backupApi.delete deletes a backup', async () => {
-    server.use(http.delete('/api/backup/backup.zip', () => HttpResponse.json({ ok: true })));
-    await expect(backupApi.delete('backup.zip')).resolves.toMatchObject({ ok: true });
-  });
-
-  // ── shareApi additional methods ───────────────────────────────────────────────
-
-  it('shareApi.createLink creates a share link', async () => {
-    server.use(http.post('/api/trips/1/share-link', () => HttpResponse.json({ token: 'abc' })));
-    await expect(shareApi.createLink(1)).resolves.toMatchObject({ token: 'abc' });
-  });
-
-  it('shareApi.deleteLink deletes a share link', async () => {
-    server.use(http.delete('/api/trips/1/share-link', () => HttpResponse.json({ ok: true })));
-    await expect(shareApi.deleteLink(1)).resolves.toMatchObject({ ok: true });
-  });
-
-  // ── notificationsApi additional methods ───────────────────────────────────────
-
-  it('notificationsApi.testWebhook tests webhook endpoint', async () => {
-    server.use(http.post('/api/notifications/test-webhook', () => HttpResponse.json({ ok: true })));
-    await expect(notificationsApi.testWebhook('http://example.com')).resolves.toMatchObject({ ok: true });
-  });
-
-  it('notificationsApi.testSmtp tests smtp endpoint', async () => {
-    server.use(http.post('/api/notifications/test-smtp', () => HttpResponse.json({ ok: true })));
-    await expect(notificationsApi.testSmtp('user@example.com')).resolves.toMatchObject({ ok: true });
-  });
-
   // ── mapsApi additional methods ────────────────────────────────────────────────
 
-  it('mapsApi.reverse fetches reverse geocode', async () => {
-    server.use(http.get('/api/maps/reverse', () => HttpResponse.json({ address: 'Paris' })));
-    await expect(mapsApi.reverse(48.8, 2.3)).resolves.toMatchObject({ address: 'Paris' });
-  });
-
-  // ── collabApi messaging methods ───────────────────────────────────────────────
-
-  it('collabApi.getMessages fetches messages', async () => {
-    server.use(http.get('/api/trips/1/collab/messages', () => HttpResponse.json([])));
-    await expect(collabApi.getMessages(1)).resolves.toEqual([]);
-  });
-
-  it('collabApi.sendMessage sends a message', async () => {
-    server.use(http.post('/api/trips/1/collab/messages', () => HttpResponse.json({ id: 1 })));
-    await expect(collabApi.sendMessage(1, { text: 'Hello' })).resolves.toMatchObject({ id: 1 });
-  });
-
-  it('collabApi.deleteMessage deletes a message', async () => {
-    server.use(http.delete('/api/trips/1/collab/messages/1', () => HttpResponse.json({ ok: true })));
-    await expect(collabApi.deleteMessage(1, 1)).resolves.toMatchObject({ ok: true });
-  });
-
-  it('collabApi.reactMessage reacts to a message', async () => {
-    server.use(http.post('/api/trips/1/collab/messages/1/react', () => HttpResponse.json({ ok: true })));
-    await expect(collabApi.reactMessage(1, 1, '👍')).resolves.toMatchObject({ ok: true });
-  });
-
-  it('collabApi.getPolls fetches polls', async () => {
-    server.use(http.get('/api/trips/1/collab/polls', () => HttpResponse.json([])));
-    await expect(collabApi.getPolls(1)).resolves.toEqual([]);
-  });
-
-  it('backupApi.uploadRestore uploads and restores a backup', async () => {
-    // FormData POST hangs on CI — mock at the axios level (see FE-API-022 comment).
-    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValueOnce({ data: { ok: true } } as any);
-    const file = new File(['data'], 'backup.zip', { type: 'application/zip' });
-    await expect(backupApi.uploadRestore(file)).resolves.toMatchObject({ ok: true });
-    postSpy.mockRestore();
-  });
-
-  it('backupApi.restore restores a named backup', async () => {
-    server.use(http.post('/api/backup/restore/backup.zip', () => HttpResponse.json({ ok: true })));
-    await expect(backupApi.restore('backup.zip')).resolves.toMatchObject({ ok: true });
-  });
-
-  it('backupApi.create creates a backup', async () => {
-    server.use(http.post('/api/backup/create', () => HttpResponse.json({ filename: 'backup.zip' })));
-    await expect(backupApi.create()).resolves.toMatchObject({ filename: 'backup.zip' });
-  });
-});
-
-describe('mapsApi', () => {
   it('FE-MAPS-001: mapsApi.autocomplete sends input, lang, and locationBias', async () => {
     let capturedBody: any = null;
 

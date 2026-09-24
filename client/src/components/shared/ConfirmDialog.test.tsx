@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import ConfirmDialog from './ConfirmDialog';

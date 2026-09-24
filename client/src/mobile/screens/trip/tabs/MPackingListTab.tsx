@@ -10,7 +10,6 @@ import { useAddonStore } from '../../../../store/addonStore'
 import { useTripStore } from '../../../../store/tripStore'
 import { packingApi } from '../../../../api/client'
 import { useNetworkMode } from '../../../../hooks/useNetworkMode'
-import { useBagTotalsPing } from '../../../../components/Packing/useBagTotalsPing'
 import type { PackingUpdateBagRequest } from '@trek/shared'
 import type { PackingBag, PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
@@ -81,10 +80,6 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   }, [tripId, bagTrackingEnabled])
 
   useEffect(() => { void reloadBags() }, [reloadBags])
-
-  // Bag weights are server-summed across every member (#2191), so an item this
-  // viewer cannot see still moves them; the server pings the room content-free.
-  useBagTotalsPing(bagTrackingEnabled, reloadBags)
 
   // Bags have no offline cache, so their totals go stale the moment the device
   // does; offline the sheet sums what it can see instead (#2191).

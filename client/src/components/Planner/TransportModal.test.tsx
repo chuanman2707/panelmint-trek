@@ -11,8 +11,6 @@ import {
   buildUser,
   buildTrip,
   buildDay,
-  buildPlace,
-  buildAssignment,
   buildReservation,
   buildTripFile,
 } from '../../../tests/helpers/factories';
@@ -153,6 +151,8 @@ describe('TransportModal', () => {
   });
 
   it('FE-PLANNER-TRANSMODAL-012: costs section not shown when budget addon is disabled', () => {
+    // Budget is on in the static addon set — empty the list to switch it off.
+    seedStore(useAddonStore, { addons: [], loaded: true });
     render(<TransportModal {...defaultProps} />);
     expect(screen.queryByRole('button', { name: /Create expense/i })).not.toBeInTheDocument();
   });
@@ -433,54 +433,11 @@ describe('TransportModal', () => {
     expect(onSave.mock.calls[0][0].metadata?.airtrail_ids).toEqual(['101', '102']);
   });
 
-  // ── Manual / Automated creation switch (#1065) ─────────────────────────────
-
-  it('FE-PLANNER-TRANSMODAL-022: creating shows the Manual/Automated switch; Automated opens the transit search', async () => {
-    render(<TransportModal {...defaultProps} places={[]} accommodations={[]} />);
-    expect(screen.getByRole('button', { name: 'Manual' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Automated' }));
-    // No day selected in defaultProps (days: []) — the pick-day hint shows.
-    expect(screen.getByText(/Pick a day/)).toBeInTheDocument();
-    // The manual form is gone in automated mode.
-    expect(screen.queryByPlaceholderText(/e\.g\. Lufthansa/i)).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-022b: a trip without start/end dates only offers the manual form', () => {
-    render(<TransportModal {...defaultProps} tripHasDates={false} places={[]} accommodations={[]} />);
+  it('FE-PLANNER-TRANSMODAL-022: creating shows the manual form directly (no Automated switch — the transit planner went away with the hosted build)', () => {
+    render(<TransportModal {...defaultProps} />);
     expect(screen.queryByRole('button', { name: 'Automated' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Manual' })).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText(/e\.g\. Lufthansa/i)).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-023: initialAutomated opens straight in the transit search with the day preset', () => {
-    const days = [{ id: 10, trip_id: 1, day_number: 1, date: '2025-06-01', title: 'Day 1' }] as any;
-    render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated places={[]} accommodations={[]} />);
-    expect(screen.getAllByPlaceholderText('Search stop or station…')).toHaveLength(2);
-  });
-
-  it('FE-PLANNER-TRANSMODAL-028: automated quick picks only offer the chosen day\'s places (#1460)', async () => {
-    const days = [
-      buildDay({ id: 10, date: '2025-06-01' }),
-      buildDay({ id: 11, date: '2025-06-02' }),
-    ];
-    const louvre = buildPlace({ id: 1, name: 'Louvre' });
-    const eiffel = buildPlace({ id: 2, name: 'Eiffel Tower' });
-    const assignments = {
-      '10': [buildAssignment({ day_id: 10, place_id: louvre.id, place: louvre })],
-      '11': [buildAssignment({ day_id: 11, place_id: eiffel.id, place: eiffel })],
-    };
-    render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated places={[louvre, eiffel]} assignments={assignments} accommodations={[]} />);
-    // Focusing the "from" field opens the quick picks — day 1's place only.
-    const [fromInput] = screen.getAllByPlaceholderText('Search stop or station…');
-    await userEvent.click(fromInput);
-    expect(screen.getByText('Louvre')).toBeInTheDocument();
-    expect(screen.queryByText('Eiffel Tower')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-024: editing shows no Manual/Automated switch', () => {
-    const res = buildReservation({ title: 'My Train', type: 'train' });
-    render(<TransportModal {...defaultProps} reservation={res} />);
-    expect(screen.queryByRole('button', { name: 'Automated' })).not.toBeInTheDocument();
   });
 
   // ── Multi-leg trains (#1150) ───────────────────────────────────────────────
@@ -1317,44 +1274,5 @@ describe('TransportModal', () => {
     const row = screen.getByText('boarding.pdf').closest('div') as HTMLElement;
     await userEvent.click(within(row).getByRole('button', { name: /open/i }));
     expect(screen.getByText('boarding.pdf')).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-054: switching the transit day rescopes the quick picks', async () => {
-    const days = [
-      buildDay({ id: 10, date: '2025-06-01', title: 'Day one' }),
-      buildDay({ id: 11, date: '2025-06-02', title: 'Day two' }),
-    ];
-    const louvre = buildPlace({ id: 1, name: 'Louvre' });
-    const eiffel = buildPlace({ id: 2, name: 'Eiffel Tower' });
-    const orsay = buildPlace({ id: 3, name: 'Musée d\'Orsay' });
-    const assignments = {
-      '10': [buildAssignment({ day_id: 10, place_id: louvre.id, place: louvre })],
-      // Two entries so the quick picks follow the day's own order.
-      '11': [
-        buildAssignment({ day_id: 11, order_index: 1, place_id: orsay.id, place: orsay }),
-        buildAssignment({ day_id: 11, order_index: 0, place_id: eiffel.id, place: eiffel }),
-      ],
-    };
-
-    render(
-      <TransportModal
-        {...defaultProps}
-        days={days}
-        selectedDayId={10}
-        initialAutomated
-        places={[louvre, eiffel, orsay]}
-        assignments={assignments}
-        accommodations={[]}
-      />,
-    );
-
-    await userEvent.click(screen.getByText('Day one'));
-    await userEvent.click(screen.getByRole('button', { name: /^Day two/ }));
-
-    const [fromInput] = screen.getAllByPlaceholderText('Search stop or station…');
-    await userEvent.click(fromInput);
-    expect(screen.getByText('Eiffel Tower')).toBeInTheDocument();
-    expect(screen.getByText(/Orsay/)).toBeInTheDocument();
-    expect(screen.queryByText('Louvre')).not.toBeInTheDocument();
   });
 });

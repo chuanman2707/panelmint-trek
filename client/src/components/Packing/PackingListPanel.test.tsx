@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
+import { useAddonStore } from '../../store/addonStore';
 import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildAdmin, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
@@ -392,6 +393,8 @@ describe('PackingListPanel', () => {
   });
 
   it('FE-COMP-PACKING-029: bag tracking sidebar not shown when disabled', async () => {
+    // bagTracking defaults on in the static addon store — turn it off here.
+    seedStore(useAddonStore, { bagTracking: false });
     render(<PackingListPanel tripId={1} items={[buildPackingItem({ category: 'Test' })]} />);
     // No "Bags" heading or luggage sidebar should appear
     await waitFor(() => {

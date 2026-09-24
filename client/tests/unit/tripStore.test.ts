@@ -9,18 +9,6 @@ import { server } from '../helpers/msw/server';
 import { db } from '../../src/db/panelmintDb';
 import type { DayRow } from '../../src/api/local/dexieStore';
 
-vi.mock('../../src/api/websocket', () => ({
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  getSocketId: vi.fn(() => null),
-  joinTrip: vi.fn(),
-  leaveTrip: vi.fn(),
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-  setRefetchCallback: vi.fn(),
-  setPreReconnectHook: vi.fn(),
-}));
-
 beforeEach(async () => {
   resetAllStores();
   await db.transaction('rw', db.tables, async () => {

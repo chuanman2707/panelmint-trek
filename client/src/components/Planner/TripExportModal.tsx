@@ -1,24 +1,11 @@
 import { useState, type ReactNode } from 'react'
-import { CalendarDays, CalendarPlus, ChevronRight, Download, FileText, Loader2, MapPin, Route as RouteIcon } from 'lucide-react'
+import { ChevronRight, Download, FileText, Loader2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Modal from '../shared/Modal'
-import { IcsSubscribeModal } from './IcsSubscribeModal'
 import { useToast } from '../shared/Toast'
 import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
-
-/**
- * What a GPX download can carry. Worded by what someone wants on their device
- * rather than by the GPX element it maps to: "everything", "just the places" for
- * an offline map, "just the days" for following a plan. An omitted flag defaults
- * to true server-side, so the first entry needs no query at all.
- */
-const GPX_SCOPES = [
-  { key: 'all', query: '', labelKey: 'dayplan.gpxAll', icon: Download },
-  { key: 'places', query: '?dayRoutes=false', labelKey: 'dayplan.gpxPlaces', icon: MapPin },
-  { key: 'days', query: '?waypoints=false&tracks=false', labelKey: 'dayplan.gpxDays', icon: RouteIcon },
-] as const
 
 interface TripExportModalProps {
   isOpen: boolean
@@ -34,28 +21,18 @@ interface TripExportModalProps {
   t: (key: string, params?: Record<string, any>) => string
   locale: string
   toast: ReturnType<typeof useToast>
-  /**
-   * Gates "Subscribe to calendar" only. The one-off ICS download above it stays
-   * open to every member: it is a file they already have the right to read,
-   * while the subscription mints a link that works without an account.
-   */
-  canManageShare?: boolean
 }
 
 /**
- * Every way a trip leaves TREK, in one dialog: the day plan as a PDF, the
- * bookings as a calendar (a one-off .ics or a live subscription) and the map
- * data as GPX in the three scopes a device actually wants.
- *
- * It replaces three separate toolbar buttons, two of which opened hover menus of
- * their own. On a narrow sidebar that row simply ran out of width and the
- * exports dropped off the edge; one button cannot.
+ * Every way a trip leaves PanelMint, in one dialog. The hosted formats — ICS
+ * download, calendar feed subscription, GPX export — hit server endpoints and
+ * are cut in the local build; the day plan as a PDF is rendered client-side
+ * and stays.
  */
 export function TripExportModal({
   isOpen, onClose, tripId, trip, days, places, categories, assignments, reservations, dayNotes,
-  t, locale, toast, canManageShare = true,
+  t, locale, toast,
 }: TripExportModalProps) {
-  const [subscribeOpen, setSubscribeOpen] = useState(false)
   // Which row is working, so the dialog can say so instead of looking inert
   // while a 226 kB PDF builder is fetched and a document is rendered.
   const [busy, setBusy] = useState<string | null>(null)
@@ -65,19 +42,6 @@ export function TripExportModal({
   // The export gets the store's assignments and applies the day plan's own filter to
   // them, so it needs the same switch the plan reads.
   const showServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false, tripId)
-  const fileBase = trip?.title || 'trip'
-
-  // Shared tail of every download: Firefox and Safari cancel the download when
-  // the object URL is revoked before they picked the blob up, hence the delay.
-  const saveBlob = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    setTimeout(() => { URL.revokeObjectURL(url); a.remove() }, 100)
-  }
 
   const exportPdf = async () => {
     if (busy) return
@@ -101,41 +65,7 @@ export function TripExportModal({
     }
   }
 
-  const downloadIcs = async () => {
-    if (busy) return
-    setBusy('ics')
-    try {
-      const res = await fetch(`/api/trips/${tripId}/export.ics`, { credentials: 'include' })
-      if (!res.ok) throw new Error()
-      saveBlob(await res.blob(), `${fileBase}.ics`)
-      onClose()
-    } catch {
-      toast.error(t('planner.icsExportFailed'))
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const downloadGpx = async (key: string, query: string) => {
-    if (busy) return
-    setBusy(`gpx:${key}`)
-    try {
-      const res = await fetch(`/api/trips/${tripId}/places/export.gpx${query}`, { credentials: 'include' })
-      // 404 here means the selection is empty, which is worth its own message:
-      // "nothing happened" and "the download broke" look identical otherwise.
-      if (res.status === 404) { toast.info(t('dayplan.gpxEmpty')); return }
-      if (!res.ok) throw new Error()
-      saveBlob(await res.blob(), `${fileBase}.gpx`)
-      onClose()
-    } catch {
-      toast.error(t('dayplan.gpxFailed'))
-    } finally {
-      setBusy(null)
-    }
-  }
-
   return (
-    <>
       <Modal
         isOpen={isOpen}
         onClose={onClose}
@@ -161,53 +91,7 @@ export function TripExportModal({
             onClick={exportPdf}
           />
         </Section>
-
-        <Section label={t('dayplan.exportCalendar')}>
-          <ExportRow
-            icon={CalendarDays}
-            title={t('mobileTrip.icsDownload')}
-            sub={`${fileBase}.ics`}
-            busy={busy === 'ics'}
-            disabled={busy != null}
-            onClick={downloadIcs}
-          />
-          {canManageShare && (
-            <ExportRow
-              icon={CalendarPlus}
-              title={t('mobileTrip.icsSubscribe')}
-              sub={t('mobileTrip.icsSubscribeSub')}
-              disabled={busy != null}
-              onClick={() => setSubscribeOpen(true)}
-            />
-          )}
-        </Section>
-
-        {/* GPX — the counterpart to the GPX import in the places sidebar. The
-            format name carries more than a translated heading would, so it is
-            spelled out beside the plain-language one. */}
-        <Section label={`${t('dayplan.exportMaps')} · GPX`}>
-          {GPX_SCOPES.map(scope => (
-            <ExportRow
-              key={scope.key}
-              icon={scope.icon}
-              title={t(scope.labelKey)}
-              busy={busy === `gpx:${scope.key}`}
-              disabled={busy != null}
-              onClick={() => downloadGpx(scope.key, scope.query)}
-            />
-          ))}
-        </Section>
       </Modal>
-
-      {subscribeOpen && canManageShare && (
-        <IcsSubscribeModal
-          endpoint={`/api/trips/${tripId}/feed`}
-          title={t('mobileTrip.icsSubscribe')}
-          description={t('mobileTrip.icsSubscribeSub')}
-          onClose={() => setSubscribeOpen(false)}
-        />
-      )}
-    </>
   )
 }
 

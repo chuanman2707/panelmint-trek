@@ -151,12 +151,6 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     setEditingTransport: vi.fn(),
     transportModalDayId: null,
     setTransportModalDayId: vi.fn(),
-    transportModalAutomated: false,
-    setTransportModalAutomated: vi.fn(),
-    transitPrefill: null,
-    setTransitPrefill: vi.fn(),
-    transitJourney: null,
-    setTransitJourney: vi.fn(),
     reservationPrefill: null,
     transportPrefill: null,
     importReviewActive: false,
@@ -318,15 +312,12 @@ export function buildShell(overrides: Partial<MTripShellApi> = {}): MTripShellAp
     closeSheet: vi.fn(),
     listsTab: 'packing',
     setListsTab: vi.fn(),
-    collabTab: 'chat',
-    setCollabTab: vi.fn(),
     transportsCompact: false,
     bookingsCompact: false,
     addExpenseSignal: 0,
     exportCostsCsvSignal: 0,
     uploadFilesSignal: 0,
     openFilesTrashSignal: 0,
-    openDocSyncSignal: 0,
   };
   return { ...base, ...overrides };
 }

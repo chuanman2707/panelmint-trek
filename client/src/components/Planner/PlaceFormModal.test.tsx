@@ -186,37 +186,6 @@ describe('PlaceFormModal', () => {
     expect(await screen.findByText('Eiffel Tower')).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-PLACEFORM-018b: a list the index answered offers Google instead, and the link sends the same query there alone', async () => {
-    const user = userEvent.setup();
-    seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, hasMapsKey: true });
-    const bodies: Record<string, unknown>[] = [];
-    server.use(
-      http.post('/api/maps/search', async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        bodies.push(body);
-        return body.provider === 'google'
-          ? HttpResponse.json({ places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }], source: 'google' })
-          : HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' });
-      }),
-    );
-
-    render(<PlaceFormModal {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText('Search places...');
-    await user.type(searchInput, 'Tokyo Station');
-    const searchRow = searchInput.closest('.flex') as HTMLElement;
-    await user.click(within(searchRow).getByRole('button'));
-    expect(await screen.findByText('Weigh station')).toBeInTheDocument();
-
-    // The quiet line under the list, only because the instance has a key and
-    // this list did not come from Google.
-    const retry = screen.getByRole('button', { name: /Search Google instead/ });
-    await user.click(retry);
-    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument();
-    expect(bodies[0]).not.toHaveProperty('provider');
-    expect(bodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' });
-    // A list Google produced has nowhere further to go.
-    expect(screen.queryByRole('button', { name: /Search Google instead/ })).toBeNull();
-  });
 
   it('FE-PLANNER-PLACEFORM-018c: without a Google key the list offers nothing', async () => {
     const user = userEvent.setup();
@@ -251,62 +220,7 @@ describe('PlaceFormModal', () => {
     expect(screen.queryByRole('button', { name: /Search Google instead/ })).toBeNull();
   });
 
-  it('FE-PLANNER-PLACEFORM-018e: the link sends the query the list came from, not what the field holds by then', async () => {
-    const user = userEvent.setup();
-    seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, hasMapsKey: true });
-    const bodies: Record<string, unknown>[] = [];
-    server.use(
-      http.post('/api/maps/autocomplete', () => HttpResponse.json({ suggestions: [], source: 'trek-places' })),
-      http.post('/api/maps/search', async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        bodies.push(body);
-        return body.provider === 'google'
-          ? HttpResponse.json({ places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }], source: 'google' })
-          : HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' });
-      }),
-    );
 
-    render(<PlaceFormModal {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText('Search places...');
-    await user.type(searchInput, 'Tokyo Station');
-    await user.click(within(searchInput.closest('.flex') as HTMLElement).getByRole('button'));
-    expect(await screen.findByText('Weigh station')).toBeInTheDocument();
-
-    // The list stays while the field is retyped; the line still means this list.
-    await user.clear(searchInput);
-    await user.type(searchInput, 'Kyoto');
-    await user.click(screen.getByRole('button', { name: /Search Google instead/ }));
-    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument();
-    expect(bodies).toHaveLength(2);
-    expect(bodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' });
-  });
-
-  it('FE-PLANNER-PLACEFORM-018f: the link still works after the field was cleared', async () => {
-    const user = userEvent.setup();
-    seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, hasMapsKey: true });
-    const bodies: Record<string, unknown>[] = [];
-    server.use(
-      http.post('/api/maps/search', async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        bodies.push(body);
-        return body.provider === 'google'
-          ? HttpResponse.json({ places: [{ name: 'Tokyo Station', address: 'Chiyoda', lat: '35.68', lng: '139.77' }], source: 'google' })
-          : HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' });
-      }),
-    );
-
-    render(<PlaceFormModal {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText('Search places...');
-    await user.type(searchInput, 'Tokyo Station');
-    await user.click(within(searchInput.closest('.flex') as HTMLElement).getByRole('button'));
-    expect(await screen.findByText('Weigh station')).toBeInTheDocument();
-
-    // An empty field used to make the click a silent no-op.
-    await user.clear(searchInput);
-    await user.click(screen.getByRole('button', { name: /Search Google instead/ }));
-    expect(await screen.findByText('Tokyo Station')).toBeInTheDocument();
-    expect(bodies[1]).toMatchObject({ query: 'Tokyo Station', provider: 'google' });
-  });
 
   it('FE-PLANNER-PLACEFORM-019: pressing Enter in search input triggers search', async () => {
     const user = userEvent.setup();
@@ -1367,18 +1281,6 @@ describe('PlaceFormModal', () => {
     );
   });
 
-  it('FE-PLANNER-PLACEFORM-059: the Collections column only appears on desktop with the addon enabled', () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'collections', name: 'Collections', type: 'collections', icon: '', enabled: true }],
-      loaded: true,
-    });
-    const { unmount } = render(<PlaceFormModal {...defaultProps} isMobile={false} />);
-    expect(screen.getByPlaceholderText(/Search your saved places/i)).toBeInTheDocument();
-    unmount();
-
-    render(<PlaceFormModal {...defaultProps} isMobile />);
-    expect(screen.queryByPlaceholderText(/Search your saved places/i)).not.toBeInTheDocument();
-  });
 
   // ── Time section edge cases ────────────────────────────────────────────────
 
@@ -1750,6 +1652,8 @@ describe('PlaceFormModal remaining branches', () => {
     });
 
     it('FE-PLANNER-PLACEFORM-068: the block only appears while the Budget addon is on', () => {
+      // Budget is on in the static addon set — empty the list to switch it off.
+      seedStore(useAddonStore, { addons: [], loaded: true });
       const { unmount } = render(<PlaceFormModal {...defaultProps} />);
       expect(screen.queryByRole('button', { name: /Create expense/i })).not.toBeInTheDocument();
       unmount();

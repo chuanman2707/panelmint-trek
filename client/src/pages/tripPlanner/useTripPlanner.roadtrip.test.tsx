@@ -6,14 +6,13 @@ import { TranslationProvider } from '../../i18n/TranslationContext'
 import { useTripPlanner } from './useTripPlanner'
 import { useTripStore, type TripStoreState } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
-import { usePluginStore } from '../../store/pluginStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
+import { useAddonStore } from '../../store/addonStore'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation } from '../../../tests/helpers/factories'
 import {
-  addonsApi, accommodationsApi, authApi, tripsApi, healthApi, airtrailApi, mapsApi,
+  accommodationsApi, tripsApi, mapsApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { dayColor } from '../../components/Roadtrip/dayColors'
@@ -44,7 +43,6 @@ vi.mock('react-router', () => ({
   useSearchParams: () => [searchParams, vi.fn()],
 }))
 
-vi.mock('../../hooks/useTripWebSocket', () => ({ useTripWebSocket: vi.fn() }))
 
 const updateRouteForDay = vi.fn(async (_dayId: number | null) => {})
 vi.mock('../../hooks/useRouteCalculation', () => ({
@@ -59,9 +57,6 @@ vi.mock('../../hooks/useRouteCalculation', () => ({
   }),
 }))
 
-vi.mock('../../hooks/useAirtrailConnection', () => ({
-  useAirtrailConnection: () => ({ airtrailEnabled: false, connected: false, available: false, loading: false }),
-}))
 
 vi.mock('../../repo/accommodationRepo', () => ({
   accommodationRepo: { list: vi.fn(async () => ({ accommodations: [] })) },
@@ -306,6 +301,13 @@ beforeEach(() => {
   rt.vias.byDay = {}
   rt.vias.stale = false
   rt.vias.editable = true
+  // mockRejectedValue outlives mockClear — re-seat the happy-path impls so a
+  // rejection planted by one test does not leak into the next.
+  rt.vias.add.mockImplementation(async () => {})
+  rt.vias.addMany.mockImplementation(async () => {})
+  rt.vias.move.mockImplementation(async () => {})
+  rt.vias.remove.mockImplementation(async () => {})
+  rt.vias.reanchor.mockImplementation(async () => {})
   rt.routes.days = []
   rt.routesArgs.current = []
   rt.routes.lines = []
@@ -319,8 +321,6 @@ beforeEach(() => {
   rt.alt.open = null
   rt.altFresh.current = false
 
-  usePluginStore.setState({ plugins: [], loaded: true })
-  useBackgroundTasksStore.setState({ tasks: [] })
   window.__addToast = ((message: string, type: string) => {
     toasts.push({ message, type })
     return 1
@@ -329,14 +329,13 @@ beforeEach(() => {
 
   // The two switches this whole file depends on.
   sessionStorage.setItem('trip-roadtrip-42', '1')
-  vi.spyOn(addonsApi, 'enabled').mockResolvedValue({ addons: [{ id: 'roadtrip' }] } as never)
-
-  vi.spyOn(authApi, 'getAppConfig').mockResolvedValue({})
-  vi.spyOn(healthApi, 'features').mockResolvedValue({ bookingImport: false, aiParsing: false })
+  seedStore(useAddonStore, {
+    addons: [{ id: 'roadtrip', name: 'Road trip', type: 'trip', icon: '', enabled: true }],
+    loaded: true,
+  })
   vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [], current_user_id: 1 })
   vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
   vi.spyOn(accommodationsApi, 'create').mockResolvedValue({ id: 7 } as never)
-  vi.spyOn(airtrailApi, 'sync').mockResolvedValue({ changed: 0 })
   vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: '', address: '' } as never)
   vi.mocked(accommodationRepo.list).mockResolvedValue({ accommodations: [] })
 })

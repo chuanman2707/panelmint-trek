@@ -12,7 +12,6 @@ import maplibregl from 'maplibre-gl'
 import { DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { MAP_LAYER_SWITCHER_INSET } from './MapLayerSwitcher'
 import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
-import type { PluginMapLayer, PluginMapLayerFeature, PluginMapMarker } from '../../api/client'
 import type { Poi } from './poiCategories'
 import type { RouteVia } from '../../types'
 
@@ -283,6 +282,9 @@ beforeEach(() => {
       mapbox_3d_enabled: false,
     },
   } as any)
+  // The photo-thumbnail tests cover the flag-on path; the local build's default
+  // is off, and resetAllStores restores that default after each test.
+  useAuthStore.setState({ placesPhotosEnabled: true })
 })
 
 afterEach(() => {
@@ -1137,21 +1139,6 @@ describe('MapViewGL', () => {
     expect(glMap.easeTo).not.toHaveBeenCalled()
   })
 
-  it('FE-COMP-MAPVIEWGL-030: a labelled plugin layer feature answers a click with a plain-text popup', async () => {
-    loadOnAttach()
-    render(<MapViewGL places={[]} fitKey={1} />)
-    await act(async () => {})
-    const showLabel = layerHandler('click', 'trek-plugin-layers-fill')
-    expect(showLabel).toBeTypeOf('function')
-
-    act(() => { showLabel({ lngLat: { lng: 2, lat: 48 }, features: [{ properties: { label: 'Charging corridor' } }] }) })
-    expect(glPopup.setText).toHaveBeenCalledWith('Charging corridor')
-
-    // Unlabelled features stay inert.
-    vi.mocked(glPopup.setText).mockClear()
-    act(() => { showLabel({ lngLat: { lng: 2, lat: 48 }, features: [{ properties: { label: '' } }] }) })
-    expect(glPopup.setText).not.toHaveBeenCalled()
-  })
 
   it('FE-COMP-MAPVIEWGL-031: a map click on a marker, a cluster or a track never drops a new place', async () => {
     loadOnAttach()
@@ -1438,87 +1425,8 @@ describe('MapViewGL', () => {
     vi.mocked(glMap.getZoom).mockReturnValue(10)
   })
 
-  it('FE-COMP-MAPVIEWGL-043: plugin markers render as tone dots with a text-only popup', async () => {
-    loadOnAttach()
-    const markers: PluginMapMarker[] = [
-      { pluginId: 'ev', id: 'm1', lat: 48.5, lng: 2.5, tone: 'success', label: 'Fastned', popupText: '150 kW', url: 'https://example.com/c' },
-      { pluginId: 'ev', id: 'm2', lat: 48.6, lng: 2.6, tone: 'default' },
-    ]
-    server.use(
-      http.get('/api/map-markers/:tripId', () => HttpResponse.json({ markers })),
-      http.get('/api/map-layers/:tripId', () => HttpResponse.json({ layers: [] })),
-    )
 
-    render(<MapViewGL places={[]} fitKey={1} tripId={4} />)
-    await waitFor(() => expect(glMarkers.created).toHaveLength(2))
 
-    expect(glMarkers.created[0].element.innerHTML).toContain('#10b981')
-    act(() => { glMarkers.created[0].element.dispatchEvent(new MouseEvent('click')) })
-    const box = vi.mocked(glPopup.setDOMContent).mock.calls[0][0]
-    expect(box.textContent).toContain('Fastned')
-    expect(box.textContent).toContain('150 kW')
-    expect(box.querySelector('a')?.getAttribute('href')).toBe('https://example.com/c')
-
-    // A bare marker carries no popup at all.
-    vi.mocked(glPopup.setDOMContent).mockClear()
-    act(() => { glMarkers.created[1].element.dispatchEvent(new MouseEvent('click')) })
-    expect(glPopup.setDOMContent).not.toHaveBeenCalled()
-  })
-
-  it('FE-COMP-MAPVIEWGL-044: plugin layer features become one geojson source with closed rings', async () => {
-    loadOnAttach()
-    const features: PluginMapLayerFeature[] = [
-      { type: 'polyline', points: [[48, 2], [49, 3]], tone: 'warn', width: 4, dash: 'dash', opacity: 0.6, fill: false },
-      { type: 'polygon', points: [[48, 2], [48, 3], [49, 3]], tone: 'danger', width: 2, dash: 'solid', opacity: 0.8, fill: true },
-      { type: 'circle', center: [48, 2], radiusM: 1000, tone: 'nonsense' as PluginMapLayerFeature['tone'], width: 2, dash: 'dot', opacity: 0.4, fill: false },
-      { type: 'polyline', tone: 'default', width: 2, dash: 'solid', opacity: 1, fill: false },
-    ]
-    const layers: PluginMapLayer[] = [{ pluginId: 'ev', id: 'corridor', features }]
-    server.use(
-      http.get('/api/map-markers/:tripId', () => HttpResponse.json({ markers: [] })),
-      http.get('/api/map-layers/:tripId', () => HttpResponse.json({ layers })),
-    )
-    const pluginSource = geoSource()
-
-    render(<MapViewGL places={[]} fitKey={1} tripId={4} />)
-    glMap.getSource.mockImplementation((id: string) => (id === 'trek-plugin-layers' ? pluginSource : null))
-    await waitFor(() => expect(lastData(pluginSource).features).toHaveLength(3))
-
-    const [line, polygon, circle] = lastData(pluginSource).features
-    expect(line.geometry).toEqual({ type: 'LineString', coordinates: [[2, 48], [3, 49]] })
-    expect(line.properties).toMatchObject({ id: 'ev:corridor:0', color: '#f59e0b', dash: 'dash', fillOpacity: 0 })
-
-    const ring = polygon.geometry.coordinates[0] as unknown as number[][]
-    expect(ring[0]).toEqual(ring[ring.length - 1])
-    // A filled shape never drowns the basemap.
-    expect(polygon.properties.fillOpacity).toBe(0.25)
-
-    // A metric circle is approximated as a polygon, since GL circles size in pixels.
-    const circleRing = circle.geometry.coordinates[0] as unknown as number[][]
-    expect(circleRing).toHaveLength(65)
-    expect(circleRing[0][0]).toBeCloseTo(2 + 1000 / (111320 * Math.cos(48 * Math.PI / 180)), 4)
-    // Unknown tones fall back to the default indigo.
-    expect(circle.properties.color).toBe('#4F46E5')
-  })
-
-  it('FE-COMP-MAPVIEWGL-045: failing plugin contributions leave the core map untouched', async () => {
-    loadOnAttach()
-    server.use(
-      http.get('/api/map-markers/:tripId', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
-      http.get('/api/map-layers/:tripId', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
-    )
-    const pluginSource = geoSource()
-
-    const { rerender } = render(<MapViewGL places={[]} fitKey={1} tripId={4} />)
-    glMap.getSource.mockImplementation((id: string) => (id === 'trek-plugin-layers' ? pluginSource : null))
-    await act(async () => {})
-    expect(glMarkers.created).toHaveLength(0)
-
-    // Dropping the trip clears whatever was there.
-    rerender(<MapViewGL places={[]} fitKey={1} />)
-    await act(async () => {})
-    expect(lastData(pluginSource).features).toHaveLength(0)
-  })
 
   it('FE-COMP-MAPVIEWGL-046: plugin route via points show their label and dwell time on tap', async () => {
     loadOnAttach()
@@ -1990,24 +1898,6 @@ describe('MapViewGL', () => {
     expect(glMarkers.created.length).toBeGreaterThan(first.length)
   })
 
-  it('FE-COMP-MAPVIEWGL-061: plugin markers are torn down when the trip loses them', async () => {
-    loadOnAttach()
-    server.use(
-      http.get('/api/map-markers/:tripId', ({ params }) => HttpResponse.json({
-        markers: params.tripId === '4'
-          ? [{ pluginId: 'ev', id: 'm1', lat: 48.5, lng: 2.5, tone: 'default' } as PluginMapMarker]
-          : [],
-      })),
-      http.get('/api/map-layers/:tripId', () => HttpResponse.json({ layers: [] })),
-    )
-
-    const { rerender } = render(<MapViewGL places={[]} fitKey={1} tripId={4} />)
-    await waitFor(() => expect(glMarkers.created).toHaveLength(1))
-    const stale = glMarkers.created[0]
-
-    rerender(<MapViewGL places={[]} fitKey={1} tripId={5} />)
-    await waitFor(() => expect(vi.mocked(stale.remove)).toHaveBeenCalled())
-  })
 
   it('FE-COMP-MAPVIEWGL-062: selecting a day-only place flies there; one without coordinates does not', async () => {
     const dayPlace = buildMapPlace({ id: 101, lat: 35.68, lng: 139.69 })

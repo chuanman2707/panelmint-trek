@@ -1448,18 +1448,6 @@ describe('DayDetailPanel', () => {
 
   // ── Day-detail plugin slot ──────────────────────────────────────────────────
 
-  it('FE-PLANNER-DAYDETAIL-079: a day-detail widget plugin mounts a sandboxed frame scoped to the day', async () => {
-    seedStore(usePluginStore, {
-      plugins: [
-        { id: 'day-notes', name: 'Day Notes', type: 'widget', icon: null, slot: 'day-detail' },
-        { id: 'hero-thing', name: 'Hero', type: 'widget', icon: null, slot: 'hero' },
-      ],
-    });
-    render(<DayDetailPanel {...defaultProps} />);
-    const frame = await waitFor(() => document.querySelector('iframe[src*="day-notes"]') as HTMLIFrameElement);
-    expect(frame).not.toBeNull();
-    expect(document.querySelector('iframe[src*="hero-thing"]')).toBeNull();
-  });
 
 });
 
@@ -1816,16 +1804,6 @@ describe('DayDetailPanel remaining branches, part two', () => {
     expect(chip.style.background).toBe('var(--text-primary)');
   });
 
-  it('FE-W5DDP-022: a plugin column for this day is appended above the reservations', async () => {
-    server.use(
-      http.get('/api/view-contributions/day/1', () =>
-        HttpResponse.json({ contributions: [{ kind: 'column', pluginId: 'sun', entityId: 1, label: 'Daylight', value: '15h 20m', tone: 'default' }] }),
-      ),
-    );
-    render(<DayDetailPanel {...defaultProps} />);
-
-    expect(await screen.findByText('15h 20m')).toBeInTheDocument();
-  });
 
   it('FE-W5DDP-021: a collapsed untitled day falls back to its position, or to ? when it has none', () => {
     const bare = buildDay({ id: 2, trip_id: 1, date: null, title: null });

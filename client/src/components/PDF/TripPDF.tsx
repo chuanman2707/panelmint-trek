@@ -2,7 +2,7 @@
 import { createElement } from 'react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Sailboat, Bike, CarTaxiFront, Route, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, ParkingSquare, LucideIcon } from 'lucide-react'
-import { accommodationsApi, mapsApi, pluginsApi } from '../../api/client'
+import { accommodationsApi, mapsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote, DistanceUnit } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
@@ -10,6 +10,7 @@ import { safeHexColor } from '../../utils/safeColor'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useAuthStore } from '../../store/authStore'
 import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry'
 import { buildTripMapSvg } from './tripMapSvg'
 import { renderTripMapImage } from './tripMapImage'
@@ -245,11 +246,6 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
   // cost the route map its hotel legs, and silently (#1736).
   const accommodationList = Array.isArray(accommodations?.accommodations) ? accommodations.accommodations : []
 
-  // Sections contributed by pdfSectionProvider plugins — server-normalized plain
-  // text (counts + lengths capped), appended after the days. Fail-safe: an error
-  // just means no extra sections, the core export is untouched.
-  const pluginSections = await pluginsApi.pdfSections(trip.id).then(r => r.sections || []).catch(() => [])
-
   // The trip's route as one map (#1736), drawn from the same builder the planner map
   // uses so the document and the screen agree. Fail-safe and time-boxed: whatever the
   // router answered inside the budget is drawn, the rest stay straight lines, and any
@@ -315,8 +311,11 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
 </div>` : ''
 
 
-  // Pre-fetch place photos (Google, OSM and coords-only places)
-  const photoMap = await fetchPlacePhotos(assignments, places)
+  // Pre-fetch place photos (Google, OSM and coords-only places) — skipped when
+  // the capability is off; PanelMint Local has no `/api/maps/place-photo` proxy.
+  const photoMap = useAuthStore.getState().placesPhotosEnabled
+    ? await fetchPlacePhotos(assignments, places)
+    : {}
 
   const totalAssigned = new Set(
     Object.values(assignments).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
@@ -630,22 +629,6 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
       </table>`
   }).join('')
 
-  // Plugin sections after the days — every value is host-vetted plain text and
-  // still escHtml'd here (same treatment as the core content above).
-  const pluginSectionsHtml = pluginSections.length === 0 ? '' : `
-    <div class="plugin-sections page-break">
-      ${pluginSections.map(s => `
-      <div class="plugin-section">
-        <div class="plugin-section-title">${escHtml(s.title)}</div>
-        ${(s.paragraphs || []).map(p => `<p class="plugin-section-text">${escHtml(p)}</p>`).join('')}
-        ${s.table ? `
-        <table class="plugin-section-table">
-          <thead><tr>${s.table.headers.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr></thead>
-          <tbody>${s.table.rows.map(row => `<tr>${row.map(cell => `<td>${escHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
-        </table>` : ''}
-      </div>`).join('')}
-    </div>`
-
   const html = `<!DOCTYPE html>
 <html lang="${(loc || 'en').split('-')[0]}">
 <head>
@@ -834,15 +817,6 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
 
   .empty-day { font-size: 9.5px; color: #cbd5e1; font-style: italic; text-align: center; padding: 14px 0; }
 
-  /* ── Plugin sections ───────────────────────────── */
-  .plugin-sections { padding: 16px 28px 6px; }
-  .plugin-section { margin-bottom: 16px; page-break-inside: avoid; }
-  .plugin-section-title { font-size: 12px; font-weight: 600; color: #1e293b; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; }
-  .plugin-section-text { font-size: 9.5px; color: #334155; line-height: 1.55; margin-bottom: 5px; }
-  .plugin-section-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-  .plugin-section-table th { font-size: 8px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 4px 8px; border-bottom: 1px solid #e2e8f0; }
-  .plugin-section-table td { font-size: 9px; color: #334155; padding: 4px 8px; border-bottom: 1px solid #f1f5f9; }
-
   /* ── Print ─────────────────────────────────────── */
   @media print {
     body { margin: 0; }
@@ -903,7 +877,7 @@ ${tripMapHtml}
 
 <!-- Days -->
 ${daysHtml}
-${pluginSectionsHtml}
+
 </body></html>`
 
   // Open in modal with srcdoc iframe (no URL loading = no X-Frame-Options issue)

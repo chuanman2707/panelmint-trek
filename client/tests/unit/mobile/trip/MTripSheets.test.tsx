@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import type { BookingExpenseRequest } from '../../../../src/components/Planner/BookingCostsSection.types'
 import type { ExpensePrefill } from '../../../../src/components/Budget/CostsPanel'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
-import type { BudgetItem, Reservation, Trip } from '../../../../src/types'
+import type { BudgetItem, Trip } from '../../../../src/types'
 import { useAuthStore } from '../../../../src/store/authStore'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { useTripStore } from '../../../../src/store/tripStore'
@@ -113,22 +113,6 @@ vi.mock('../../../../src/mobile/screens/settings/MConfirmSheet', () => ({
     ) : null,
 }))
 
-vi.mock('../../../../src/components/Planner/BookingImportModal', () => ({
-  default: ({ isOpen, onClose, tripId }: { isOpen: boolean; onClose: () => void; tripId: number }) => (
-    <div data-testid="stub-bookingimport" data-open={String(isOpen)} data-trip={tripId}>
-      <button type="button" onClick={onClose}>close booking import</button>
-    </div>
-  ),
-}))
-
-vi.mock('../../../../src/components/Planner/AirTrailImportModal', () => ({
-  default: ({ isOpen, onClose, pushUndo }: { isOpen: boolean; onClose: () => void; pushUndo: unknown }) => (
-    <div data-testid="stub-airtrail" data-open={String(isOpen)} data-hasundo={String(typeof pushUndo === 'function')}>
-      <button type="button" onClick={onClose}>close airtrail</button>
-    </div>
-  ),
-}))
-
 vi.mock('../../../../src/components/Trips/TripFormModal', () => ({
   default: ({ isOpen, onClose, onSave, trip, onCoverUpdate }: {
     isOpen: boolean; onClose: () => void
@@ -144,44 +128,7 @@ vi.mock('../../../../src/components/Trips/TripFormModal', () => ({
   ),
 }))
 
-vi.mock('../../../../src/components/Trips/TripMembersModal', () => ({
-  default: ({ isOpen, onClose, tripTitle, onMembersChanged }: {
-    isOpen: boolean; onClose: () => void; tripTitle?: string; onMembersChanged: () => void
-  }) => (
-    <div data-testid="stub-members" data-open={String(isOpen)} data-title={tripTitle ?? 'none'}>
-      <button type="button" onClick={onMembersChanged}>members changed</button>
-      <button type="button" onClick={onClose}>close members</button>
-    </div>
-  ),
-}))
-
-vi.mock('../../../../src/components/Planner/TransitJourneyModal', () => ({
-  default: ({ reservation, canEdit, onClose, onSave, onDelete, onChangeRoute }: {
-    reservation: Reservation
-    canEdit: boolean
-    onClose: () => void
-    onSave: (fields: Record<string, unknown>) => Promise<void>
-    onDelete: () => Promise<void>
-    onChangeRoute: () => void
-  }) => (
-    <div data-testid="stub-transit" data-title={reservation.title} data-canedit={String(canEdit)}>
-      <button type="button" onClick={() => void onSave({ title: 'Renamed' })}>save transit</button>
-      <button type="button" onClick={() => void onDelete()}>delete transit</button>
-      <button type="button" onClick={onChangeRoute}>change route</button>
-      <button type="button" onClick={onClose}>close transit</button>
-    </div>
-  ),
-}))
-
 import MTripSheets from '../../../../src/mobile/screens/trip/sheets/MTripSheets'
-
-const JOURNEY = {
-  id: 55, trip_id: 1, day_id: 4, type: 'transit', title: 'Tokyo → Kyoto',
-  endpoints: [
-    { role: 'from', name: 'Tokyo Sta.', lat: 35.68, lng: 139.76 },
-    { role: 'to', name: 'Kyoto Sta.', lat: 34.98, lng: 135.75 },
-  ],
-} as unknown as Reservation
 
 function renderHost(plannerOverrides: Partial<TripPlanner> = {}, shellOverrides: Partial<MTripShellApi> = {}) {
   const planner = buildPlanner(plannerOverrides)
@@ -200,8 +147,7 @@ describe('MTripSheets', () => {
     renderHost({}, { sheet: null })
     for (const id of ['stub-place', 'stub-day', 'stub-days', 'stub-accommodation', 'stub-transport',
       'stub-bract', 'stub-mehr', 'stub-export', 'stub-note', 'stub-import', 'stub-placeedit',
-      'stub-reservation', 'stub-transportform', 'stub-bookingimport', 'stub-airtrail',
-      'stub-tripform', 'stub-members']) {
+      'stub-reservation', 'stub-transportform', 'stub-tripform']) {
       expect(screen.getByTestId(id)).toBeInTheDocument()
     }
     expect(screen.getByTestId('stub-day')).toHaveAttribute('data-sheet', 'none')
@@ -225,10 +171,9 @@ describe('MTripSheets', () => {
     ['note', 'stub-note'],
     ['import', 'stub-import'],
     ['tripedit', 'stub-tripform'],
-    ['members', 'stub-members'],
   ])('FE-MOB-SHOST-003: opens only %s for its own id', (id, testid) => {
     renderHost({}, { sheet: { id } })
-    const hostRouted = ['stub-note', 'stub-import', 'stub-tripform', 'stub-members']
+    const hostRouted = ['stub-note', 'stub-import', 'stub-tripform']
     for (const other of hostRouted) {
       expect(screen.getByTestId(other)).toHaveAttribute('data-open', String(other === testid))
     }
@@ -272,90 +217,13 @@ describe('MTripSheets', () => {
     expect(useTripStore.getState().trip).toBeNull()
   })
 
-  it('FE-MOB-SHOST-010: the trip form and members modal close through the shell', () => {
-    const { shell } = renderHost({}, { sheet: { id: 'members' } })
+  it('FE-MOB-SHOST-010: the trip form closes through the shell', () => {
+    const { shell } = renderHost({}, { sheet: { id: 'tripedit' } })
     fireEvent.click(screen.getByText('close trip form'))
-    fireEvent.click(screen.getByText('close members'))
-    expect(shell.closeSheet).toHaveBeenCalledTimes(2)
+    expect(shell.closeSheet).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-MOB-SHOST-011: the members modal gets the trip title and reports changes to the planner', () => {
-    const { planner } = renderHost({}, { sheet: { id: 'members' } })
-    expect(screen.getByTestId('stub-members')).toHaveAttribute('data-title', 'Japan 2026')
-    fireEvent.click(screen.getByText('members changed'))
-    expect(planner.refreshMembers).toHaveBeenCalledTimes(1)
-  })
 
-  it('FE-MOB-SHOST-012: the booking and AirTrail importers follow their planner flags', () => {
-    const { planner } = renderHost({ showBookingImport: true, showAirTrailImport: true })
-    expect(screen.getByTestId('stub-bookingimport')).toHaveAttribute('data-open', 'true')
-    expect(screen.getByTestId('stub-bookingimport')).toHaveAttribute('data-trip', '1')
-    expect(screen.getByTestId('stub-airtrail')).toHaveAttribute('data-hasundo', 'true')
-
-    fireEvent.click(screen.getByText('close booking import'))
-    fireEvent.click(screen.getByText('close airtrail'))
-    expect(planner.setShowBookingImport).toHaveBeenCalledWith(false)
-    expect(planner.setShowAirTrailImport).toHaveBeenCalledWith(false)
-  })
-
-  it('FE-MOB-SHOST-013: no transit journey modal without a selected journey', () => {
-    renderHost()
-    expect(screen.queryByTestId('stub-transit')).not.toBeInTheDocument()
-  })
-
-  it('FE-MOB-SHOST-014: prefers the stored reservation over the journey snapshot', () => {
-    const stored = { ...JOURNEY, title: 'Tokyo → Kyoto (saved)' } as unknown as Reservation
-    renderHost({ transitJourney: JOURNEY, reservations: [stored] })
-    expect(screen.getByTestId('stub-transit')).toHaveAttribute('data-title', 'Tokyo → Kyoto (saved)')
-    expect(screen.getByTestId('stub-transit')).toHaveAttribute('data-canedit', 'true')
-  })
-
-  it('FE-MOB-SHOST-015: falls back to the journey itself when it is not in the list', () => {
-    const planner = buildPlanner({ transitJourney: JOURNEY, reservations: [], can: vi.fn(() => false) as TripPlanner['can'] })
-    render(<MTripSheets planner={planner} shell={buildShell()} />)
-    expect(screen.getByTestId('stub-transit')).toHaveAttribute('data-title', 'Tokyo → Kyoto')
-    expect(screen.getByTestId('stub-transit')).toHaveAttribute('data-canedit', 'false')
-    expect(planner.can).toHaveBeenCalledWith('day_edit', planner.trip)
-  })
-
-  it('FE-MOB-SHOST-016: saving the journey updates the reservation and clears the selection', async () => {
-    const { planner } = renderHost({ transitJourney: JOURNEY })
-    fireEvent.click(screen.getByText('save transit'))
-    await waitFor(() =>
-      expect(planner.tripActions.updateReservation).toHaveBeenCalledWith(1, 55, { title: 'Renamed' }))
-    expect(planner.setTransitJourney).toHaveBeenLastCalledWith(null)
-  })
-
-  it('FE-MOB-SHOST-017: deleting the journey goes through the planner and clears the selection', async () => {
-    const { planner } = renderHost({ transitJourney: JOURNEY })
-    fireEvent.click(screen.getByText('delete transit'))
-    await waitFor(() => expect(planner.handleDeleteReservation).toHaveBeenCalledWith(55))
-    expect(planner.setTransitJourney).toHaveBeenLastCalledWith(null)
-    fireEvent.click(screen.getByText('close transit'))
-    expect(planner.setTransitJourney).toHaveBeenCalledWith(null)
-  })
-
-  it('FE-MOB-SHOST-018: changing the route reopens the transport search seeded with both endpoints', () => {
-    const { planner } = renderHost({ transitJourney: JOURNEY })
-    fireEvent.click(screen.getByText('change route'))
-    expect(planner.setTransitPrefill).toHaveBeenCalledWith({
-      from: { name: 'Tokyo Sta.', lat: 35.68, lng: 139.76 },
-      to: { name: 'Kyoto Sta.', lat: 34.98, lng: 135.75 },
-    })
-    expect(planner.setEditingTransport).toHaveBeenCalledWith(JOURNEY)
-    expect(planner.setTransportModalDayId).toHaveBeenCalledWith(4)
-    expect(planner.setTransportModalAutomated).toHaveBeenCalledWith(true)
-    expect(planner.setTransitJourney).toHaveBeenCalledWith(null)
-    expect(planner.setShowTransportModal).toHaveBeenCalledWith(true)
-  })
-
-  it('FE-MOB-SHOST-019: a journey without endpoints seeds empty prefills and no day', () => {
-    const bare = { id: 56, trip_id: 1, type: 'transit', title: 'Unknown leg' } as unknown as Reservation
-    const { planner } = renderHost({ transitJourney: bare })
-    fireEvent.click(screen.getByText('change route'))
-    expect(planner.setTransitPrefill).toHaveBeenCalledWith({ from: null, to: null })
-    expect(planner.setTransportModalDayId).toHaveBeenCalledWith(null)
-  })
 
   it('FE-MOB-SHOST-020: a booking opens the expense editor for its linked item and closes again', () => {
     renderHost()

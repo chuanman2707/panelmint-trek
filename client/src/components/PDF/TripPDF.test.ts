@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { downloadTripPDF } from './TripPDF'
 import { server } from '../../../tests/helpers/msw/server'
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
+import { useAuthStore } from '../../store/authStore'
 import { getMergedItems, getTransportForDay } from '../../utils/dayMerge'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -55,9 +56,6 @@ beforeEach(() => {
     http.get('/api/maps/place-photo/:placeId', () =>
       HttpResponse.json({ photoUrl: null })
     ),
-    http.get('/api/pdf-sections/:tripId', () =>
-      HttpResponse.json({ sections: [] })
-    ),
     // Mixed-currency exports fetch FX rates; keep the suite hermetic.
     http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])),
   )
@@ -68,6 +66,7 @@ beforeEach(() => {
 afterEach(() => {
   // Clean up any overlay left by the function under test
   document.getElementById('pdf-preview-overlay')?.remove()
+  useAuthStore.setState({ placesPhotosEnabled: false })
   vi.restoreAllMocks()
 })
 
@@ -526,6 +525,9 @@ describe('downloadTripPDF', () => {
   })
 
   it('FE-COMP-TRIPPDF-019: fetches google place photos for places with google_place_id', async () => {
+    // Photo fetching is gated on the capability flag — it is off in the local
+    // build, so the test turns it on to cover the proxy path.
+    useAuthStore.setState({ placesPhotosEnabled: true })
     let photoCalled = false
     server.use(
       http.get('/api/maps/place-photo/:placeId', () => {
@@ -547,6 +549,7 @@ describe('downloadTripPDF', () => {
   })
 
   it('FE-COMP-TRIPPDF-019b: fetches photos for OSM places via osm_id recovered from the places pool (#1130)', async () => {
+    useAuthStore.setState({ placesPhotosEnabled: true })
     let fetchedId: string | null = null
     server.use(
       http.get('/api/maps/place-photo/:placeId', ({ params }) => {
@@ -580,36 +583,6 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('dayplan.emptyDay')
   })
 
-  it('FE-COMP-TRIPPDF-021: appends plugin pdf sections after the days, escaped', async () => {
-    server.use(
-      http.get('/api/pdf-sections/:tripId', () =>
-        HttpResponse.json({
-          sections: [{
-            pluginId: 'weather',
-            title: 'Weather <b>Forecast</b>',
-            paragraphs: ['Sunny all week'],
-            table: { headers: ['Day', 'Temp'], rows: [['Mon', '24°C']] },
-          }],
-        })
-      ),
-    )
-    await downloadTripPDF(richArgs)
-    const srcdoc = getIframe()!.srcdoc
-    expect(srcdoc).toContain('class="plugin-section"')
-    // Plugin text is escHtml'd like the core content — no markup passes through.
-    expect(srcdoc).not.toContain('<b>Forecast</b>')
-    expect(srcdoc).toContain('Weather &lt;b&gt;Forecast&lt;/b&gt;')
-    expect(srcdoc).toContain('Sunny all week')
-    expect(srcdoc).toContain('24°C')
-    // Sections come after the last day section.
-    expect(srcdoc.indexOf('class="plugin-sections')).toBeGreaterThan(srcdoc.lastIndexOf('class="day-section'))
-  })
-
-  it('FE-COMP-TRIPPDF-022: renders no plugin block when the sections fetch fails (fail-safe)', async () => {
-    server.use(http.get('/api/pdf-sections/:tripId', () => HttpResponse.error()))
-    await expect(downloadTripPDF(minimalArgs)).resolves.not.toThrow()
-    expect(getIframe()!.srcdoc).not.toContain('class="plugin-sections')
-  })
 })
 
 // FE-W5PDF-001 to FE-W5PDF-030 — multi-day transport spans, the remaining
@@ -991,26 +964,6 @@ describe('downloadTripPDF remaining branches', () => {
     expect(srcdoc()).toContain('class="cover-circle-ph"')
   })
 
-  it('FE-W5PDF-020: plugin sections render their paragraphs and tables', async () => {
-    server.use(
-      http.get('/api/pdf-sections/:tripId', () =>
-        HttpResponse.json({
-          sections: [
-            { title: 'Packing', paragraphs: ['Bring a towel'], table: { headers: ['Item', 'Qty'], rows: [['Socks', '3']] } },
-            { title: 'Bare', paragraphs: null, table: null },
-          ],
-        }),
-      ),
-    )
-    await downloadTripPDF(minimalArgs)
-    const html = srcdoc()
-
-    expect(html).toContain('Packing')
-    expect(html).toContain('Bring a towel')
-    expect(html).toContain('<th>Item</th>')
-    expect(html).toContain('<td>Socks</td>')
-    expect(html).toContain('Bare')
-  })
 })
 
 // FE-W5PDF-021 to FE-W5PDF-026 — the defaulting arms of the exporter.
@@ -1031,12 +984,10 @@ describe('downloadTripPDF defaults', () => {
   it('FE-W5PDF-022: an accommodations response without the key degrades to no hotels', async () => {
     server.use(
       http.get('/api/trips/:id/accommodations', () => HttpResponse.json({})),
-      http.get('/api/pdf-sections/:tripId', () => HttpResponse.json({})),
     )
     await downloadTripPDF({ ...minimalArgs } as unknown as Args)
 
     expect(srcdoc()).not.toContain('day-accommodations-overview"')
-    expect(srcdoc()).not.toContain('class="plugin-sections')
   })
 
   it('FE-W5PDF-023: items without an explicit order fall back to position zero', async () => {

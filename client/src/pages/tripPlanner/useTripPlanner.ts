@@ -9,22 +9,18 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { dayColor } from '../../components/Roadtrip/dayColors'
 import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
-import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Route } from 'lucide-react'
-import { resolvePluginIcon } from '../../components/shared/PluginIcon'
+import { Map, Ticket, PackageCheck, Wallet, Train, Route } from 'lucide-react'
 import { useTranslation, translateApiError } from '../../i18n'
-import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, healthApi, airtrailApi, mapsApi, placesApi } from '../../api/client'
+import { accommodationsApi, tripsApi, assignmentsApi, mapsApi, placesApi } from '../../api/client'
 import { getDayOrder } from '../../utils/dayOrder'
 import { TRANSPORT_TYPES } from '../../utils/dayMerge'
 import { isOvernightCategory } from '../../components/Roadtrip/stopKinds'
-import { parsedItemToDraft, isTransportItem, isUnplaceableItem, type BookingReviewDraft } from '../../components/Planner/parsedItemToDraft'
-import type { BookingImportPreviewItem } from '@trek/shared'
 import { accommodationRepo } from '../../repo/accommodationRepo'
-import { offlineDb, getImportFiles, deleteImportFiles } from '../../db/offlineDb'
+import { offlineDb } from '../../db/offlineDb'
 import { isEffectivelyOffline } from '../../sync/networkMode'
-import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
 import { useAuthStore } from '../../store/authStore'
+import { useAddonStore } from '../../store/addonStore'
 import { useResizablePanels } from '../../hooks/useResizablePanels'
-import { useTripWebSocket } from '../../hooks/useTripWebSocket'
 import { useRouteCalculation } from '../../hooks/useRouteCalculation'
 import { useRoadtripRoutes, type RoadtripStop } from '../../components/Roadtrip/useRoadtripRoutes'
 import { useAutomaticDayPoints } from '../../components/Roadtrip/useAutomaticDayPoints'
@@ -33,8 +29,6 @@ import type { DayBoundaryControls } from '../../components/Map/dayBoundaryDrag'
 import { dayWindow, roadtripInsertion } from '../../components/Roadtrip/dayWindow'
 import { carrierReservationIds, type CarrierTerminal } from '@trek/shared/roadtrip'
 import { useTripRouteOverview } from '../../components/Map/useTripRouteOverview'
-import { useDawarichTrail } from '../../components/Map/useDawarichTrail'
-import { collapsedDayDates } from '../../components/Map/dawarichTrail'
 import { useRoadtripCorridor } from '../../components/Roadtrip/useRoadtripCorridor'
 import { PHONE_CORRIDOR_OPTIONS } from '../../components/Roadtrip/corridorSearchModel'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
@@ -59,9 +53,7 @@ import { inspectorStay } from '../../components/Roadtrip/stayReading'
 import { MAX_TRIP_DAYS, type RoadtripStopType } from '@trek/shared'
 import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
-import { useAirtrailConnection } from '../../hooks/useAirtrailConnection'
 import { useIsTouch } from '../../hooks/useIsTouch'
-import { usePluginStore } from '../../store/pluginStore'
 import type { Accommodation, Assignment, TripMember, Day, Place, Reservation } from '../../types'
 import { OFM_POSITRON, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { useTileUrl } from '../../hooks/useTileUrl'
@@ -99,9 +91,6 @@ export function useTripPlanner() {
   const { t, language, locale } = useTranslation()
   const { settings } = useSettingsStore()
   const roadtripSettings = useRoadtripSettings(s => s, tripId)
-  // trip-page plugins mount as tabs inside this trip planner (tripId-scoped).
-  const allPlugins = usePluginStore(s => s.plugins)
-  const pluginsLoaded = usePluginStore(s => s.loaded)
   const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
   const trip = useTripStore(s => s.trip)
   const days = useTripStore(s => s.days)
@@ -127,11 +116,14 @@ export function useTripPlanner() {
     toast.info(t('undo.done', { action: label ?? '' }))
   }, [undo, lastActionLabel, toast])
 
-  const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false, roadtrip: false, dawarich: false })
-  // The values above are an optimistic guess until the addon feed answers. The
-  // tab guard below waits for this before evicting anything, so a tab we were
-  // asked to open ('collab' in particular, guessed off) survives the gap.
-  const [addonsLoaded, setAddonsLoaded] = useState<boolean>(false)
+  // The addon set is static (packing + budget, see store/addonStore) — no feed
+  // to wait on, so the tab guard below can trust enabledAddons from the start.
+  const addonEnabled = useAddonStore(s => s.isEnabled)
+  const enabledAddons = useMemo(() => ({
+    packing: addonEnabled('packing'),
+    budget: addonEnabled('budget'),
+    roadtrip: addonEnabled('roadtrip'),
+  }), [addonEnabled])
   // Road trip mode swaps the plan view's left rail (and later its map layer) for the
   // drive-first reading of the same trip. Per trip and per session, like the tab choice:
   // someone planning a road trip stays in it across reloads without it leaking into
@@ -182,9 +174,7 @@ export function useTripPlanner() {
       return next
     })
   }, [tripId])
-  const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; links: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, links: true, polls: true, whatsnext: true })
   const [tripAccommodations, setTripAccommodations] = useState<Accommodation[]>([])
-  const [allowedFileTypes, setAllowedFileTypes] = useState<string | null>(null)
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
 
   // Re-fetch the trip roster so consumers (Costs participants, Collab, …) pick up a
@@ -204,25 +194,6 @@ export function useTripPlanner() {
     }
   }, [tripId])
 
-  useEffect(() => {
-    addonsApi.enabled().then(data => {
-      const map: Record<string, boolean> = {}
-      data.addons.forEach(a => { map[a.id] = true })
-      setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab, roadtrip: !!map.roadtrip, dawarich: !!map.dawarich })
-      if (data.collabFeatures) setCollabFeatures(data.collabFeatures)
-    }).catch(() => {}).finally(() => setAddonsLoaded(true))
-    authApi.getAppConfig().then(config => {
-      if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
-    }).catch(() => {})
-  }, [])
-
-
-  const tripPagePlugins = allPlugins.filter(p => p.type === 'trip-page')
-  const tripPluginIds = tripPagePlugins.map(p => p.id).join(',')
-
-  // A trip-page plugin may replace core tabs while it's active (its manifest names
-  // them; 'plan' is never replaceable) and may pick where its own tab sits.
-  const replacedTabs = new Set(tripPagePlugins.flatMap(p => p.tripPage?.replaces ?? []))
   const TRIP_TABS = [
     { id: 'plan', label: t(TRIP_TAB_LABEL_KEYS.plan), icon: Map },
     { id: 'transports', label: t(TRIP_TAB_LABEL_KEYS.transports), icon: Train },
@@ -232,14 +203,7 @@ export function useTripPlanner() {
     ...(enabledAddons.roadtrip && isMobile ? [{ id: 'roadtrip', label: t(TRIP_TAB_LABEL_KEYS.roadtrip), icon: Route }] : []),
     ...(enabledAddons.packing ? [{ id: 'listen', label: t(TRIP_TAB_LABEL_KEYS.listen), shortLabel: t('trip.tabs.listsShort'), icon: PackageCheck }] : []),
     ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t(TRIP_TAB_LABEL_KEYS.finanzplan), icon: Wallet }] : []),
-    ...(enabledAddons.documents ? [{ id: 'dateien', label: t(TRIP_TAB_LABEL_KEYS.dateien), icon: FolderOpen }] : []),
-    ...(enabledAddons.collab ? [{ id: 'collab', label: t(TRIP_TAB_LABEL_KEYS.collab), icon: Users }] : []),
-  ].filter(tab => tab.id === 'plan' || !replacedTabs.has(tab.id))
-  // Positioned plugin tabs splice in ascending order so two positions stay stable;
-  // the rest append, exactly as before this capability existed.
-  const positioned = tripPagePlugins.filter(p => p.tripPage?.position != null).sort((a, b) => (a.tripPage!.position! - b.tripPage!.position!))
-  for (const p of positioned) TRIP_TABS.splice(Math.min(p.tripPage!.position!, TRIP_TABS.length), 0, { id: `plugin:${p.id}`, label: p.name, icon: resolvePluginIcon(p.icon) })
-  for (const p of tripPagePlugins.filter(p => p.tripPage?.position == null)) TRIP_TABS.push({ id: `plugin:${p.id}`, label: p.name, icon: resolvePluginIcon(p.icon) })
+  ]
 
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -250,32 +214,26 @@ export function useTripPlanner() {
   // first and swaps a frame later.
   const [activeTab, setActiveTab] = useState<string>(() => {
     const requested = searchParams.get('tab')
-    if (requested && isDeepLinkableTripTab(requested)) return requested
-    return sessionStorage.getItem(`trip-tab-${tripId}`) || 'plan'
+    // Validate against the tabs that actually exist right now — a deep-linked or
+    // saved id for a removed surface (files, collab, a plugin) starts on plan
+    // instead of mounting for one frame and being evicted by the effect below.
+    if (requested && isDeepLinkableTripTab(requested) && TRIP_TABS.some(t => t.id === requested)) return requested
+    const saved = sessionStorage.getItem(`trip-tab-${tripId}`)
+    return saved && TRIP_TABS.some(t => t.id === saved) ? saved : 'plan'
   })
 
   useEffect(() => {
-    // Don't evict a saved plugin tab before the plugin feed has loaded.
-    if (activeTab.startsWith('plugin:') && !pluginsLoaded) return
-    // Same for the addon-owned tabs: until the feed answers, enabledAddons is a
-    // guess, and evicting on a guess would drop a legitimately requested tab.
-    if (!addonsLoaded) return
     const validTabIds = TRIP_TABS.map(t => t.id)
     if (!validTabIds.includes(activeTab)) {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [activeTab, enabledAddons, addonsLoaded, tripPluginIds, pluginsLoaded])
+  }, [activeTab, enabledAddons])
 
-  const handleTabChange = (rawTabId: string): void => {
-    // A core tab a plugin replaced is gone from the bar, but a programmatic jump
-    // (e.g. onNavigateToFiles) could still target it and render a dead panel with
-    // no active pill — fall back to the plan view like the invalid-tab guard does.
-    const tabId = replacedTabs.has(rawTabId) ? 'plan' : rawTabId
+  const handleTabChange = (tabId: string): void => {
     setActiveTab(tabId)
     sessionStorage.setItem(`trip-tab-${tripId}`, tabId)
     if (tabId === 'finanzplan') tripActions.loadBudgetItems?.(tripId)
-    if (tabId === 'dateien' && (!files || files.length === 0)) tripActions.loadFiles?.(tripId)
   }
 
   // handleTabChange is where a tab's lazy load and its session memory happen, and
@@ -288,7 +246,6 @@ export function useTripPlanner() {
     startTabSettled.current = tripId
     sessionStorage.setItem(`trip-tab-${tripId}`, activeTab)
     if (activeTab === 'finanzplan') tripActions.loadBudgetItems?.(tripId)
-    if (activeTab === 'dateien' && (!files || files.length === 0)) tripActions.loadFiles?.(tripId)
   }, [tripId])
   const {
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
@@ -375,34 +332,12 @@ export function useTripPlanner() {
     setSearchParams(p => { p.delete('tab'); return p }, { replace: true })
   }, [searchParams])
   const [showTripForm, setShowTripForm] = useState<boolean>(false)
-  const [showMembersModal, setShowMembersModal] = useState<boolean>(false)
   const [showReservationModal, setShowReservationModal] = useState<boolean>(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
-  const [showBookingImport, setShowBookingImport] = useState<boolean>(false)
-  // Which tab opened the importer. Only ever a tie-breaker — see openImportItem.
-  const [bookingImportKind, setBookingImportKind] = useState<'transports' | 'bookings'>('bookings')
-  const [bookingImportAvailable, setBookingImportAvailable] = useState<boolean>(false)
-  const { available: airTrailAvailable } = useAirtrailConnection()
-  const [showAirTrailImport, setShowAirTrailImport] = useState<boolean>(false)
-  // Pull this user's AirTrail edits as soon as they open the trip, so changes
-  // made in AirTrail show up without waiting for the background poll.
-  const airtrailSyncedRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (!airTrailAvailable || !tripId || airtrailSyncedRef.current === tripId) return
-    airtrailSyncedRef.current = tripId
-    airtrailApi.sync()
-      .then(r => { if (r && r.changed > 0) tripActions.loadReservations(tripId) })
-      .catch(() => {})
-  }, [airTrailAvailable, tripId, tripActions])
   const [bookingForAssignmentId, setBookingForAssignmentId] = useState<number | null>(null)
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
   const [transportModalDayId, setTransportModalDayId] = useState<number | null>(null)
-  // Public transit (#1065): open the TransportModal in its Automated mode, seed
-  // the search (change-route), and show the journey view for a saved entry.
-  const [transportModalAutomated, setTransportModalAutomated] = useState<boolean>(false)
-  const [transitPrefill, setTransitPrefill] = useState<{ from?: { name: string; lat: number; lng: number } | null; to?: { name: string; lat: number; lng: number } | null; time?: string | null } | null>(null)
-  const [transitJourney, setTransitJourney] = useState<Reservation | null>(null)
 
   // The bottom-nav "+" is context-aware per tab: on the Bookings / Transports tabs
   // it opens the booking / transport modal via ?create=reservation|transport
@@ -417,22 +352,9 @@ export function useTripPlanner() {
       setSearchParams(p => { p.delete('create'); return p }, { replace: true })
     }
   }, [searchParams])
-  // Review-before-save import: each parsed item pre-fills the normal edit modal so
-  // the user checks/fixes it, then saves. A ref drives the queue (no stale closures).
-  const [reservationPrefill, setReservationPrefill] = useState<BookingReviewDraft | null>(null)
-  const [transportPrefill, setTransportPrefill] = useState<BookingReviewDraft | null>(null)
-  const [importReviewActive, setImportReviewActive] = useState(false)
-  const importQueueRef = useRef<BookingImportPreviewItem[]>([])
-  // The files this import was parsed from, so each reviewed booking can attach its source doc.
-  const importSourceFilesRef = useRef<File[]>([])
-  // The tab the items under review came from. A ref, not the bookingImportKind
-  // state: the parse outlives navigation and reload, and the review is triggered
-  // by the global widget, so by then the state has remounted back to its default.
-  // The value comes off the persisted job (#2076).
-  const importKindRef = useRef<'transports' | 'bookings'>('bookings')
   // Manual route planning: off by default, toggled from the day-plan footer. Mode
-  // is per-session and selects which travel time the connectors show — either a
-  // built-in OSRM profile or a plugin route profile ('plugin:<id>/<profile>').
+  // is per-session and selects which travel time the connectors show — a built-in
+  // OSRM profile.
   // Per-trip route visibility. `null` = the user has never said anything, which
   // is what lets the mobile map switch it on by default; an explicit false has to
   // survive every later map entry, and it used to be clobbered on each one (#2003).
@@ -475,23 +397,6 @@ export function useTripPlanner() {
       return next
     })
   }, [tripId])
-  // The recorded route from Dawarich (#2279), per trip and per session for the
-  // same reason as the overview above: it answers "what actually happened on
-  // this trip", which is a question about one trip rather than a preference.
-  const [dawarichTrailShown, setDawarichTrailShown] = useState<boolean>(
-    () => sessionStorage.getItem(`trip-dawarich-${tripId}`) === '1',
-  )
-  const toggleDawarichTrail = useCallback(() => {
-    setDawarichTrailShown(prev => {
-      const next = !prev
-      sessionStorage.setItem(`trip-dawarich-${tripId}`, next ? '1' : '0')
-      return next
-    })
-  }, [tripId])
-  // Fetched here rather than in MapViewAuto so the desktop and the phone share
-  // one request, and so the pill that toggles it can show why there is no line.
-  const dawarichTrail = useDawarichTrail(tripId, dawarichTrailShown)
-
   const [fitKey, setFitKey] = useState<number>(0)
   const initialFitTripId = useRef<number | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
@@ -540,13 +445,6 @@ export function useTripPlanner() {
     initialFitTripId.current = trip.id
     setFitKey(k => k + 1)
   }, [trip, places])
-
-  useEffect(() => {
-    // The server runs the import when EITHER kitinerary or the LLM parser is
-    // there (booking-import.service.ts), so gating the entry point on kitinerary
-    // alone hid a working feature on LLM-only instances (#2007).
-    healthApi.features().then(f => setBookingImportAvailable(f.bookingImport || f.aiParsing)).catch(() => {})
-  }, [])
 
   const connectionsStorageKey = tripId ? `trek:visible-connections:${tripId}` : null
   // Per-trip route-visibility preference — null means "never touched", which
@@ -626,8 +524,6 @@ export function useTripPlanner() {
     window.addEventListener('accommodations:refresh', onRefresh)
     return () => window.removeEventListener('accommodations:refresh', onRefresh)
   }, [loadAccommodations])
-
-  useTripWebSocket(tripId)
 
   // Same filter the places sidebar renders — shared via the store so tab
   // switches can't desync the marker set from the filter UI (#1541).
@@ -1087,19 +983,6 @@ export function useTripPlanner() {
     }
     return plannedPlaces.filter(p => !hidden.has(p.id))
   }, [mapPlaces, assignments, roadtripRoutes.days, collapsedRoadtripDays])
-
-  // The recorded route follows the same folds as the places above, so a
-  // collapsed day does not leave its line behind on the map. Keyed on the joined
-  // dates rather than on the Set, because `days` changes identity on every store
-  // update and the GL overlay rebuilds its source whenever this reference moves.
-  const dawarichHiddenKey = useMemo(
-    () => collapsedDayDates(days, expandedDayIds, roadtripActive ? collapsedRoadtripDays : null).join('|'),
-    [days, expandedDayIds, roadtripActive, collapsedRoadtripDays],
-  )
-  const dawarichHiddenDates = useMemo(
-    () => (dawarichHiddenKey ? new Set(dawarichHiddenKey.split('|')) : null),
-    [dawarichHiddenKey],
-  )
 
   const roadtripLineColors = useMemo(
     () => {
@@ -2480,89 +2363,6 @@ export function useTripPlanner() {
     } catch { return null }
   }
 
-  // Open the right edit modal for a parsed item, pre-filled, in create mode.
-  //
-  // A type neither form can express belongs to whichever tab the user started from.
-  // Handing an unreadable transport document to the booking form is what left them
-  // with six chips, none of them a transport, and 'other' as the only honest pick
-  // (#2076). A type either form DOES know always wins over the tab — one PDF
-  // routinely holds a flight and a hotel.
-  const openImportItem = (item: BookingImportPreviewItem) => {
-    const draft = parsedItemToDraft(item)
-    // Attach the file this item was parsed from so it lands in the booking's Files on save.
-    const srcName = item.source?.fileName
-    const srcFile = srcName ? importSourceFilesRef.current.find(f => f.name === srcName) : undefined
-    if (srcFile) draft._sourceFiles = [srcFile]
-    if (isTransportItem(item) || (isUnplaceableItem(item) && importKindRef.current === 'transports')) {
-      setShowReservationModal(false); setEditingReservation(null); setReservationPrefill(null)
-      setEditingTransport(null); setTransportModalDayId(null)
-      setTransportPrefill(draft); setShowTransportModal(true)
-    } else {
-      setShowTransportModal(false); setEditingTransport(null); setTransportPrefill(null); setTransportModalDayId(null)
-      setEditingReservation(null)
-      setReservationPrefill(draft); setShowReservationModal(true)
-    }
-  }
-
-  const startImportReview = (
-    items: BookingImportPreviewItem[],
-    sourceFiles: File[] = [],
-    kind: 'transports' | 'bookings' = 'bookings',
-  ) => {
-    if (!items.length) return
-    importSourceFilesRef.current = sourceFiles
-    importKindRef.current = kind
-    importQueueRef.current = items.slice(1)
-    setImportReviewActive(true)
-    openImportItem(items[0])
-  }
-
-  // Bridge: when a finished background import is sent here for review (the user hit
-  // "review" in the background widget, on this or any page), open the per-item flow.
-  // Lives in the hook so the page stays a pure wiring container.
-  const bgTasks = useBackgroundTasksStore((s) => s.tasks)
-  const dismissBgTask = useBackgroundTasksStore((s) => s.dismiss)
-  useEffect(() => {
-    const task = bgTasks.find(
-      (tk) => tk.tripId === String(tripId) && tk.status === 'done' && tk.reviewRequested && !tk.consumed,
-    )
-    if (task && task.items && task.items.length > 0) {
-      // Hand the items (and the source files, to attach to each booking) to the review flow
-      // and clear the widget entry — once the user hit "review", the background card is done.
-      const items = task.items
-      const jobId = task.id
-      const inMemory = task.sourceFiles
-      const kind = task.kind ?? 'bookings'
-      dismissBgTask(jobId)
-      // Prefer the in-memory files (immediate path); after a reload they live in IndexedDB.
-      void (async () => {
-        const files = inMemory && inMemory.length ? inMemory : await getImportFiles(jobId)
-        deleteImportFiles(jobId)
-        startImportReview(items, files, kind)
-      })()
-    }
-  }, [bgTasks, tripId, startImportReview, dismissBgTask])
-
-  // Called when a reviewed item's modal closes (saved or skipped): open the next,
-  // or finish the review session and refresh accommodations.
-  const advanceImportReview = () => {
-    const queue = importQueueRef.current
-    if (queue.length > 0) {
-      importQueueRef.current = queue.slice(1)
-      openImportItem(queue[0])
-      return
-    }
-    importQueueRef.current = []
-    setImportReviewActive(false)
-    setShowReservationModal(false); setEditingReservation(null); setReservationPrefill(null)
-    setShowTransportModal(false); setEditingTransport(null); setTransportPrefill(null); setTransportModalDayId(null)
-    accommodationsApi.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
-    // Imported bookings auto-create their linked costs server-side, but the saving client
-    // suppresses its own budget:created echo (X-Socket-Id) — so reload the budget items here
-    // to surface those expenses without a manual page refresh.
-    tripActions.loadBudgetItems?.(tripId)
-  }
-
   const selectedPlace = selectedPlaceId ? places.find(p => p.id === selectedPlaceId) : null
   const selectedRoadtripStops = roadtripRoutes.days.flatMap(day => day.stops).filter(stop =>
     !stop.automaticNight && (selectedAssignmentId ? stop.assignmentId === selectedAssignmentId : stop.placeId === selectedPlaceId),
@@ -2619,12 +2419,11 @@ export function useTripPlanner() {
     trip, days, places, assignments, storedAssignments, packingItems, todoItems, categories, reservations, budgetItems, files,
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
-    enabledAddons, collabFeatures, tripAccommodations, setTripAccommodations,
+    enabledAddons, tripAccommodations, setTripAccommodations,
     roadtripMode, toggleRoadtripMode, roadtripActive, roadtripFeedActive, roadtripRoutes, roadtripLineColors, roadtripMapLines, roadtripMapPlaces, collapsedRoadtripDays, toggleRoadtripDay, roadtripCorridor,
     overviewShown, toggleOverview, overviewActive, tripOverview,
-    dawarichTrailShown, toggleDawarichTrail, dawarichTrail, dawarichHiddenDates, dawarichEnabled: !!enabledAddons.dawarich,
     followTrack, roadtripViaCounts,
-    allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
+    tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrowPanels,
@@ -2653,15 +2452,11 @@ export function useTripPlanner() {
     highlightedAlternative, setHighlightedAlternative,
     moveRoadtripStopToDay,
     dropPoiOnRoute,
-    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
+    showTripForm, setShowTripForm,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
-    showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind, bookingImportAvailable,
-    airTrailAvailable, showAirTrailImport, setShowAirTrailImport,
     bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, setShowTransportModal, editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
-    transportModalAutomated, setTransportModalAutomated, transitPrefill, setTransitPrefill, transitJourney, setTransitJourney,
-    reservationPrefill, transportPrefill, importReviewActive, startImportReview, advanceImportReview,
     routeShown, setRouteShown, autoShowRoute, transitRoutesShown, routeProfile, setRouteProfile, routeVias, fitKey, setFitKey,
     mobileSidebarOpen, setMobileSidebarOpen, mobilePlanScrollTopRef, mobilePlacesScrollTopRef,
     deletePlaceId, setDeletePlaceId, deletePlaceIds, setDeletePlaceIds, deletePlaceNote, deletePlacesNote,

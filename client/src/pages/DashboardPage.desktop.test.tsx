@@ -12,7 +12,7 @@ import { useAddonStore } from '../store/addonStore';
 import { usePluginStore } from '../store/pluginStore';
 import DashboardPage from './DashboardPage';
 import { db, type LocalTripMember } from '../db/panelmintDb';
-import { tripsApi } from '../api/client';
+import { tripsApi, dashboardApi } from '../api/client';
 import type { Trip } from '../types';
 
 // FE-PAGE-DESKDASH-001 onwards
@@ -55,8 +55,14 @@ async function onlyTrips(trips: Trip[]) {
   if (trips.length > 0) await db.trips.bulkPut(trips);
 }
 
+// The feed is the local Dexie adapter now — the tests exercise the widget's
+// rendering of the numbers, so the adapter is stubbed to hand them over.
 function stats(body: Record<string, unknown>) {
-  server.use(http.get('/api/auth/travel-stats', () => HttpResponse.json(body)));
+  vi.spyOn(dashboardApi, 'travelStats').mockResolvedValue(body as never);
+}
+
+function upcoming(reservations: unknown[]) {
+  vi.spyOn(dashboardApi, 'upcoming').mockResolvedValue({ reservations } as never);
 }
 
 function appearance(dashboard: Record<string, unknown>) {
@@ -82,12 +88,11 @@ beforeEach(async () => {
   await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
   await onlyTrips([TRIP]);
   stats({ totalTrips: 3, totalDays: 21, totalPlaces: 9, totalDistanceKm: 0, countries: [] });
+  upcoming([]);
   server.use(
     http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([
       { date: '2026-07-01', base: 'EUR', quote: 'USD', rate: 1.1 },
     ])),
-    http.get('/api/reservations/upcoming', () => HttpResponse.json({ reservations: [] })),
-    http.get('/api/addons/collections', () => HttpResponse.json({ collections: [] })),
   );
 });
 
@@ -154,31 +159,13 @@ describe('DashboardPage (desktop)', () => {
     expect(container.querySelector('main')).toHaveAttribute('data-no-sidebar', 'true');
   });
 
-  it('FE-PAGE-DESKDASH-007: the collections widget needs the addon and the flag', async () => {
-    // The store reloads its addons on mount, so the gate has to come from the API too.
-    server.use(http.get('/api/addons', () => HttpResponse.json({
-      bagTracking: false,
-      addons: [{ id: 'collections', name: 'Collections', type: 'feature', icon: 'bookmark', enabled: true }],
-    })));
-    useAddonStore.setState({
-      addons: [{ id: 'collections', name: 'Collections', type: 'feature', icon: 'bookmark', enabled: true }],
-      loaded: true,
-    } as never);
-    server.use(http.get('/api/addons/collections', () =>
-      HttpResponse.json({ collections: [{ id: 1, name: 'Tokyo eats', color: '#f00', cover_image: null, place_count: 4 }] })));
-    render(<DashboardPage />);
-
-    expect(await screen.findByText('Tokyo eats')).toBeInTheDocument();
-  });
 
   it('FE-PAGE-DESKDASH-008: the upcoming tool lists reservations and opens their trip', async () => {
     seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) });
-    server.use(http.get('/api/reservations/upcoming', () => HttpResponse.json({
-      reservations: [
-        { id: 1, trip_id: 101, title: 'Louvre', type: 'flight', reservation_time: '2026-09-03T19:30:00', location: 'Paris' },
-        { id: 2, trip_id: 101, title: 'Hotel Ibis', type: 'hotel', reservation_time: null, day_date: null, trip_title: 'Paris Adventure' },
-      ],
-    })));
+    upcoming([
+      { id: 1, trip_id: 101, title: 'Louvre', type: 'flight', reservation_time: '2026-09-03T19:30:00', location: 'Paris' },
+      { id: 2, trip_id: 101, title: 'Hotel Ibis', type: 'hotel', reservation_time: null, day_date: null, trip_title: 'Paris Adventure' },
+    ]);
     const { container } = render(<DashboardPage />);
 
     expect(await screen.findByText('Louvre')).toBeInTheDocument();
@@ -194,13 +181,11 @@ describe('DashboardPage (desktop)', () => {
   // but arriving and leaving are moments, and they carry the same id.
   it('FE-PAGE-DESKDASH-027: a stay renders as two moments and an unconfirmed booking says so', async () => {
     seedStore(useSettingsStore, { settings: buildSettings({ time_format: '24h' }) });
-    server.use(http.get('/api/reservations/upcoming', () => HttpResponse.json({
-      reservations: [
-        { id: 7, trip_id: 101, title: 'The Plaza', type: 'checkin', status: 'confirmed', reservation_time: '2026-09-18T15:00', day_date: '2026-09-18' },
-        { id: 3, trip_id: 101, title: 'Broadway Show', type: 'activity', status: 'pending', reservation_time: '2026-09-18T20:00', location: 'Richard Rodgers' },
-        { id: 7, trip_id: 101, title: 'The Plaza', type: 'checkout', status: 'confirmed', reservation_time: '2026-09-22T11:00', day_date: '2026-09-22' },
-      ],
-    })));
+    upcoming([
+      { id: 7, trip_id: 101, title: 'The Plaza', type: 'checkin', status: 'confirmed', reservation_time: '2026-09-18T15:00', day_date: '2026-09-18' },
+      { id: 3, trip_id: 101, title: 'Broadway Show', type: 'activity', status: 'pending', reservation_time: '2026-09-18T20:00', location: 'Richard Rodgers' },
+      { id: 7, trip_id: 101, title: 'The Plaza', type: 'checkout', status: 'confirmed', reservation_time: '2026-09-22T11:00', day_date: '2026-09-22' },
+    ]);
     const { container } = render(<DashboardPage />);
 
     // Both moments render despite sharing id 7 — the list key carries the type.
@@ -288,15 +273,6 @@ describe('DashboardPage (desktop)', () => {
     expect(container.querySelector('.place-more .lucide-map-pin')).toBeInTheDocument();
   });
 
-  it('FE-PAGE-DESKDASH-014: a hero-slot plugin frames itself over the boarding pass', async () => {
-    usePluginStore.setState({
-      plugins: [{ id: 'h1', name: 'Hero widget', type: 'widget', icon: null, slot: 'hero' }] as never,
-      loaded: true,
-    });
-    const { container } = render(<DashboardPage />);
-
-    await waitFor(() => expect(container.querySelector('.hero-pass-overlay')).toBeInTheDocument());
-  });
 
   it('FE-PAGE-DESKDASH-015: opening the hero pass navigates to the trip', async () => {
     const { container } = render(<DashboardPage />);
@@ -357,17 +333,13 @@ describe('DashboardPage (desktop)', () => {
     expect(await screen.findByPlaceholderText('e.g. Summer in Japan')).toHaveValue('');
   });
 
-  it('FE-PAGE-DESKDASH-022: the all-trips subscribe dialog opens and closes', async () => {
+  it('FE-PAGE-DESKDASH-022: the hosted all-trips calendar feed is gone', async () => {
     render(<DashboardPage />);
     await waitFor(() => expect(screen.getAllByText('Paris Adventure').length).toBeGreaterThan(0));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Subscribe to all trips calendar' }));
-    const description = await screen.findByText(/One calendar feed for all your active trips/);
-
-    fireEvent.click((description.parentElement as HTMLElement).querySelector('button') as HTMLElement);
-
-    await waitFor(() =>
-      expect(screen.queryByText(/One calendar feed for all your active trips/)).not.toBeInTheDocument());
+    // The feed token lived behind /api/feed/user — a server endpoint the local
+    // build does not have, so the toolbar carries no subscribe action.
+    expect(screen.queryByRole('button', { name: 'Subscribe to all trips calendar' })).not.toBeInTheDocument();
   });
 
   it('FE-PAGE-DESKDASH-023: a non-array rate response leaves the converter unavailable', async () => {
@@ -415,10 +387,10 @@ describe('DashboardPage (desktop)', () => {
   it('FE-PAGE-DESKDASH-028: the stats tiles show placeholders instead of zeros before the numbers arrive', async () => {
     let release: (() => void) | null = null;
     const held = new Promise<void>((resolve) => { release = resolve; });
-    server.use(http.get('/api/auth/travel-stats', async () => {
+    vi.spyOn(dashboardApi, 'travelStats').mockImplementation(async () => {
       await held;
-      return HttpResponse.json({ totalTrips: 12, totalPlaces: 40, totalDays: 30, totalDistanceKm: 5000, countries: ['FR'] });
-    }));
+      return { totalTrips: 12, totalPlaces: 40, totalDays: 30, totalDistanceKm: 5000, countries: ['FR'] };
+    });
 
     const { container } = render(<DashboardPage />);
 

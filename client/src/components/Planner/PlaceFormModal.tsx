@@ -4,13 +4,11 @@ import type { RoadtripStopType } from '@trek/shared'
 import CustomSelect from '../shared/CustomSelect'
 import NoteFormatToolbar from '../shared/NoteFormatToolbar'
 import { mapsApi } from '../../api/client'
-import { recordPlacePick } from '../../api/placeShadow'
 import { useAuthStore } from '../../store/authStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import CollectionPicker from '../Collections/CollectionPicker'
 import PlaceDetailsColumn, { type PlaceDetailsSelection } from './PlaceDetailsColumn'
 import { useToast } from '../shared/Toast'
 import { Search, Paperclip, X, AlertTriangle, Loader2, Plus, RotateCcw } from 'lucide-react'
@@ -202,7 +200,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const timeFormat = useSettingsStore((s) => s.settings.time_format) || '24h'
   const tripObj = useTripStore((s) => s.trip)
   const canUploadFiles = can('file_upload', tripObj)
-  const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
   const isBudgetEnabled = useAddonStore((s) => s.isEnabled('budget'))
   const deleteBudgetItem = useTripStore((s) => s.deleteBudgetItem)
   // Set right before submit when the user clicked create/edit expense — the
@@ -457,27 +454,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
         details: result,
       })
       setForm(prev => ({ ...prev, image_url: undefined }))
-      if (pick) {
-        const meta = pick.mode === 'search' ? searchMetaRef.current : acMetaRef.current
-        if (meta) {
-          recordPlacePick({
-            query: meta.query,
-            lang: language,
-            // The bias the search actually ran under is a box around the trip's
-            // existing places; the corpus stores its centre, which is what an
-            // evaluation needs to bias its own index the same way.
-            biasLat: locationBias ? (locationBias.low.lat + locationBias.high.lat) / 2 : undefined,
-            biasLng: locationBias ? (locationBias.low.lng + locationBias.high.lng) / 2 : undefined,
-            source: `${pick.mode}:${meta.source}`,
-            liveRank: pick.rank,
-            liveCount: pick.count,
-            pickedName: result.name || '',
-            pickedLat: lat,
-            pickedLng: lng,
-            pickedPlaceId: result.google_place_id || result.amap_poi_id || result.osm_id || null,
-          })
-        }
-      }
     }
     setMapsResults([])
     setMapsSearch('')
@@ -733,7 +709,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     assignmentId,
     dayAssignments,
     isMobile,
-    collectionsEnabled,
     form,
     setForm,
     mapsSearch,
@@ -813,7 +788,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     assignmentId,
     dayAssignments,
     isMobile,
-    collectionsEnabled,
     form,
     setForm,
     mapsSearch,
@@ -875,14 +849,11 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     handleStopKind,
     handleStopMinutes,
   } = S
-  // Desktop + Collections addon → the saved-place picker on the right. Mobile
-  // always keeps the original single-column form untouched.
-  const twoColumn = !isMobile && collectionsEnabled
   // The detail column sits on the left on desktop whenever enrichment is on. It
   // stays mounted with the selection null rather than appearing on the first
   // pick — otherwise the dialog would jump sideways mid-typing.
   const showDetails = !isMobile && placesEnrichEnabled
-  const modalSize = isMobile ? 'lg' : showDetails && twoColumn ? '5xl' : showDetails || twoColumn ? '4xl' : 'lg'
+  const modalSize = isMobile ? 'lg' : showDetails ? '4xl' : 'lg'
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null)
   const notesRef = useRef<HTMLTextAreaElement | null>(null)
   return (
@@ -913,7 +884,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         </div>
       }
     >
-      <div className={twoColumn || showDetails ? 'flex gap-5 items-stretch' : ''}>
+      <div className={showDetails ? 'flex gap-5 items-stretch' : ''}>
       {showDetails && (
         <PlaceDetailsColumn
           selection={detailsSelection}
@@ -927,7 +898,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
           t={t}
         />
       )}
-      <form onSubmit={handleSubmit} className={twoColumn || showDetails ? 'flex-1 min-w-0 space-y-3' : 'space-y-3'} onPaste={handlePaste}>
+      <form onSubmit={handleSubmit} className={showDetails ? 'flex-1 min-w-0 space-y-3' : 'space-y-3'} onPaste={handlePaste}>
         {/* Place Search */}
         <div className="bg-surface-secondary rounded-xl p-3 border border-edge">
           <div className="relative">
@@ -1279,9 +1250,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         )}
 
       </form>
-      {twoColumn && (
-        <CollectionPicker bias={locationBias} onSelect={handleSelectMapsResult} t={t} />
-      )}
       </div>
     </Modal>
   )

@@ -110,25 +110,7 @@ describe('PlacesSelectionBar', () => {
     expect(screen.queryByRole('button', { name: 'Save to Collection' })).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-SELBAR-009: the collection button opens the save sheet', async () => {
-    const user = userEvent.setup();
-    const setSaveToListOpen = vi.fn((_open: boolean) => {});
-    render(<Bar selectedIds={new Set([1])} collectionsEnabled setSaveToListOpen={setSaveToListOpen} />);
 
-    await user.click(screen.getByRole('button', { name: 'Save to Collection' }));
-
-    expect(setSaveToListOpen).toHaveBeenCalledWith(true);
-  });
-
-  it('FE-PLANNER-SELBAR-010: the collection button is disabled without a selection', () => {
-    const setSaveToListOpen = vi.fn((_open: boolean) => {});
-    render(<Bar selectedIds={new Set()} collectionsEnabled setSaveToListOpen={setSaveToListOpen} />);
-
-    const btn = screen.getByRole('button', { name: 'Save to Collection' });
-    expect(btn).toBeDisabled();
-    fireEvent.click(btn);
-    expect(setSaveToListOpen).not.toHaveBeenCalled();
-  });
 
   it('FE-PLANNER-SELBAR-011: on desktop delete goes straight to the bulk handler', async () => {
     const user = userEvent.setup();
@@ -170,7 +152,7 @@ describe('PlacesSelectionBar', () => {
   it('FE-PLANNER-SELBAR-013: hovering an enabled button highlights it and leaving resets it', () => {
     render(<Bar selectedIds={new Set([1])} collectionsEnabled />);
 
-    for (const name of ['Select all', 'Change category', 'Save to Collection', 'Delete selected']) {
+    for (const name of ['Select all', 'Change category', 'Delete selected']) {
       const btn = screen.getByRole('button', { name });
       fireEvent.mouseEnter(btn);
       fireEvent.mouseLeave(btn);
@@ -181,7 +163,7 @@ describe('PlacesSelectionBar', () => {
   it('FE-PLANNER-SELBAR-014: hovering a disabled button leaves it unstyled', () => {
     render(<Bar selectedIds={new Set()} collectionsEnabled />);
 
-    for (const name of ['Change category', 'Save to Collection', 'Delete selected']) {
+    for (const name of ['Change category', 'Delete selected']) {
       const btn = screen.getByRole('button', { name });
       fireEvent.mouseEnter(btn);
       expect(btn.style.background).toBe('');

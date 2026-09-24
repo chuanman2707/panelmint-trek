@@ -46,20 +46,7 @@ describe('MobileTopBar', () => {
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('FE-COMP-MOBILETOPBAR-004: profile sheet shows Logout', async () => {
-    const user = userEvent.setup();
-    render(<MobileTopBar />, { initialEntries: ['/dashboard'] });
-    await user.click(screen.getByRole('button', { name: 'Profile' }));
-    expect(screen.getByText('Logout')).toBeInTheDocument();
-  });
 
-  it('FE-COMP-MOBILETOPBAR-005: admin badge shown for admin users', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 2, username: 'adminuser', role: 'admin' }), isAuthenticated: true });
-    const user = userEvent.setup();
-    render(<MobileTopBar />, { initialEntries: ['/dashboard'] });
-    await user.click(screen.getByRole('button', { name: 'Profile' }));
-    expect(screen.getByText('Admin')).toBeInTheDocument();
-  });
 
   it('FE-COMP-MOBILETOPBAR-006: backdrop click closes the profile sheet', async () => {
     const user = userEvent.setup();

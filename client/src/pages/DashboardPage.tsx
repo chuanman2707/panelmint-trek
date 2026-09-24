@@ -18,20 +18,12 @@ import {
 import {
   Plus, Edit2, Trash2, Archive, ArchiveRestore, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
-  LayoutGrid, List, Ticket, X, CalendarPlus, ParkingSquare, LogIn, LogOut,
+  LayoutGrid, List, Ticket, X, ParkingSquare, LogIn, LogOut,
 } from 'lucide-react'
-import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
-import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
-import PluginWidgets from '../components/Plugins/PluginWidgets'
-import PluginFrame from '../components/Plugins/PluginFrame'
-import { TripCardBadges, useTripCardBadges } from '../components/Plugins/TripCardBadges'
-import type { TripCardBadge } from '../api/client'
-import { usePluginStore } from '../store/pluginStore'
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
 import { CURRENCIES } from '../components/Budget/BudgetPanel.constants'
 import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
-import { useAddonStore } from '../store/addonStore'
 import { normalizeAppearance } from '@trek/shared'
 import '../styles/dashboard.css'
 
@@ -119,7 +111,6 @@ function DashboardPageDesktop(): React.ReactElement {
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
-    allSubOpen, setAllSubOpen,
   } = useDashboard()
 
   // Dashboard widget visibility (from the appearance config). Phones never reach this
@@ -130,19 +121,8 @@ function DashboardPageDesktop(): React.ReactElement {
   const showCurrency = sideWidgets.currency
   const showTimezones = sideWidgets.timezones
   const showUpcoming = sideWidgets.upcomingReservations
-  // Collections is double-gated: the admin addon AND the per-user widget flag.
-  const isAddonEnabled = useAddonStore(s => s.isEnabled)
-  const showCollections = isAddonEnabled('collections') && sideWidgets.collections
   // Desktop has a master toggle for the whole right column; off → centered layout.
-  // Only true dashboard widgets belong here — hero mounts on the boarding pass, and
-  // place-detail/day-detail widgets live inside the planner panels, not the sidebar.
-  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail' && p.slot !== 'day-detail' && p.slot !== 'reservation-detail')
-  const sidebarVisible = dashCfg.desktop.sidebar && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
-
-  // Plugin-contributed badges on the trip cards (tripCardProvider hook). One fetch for
-  // all visible cards; only runs when at least one plugin is active. Fail-safe.
-  const anyPluginActive = usePluginStore(s => s.plugins).length > 0
-  const badgesFor = useTripCardBadges(gridTrips.map(t => t.id), anyPluginActive)
+  const sidebarVisible = dashCfg.desktop.sidebar && (showCurrency || showTimezones || showUpcoming)
 
   return (
     <>
@@ -194,28 +174,11 @@ function DashboardPageDesktop(): React.ReactElement {
                     <button type="button" className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archived')}</button>
                     <button type="button" className={tripFilter === 'completed' ? 'on' : ''} onClick={() => setTripFilter('completed')}>{t('dashboard.mobile.completed')}</button>
                   </div>
-                  <button type="button"
-                    className="tool-action"
-                    aria-label="Subscribe to all trips calendar"
-                    title="Subscribe to all trips"
-                    onClick={() => setAllSubOpen(true)}
-                    style={{ width: 38, height: 38, borderRadius: 11 }}
-                  >
-                    <CalendarPlus size={17} />
-                  </button>
                   <button type="button" className="tool-action" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
                     {viewMode === 'grid' ? <List size={17} /> : <LayoutGrid size={17} />}
                   </button>
                 </div>
               </div>
-              {allSubOpen && (
-                <IcsSubscribeModal
-                  endpoint="/api/feed/user"
-                  title="Subscribe to all trips"
-                  description="One calendar feed for all your active trips, kept in sync automatically. Excludes archived trips and trips that ended more than 90 days ago."
-                  onClose={() => setAllSubOpen(false)}
-                />
-              )}
 
               {/* "No trips yet" only when there really are none — a user whose trips are
                   all finished has a hero, and telling them to create their first trip is
@@ -232,7 +195,6 @@ function DashboardPageDesktop(): React.ReactElement {
                     key={trip.id}
                     trip={trip}
                     locale={locale}
-                    badges={badgesFor(trip.id)}
                     onOpen={() => navigate(`/trips/${trip.id}`)}
                     onEdit={() => { setEditingTrip(trip); setShowForm(true) }}
                     onCopy={() => setCopyTrip(trip)}
@@ -263,10 +225,8 @@ function DashboardPageDesktop(): React.ReactElement {
           {sidebarVisible && (
             <aside className="page-sidebar">
               {showCurrency && <CurrencyTool />}
-              {showCollections && <CollectionsWidget onOpen={() => navigate('/collections')} />}
               {showTimezones && <TimezoneTool locale={locale} />}
               {showUpcoming && <UpcomingTool items={upcoming} locale={locale} onOpen={(tripId) => navigate(`/trips/${tripId}`)} />}
-              <PluginWidgets plugins={widgetPlugins} tripId={spotlight ? String(spotlight.id) : null} />
             </aside>
           )}
         </main>
@@ -321,7 +281,6 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
   onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  const heroPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot === 'hero')
   const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
   const status = getTripStatus(trip)
   const archiveLabel = trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')
@@ -446,13 +405,6 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
         </div>
 
         <div className="hero-pass-wrap">
-          {heroPlugins.length > 0 && (
-            <div className="hero-pass-overlay" aria-hidden="true">
-              {heroPlugins.map(p => (
-                <PluginFrame key={p.id} pluginId={p.id} tripId={String(trip.id)} title={p.name} surface="dashboard-widget" className="hero-overlay-frame" />
-              ))}
-            </div>
-          )}
           <div className="hero-pass" role="presentation" onClick={(e) => { e.stopPropagation(); onOpen() }}>
             <div className="hero-pass-inner">{passCells}</div>
           </div>
@@ -573,8 +525,8 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
 }
 
 // ── Trip card ────────────────────────────────────────────────────────────────
-function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onDelete }: {
-  trip: DashboardTrip; locale: string; badges?: TripCardBadge[]; onOpen: () => void
+function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }: {
+  trip: DashboardTrip; locale: string; onOpen: () => void
   onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
@@ -634,7 +586,6 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
           <div><span className="n mono">{trip.place_count ?? 0}</span><span className="k">{t('dashboard.places')}</span></div>
           <div><span className="n mono">{trip.shared_count ?? 0}</span><span className="k">{trip.shared_count === 1 ? t('dashboard.card.buddyOne') : t('dashboard.members')}</span></div>
         </div>
-        <TripCardBadges items={badges ?? []} />
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render';
+import { useAuthStore } from '../../store/authStore';
 import { getCached, isLoading, fetchPhoto, onThumbReady } from '../../services/photoService';
 
 // Mock photoService — all functions are no-ops / return null
@@ -30,6 +31,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  // The suite covers the photo-fetch path — the capability flag is off in the
+  // local build, so it is turned on for these tests.
+  useAuthStore.setState({ placesPhotosEnabled: true });
   vi.mocked(getCached).mockReturnValue(null);
   vi.mocked(isLoading).mockReturnValue(false);
   vi.mocked(fetchPhoto).mockReset();
@@ -37,6 +41,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  useAuthStore.setState({ placesPhotosEnabled: false });
   mockDisconnect.mockClear();
   mockObserve.mockClear();
   observerInstance = null;

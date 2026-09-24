@@ -121,21 +121,12 @@ describe('MBottomNav', () => {
     expect(screen.queryByRole('button', { expanded: false })).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-NAV-008: the centre button opens the country search on the atlas', () => {
-    seedAddons(['atlas']);
-    render(<MBottomNav />, { initialEntries: ['/atlas'] });
-    expect(screen.getByRole('button', { name: 'Search a country...' })).toBeInTheDocument();
-  });
 
   it('FE-MOB-NAV-009: settings shows the disabled logo slot instead of a create action', () => {
     render(<MBottomNav />, { initialEntries: ['/settings'] });
     expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-NAV-010: admin also swaps the "+" for the logo slot', () => {
-    render(<MBottomNav />, { initialEntries: ['/admin'] });
-    expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
-  });
 
   it('FE-MOB-NAV-011: choosing a More entry navigates and closes the popover', () => {
     seedAddons(['vacay', 'atlas', 'journey', 'collections']);
@@ -172,13 +163,11 @@ describe('MBottomNav', () => {
     expect(screen.getByRole('button', { name: /Journey/ })).toBeInTheDocument();
   });
 
+  // The hosted "+" routes (journey/collections/atlas) are gone — only the
+  // dashboard and in-trip creates remain.
   it.each([
-    ['/journey', 'New Journey', '/journey?create=1'],
-    ['/journey/4', 'Add Entry', '/journey/4?create=entry'],
-    ['/collections', 'Add a place', '/collections?create=place'],
     ['/trips/7', 'Add Place/Activity', '/trips/7?create=place'],
     ['/dashboard', 'New Trip', '/dashboard?create=1'],
-    ['/atlas', 'Search a country...', '/atlas?search=1'],
   ])('FE-MOB-NAV-014: the "+" on %s runs "%s"', (route, label, target) => {
     seedAddons(['journey', 'collections', 'atlas']);
     nav(route);
@@ -220,16 +209,6 @@ describe('MBottomNav', () => {
     expect(at()).toBe('/collections');
   });
 
-  it('FE-MOB-NAV-018: vacay owns its centre slot, so the dock offers no create action (#1811)', () => {
-    seedAddons(['vacay', 'atlas']);
-    const { container } = render(<MBottomNav />, { initialEntries: ['/vacay'] });
-
-    expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
-    // Nothing tappable in the middle at all: the screen's own FAB covers it, and
-    // until it mounts an empty slot beats a wrong action.
-    expect(dockSlots(container).centre).toBeEmptyDOMElement();
-    expect(screen.getByRole('button', { name: 'Vacay' })).toHaveAttribute('aria-current', 'page');
-  });
 
   const DOCK_CONFIGS: [string, MobileNavCfg][] = [
     ['the built-in dock', null],

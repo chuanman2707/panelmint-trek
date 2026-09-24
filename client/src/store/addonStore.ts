@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { addonsApi } from '../api/client'
 
 interface Addon {
   id: string
@@ -22,6 +21,17 @@ interface Addon {
   }>
 }
 
+/**
+ * The addon set is static now — there is no server to toggle them. Packing and
+ * budget are the two trip addons PanelMint keeps; everything else (documents,
+ * collab, roadtrip, journey, integrations…) is cut and stays off, which is also
+ * what hides their UI entry points.
+ */
+const STATIC_ADDONS: Addon[] = [
+  { id: 'packing', name: 'Lists', type: 'trip', icon: 'ListChecks', enabled: true },
+  { id: 'budget', name: 'Costs', type: 'trip', icon: 'Wallet', enabled: true },
+]
+
 interface AddonState {
   addons: Addon[]
   bagTracking: boolean
@@ -31,17 +41,24 @@ interface AddonState {
 }
 
 export const useAddonStore = create<AddonState>((set, get) => ({
-  addons: [],
-  bagTracking: false,
-  loaded: false,
+  addons: STATIC_ADDONS,
+  // The bag feature was an app_settings flag, not an addon row — bags stay on.
+  bagTracking: true,
+  loaded: true,
 
+  // Kept for the boot path and settings screens that still call it — there is
+  // nothing left to fetch, so it just re-asserts the static set. Seeded extras
+  // (a test's roadtrip row, say) survive: merging rather than replacing is what
+  // lets an opt-in feature stay testable without a feed behind it.
   loadAddons: async () => {
-    try {
-      const data = await addonsApi.enabled()
-      set({ addons: data.addons || [], bagTracking: !!data.bagTracking, loaded: true })
-    } catch {
-      set({ loaded: true })
-    }
+    set(s => ({
+      loaded: true,
+      bagTracking: true,
+      addons: [
+        ...STATIC_ADDONS,
+        ...s.addons.filter(a => !STATIC_ADDONS.some(sa => sa.id === a.id)),
+      ],
+    }))
   },
 
   isEnabled: (id: string) => {
