@@ -2,12 +2,13 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../src/store/tripStore';
-import { placesApi, tripsApi, daysApi } from '../../src/api/client';
+import { placesApi, tripsApi, daysApi, tagsApi } from '../../src/api/client';
 import { resetAllStores } from '../helpers/store';
 import { buildTrip, buildDay, buildPlace, buildPackingItem, buildTodoItem, buildTag, buildCategory, buildAssignment, buildDayNote, buildBudgetItem, buildReservation, buildTripFile } from '../helpers/factories';
 import { server } from '../helpers/msw/server';
 import { db } from '../../src/db/panelmintDb';
 import type { DayRow } from '../../src/api/local/dexieStore';
+import type { Tag } from '../../src/types';
 
 beforeEach(async () => {
   resetAllStores();
@@ -32,9 +33,9 @@ async function seedLocalTrip(id: number, days: import('../../src/types').Day[] =
 }
 
 /**
- * Full set of MSW handlers for one trip's loadTrip fan-out — trips/days are
- * local now, so the trip row is seeded into `panelmint` and only the still-HTTP
- * resources keep handlers.
+ * Full set of MSW handlers for one trip's loadTrip fan-out — trips/days/tags
+ * are local now, so the trip row (and any `data.tags` rows) are seeded into
+ * `panelmint` and only the still-HTTP resources keep handlers.
  */
 async function tripHandlers(
   id: number,
@@ -44,6 +45,9 @@ async function tripHandlers(
   },
 ) {
   await seedLocalTrip(id);
+  for (const tag of data.tags ?? []) {
+    await db.tags.put(tag as Tag);
+  }
   return [
     http.get(`/api/trips/${id}/places`, () => HttpResponse.json({ places: [] })),
     http.get(`/api/trips/${id}/packing`, () => HttpResponse.json({ items: [] })),
@@ -51,7 +55,6 @@ async function tripHandlers(
     http.get(`/api/trips/${id}/budget`, () => HttpResponse.json({ items: data.budget ?? [] })),
     http.get(`/api/trips/${id}/reservations`, () => HttpResponse.json({ reservations: data.reservations ?? [] })),
     http.get(`/api/trips/${id}/files`, () => HttpResponse.json({ files: data.files ?? [] })),
-    http.get('/api/tags', () => HttpResponse.json({ tags: data.tags ?? [] })),
     http.get('/api/categories', () => HttpResponse.json({ categories: data.categories ?? [] })),
   ];
 }
@@ -61,9 +64,10 @@ describe('tripStore', () => {
     it('FE-TRIP-001: fires parallel API calls for trips, days, places, packing, todo, tags, categories', async () => {
       await seedLocalTrip(1);
       const calledUrls: string[] = [];
-      // trips/days are local adapter calls; the rest are still HTTP fan-out.
+      // trips/days/tags are local adapter calls; the rest are still HTTP fan-out.
       const tripsGet = vi.spyOn(tripsApi, 'get');
       const daysList = vi.spyOn(daysApi, 'list');
+      const tagsList = vi.spyOn(tagsApi, 'list');
       server.use(
         http.get('/api/trips/:id/places', ({ params }) => {
           calledUrls.push(`/api/trips/${params.id}/places`);
@@ -77,10 +81,6 @@ describe('tripStore', () => {
           calledUrls.push(`/api/trips/${params.id}/todo`);
           return HttpResponse.json({ items: [] });
         }),
-        http.get('/api/tags', () => {
-          calledUrls.push('/api/tags');
-          return HttpResponse.json({ tags: [] });
-        }),
         http.get('/api/categories', () => {
           calledUrls.push('/api/categories');
           return HttpResponse.json({ categories: [] });
@@ -91,10 +91,10 @@ describe('tripStore', () => {
 
       expect(tripsGet).toHaveBeenCalledWith(1);
       expect(daysList).toHaveBeenCalledWith(1);
+      expect(tagsList).toHaveBeenCalled();
       expect(calledUrls).toContain('/api/trips/1/places');
       expect(calledUrls).toContain('/api/trips/1/packing');
       expect(calledUrls).toContain('/api/trips/1/todo');
-      expect(calledUrls).toContain('/api/tags');
       expect(calledUrls).toContain('/api/categories');
     });
 
@@ -107,13 +107,13 @@ describe('tripStore', () => {
       const category = buildCategory();
 
       // Seed the exact row the assertion compares against (buildTrip mints a
-      // fresh title per call).
+      // fresh title per call). tagsApi is local — the tag comes from db.tags.
       await db.trips.put(trip);
+      await db.tags.put(tag);
       server.use(
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [place] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [packingItem] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [todoItem] })),
-        http.get('/api/tags', () => HttpResponse.json({ tags: [tag] })),
         http.get('/api/categories', () => HttpResponse.json({ categories: [category] })),
       );
 
@@ -138,7 +138,6 @@ describe('tripStore', () => {
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
-        http.get('/api/tags', () => HttpResponse.json({ tags: [] })),
         http.get('/api/categories', () => HttpResponse.json({ categories: [] })),
       );
 
@@ -165,7 +164,6 @@ describe('tripStore', () => {
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
-        http.get('/api/tags', () => HttpResponse.json({ tags: [] })),
         http.get('/api/categories', () => HttpResponse.json({ categories: [] })),
       );
 
@@ -188,7 +186,6 @@ describe('tripStore', () => {
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
-        http.get('/api/tags', () => HttpResponse.json({ tags: [] })),
         http.get('/api/categories', () => HttpResponse.json({ categories: [] })),
       );
 
@@ -205,7 +202,6 @@ describe('tripStore', () => {
         http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
-        http.get('/api/tags', () => HttpResponse.json({ tags: [] })),
         http.get('/api/categories', () => HttpResponse.json({ categories: [] })),
       );
 
@@ -282,7 +278,6 @@ describe('tripStore', () => {
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: budget })),
       http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [] })),
       http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
-      http.get('/api/tags', () => HttpResponse.json({ tags: [] })),
       http.get('/api/categories', () => HttpResponse.json({ categories: [] })),
     ];
 

@@ -11,6 +11,8 @@ import { usePermissionsStore } from '../../store/permissionsStore';
 import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildAdmin, buildTrip, buildDay, buildPlace, buildReservation } from '../../../tests/helpers/factories';
+import { weatherApi } from '../../api/client';
+import { clearWeatherCache } from '../../api/ext/openmeteo';
 import DayDetailPanel from './DayDetailPanel';
 
 const day = buildDay({ id: 1, trip_id: 1, date: '2025-06-15', title: 'Day in Paris' });
@@ -29,11 +31,61 @@ const defaultProps = {
   onAccommodationChange: vi.fn(),
 };
 
+/**
+ * weatherApi is the local adapter now — it fetches Open-Meteo straight from the
+ * browser (`api.open-meteo.com` forecast host for dates inside the ±16-day
+ * window, `archive-api.open-meteo.com` for the past and far future). The tests
+ * below stub THAT endpoint with the provider's own payload shape; the ported
+ * transform turns it into the WeatherResult the panel renders.
+ *
+ * openMeteoDay() builds the detailed-forecast answer: `daily` index 0 is the
+ * requested day (the adapter calls with start_date=end_date=day.date), `hourly`
+ * rows become the panel's hourly entries.
+ */
+function openMeteoDay(over: {
+  max?: number; min?: number; code?: number;
+  precipProbMax?: number; precipSum?: number; windMax?: number;
+  sunrise?: string; sunset?: string;
+  hourly?: Array<{ hour: number; temp: number; precipProb?: number; precip?: number; code?: number; wind?: number; humidity?: number }>;
+} = {}) {
+  const hourly = over.hourly ?? [];
+  return {
+    daily: {
+      time: ['2025-06-15'],
+      temperature_2m_max: [over.max ?? 26],
+      temperature_2m_min: [over.min ?? 18],
+      weathercode: [over.code ?? 0],
+      sunrise: [over.sunrise ?? '2025-06-15T06:30'],
+      sunset: [over.sunset ?? '2025-06-15T20:15'],
+      precipitation_probability_max: [over.precipProbMax ?? 0],
+      precipitation_sum: [over.precipSum ?? 0],
+      windspeed_10m_max: [over.windMax ?? 0],
+    },
+    hourly: {
+      time: hourly.map((h) => `2025-06-15T${String(h.hour).padStart(2, '0')}:00`),
+      temperature_2m: hourly.map((h) => h.temp),
+      precipitation_probability: hourly.map((h) => h.precipProb ?? 0),
+      precipitation: hourly.map((h) => h.precip ?? 0),
+      weathercode: hourly.map((h) => h.code ?? 0),
+      windspeed_10m: hourly.map((h) => h.wind ?? 0),
+      relativehumidity_2m: hourly.map((h) => h.humidity ?? 0),
+    },
+  };
+}
+
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
+  // Cases spy on weatherApi — a mocked implementation must not leak onward.
+  vi.restoreAllMocks();
+  // The ported weather module caches module-wide — a forecast fetched by one
+  // case must not leak into the next (same lat/lng + day date share the key).
+  clearWeatherCache();
   server.use(
-    http.get('/api/weather/detailed', () => HttpResponse.json({ error: true })),
+    // Default: the provider has no data → the adapter resolves no_forecast and
+    // the panel renders its "No weather" state, like the old { error } default.
+    http.get('https://api.open-meteo.com/v1/forecast', () =>
+      HttpResponse.json({ daily: { time: [] }, hourly: { time: [] } })),
     http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [] })),
   );
   seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
@@ -141,7 +193,7 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-009: weather loading state shown briefly', async () => {
     server.use(
-      http.get('/api/weather/detailed', () => new Promise(() => {})), // never resolves
+      http.get('https://api.open-meteo.com/v1/forecast', () => new Promise(() => {})), // never resolves
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
     // Spinner div has border + borderTopColor
@@ -152,9 +204,10 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-010: weather data renders temperature in Celsius', async () => {
+    // temp = round((max + min) / 2) = 22, weathercode 0 = Clear
     server.use(
-      http.get('/api/weather/detailed', () =>
-        HttpResponse.json({ main: 'Clear', temp: 22, temp_min: 18, temp_max: 26, description: 'sunny' })
+      http.get('https://api.open-meteo.com/v1/forecast', () =>
+        HttpResponse.json(openMeteoDay({ max: 26, min: 18, code: 0 }))
       ),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
@@ -166,8 +219,8 @@ describe('DayDetailPanel', () => {
       settings: { time_format: '24h', temperature_unit: 'fahrenheit', blur_booking_codes: false },
     });
     server.use(
-      http.get('/api/weather/detailed', () =>
-        HttpResponse.json({ main: 'Clear', temp: 0, temp_min: 0, temp_max: 0, description: 'cold' })
+      http.get('https://api.open-meteo.com/v1/forecast', () =>
+        HttpResponse.json(openMeteoDay({ max: 0, min: 0, code: 0 }))
       ),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
@@ -176,7 +229,7 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-012: no weather shows "No weather data" message', async () => {
     server.use(
-      http.get('/api/weather/detailed', () => HttpResponse.json({ error: true })),
+      http.get('https://api.open-meteo.com/v1/forecast', () => HttpResponse.json({ daily: { time: [] }, hourly: { time: [] } })),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
     expect(await screen.findByText(/No weather/i)).toBeInTheDocument();
@@ -445,20 +498,16 @@ describe('DayDetailPanel', () => {
   // ── Weather chips ─────────────────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYDETAIL-026: weather chips render precipitation, wind, sunrise, sunset', async () => {
+    // weathercode 61 = Rain; the transform maps the provider fields onto the
+    // chips' precipitation_probability_max / precipitation_sum / wind_max and
+    // slices HH:MM off the sunrise/sunset timestamps.
     server.use(
-      http.get('/api/weather/detailed', () =>
-        HttpResponse.json({
-          main: 'Rain',
-          temp: 15,
-          temp_min: 12,
-          temp_max: 18,
-          description: 'rainy',
-          precipitation_probability_max: 80,
-          precipitation_sum: 5.2,
-          wind_max: 30,
-          sunrise: '06:30',
-          sunset: '20:15',
-        })
+      http.get('https://api.open-meteo.com/v1/forecast', () =>
+        HttpResponse.json(openMeteoDay({
+          max: 18, min: 12, code: 61,
+          precipProbMax: 80, precipSum: 5.2, windMax: 30,
+          sunrise: '2025-06-15T06:30', sunset: '2025-06-15T20:15',
+        }))
       ),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
@@ -474,15 +523,8 @@ describe('DayDetailPanel', () => {
       settings: { time_format: '24h', temperature_unit: 'fahrenheit', blur_booking_codes: false },
     });
     server.use(
-      http.get('/api/weather/detailed', () =>
-        HttpResponse.json({
-          main: 'Clouds',
-          temp: 20,
-          temp_min: 15,
-          temp_max: 25,
-          description: 'cloudy',
-          wind_max: 50,
-        })
+      http.get('https://api.open-meteo.com/v1/forecast', () =>
+        HttpResponse.json(openMeteoDay({ max: 25, min: 15, code: 2, windMax: 50 }))
       ),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
@@ -653,20 +695,17 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-036: weather hourly data renders hour entries', async () => {
+    // temp = round((25 + 15) / 2) = 20; weathercode 2 = Clouds at noon.
     server.use(
-      http.get('/api/weather/detailed', () =>
-        HttpResponse.json({
-          main: 'Clear',
-          temp: 20,
-          temp_min: 15,
-          temp_max: 25,
-          description: 'sunny',
+      http.get('https://api.open-meteo.com/v1/forecast', () =>
+        HttpResponse.json(openMeteoDay({
+          max: 25, min: 15, code: 0,
           hourly: [
-            { hour: 8, main: 'Clear', temp: 18, precipitation_probability: 0 },
-            { hour: 10, main: 'Clear', temp: 20, precipitation_probability: 10 },
-            { hour: 12, main: 'Clouds', temp: 22, precipitation_probability: 60 },
+            { hour: 8, temp: 18, precipProb: 0, code: 0 },
+            { hour: 10, temp: 20, precipProb: 10, code: 0 },
+            { hour: 12, temp: 22, precipProb: 60, code: 2 },
           ],
-        })
+        }))
       ),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
@@ -678,19 +717,17 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-037: climate type weather shows average indicator', async () => {
+    // type 'climate' only comes from the archive path — the transform answers
+    // it for a day more than 16 days out — so this case uses a far-future day
+    // and stubs the archive host.
+    const futureDate = new Date(Date.now() + 40 * 86400000).toISOString().slice(0, 10);
+    const futureDay = buildDay({ id: 1, trip_id: 1, date: futureDate, title: 'Far Away Day' });
     server.use(
-      http.get('/api/weather/detailed', () =>
-        HttpResponse.json({
-          main: 'Clear',
-          type: 'climate',
-          temp: 18,
-          temp_min: 14,
-          temp_max: 22,
-          description: 'average',
-        })
+      http.get('https://archive-api.open-meteo.com/v1/archive', () =>
+        HttpResponse.json(openMeteoDay({ max: 22, min: 14, code: 0 }))
       ),
     );
-    render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
+    render(<DayDetailPanel {...defaultProps} day={futureDay} days={[futureDay]} lat={48.8566} lng={2.3522} />);
     expect(await screen.findByText(/Ø/)).toBeInTheDocument();
   });
 
@@ -833,8 +870,10 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-045: weather API network error is handled gracefully', async () => {
+    // The adapter logs the provider failure before rethrowing — keep the run quiet.
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     server.use(
-      http.get('/api/weather/detailed', () => HttpResponse.error()),
+      http.get('https://api.open-meteo.com/v1/forecast', () => HttpResponse.error()),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
     // Should show "No weather" after error (catch sets weather to null)
@@ -1646,14 +1685,16 @@ describe('DayDetailPanel remaining branches', () => {
   });
 
   it('FE-W5DDP-011: an unmapped weather condition falls back to the cloud icon', async () => {
-    server.use(
-      http.get('/api/weather/detailed', () =>
-        HttpResponse.json({
-          main: 'Sandstorm', temp: 30, description: 'blowing sand', type: 'forecast',
-          hourly: [{ hour: 9, main: 'Sandstorm', temp: 28, precipitation_probability: 0 }],
-        }),
-      ),
-    );
+    // The WMO map can't produce a 'Sandstorm' main — every code resolves to a
+    // known bucket — so the unmapped-condition answer is mocked at the api
+    // boundary, where the old /api/weather/detailed stub used to inject it.
+    vi.spyOn(weatherApi, 'getDetailed').mockResolvedValue({
+      main: 'Sandstorm', temp: 30, description: 'blowing sand', type: 'forecast',
+      hourly: [{
+        hour: 9, main: 'Sandstorm', temp: 28,
+        precipitation_probability: 0, precipitation: 0, wind: 0, humidity: 0,
+      }],
+    });
     render(<DayDetailPanel {...defaultProps} lat={48.85} lng={2.35} />);
 
     expect(await screen.findByText('blowing sand')).toBeInTheDocument();

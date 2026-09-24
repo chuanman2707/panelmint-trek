@@ -3,16 +3,15 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
 
 const {
+  apiClient,
   placesApi,
   packingApi,
   assignmentsApi,
-  tagsApi,
   categoriesApi,
   mapsApi,
   budgetApi,
   filesApi,
   reservationsApi,
-  weatherApi,
   accommodationsApi,
   dayNotesApi,
 } = await import('../../../src/api/client');
@@ -52,7 +51,9 @@ describe('API client interceptors', () => {
       })
     );
 
-    await tagsApi.list();
+    // Probe the axios instance directly — the interceptors live on apiClient;
+    // tagsApi is a local adapter now and would never reach the wire.
+    await apiClient.get('/tags');
     expect(receivedKey).toBeNull();
   });
 
@@ -67,7 +68,7 @@ describe('API client interceptors', () => {
       http.get('/api/tags', () => HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 }))
     );
 
-    await expect(tagsApi.list()).rejects.toThrow();
+    await expect(apiClient.get('/tags')).rejects.toThrow();
     expect(window.location.href).toBe(originalHref);
   });
 
@@ -83,8 +84,8 @@ describe('API client interceptors', () => {
   it('FE-API-005: successful API call returns response data', async () => {
     server.use(http.get('/api/tags', () => HttpResponse.json({ settings: { theme: 'dark' } })));
 
-    const data = await tagsApi.list();
-    expect(data).toMatchObject({ settings: { theme: 'dark' } });
+    const res = await apiClient.get('/tags');
+    expect(res.data).toMatchObject({ settings: { theme: 'dark' } });
   });
 
   it('FE-API-017: placesApi.create posts to /api/trips/1/places and returns data directly', async () => {
@@ -113,23 +114,20 @@ describe('API client interceptors', () => {
       http.get('/api/tags', () => HttpResponse.json({ error: 'Internal error' }, { status: 500 }))
     );
 
-    await expect(tagsApi.list()).rejects.toThrow();
+    await expect(apiClient.get('/tags')).rejects.toThrow();
   });
 });
 
 // ── API namespace smoke tests ────────────────────────────────────────────────
-// (tripsApi/daysApi are local adapters — api/local/* — so there is no
-// /api/trips or /api/trips/:id/days traffic left to smoke-test here.)
+// (tripsApi/daysApi/tagsApi/weatherApi are local adapters — api/local/* — so
+// there is no /api/trips, /api/trips/:id/days, /api/tags or /api/weather
+// traffic left to smoke-test here; their coverage lives in
+// tests/unit/local/{trips,days,tags,weather}.test.ts.)
 
 describe('API namespace smoke tests', () => {
   it('assignmentsApi.list fetches day assignments', async () => {
     server.use(http.get('/api/trips/1/days/1/assignments', () => HttpResponse.json([])));
     await expect(assignmentsApi.list(1, 1)).resolves.toEqual([]);
-  });
-
-  it('tagsApi.list fetches tags', async () => {
-    server.use(http.get('/api/tags', () => HttpResponse.json([])));
-    await expect(tagsApi.list()).resolves.toEqual([]);
   });
 
   it('categoriesApi.list fetches categories', async () => {
@@ -160,11 +158,6 @@ describe('API namespace smoke tests', () => {
   it('reservationsApi.list fetches reservations', async () => {
     server.use(http.get('/api/trips/1/reservations', () => HttpResponse.json([])));
     await expect(reservationsApi.list(1)).resolves.toEqual([]);
-  });
-
-  it('weatherApi.get fetches weather data', async () => {
-    server.use(http.get('/api/weather', () => HttpResponse.json({ temp: 20 })));
-    await expect(weatherApi.get(48.8, 2.3, '2025-06-01')).resolves.toMatchObject({ temp: 20 });
   });
 
   it('accommodationsApi.list fetches accommodations', async () => {
@@ -231,17 +224,8 @@ describe('API namespace smoke tests', () => {
     await expect(assignmentsApi.reorder(1, 1, [3, 1, 2])).resolves.toMatchObject({ ok: true });
   });
 
-  // ── tagsApi / categoriesApi additional methods ────────────────────────────────
-
-  it('tagsApi.create creates a tag', async () => {
-    server.use(http.post('/api/tags', () => HttpResponse.json({ id: 1, name: 'Fun' })));
-    await expect(tagsApi.create({ name: 'Fun' })).resolves.toMatchObject({ id: 1 });
-  });
-
-  it('tagsApi.delete deletes a tag', async () => {
-    server.use(http.delete('/api/tags/1', () => HttpResponse.json({ ok: true })));
-    await expect(tagsApi.delete(1)).resolves.toMatchObject({ ok: true });
-  });
+  // ── categoriesApi additional methods ────────────────────────────────────────
+  // (tagsApi is a local adapter — covered by tests/unit/local/tags.test.ts.)
 
   it('categoriesApi.create creates a category', async () => {
     server.use(http.post('/api/categories', () => HttpResponse.json({ id: 1, name: 'Food' })));

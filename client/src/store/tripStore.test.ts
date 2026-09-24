@@ -19,7 +19,7 @@ import {
 } from '../../tests/helpers/factories';
 import { offlineDb } from '../db/offlineDb';
 import { db } from '../db/panelmintDb';
-import { tripsApi, daysApi } from '../api/client';
+import { tripsApi, daysApi, tagsApi } from '../api/client';
 import { LocalApiError } from '../api/local/helpers';
 import type { DayRow } from '../api/local/dexieStore';
 import { setForcedOffline } from '../sync/networkMode';
@@ -42,9 +42,10 @@ async function clearCache(): Promise<void> {
 }
 
 /**
- * tripsApi/daysApi are local adapters — tripRepo.get/dayRepo.list read the
- * `panelmint` Dexie db, not the network. Seed the trip + day rows here; every
- * other resource (places/packing/todo/budget/…) is still HTTP and stays on msw.
+ * tripsApi/daysApi/tagsApi are local adapters — tripRepo.get/dayRepo.list and
+ * the tag fan-out read the `panelmint` Dexie db, not the network. Seed the
+ * trip + day (+ tag) rows into it; every other resource (places/packing/todo/
+ * budget/categories/…) is still HTTP and stays on msw.
  */
 async function seedLocalTrip(trip = buildTrip({ id: 1 }), days = serverDays()): Promise<void> {
   await db.trips.put(trip);
@@ -157,9 +158,10 @@ describe('tripStore', () => {
         http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [buildBudgetItem({ id: 80, trip_id: 1 })] })),
         http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [buildReservation({ id: 90, trip_id: 1 })] })),
         http.get('/api/trips/1/files', () => HttpResponse.json({ files: [buildTripFile({ id: 95, trip_id: 1 })] })),
-        http.get('/api/tags', () => HttpResponse.json({ tags: [buildTag({ id: 11 })] })),
         http.get('/api/categories', () => HttpResponse.json({ categories: [buildCategory({ id: 12 })] })),
       );
+      // tagsApi is local — the "endpoint answer" is a self-owned db.tags row.
+      await db.tags.put(buildTag({ id: 11, name: 'Loaded tag' }));
 
       await useTripStore.getState().loadTrip(1);
 
@@ -230,8 +232,10 @@ describe('tripStore', () => {
       await offlineDb.categories.put(buildCategory({ id: 32, name: 'Cached category' }));
       await db.trips.put(buildTrip({ id: 1 }));
 
+      // tagsApi reads db.tags now — its "endpoint failure" is a rejection at
+      // the adapter boundary, which is what triggers the offlineDb fallback.
+      vi.spyOn(tagsApi, 'list').mockRejectedValue(new LocalApiError(502, 'offline'));
       server.use(
-        http.get('/api/tags', () => HttpResponse.json({ error: 'offline' }, { status: 502 })),
         http.get('/api/categories', () => HttpResponse.json({ error: 'offline' }, { status: 502 })),
       );
 
@@ -430,21 +434,22 @@ describe('tripStore', () => {
   describe('addTag', () => {
     it('FE-TSTORE-015: appends the created tag to the global list', async () => {
       seedStore(useTripStore, { tags: [buildTag({ id: 1, name: 'Existing' })] });
-      server.use(
-        http.post('/api/tags', () => HttpResponse.json({ tag: buildTag({ id: 2, name: 'Food', color: '#00ff00' }) })),
-      );
+      await db.tags.put(buildTag({ id: 1, name: 'Existing' }));
 
       const created = await useTripStore.getState().addTag({ name: 'Food', color: '#00ff00' });
 
-      expect(created.id).toBe(2);
+      // The local adapter allocates a fresh surrogate id — strictly past the
+      // highest id seen this session (the allocator is monotonic and never
+      // rolls back), so assert uniqueness past the existing row, not "2".
+      expect(created.id).toBeGreaterThan(1);
       expect(useTripStore.getState().tags.map(t => t.name)).toEqual(['Existing', 'Food']);
     });
 
     it('FE-TSTORE-016: throws the server message and keeps the list unchanged', async () => {
       seedStore(useTripStore, { tags: [buildTag({ id: 1 })] });
-      server.use(
-        http.post('/api/tags', () => HttpResponse.json({ error: 'Tag exists' }, { status: 409 })),
-      );
+      // The create failing "server-side" is a rejection at the adapter boundary —
+      // getApiErrorMessage still surfaces the response.data.error string.
+      vi.spyOn(tagsApi, 'create').mockRejectedValue(new LocalApiError(409, 'Tag exists'));
 
       await expect(useTripStore.getState().addTag({ name: 'Food' })).rejects.toThrow('Tag exists');
       expect(useTripStore.getState().tags).toHaveLength(1);

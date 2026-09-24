@@ -1,10 +1,11 @@
 // FE-PLANNER-AIRPORTSEL-001 to FE-PLANNER-AIRPORTSEL-022
 import { useState } from 'react';
-import { delay, http, HttpResponse } from 'msw';
+import { delay } from 'msw';
 import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render';
-import { server } from '../../../tests/helpers/msw/server';
 import AirportSelect, { type Airport } from './AirportSelect';
+import { airportsApi } from '../../api/client';
+import { loadAirports, setAirportData } from '../../api/local/ported/airports';
 
 function buildAirport(overrides: Partial<Airport> = {}): Airport {
   return {
@@ -33,17 +34,30 @@ function Host({ initial = null, onPick }: { initial?: Airport | null; onPick?: (
   );
 }
 
-/** Let the debounce fire and any in-flight request settle. */
+/** Let the debounce fire and any in-flight search settle. */
 async function settle(ms = 350) {
   await act(async () => { await new Promise((r) => setTimeout(r, ms)); });
 }
 
-function airportRoute(handler: (q: string) => Response | Promise<Response>) {
-  return http.get('/api/airports/search', ({ request }) => {
-    const q = new URL(request.url).searchParams.get('q') || '';
-    return handler(q);
-  });
-}
+/**
+ * airportsApi is the local adapter now — `search` runs the ported scorer over
+ * the bundled src/data/airports.json instead of GET /api/airports/search. The
+ * ported module's setAirportData() is the test seam: every case starts from
+ * this small fixture (FRA + MUC), and a case that needs a different row shape
+ * re-points the dataset itself. Query text in these tests is chosen so the
+ * real scorer answers the rows the assertions want ('FRA' short-circuits on
+ * the exact IATA; 'air' is a name substring of both airports and ties into
+ * IATA order).
+ */
+const REAL_AIRPORTS = loadAirports();
+const FIXTURE: Airport[] = [
+  buildAirport(),
+  buildAirport({ iata: 'MUC', icao: 'EDDM', name: 'Munich Airport', city: 'Munich' }),
+];
+
+beforeEach(() => setAirportData(FIXTURE));
+afterEach(() => vi.restoreAllMocks());
+afterAll(() => setAirportData(REAL_AIRPORTS));
 
 describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-001: falls back to the translated placeholder', () => {
@@ -68,22 +82,20 @@ describe('AirportSelect', () => {
     expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-AIRPORTSEL-005: a single character does not reach the API', async () => {
+  it('FE-PLANNER-AIRPORTSEL-005: a single character does not reach the search', async () => {
     const user = userEvent.setup();
-    const seen: string[] = [];
-    server.use(airportRoute((q) => { seen.push(q); return HttpResponse.json([buildAirport()]); }));
+    const search = vi.spyOn(airportsApi, 'search');
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'F');
 
     await settle();
-    expect(seen).toEqual([]);
+    expect(search).not.toHaveBeenCalled();
     expect(screen.queryByText('Frankfurt Airport · Germany')).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-AIRPORTSEL-006: two characters open the dropdown with code, city and country', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(() => HttpResponse.json([buildAirport()])));
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -95,7 +107,7 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-007: an airport without a city falls back to its name and drops the country suffix', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(() => HttpResponse.json([buildAirport({ city: '', country: '' })])));
+    setAirportData([buildAirport({ city: '', country: '' })]);
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -107,7 +119,7 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-008: an unknown region code is shown verbatim', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(() => HttpResponse.json([buildAirport({ country: 'XX' })])));
+    setAirportData([buildAirport({ country: 'XX' })]);
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -117,7 +129,12 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-009: shows the loading row while the request is in flight', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(async () => { await delay(200); return HttpResponse.json([buildAirport()]); }));
+    // The local lookup resolves in a microtask — too fast for the loading row
+    // to ever paint — so this mock holds the answer the way a slow request did.
+    vi.spyOn(airportsApi, 'search').mockImplementation(async () => {
+      await delay(200);
+      return [buildAirport()];
+    });
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -130,7 +147,6 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-010: picking a result reports it upwards and closes the dropdown', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([buildAirport()])));
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -143,15 +159,15 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-011: the picked label does not trigger a follow-up search', async () => {
     const user = userEvent.setup();
-    const seen: string[] = [];
-    server.use(airportRoute((q) => { seen.push(q); return HttpResponse.json([buildAirport()]); }));
+    const search = vi.spyOn(airportsApi, 'search');
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
     await user.click(await screen.findByText('Frankfurt Airport · Germany'));
 
     await settle();
-    expect(seen).toEqual(['FRA']);
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(search).toHaveBeenCalledWith('FRA', expect.any(AbortSignal));
   });
 
   it('FE-PLANNER-AIRPORTSEL-012: the clear button resets both the value and the text', async () => {
@@ -169,7 +185,6 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-013: typing over a picked airport drops the selection', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([])));
 
     render(<Host initial={buildAirport()} onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'X');
@@ -180,14 +195,10 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-014: ArrowDown then Enter picks the highlighted airport', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([
-      buildAirport(),
-      buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' }),
-    ])));
 
     render(<Host onPick={onPick} />);
     const input = screen.getByRole('textbox');
-    await user.type(input, 'ger');
+    await user.type(input, 'air');
     await screen.findByText('Frankfurt Airport · Germany');
 
     await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
@@ -199,13 +210,9 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-015: ArrowUp cannot move the highlight above the first row', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([
-      buildAirport(),
-      buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' }),
-    ])));
 
     render(<Host onPick={onPick} />);
-    await user.type(screen.getByRole('textbox'), 'ger');
+    await user.type(screen.getByRole('textbox'), 'air');
     await screen.findByText('Frankfurt Airport · Germany');
 
     await user.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}{ArrowUp}{ArrowUp}{Enter}');
@@ -216,7 +223,6 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-016: Enter without a highlight keeps the dropdown open', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([buildAirport()])));
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -230,7 +236,6 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-017: Escape closes the dropdown without clearing the text', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(() => HttpResponse.json([buildAirport()])));
 
     render(<Host />);
     const input = screen.getByRole('textbox');
@@ -246,13 +251,9 @@ describe('AirportSelect', () => {
   it('FE-PLANNER-AIRPORTSEL-018: hovering a row moves the highlight so Enter picks it', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(airportRoute(() => HttpResponse.json([
-      buildAirport(),
-      buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' }),
-    ])));
 
     render(<Host onPick={onPick} />);
-    await user.type(screen.getByRole('textbox'), 'ger');
+    await user.type(screen.getByRole('textbox'), 'air');
     const munich = await screen.findByText('Munich Airport · Germany');
 
     fireEvent.mouseEnter(munich.closest('button')!);
@@ -263,7 +264,6 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-019: a mousedown outside the field closes the dropdown', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(() => HttpResponse.json([buildAirport()])));
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -278,11 +278,13 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-020: a failing request drops the previous suggestions', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute((q) =>
+    // The local search cannot 500 — a failing "request" is a rejection at the
+    // api boundary, which is what the component's catch guards against.
+    vi.spyOn(airportsApi, 'search').mockImplementation((q: string) =>
       q === 'FRA'
-        ? HttpResponse.json([buildAirport()])
-        : HttpResponse.json({ error: 'lookup failed' }, { status: 500 }),
-    ));
+        ? Promise.resolve([buildAirport()])
+        : Promise.reject(new Error('lookup failed')),
+    );
 
     render(<Host />);
     const input = screen.getByRole('textbox');
@@ -298,7 +300,9 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-021: a non-array payload yields no rows', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(() => HttpResponse.json({ airports: [buildAirport()] })));
+    // The local adapter always answers an array — feed the component the
+    // malformed envelope directly to exercise its Array.isArray guard.
+    vi.spyOn(airportsApi, 'search').mockResolvedValue({ airports: [buildAirport()] } as never);
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'FRA');
@@ -309,13 +313,17 @@ describe('AirportSelect', () => {
 
   it('FE-PLANNER-AIRPORTSEL-022: a superseded slow request must not clobber the newer rows', async () => {
     const user = userEvent.setup();
-    server.use(airportRoute(async (q) => {
+    // The component's abort is the contract: the stale call's signal is
+    // aborted when the next keystroke searches, so its late answer must throw
+    // the AbortError the catch treats as a stale keystroke.
+    vi.spyOn(airportsApi, 'search').mockImplementation(async (q: string, signal?: AbortSignal) => {
       if (q === 'Fra') {
         await delay(600);
-        return HttpResponse.json([buildAirport({ iata: 'STL', name: 'Stale Airport', city: 'Stale' })]);
+        signal?.throwIfAborted();
+        return [buildAirport({ iata: 'STL', name: 'Stale Airport', city: 'Stale' })];
       }
-      return HttpResponse.json([buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' })]);
-    }));
+      return [buildAirport({ iata: 'MUC', name: 'Munich Airport', city: 'Munich' })];
+    });
 
     render(<Host />);
     const input = screen.getByRole('textbox');
@@ -326,7 +334,7 @@ describe('AirportSelect', () => {
     await user.type(input, 'Mun');
     expect(await screen.findByText('Munich Airport · Germany')).toBeInTheDocument();
 
-    // The first request only lands now; its abort must keep the list untouched.
+    // The first search only lands now; its abort must keep the list untouched.
     await settle(600);
     expect(screen.getByText('Munich Airport · Germany')).toBeInTheDocument();
     expect(screen.queryByText('Stale Airport · Germany')).not.toBeInTheDocument();

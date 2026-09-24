@@ -3,8 +3,6 @@ import type { z } from 'zod'
 import type { Place } from '../types'
 import { randomId } from '../utils/randomId'
 import {
-  weatherResultSchema,
-  type WeatherResult,
   mapsSearchResultSchema,
   mapsAutocompleteResultSchema,
   mapsPlaceDetailsResultSchema,
@@ -49,8 +47,6 @@ import {
   type TodoCategoryAssigneesRequest,
   type FileUpdateRequest,
   type FileLinkRequest,
-  type CreateTagRequest,
-  type UpdateTagRequest,
   type CreateCategoryRequest,
   type UpdateCategoryRequest,
   type PlaceImportListRequest,
@@ -214,9 +210,9 @@ export function postMultipart<T = any>(url: string, formData: FormData, opts?: U
   }).then(r => r.data as T)
 }
 
-// tripsApi/daysApi are local (api/local/*) — the axios objects were deleted
-// when their adapters landed (README.md barrel strategy, step 3).
-export { tripsApi, daysApi, dashboardApi } from './local'
+// Local adapters (api/local/*) — each domain's axios object was deleted when
+// its adapter landed (README.md barrel strategy, step 3).
+export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi } from './local'
 
 export const placesApi = {
   list: (tripId: number | string, params?: Record<string, unknown>) => apiClient.get(`/trips/${tripId}/places`, { params }).then(r => r.data),
@@ -318,13 +314,6 @@ export const todoApi = {
   reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/todo/reorder`, { orderedIds } satisfies TodoReorderRequest).then(r => r.data),
   getCategoryAssignees: (tripId: number | string) => apiClient.get(`/trips/${tripId}/todo/category-assignees`).then(r => r.data),
   setCategoryAssignees: (tripId: number | string, categoryName: string, userIds: number[]) => apiClient.put(`/trips/${tripId}/todo/category-assignees/${encodeURIComponent(categoryName)}`, { user_ids: userIds } satisfies TodoCategoryAssigneesRequest).then(r => r.data),
-}
-
-export const tagsApi = {
-  list: () => apiClient.get('/tags').then(r => r.data),
-  create: (data: CreateTagRequest) => apiClient.post('/tags', data).then(r => r.data),
-  update: (id: number, data: UpdateTagRequest) => apiClient.put(`/tags/${id}`, data).then(r => r.data),
-  delete: (id: number) => apiClient.delete(`/tags/${id}`).then(r => r.data),
 }
 
 export const categoriesApi = {
@@ -429,11 +418,6 @@ export const roadtripApi = {
     apiClient.delete(`/trips/${tripId}/roadtrip/days/${dayId}/vias/${id}`).then(r => r.data),
 }
 
-export const airportsApi = {
-  search: (q: string, signal?: AbortSignal) => apiClient.get('/airports/search', { params: { q }, signal }).then(r => r.data),
-  byIata: (iata: string) => apiClient.get(`/airports/${encodeURIComponent(iata)}`).then(r => r.data),
-}
-
 export const budgetApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget`).then(r => r.data),
   create: (tripId: number | string, data: BudgetCreateItemRequest) => apiClient.post(`/trips/${tripId}/budget`, data).then(r => r.data),
@@ -473,14 +457,6 @@ export const reservationsApi = {
   // Assign trip members / named guests to a booking (#1517).
   setTravelers: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/reservations/${id}/travelers`, { user_ids: userIds }).then(r => r.data),
   updatePositions: (tripId: number | string, positions: { id: number; day_plan_position: number }[], dayId?: number) => apiClient.put(`/trips/${tripId}/reservations/positions`, { positions, day_id: dayId }).then(r => r.data),
-}
-
-export const weatherApi = {
-  // `time` (HH:MM) makes a past date answer for that hour instead of the day (#1614).
-  // `lang` localizes the description; when omitted the server keeps its own default (#2167).
-  get: (lat: number, lng: number, date: string, lang?: string, time?: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, date, lang, time } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.get')),
-  getCurrent: (lat: number, lng: number, lang?: string): Promise<WeatherResult> => apiClient.get('/weather', { params: { lat, lng, lang } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.getCurrent')),
-  getDetailed: (lat: number, lng: number, date: string, lang?: string): Promise<WeatherResult> => apiClient.get('/weather/detailed', { params: { lat, lng, date, lang } }).then(r => parseInDev(weatherResultSchema, r.data, 'weather.getDetailed')),
 }
 
 export const accommodationsApi = {

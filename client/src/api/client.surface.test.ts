@@ -5,9 +5,10 @@ import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import { db } from '../db/panelmintDb'
-import { buildDay, buildTrip } from '../../tests/helpers/factories'
+import { buildDay, buildTag, buildTrip } from '../../tests/helpers/factories'
 import type { DayRow } from './local/dexieStore'
 import type { LocalTripMember } from '../db/panelmintDb'
+import { clearWeatherCache } from './ext/openmeteo'
 
 // tripsApi.create/update fetch live FX rates for the currency rebase — keep the
 // surface suite offline.
@@ -50,6 +51,9 @@ beforeEach(async () => {
     for (const t of db.tables) await t.clear()
   })
   await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
+  // The ported Open-Meteo module caches answers module-wide — a response one
+  // case fetches must not leak into the next.
+  clearWeatherCache()
 })
 
 /** Trip 3 owned by self + three day rows on trip 1 for the nested-day calls. */
@@ -238,12 +242,15 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-009: tagsApi and categoriesApi map their global endpoints', async () => {
+  it('FE-APISURF-009: tagsApi runs locally while categoriesApi maps its global endpoints', async () => {
+    // tagsApi is Dexie-backed now ('local' = resolves with zero HTTP requests);
+    // update/delete need a self-owned row to act on, so seed it first.
+    const seedTag = () => db.tags.put(buildTag({ id: 2, user_id: 1 }))
     await assertCalls([
-      { n: 'tags.list', r: () => tagsApi.list(), e: 'GET /api/tags' },
-      { n: 'tags.create', r: () => tagsApi.create({ name: 'Food' }), e: 'POST /api/tags' },
-      { n: 'tags.update', r: () => tagsApi.update(2, { name: 'Eat' }), e: 'PUT /api/tags/2' },
-      { n: 'tags.delete', r: () => tagsApi.delete(2), e: 'DELETE /api/tags/2' },
+      { n: 'tags.list', r: () => tagsApi.list(), e: 'local' },
+      { n: 'tags.create', r: () => tagsApi.create({ name: 'Food' }), e: 'local' },
+      { n: 'tags.update', r: async () => { await seedTag(); return tagsApi.update(2, { name: 'Eat' }) }, e: 'local' },
+      { n: 'tags.delete', r: async () => { await seedTag(); return tagsApi.delete(2) }, e: 'local' },
       { n: 'categories.list', r: () => categoriesApi.list(), e: 'GET /api/categories' },
       { n: 'categories.create', r: () => categoriesApi.create({ name: 'Museum' }), e: 'POST /api/categories' },
       { n: 'categories.update', r: () => categoriesApi.update(2, { name: 'Art' }), e: 'PUT /api/categories/2' },
@@ -267,8 +274,10 @@ describe('client > endpoint wiring', () => {
       { n: 'maps.reverse', r: () => mapsApi.reverse(41.9, 12.5), e: 'GET /api/maps/reverse' },
       { n: 'maps.resolveUrl', r: () => mapsApi.resolveUrl('https://maps.app.goo.gl/x'), e: 'POST /api/maps/resolve-url' },
       { n: 'maps.pois', r: () => mapsApi.pois('cafe', { south: 1, west: 2, north: 3, east: 4 }), e: 'GET /api/maps/pois' },
-      { n: 'airports.search', r: () => airportsApi.search('BER'), e: 'GET /api/airports/search' },
-      { n: 'airports.byIata', r: () => airportsApi.byIata('b/er'), e: 'GET /api/airports/b%2Fer' },
+      // airportsApi reads the bundled dataset (src/data/airports.json) — BER is
+      // a real row, so both calls resolve with no request at all.
+      { n: 'airports.search', r: () => airportsApi.search('BER'), e: 'local' },
+      { n: 'airports.byIata', r: () => airportsApi.byIata('BER'), e: 'local' },
     ])
   })
 
@@ -321,11 +330,20 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-021: the remaining namespaces map their endpoints', async () => {
+  it('FE-APISURF-021: weatherApi is served locally — nothing reaches /api', async () => {
+    // The adapter fetches Open-Meteo directly (a past date lands on the archive
+    // host, current/detailed on the forecast host). Answer both so the calls
+    // resolve; 'local' then proves no /api/* request was emitted for any.
+    server.use(
+      http.get('https://api.open-meteo.com/v1/forecast', () =>
+        HttpResponse.json({ current: { temperature_2m: 20, weathercode: 0 }, daily: { time: [] }, hourly: { time: [] } })),
+      http.get('https://archive-api.open-meteo.com/v1/archive', () =>
+        HttpResponse.json({ daily: { time: [] }, hourly: { time: [] } })),
+    )
     await assertCalls([
-      { n: 'weather.get', r: () => weatherApi.get(41.9, 12.5, '2026-06-01'), e: 'GET /api/weather' },
-      { n: 'weather.getCurrent', r: () => weatherApi.getCurrent(41.9, 12.5), e: 'GET /api/weather' },
-      { n: 'weather.getDetailed', r: () => weatherApi.getDetailed(41.9, 12.5, '2026-06-01'), e: 'GET /api/weather/detailed' },
+      { n: 'weather.get', r: () => weatherApi.get(41.9, 12.5, '2026-06-01'), e: 'local' },
+      { n: 'weather.getCurrent', r: () => weatherApi.getCurrent(41.9, 12.5), e: 'local' },
+      { n: 'weather.getDetailed', r: () => weatherApi.getDetailed(41.9, 12.5, '2026-06-01'), e: 'local' },
     ])
   })
 })
@@ -452,13 +470,35 @@ describe('client > query parameters', () => {
     expect(qs.get('lang')).toBe('de')
   })
 
-  it('FE-APISURF-042: weatherApi sends lat/lng plus the date or language', async () => {
-    const forecast = await traceOne(() => weatherApi.get(41.9, 12.5, '2026-06-01'))
-    const fq = new URLSearchParams(forecast.url.split('?')[1])
-    expect([fq.get('lat'), fq.get('lng'), fq.get('date')]).toEqual(['41.9', '12.5', '2026-06-01'])
+  it('FE-APISURF-042: weatherApi forwards lat/lng plus the date or language to Open-Meteo', async () => {
+    // The adapter calls Open-Meteo itself — record the provider URLs instead of
+    // /api traffic. A past date rides the archive host with the day spelled as
+    // the start/end range.
+    const urls: string[] = []
+    server.use(
+      http.get('https://archive-api.open-meteo.com/v1/archive', ({ request }) => {
+        urls.push(request.url)
+        return HttpResponse.json({ daily: { time: [] }, hourly: { time: [] } })
+      }),
+      http.get('https://api.open-meteo.com/v1/forecast', ({ request }) => {
+        urls.push(request.url)
+        return HttpResponse.json({ current: { temperature_2m: 20, weathercode: 0 }, daily: { time: [] }, hourly: { time: [] } })
+      }),
+    )
 
-    const current = await traceOne(() => weatherApi.getCurrent(41.9, 12.5, 'de'))
-    expect(new URLSearchParams(current.url.split('?')[1]).get('lang')).toBe('de')
+    await weatherApi.get(41.9, 12.5, '2026-06-01')
+    const archiveQ = new URL(urls.find((u) => u.includes('archive-api'))!).searchParams
+    expect([
+      archiveQ.get('latitude'),
+      archiveQ.get('longitude'),
+      archiveQ.get('start_date'),
+      archiveQ.get('end_date'),
+    ]).toEqual(['41.9', '12.5', '2026-06-01', '2026-06-01'])
+
+    // `lang` is not a wire param anymore — it selects the WMO description
+    // table instead, so 'de' answers with the German text.
+    const current = await weatherApi.getCurrent(41.9, 12.5, 'de')
+    expect(current.description).toBe('Klar')
   })
 
   it('FE-APISURF-044: packing/todo category assignees encode the category name', async () => {

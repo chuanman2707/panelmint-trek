@@ -26,9 +26,9 @@
  *  - Methods are async so every failure is a rejection, never a synchronous
  *    throw — axios only ever produced rejections.
  */
-import type { Airport } from '@trek/shared';
 import tzlookup from 'tz-lookup';
 import { findByIata, searchAirports } from './ported/airports';
+import type { Airport } from './ported/airports';
 import { apiError, detached, detachedList } from './helpers';
 
 /** Dataset row with a guaranteed timezone — `tz-lookup` by coordinates when a

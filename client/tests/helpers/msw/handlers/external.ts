@@ -30,4 +30,26 @@ export const externalHandlers = [
    * Valhalla path overrides this with server.use().
    */
   http.post('https://valhalla1.openstreetmap.de/route', () => new HttpResponse(null, { status: 503 })),
+  /**
+   * Open-Meteo — the local weather adapter (src/api/local/weather.ts) fetches it
+   * straight from the browser now that no server sits in between. Both hosts get
+   * a default so a stray weather call in an unrelated test cannot egress.
+   *
+   * The default answers "provider has no data": an empty `daily`/`hourly` series
+   * makes the ported transform resolve to `{ error: 'no_forecast' }` (the shape
+   * consumers render as "No weather"), while the `current` block keeps
+   * `getCurrentWeather` resolving instead of tripping the 502 cap guard. A test
+   * about the weather itself overrides this with server.use().
+   */
+  http.get('https://api.open-meteo.com/v1/forecast', () =>
+    HttpResponse.json({
+      current: { temperature_2m: 20, weathercode: 0 },
+      daily: { time: [] },
+      hourly: { time: [] },
+    })),
+  http.get('https://archive-api.open-meteo.com/v1/archive', () =>
+    HttpResponse.json({
+      daily: { time: [] },
+      hourly: { time: [] },
+    })),
 ];
