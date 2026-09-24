@@ -1,17 +1,17 @@
 # CLAUDE.md
 
-Scope: the **`@trek/shared`** workspace — the **single source of truth** for API contracts (Zod) and all i18n strings; server and client both import from it. See the repo-root `CLAUDE.md` for the monorepo picture.
+Scope: the **`@trek/shared`** workspace — the **single source of truth** for the domain contracts (Zod) and all i18n strings; the client imports it, and the `api/local/*` adapters parse with it. See the repo-root `CLAUDE.md` for the monorepo picture.
 
 ## Commands (run from `shared/`)
 
 ```bash
-npm run build              # tsdown → dist/ (CJS + ESM + .d.ts). REQUIRED before server/client typecheck or run
+npm run build              # tsdown → dist/ (CJS + ESM + .d.ts). REQUIRED before client typecheck or run
 npm run build:watch        # what the root `npm run dev` runs
 npm run typecheck          # tsc --noEmit
 npm run lint               # eslint --fix (rewrites files)
 npm run test               # vitest run — co-located *.spec.ts files
 npm run i18n:parity        # audit locale drift, exits 0
-npm run i18n:parity:strict # CI gate — exits 1 on any drift
+npm run i18n:parity:strict # strict gate — exits 1 on any drift
 ```
 
 Single test: `npx vitest run src/i18n/i18n-parity.spec.ts`, or `npx vitest run -t "rejects extra keys"`.
@@ -26,9 +26,9 @@ Single test: `npx vitest run src/i18n/i18n-parity.spec.ts`, or `npx vitest run -
 
 One folder per domain exporting Zod schemas plus inferred types (`export type X = z.infer<typeof xSchema>`), re-exported from the root barrel. Domain-agnostic primitives (`idSchema`, `idParamSchema`, `nonEmptyString`, pagination) live in `src/common/`. A few pure isomorphic helpers live beside the schemas because both sides need the same answer; they follow the same rules as everything here.
 
-**`src/plugin-permissions.ts` is machine-generated** from the server's plugin protocol — never hand-edit it; `npm run gen:plugin-facts` from `server/` regenerates it and `check:plugin-facts` is the CI drift gate.
+**`src/plugin-permissions.ts` is frozen legacy** — machine-generated upstream from the deleted server's plugin protocol; the generator is gone, so treat it as an ordinary source file (it only still exists because the plugin contract surface hasn't been cleaned up yet).
 
-**Schemas mirror the exact wire behavior of existing routes** (`weather/weather.schema.ts` is the example): strings stay strings if the route never coerced them, optional fields reflect partial response subsets, and bespoke 4xx error strings are reproduced in the server controller, not derived from the schema. Don't "tidy up" a schema to be stricter than the contract it documents.
+**Schemas mirror the exact wire behavior the old server routes had** (`weather/weather.schema.ts` is the example): strings stay strings because the route never coerced them, optional fields reflect partial response subsets, and bespoke 4xx error strings are reproduced verbatim in the `api/local/*` adapters, not derived from the schema. Don't "tidy up" a schema to be stricter than the contract it documents.
 
 ## Rules for new contracts
 
@@ -45,8 +45,8 @@ The parity rule governs **existing** routes; it is not a license to mint new deb
 
 - **`languages.ts`** — `SUPPORTED_LANGUAGES` is the canonical registry and the source of `SupportedLanguageCode`. Adding a language starts here.
 - **`<locale>/`** — one folder per language, one file per UI domain plus an `index.ts` barrel; each file exports a flat map of dot-namespaced keys typed as `TranslationStrings`. The runtime `t(key)` only resolves these top-level keys.
-- **`en/` is canonical.** Every other locale must have the identical file set and top-level keys — `i18n:parity:strict` enforces it in CI. When you add or rename a key, update every locale.
-- **Every locale gets a real translation — an English placeholder is not acceptable.** Parity only checks that the key exists, so copying the `en` string passes CI while shipping English to those users. Write native phrasing with the locale's own punctuation and the same `{placeholders}` as `en`; if you genuinely cannot translate one, say so instead of filling it with English.
+- **`en/` is canonical.** Every other locale must have the identical file set and top-level keys — `i18n:parity:strict` enforces it. When you add or rename a key, update every locale.
+- **Every locale gets a real translation — an English placeholder is not acceptable.** Parity only checks that the key exists, so copying the `en` string passes the check while shipping English to those users. Write native phrasing with the locale's own punctuation and the same `{placeholders}` as `en`; if you genuinely cannot translate one, say so instead of filling it with English.
 - **Further i18n specs run in `npm test`** and fail changes that parity lets through: placeholder parity (every `{placeholder}` in an `en` string must appear in each translation), no `en` string may call TREK "self-hosted" (the same build runs on managed installs; exemptions live in the spec), and a wording regression test for plugin permission descriptions (currently one string — add a case there when a permission's real behavior changes). None of these are part of `i18n:parity`, which checks key sets only.
 
 ## Sanitization (`src/sanitize/sanitize.ts`)

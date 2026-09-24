@@ -31,8 +31,8 @@ record) instead of axios over HTTP.
 3. In `client.ts` the domain's axios object is deleted and replaced by
    `export { tripsApi } from './local'` — the import surface never changes.
 4. When every kept domain is swapped, `client.ts` ends as
-   `export * from './local'` plus whatever stays genuinely HTTP-less; the
-   axios instance itself is deleted in the last scaffold task (plan A9).
+   `export * from './local'`; the axios instance itself is deleted in the
+   last domain task (Task 18).
 
 Dead domains (auth, admin, plugins, …) are deleted with their callers in
 Phase B — they get no local module.
@@ -62,13 +62,11 @@ like `applyStayStops`) folds each side-channel into the UI:
 
 ```ts
 import { applyLocalEffect } from '../../store/localEffects'  // non-slice callers
-import { emitLocalEvent } from '../websocket'                // outside-store events
 // or inside a slice action: get().applyLocalEffect(...)
 
-const res = await localAssignmentsApi.updateTime(tripId, id, times)
+const res = await assignmentsApi.updateTime(tripId, id, times)
 applyLocalEffect('assignment:updated', { assignment: res.assignment })
 applyLocalEffect('assignment:reordered', res.reordered) // null → no-op
-if (res.vias) emitLocalEvent({ type: 'roadtripVia:changed', ...res.vias })
 ```
 
 `applyLocalEffect(type, payload)` (`store/localEffects.ts`, also a method on
@@ -78,17 +76,12 @@ The Dexie write there is a redundant-but-idempotent re-persist of what the
 adapter already committed; it exists so embedded views (a day row's
 `assignments`/`notes_items`) settle from the post-update store state.
 
-Two dispatch paths, one rule:
-
-| Event's home | Replay through |
-|---|---|
-| `STATE_APPLIERS` / `DEXIE_WRITERS` (store appliers) | `applyLocalEffect(type, payload)` |
-| `HANDLED_OUTSIDE_TRIP_STORE` (`api/wsEventPolicy.ts`) | `emitLocalEvent({ type, ...payload })` from `api/websocket.ts` — feeds the same listener registry the socket did (e.g. `roadtripVia:changed` → `useRoadtripVias`) |
-| `IGNORED_WS_EVENTS` | nothing — it was already a no-op on the client |
-
-Never call `emitLocalEvent` for a store-applied event: `handleRemoteEvent` is
-itself a registered listener while the trip socket hook is mounted, so the
-event would apply twice.
+`api/websocket.ts` and `api/wsEventPolicy.ts` were deleted with the socket
+(Task 7). The single replay path left is `applyLocalEffect`; events that used
+to be handled outside the trip store are instead returned in the response and
+replayed by the caller explicitly — e.g. `useRoadtripVias` refetches through
+`roadtripApi` rather than listening for `roadtripVia:changed`. Events that
+were `IGNORED_WS_EVENTS` stay no-ops.
 
 ## Detached snapshots — the seam rule that bites
 
@@ -138,10 +131,13 @@ Local impls must match these method lists name-for-name:
 - `tagsApi`: `list, create, update, delete`
 - `categoriesApi`: `list, create, update, delete`
 - `budgetApi`: `list, create, update, delete, setMembers, togglePaid, setPayers, perPersonSummary, settlement, createSettlement, updateSettlement, deleteSettlement, reorderItems, reorderCategories`
-- `reservationsApi`: `list, upcoming, create, update, delete, setTravelers, updatePositions, importBookingPreview, importBookingConfirm, importBookingAsync, importJobStatus`
+- `reservationsApi`: `list, create, update, delete, setTravelers, updatePositions`
 - `accommodationsApi`: `list, create, update, delete`
 - `dayNotesApi`: `list, create, update, delete`
-- `settingsApi`: `get, set, setBulk` (→ `db.settings` KV)
+
+(`settingsApi` is gone — settings live in `store/settingsStore.ts` over
+`db.settings`. Reservation `upcoming` + `importBooking*` were cut when the
+server died; the dashboard aggregate lives in `api/local/dashboard.ts`.)
 
 Whether a dead-on-arrival method (import pipelines, cover search) is ported or
 deleted is each domain task's call — the checklist pins the *kept* surface.
