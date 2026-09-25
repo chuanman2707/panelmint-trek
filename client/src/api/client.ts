@@ -7,8 +7,6 @@ import {
   type TodoReorderRequest,
   type ReservationCreateRequest,
   type ReservationUpdateRequest,
-  type AccommodationCreateRequest,
-  type AccommodationUpdateRequest,
   type BudgetCreateItemRequest,
   type BudgetUpdateItemRequest,
   type PackingCreateItemRequest,
@@ -174,7 +172,7 @@ export function postMultipart<T = any>(url: string, formData: FormData, opts?: U
 
 // Local adapters (api/local/*) — each domain's axios object was deleted when
 // its adapter landed (README.md barrel strategy, step 3).
-export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi, assignmentsApi } from './local'
+export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi, assignmentsApi, accommodationsApi } from './local'
 
 export const packingApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing`).then(r => r.data),
@@ -279,13 +277,6 @@ export const reservationsApi = {
   // Assign trip members / named guests to a booking (#1517).
   setTravelers: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/reservations/${id}/travelers`, { user_ids: userIds }).then(r => r.data),
   updatePositions: (tripId: number | string, positions: { id: number; day_plan_position: number }[], dayId?: number) => apiClient.put(`/trips/${tripId}/reservations/positions`, { positions, day_id: dayId }).then(r => r.data),
-}
-
-export const accommodationsApi = {
-  list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/accommodations`).then(r => r.data),
-  create: (tripId: number | string, data: AccommodationCreateRequest) => apiClient.post(`/trips/${tripId}/accommodations`, data).then(r => r.data),
-  update: (tripId: number | string, id: number, data: AccommodationUpdateRequest) => apiClient.put(`/trips/${tripId}/accommodations/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, id: number, opts?: { keepStop?: boolean }) => apiClient.delete(`/trips/${tripId}/accommodations/${id}`, opts?.keepStop ? { params: { keepStop: 'true' } } : undefined).then(r => r.data),
 }
 
 export const dayNotesApi = {

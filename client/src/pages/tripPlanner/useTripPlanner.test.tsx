@@ -1346,7 +1346,7 @@ describe('useTripPlanner — bookings and transports', () => {
 
   it('FE-TP-HOOK-077: a new hotel refreshes the accommodation list', async () => {
     seedTrip()
-    vi.mocked(accommodationsApi.list).mockResolvedValue({ accommodations: [{ id: 3 }] })
+    vi.mocked(accommodationsApi.list).mockResolvedValue({ accommodations: [{ id: 3 }] as never })
 
     const { result } = await renderPlanner()
     await act(async () => {
@@ -1602,7 +1602,7 @@ describe('useTripPlanner — bookings and transports', () => {
 
   it('FE-TP-HOOK-087: deleting a booking refreshes the accommodations', async () => {
     seedTrip()
-    vi.mocked(accommodationsApi.list).mockResolvedValue({ accommodations: [{ id: 1 }] })
+    vi.mocked(accommodationsApi.list).mockResolvedValue({ accommodations: [{ id: 1 }] as never })
 
     const { result } = await renderPlanner()
     await act(async () => { await result.current.handleDeleteReservation(5) })

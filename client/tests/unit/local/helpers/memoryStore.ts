@@ -554,7 +554,7 @@ export class MemoryStore
     }
   }
 
-  validateStayRefs(tripId: number, placeId?: number, startDayId?: number, endDayId?: number) {
+  validateStayRefs(tripId: number, placeId?: unknown, startDayId?: unknown, endDayId?: unknown) {
     const errors: { field: string; message: string }[] = [];
     if (placeId !== undefined && !this.existsOnTrip('places', placeId, tripId))
       errors.push({ field: 'place_id', message: 'Place not found' });
@@ -571,8 +571,10 @@ export class MemoryStore
     start_day_id: number;
     end_day_id: number;
     check_in: string | null;
+    check_in_end?: string | null;
     check_out: string | null;
     confirmation: string | null;
+    notes?: string | null;
   }): number {
     const id = nextId();
     this.accommodations.push({ id, ...fields });
@@ -586,8 +588,10 @@ export class MemoryStore
       start_day_id: number;
       end_day_id: number;
       check_in: string | null;
+      check_in_end?: string | null;
       check_out: string | null;
       confirmation: string | null;
+      notes?: string | null;
     }
   ): void {
     const a = this.accommodations.find((x) => x.id === accommodationId);

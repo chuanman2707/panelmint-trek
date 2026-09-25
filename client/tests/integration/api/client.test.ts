@@ -3,7 +3,8 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
 import 'fake-indexeddb/auto';
 import { db } from '../../../src/db/panelmintDb';
-import { buildPlace, buildTrip } from '../../helpers/factories';
+import { buildDay, buildPlace, buildTrip } from '../../helpers/factories';
+import type { DayRow } from '../../../src/api/local/dexieStore';
 
 const {
   apiClient,
@@ -132,8 +133,8 @@ describe('API client interceptors', () => {
 
 // ── API namespace smoke tests ────────────────────────────────────────────────
 // (tripsApi/daysApi/tagsApi/weatherApi/placesApi/categoriesApi/mapsApi and now
-// assignmentsApi are local adapters — api/local/* — so there is no matching
-// /api traffic left to smoke-test here; their coverage lives in
+// assignmentsApi/accommodationsApi are local adapters — api/local/* — so there
+// is no matching /api traffic left to smoke-test here; their coverage lives in
 // tests/unit/local/*.test.ts.)
 
 describe('API namespace smoke tests', () => {
@@ -167,9 +168,10 @@ describe('API namespace smoke tests', () => {
     await expect(reservationsApi.list(1)).resolves.toEqual([]);
   });
 
-  it('accommodationsApi.list fetches accommodations', async () => {
-    server.use(http.get('/api/trips/1/accommodations', () => HttpResponse.json([])));
-    await expect(accommodationsApi.list(1)).resolves.toEqual([]);
+  it('accommodationsApi.list returns the trip stays from Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await expect(accommodationsApi.list(1)).resolves.toEqual({ accommodations: [] });
   });
 
   it('dayNotesApi.list fetches day notes', async () => {
@@ -265,15 +267,38 @@ describe('API namespace smoke tests', () => {
   });
 
   // ── accommodationsApi additional methods ─────────────────────────────────────
+  // (accommodationsApi is a local adapter — Dexie-backed; its full parity
+  // coverage lives in tests/unit/local/accommodations.test.ts.)
 
-  it('accommodationsApi.create creates accommodation', async () => {
-    server.use(http.post('/api/trips/1/accommodations', () => HttpResponse.json({ id: 1 })));
-    await expect(accommodationsApi.create(1, { place_id: 1, start_day_id: 1, end_day_id: 1 })).resolves.toMatchObject({ id: 1 });
+  it('accommodationsApi.create writes the stay, its booking and a night seat', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.days.bulkPut([1, 2].map((i) => ({
+      ...buildDay({ id: i, trip_id: 1, day_number: i, date: `2025-06-0${i}` }),
+      assignments: [], vias: [],
+    })) as DayRow[]);
+    await db.places.put(buildPlace({ id: 1, trip_id: 1 }));
+
+    await expect(
+      accommodationsApi.create(1, { place_id: 1, start_day_id: 1, end_day_id: 2 }),
+    ).resolves.toMatchObject({
+      accommodation: { place_id: 1, start_day_id: 1, end_day_id: 2 },
+      assignment: { day_id: 1, place_id: 1 },
+    });
   });
 
-  it('accommodationsApi.delete deletes accommodation', async () => {
-    server.use(http.delete('/api/trips/1/accommodations/1', () => HttpResponse.json({ ok: true })));
-    await expect(accommodationsApi.delete(1, 1)).resolves.toMatchObject({ ok: true });
+  it('accommodationsApi.delete removes the stay row', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.days.bulkPut([1, 2].map((i) => ({
+      ...buildDay({ id: i, trip_id: 1, day_number: i, date: `2025-06-0${i}` }),
+      assignments: [], vias: [],
+    })) as DayRow[]);
+    await db.places.put(buildPlace({ id: 1, trip_id: 1 }));
+    const { accommodation } = await accommodationsApi.create(1, { place_id: 1, start_day_id: 1, end_day_id: 2 });
+
+    await expect(accommodationsApi.delete(1, accommodation.id)).resolves.toMatchObject({ success: true });
+    expect(await db.accommodations.get(accommodation.id)).toBeUndefined();
   });
 
   // ── dayNotesApi additional methods ───────────────────────────────────────────

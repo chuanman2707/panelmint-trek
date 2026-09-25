@@ -199,7 +199,7 @@ describe('MAccommodationSheet', () => {
   })
 
   it('FE-MOB-ACCSH-011d: a save from the timeline lands back on the timeline', async () => {
-    vi.spyOn(accommodationsApi, 'update').mockResolvedValue({})
+    vi.spyOn(accommodationsApi, 'update').mockResolvedValue({} as never)
     const { planner, shell } = setup(makePlanner(), makeShell({ dayId: 12, accId: 77, from: 'timeline' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(planner.loadAccommodations).toHaveBeenCalled())
@@ -208,7 +208,7 @@ describe('MAccommodationSheet', () => {
   })
 
   it('FE-MOB-ACCSH-012: the All chip spans the whole trip and reaches the payload', async () => {
-    const create = vi.spyOn(accommodationsApi, 'create').mockResolvedValue({})
+    const create = vi.spyOn(accommodationsApi, 'create').mockResolvedValue({} as never)
     setup()
     fireEvent.click(allChips()[0])
     expect(range()).toEqual(['11', '13'])
@@ -270,7 +270,7 @@ describe('MAccommodationSheet', () => {
   })
 
   it('FE-MOB-ACCSH-020: creating posts the full body, reloads the stays and returns to the day', async () => {
-    const create = vi.spyOn(accommodationsApi, 'create').mockResolvedValue({})
+    const create = vi.spyOn(accommodationsApi, 'create').mockResolvedValue({} as never)
     const { planner, shell } = setup()
 
     fireEvent.change(screen.getByPlaceholderText('14:00'), { target: { value: '15:30' } })
@@ -294,7 +294,7 @@ describe('MAccommodationSheet', () => {
   })
 
   it('FE-MOB-ACCSH-021: editing updates the existing stay and nulls the cleared fields', async () => {
-    const update = vi.spyOn(accommodationsApi, 'update').mockResolvedValue({})
+    const update = vi.spyOn(accommodationsApi, 'update').mockResolvedValue({} as never)
     const { planner } = setup(makePlanner(), makeShell({ dayId: 12, accId: 77 }))
 
     fireEvent.change(screen.getByPlaceholderText('22:00'), { target: { value: '' } })
@@ -316,7 +316,7 @@ describe('MAccommodationSheet', () => {
   it('FE-MOB-ACCSH-022: the save button locks while the request is in flight', async () => {
     const deferred = { settle: () => undefined as void }
     vi.spyOn(accommodationsApi, 'create').mockReturnValue(
-      new Promise<unknown>(res => { deferred.settle = () => res({}) }),
+      new Promise<unknown>(res => { deferred.settle = () => res({}) }) as never,
     )
     setup()
     fireEvent.click(placeRow('Hotel Sacher'))

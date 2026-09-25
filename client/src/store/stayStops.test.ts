@@ -38,4 +38,25 @@ describe('applyStayStops', () => {
     applyStayStops(undefined)
     expect(useTripStore.getState().assignments['3']).toEqual([stop(77, 3)])
   })
+
+  it('FE-STAY-STOPS-004 seats every night of a spanning stay from the list shape', () => {
+    // A two-night stay answers `assignment` as a list — every seat it put down.
+    applyStayStops({ assignment: [stop(77, 1), stop(78, 2)] })
+    expect(useTripStore.getState().assignments['1']).toEqual([stop(77, 1)])
+    expect(useTripStore.getState().assignments['2']).toEqual([stop(78, 2)])
+  })
+
+  it('FE-STAY-STOPS-005 carries several stops at once when the stay re-ranges', () => {
+    useTripStore.setState({ assignments: { '1': [stop(77, 1)], '2': [stop(78, 2)] } })
+    applyStayStops({
+      movedAssignment: [
+        { assignment: stop(77, 3), oldDayId: 1 },
+        { assignment: stop(78, 4), oldDayId: 2 },
+      ],
+    })
+    expect(useTripStore.getState().assignments['1']).toEqual([])
+    expect(useTripStore.getState().assignments['2']).toEqual([])
+    expect(useTripStore.getState().assignments['3']).toEqual([stop(77, 3)])
+    expect(useTripStore.getState().assignments['4']).toEqual([stop(78, 4)])
+  })
 })

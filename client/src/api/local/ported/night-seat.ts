@@ -20,6 +20,13 @@
  *  - The mirror: only the check-in day gets a stop; a day already holding the
  *    place keeps the traveller's stop and the booking rides along; an untyped
  *    place is stamped 'hotel'.
+ *
+ * PanelMint extension — nights, plural: the offline build seats a stay on every
+ * night it covers (every trip day from the check-in day up to, not including,
+ * the check-out day; a same-day stay keeps the server's one seat). The
+ * single-day primitives stay verbatim; `attachStayNights` / `moveStayNights`
+ * iterate them per night, carrying surplus own rows onto newly covered nights
+ * so a moved stop keeps its id, notes, hour and participants.
  */
 import type { RoadtripVia } from '@trek/shared';
 
@@ -121,8 +128,12 @@ export interface DayVias {
 export interface AccommodationMirror {
   /** The day stop the booking added, or null when that day already held the place. */
   created: MirroredAssignment | null;
+  /** Seats past the first — the second and later nights a spanning stay put down. */
+  createdExtra: MirroredAssignment[];
   /** The booking's own stop, carried to where the booking now is. */
   moved: { assignment: MirroredAssignment; oldDayId: number } | null;
+  /** Extra carried rows — a re-ranged stay can carry several nights at once. */
+  movedExtra: { assignment: MirroredAssignment; oldDayId: number }[];
   /** Stops the booking still stands on but no longer owns (a night dropped, the place kept). */
   updated: MirroredAssignment[];
   /** Day stops the booking took back, because it moved days or was deleted. */
@@ -136,7 +147,9 @@ export interface AccommodationMirror {
 /** A write that left the day plan alone. */
 export const noStayMirror = (): AccommodationMirror => ({
   created: null,
+  createdExtra: [],
   moved: null,
+  movedExtra: [],
   updated: [],
   removed: [],
   stamped: null,
@@ -518,11 +531,144 @@ export function dropStayStops(
  *  touchedDays — used by whoever broadcasts the mirror's events). */
 export function mirrorTouchedDays(mirror: AccommodationMirror): number[] {
   const days = new Set<number>();
-  if (mirror.created) days.add(mirror.created.day_id);
-  if (mirror.moved) {
-    days.add(mirror.moved.assignment.day_id);
-    days.add(mirror.moved.oldDayId);
+  for (const created of [mirror.created, ...mirror.createdExtra]) {
+    if (created) days.add(created.day_id);
+  }
+  for (const moved of [mirror.moved, ...mirror.movedExtra]) {
+    if (moved) {
+      days.add(moved.assignment.day_id);
+      days.add(moved.oldDayId);
+    }
   }
   for (const stop of mirror.removed) days.add(stop.dayId);
   return [...days];
+}
+
+// ── The multi-night mirror (PanelMint) — the same rules, run per night ─────────
+
+/**
+ * Put a stay on the map for every night it covers. `dayIds` are the seat days
+ * in trip order (the caller decides what "the stay's nights" means). The rules
+ * are mirrorStay's, per day: the first write stamps the place as lodging, a
+ * night day already holding the place keeps the traveller's stop, and each
+ * seated night is measured by the same check-in.
+ */
+export function attachStayNights(
+  store: StayMirrorStore,
+  accommodationId: number,
+  placeId: number | null,
+  dayIds: number[],
+  checkIn?: string | null
+): AccommodationMirror {
+  const mirror = noStayMirror();
+  if (!placeId) return mirror;
+
+  mirror.stamped = stampLodging(store, placeId);
+
+  const before = stopOrders(store, dayIds);
+  const night: Night = { id: accommodationId, check_in: checkIn };
+  const created: MirroredAssignment[] = [];
+  for (const dayId of dayIds) {
+    if (store.dayHasPlace(dayId, placeId)) continue;
+    const stop = store.getStopForMirror(
+      store.insertOwnedStop(dayId, placeId, seatIndex(store, dayId, night), accommodationId)
+    );
+    if (stop) created.push(stop);
+  }
+  mirror.created = created[0] ?? null;
+  mirror.createdExtra = created.slice(1);
+  reanchorVias(store, mirror, before);
+  return mirror;
+}
+
+/**
+ * Re-seat a stay whose nights changed. Every own stop on a night still covered
+ * keeps its row (a re-seat or a new place only edits it); own stops on nights
+ * the stay no longer covers are carried onto newly covered nights — keeping
+ * the row's notes, hour, participants and id — and whatever remains is taken
+ * back. Nights the traveller's own stop already holds are never claimed.
+ */
+export function moveStayNights(
+  store: StayMirrorStore,
+  accommodationId: number,
+  placeId: number | null,
+  dayIds: number[],
+  checkIn?: string | null,
+  opts: { checkInChanged?: boolean } = {}
+): AccommodationMirror {
+  const mirror = noStayMirror();
+  const own = ownStops(store, accommodationId);
+  const seatDays = new Set(dayIds);
+  const night: Night = { id: accommodationId, check_in: checkIn };
+  const touchedDays = [...new Set([...dayIds, ...own.map((stop) => stop.day_id)])];
+  const before = stopOrders(store, touchedDays);
+
+  const noteMoved = (moved: { assignment: MirroredAssignment; oldDayId: number }) => {
+    if (mirror.moved) mirror.movedExtra.push(moved);
+    else mirror.moved = moved;
+  };
+
+  // Stops on nights the stay still covers stay put, with remirrorStay's own
+  // rules per stop: a new check-in hour seats the night afresh, a new place is
+  // carried over unconditionally, and anything else the clocks call settled
+  // stays. A kept day that already holds the new place under another stop
+  // takes the duplicate back instead. Stops on dropped nights — and every own
+  // stop when the place itself was cleared — become surplus rows.
+  const surplus: { id: number; day_id: number; order_index: number }[] = [];
+  for (const stop of own) {
+    if (!placeId || !seatDays.has(stop.day_id)) {
+      surplus.push(stop);
+      continue;
+    }
+    if (stop.place_id !== placeId && store.dayHasPlace(stop.day_id, placeId, stop.id)) {
+      store.deleteStop(stop.id);
+      mirror.removed.push({ id: stop.id, dayId: stop.day_id });
+      continue;
+    }
+    const settled =
+      stop.place_id === placeId &&
+      (seatIndex(store, stop.day_id, night, stop.id) === stop.order_index ||
+        (!opts.checkInChanged && seatHolds(store.dayStops(stop.day_id), stop.id, checkIn)));
+    if (settled) continue;
+    reseatOwnStop(store, stop, placeId, stop.day_id, night);
+    const seated = store.getStopForMirror(stop.id);
+    if (seated) noteMoved({ assignment: seated, oldDayId: stop.day_id });
+  }
+
+  // Nights without a stop of this booking's own. A day already holding the
+  // place under another stop keeps the traveller's — no seat, and the surplus
+  // row that might have moved here falls through to removal.
+  const keptDays = new Set(own.filter((stop) => seatDays.has(stop.day_id)).map((stop) => stop.day_id));
+  const needed = !placeId ? [] : dayIds.filter((dayId) => !keptDays.has(dayId) && !store.dayHasPlace(dayId, placeId));
+
+  // Carry surplus rows onto newly covered nights — same row, new home.
+  let row = 0;
+  const created: MirroredAssignment[] = [];
+  for (const dayId of needed) {
+    const stop = surplus[row];
+    if (stop) {
+      row += 1;
+      reseatOwnStop(store, stop, placeId!, dayId, night);
+      const moved = store.getStopForMirror(stop.id);
+      if (moved) noteMoved({ assignment: moved, oldDayId: stop.day_id });
+      continue;
+    }
+    const seat = store.getStopForMirror(
+      store.insertOwnedStop(dayId, placeId!, seatIndex(store, dayId, night), accommodationId)
+    );
+    if (seat) created.push(seat);
+  }
+  for (; row < surplus.length; row += 1) {
+    const stop = surplus[row];
+    store.deleteStop(stop.id);
+    mirror.removed.push({ id: stop.id, dayId: stop.day_id });
+  }
+
+  mirror.created = created[0] ?? null;
+  mirror.createdExtra = created.slice(1);
+  if (placeId && (created.length > 0 || mirror.moved || mirror.movedExtra.length > 0)) {
+    mirror.stamped = stampLodging(store, placeId);
+  }
+  reanchorVias(store, mirror, before);
+  return mirror;
 }

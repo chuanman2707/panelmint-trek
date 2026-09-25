@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { downloadTripPDF } from './TripPDF'
 import { server } from '../../../tests/helpers/msw/server'
+import { accommodationsApi } from '../../api/client'
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
 import { getMergedItems, getTransportForDay } from '../../utils/dayMerge'
 
@@ -47,11 +48,10 @@ beforeEach(() => {
     configurable: true,
   })
 
-  // Default MSW handlers for this test suite
+  // Default fetch stubs for this test suite — accommodations ride the local
+  // adapter now (Dexie is not backed in this file), so the list call is spied.
+  vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
   server.use(
-    http.get('/api/trips/:id/accommodations', () =>
-      HttpResponse.json({ accommodations: [] })
-    ),
     // Mixed-currency exports fetch FX rates; keep the suite hermetic.
     http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])),
   )
@@ -359,23 +359,19 @@ describe('downloadTripPDF', () => {
   })
 
   it('FE-COMP-TRIPPDF-015: renders accommodation section when accommodations exist', async () => {
-    server.use(
-      http.get('/api/trips/:id/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1,
-            start_day_id: 10,
-            end_day_id: 10,
-            place_name: 'Hotel Roma',
-            place_address: 'Via Roma 1',
-            check_in: '15:00',
-            check_out: '11:00',
-            notes: 'Breakfast included',
-            confirmation: 'CONF999',
-          }],
-        })
-      ),
-    )
+    vi.mocked(accommodationsApi.list).mockResolvedValue({
+      accommodations: [{
+        id: 1,
+        start_day_id: 10,
+        end_day_id: 10,
+        place_name: 'Hotel Roma',
+        place_address: 'Via Roma 1',
+        check_in: '15:00',
+        check_out: '11:00',
+        notes: 'Breakfast included',
+        confirmation: 'CONF999',
+      }],
+    } as never)
     await downloadTripPDF(richArgs)
     const iframe = getIframe()
     expect(iframe!.srcdoc).toContain('Hotel Roma')
@@ -595,12 +591,12 @@ describe('downloadTripPDF remaining branches', () => {
     // check_in / check_out come off the accommodation row and were the one pair
     // that printed the raw column in BOTH directions.
     it('FE-W5PDF-033: accommodation check-in and check-out follow the setting too', async () => {
-      server.use(http.get('/api/trips/:id/accommodations', () => HttpResponse.json({
+      vi.mocked(accommodationsApi.list).mockResolvedValue({
         accommodations: [{
           id: 1, place_id: 1, place_name: 'Hotel Roma', place_address: 'Via Roma 1',
           start_day_id: 10, end_day_id: 10, check_in: '15:00', check_out: '11:00', notes: null,
         }],
-      })))
+      } as never)
 
       await downloadTripPDF(at('14:30', { timeFormat: '12h' }) as never)
 
@@ -831,16 +827,12 @@ describe('downloadTripPDF remaining branches', () => {
   })
 
   it('FE-W5PDF-015: check-in, middle and check-out days each get their own accommodation block', async () => {
-    server.use(
-      http.get('/api/trips/:id/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, start_day_id: 10, end_day_id: 12, place_name: 'Hotel Nord', place_address: 'Main St',
-            check_in: '15:00', check_out: '10:00', confirmation: 'CONF-9', notes: 'Late arrival',
-          }],
-        }),
-      ),
-    )
+    vi.mocked(accommodationsApi.list).mockResolvedValue({
+      accommodations: [{
+        id: 1, start_day_id: 10, end_day_id: 12, place_name: 'Hotel Nord', place_address: 'Main St',
+        check_in: '15:00', check_out: '10:00', confirmation: 'CONF-9', notes: 'Late arrival',
+      }],
+    } as never)
     await downloadTripPDF(spanArgs([]))
     const html = srcdoc()
 
@@ -855,16 +847,12 @@ describe('downloadTripPDF remaining branches', () => {
   })
 
   it('FE-W5PDF-016: two accommodations on one day are ordered by their start day', async () => {
-    server.use(
-      http.get('/api/trips/:id/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [
-            { id: 2, start_day_id: 11, end_day_id: 12, place_name: 'Later Inn', place_address: null, check_in: null, check_out: null, confirmation: null },
-            { id: 1, start_day_id: 10, end_day_id: 12, place_name: 'Earlier Inn', place_address: null, check_in: null, check_out: null, confirmation: null },
-          ],
-        }),
-      ),
-    )
+    vi.mocked(accommodationsApi.list).mockResolvedValue({
+      accommodations: [
+        { id: 2, start_day_id: 11, end_day_id: 12, place_name: 'Later Inn', place_address: null, check_in: null, check_out: null, confirmation: null },
+        { id: 1, start_day_id: 10, end_day_id: 12, place_name: 'Earlier Inn', place_address: null, check_in: null, check_out: null, confirmation: null },
+      ],
+    } as never)
     await downloadTripPDF(spanArgs([]))
     const html = srcdoc()
 
@@ -931,9 +919,8 @@ describe('downloadTripPDF defaults', () => {
   })
 
   it('FE-W5PDF-022: an accommodations response without the key degrades to no hotels', async () => {
-    server.use(
-      http.get('/api/trips/:id/accommodations', () => HttpResponse.json({})),
-    )
+    // An envelope without the key — the reader guards `data.accommodations || []`.
+    vi.mocked(accommodationsApi.list).mockResolvedValue({} as never)
     await downloadTripPDF({ ...minimalArgs } as unknown as Args)
 
     expect(srcdoc()).not.toContain('day-accommodations-overview"')

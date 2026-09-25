@@ -1199,12 +1199,14 @@ export class DexieStore
     }
   }
 
-  /** The server's validateAccommodationRefs — field names and messages verbatim. */
+  /** The server's validateAccommodationRefs — field names and messages verbatim.
+   *  Refs arrive untyped (the REST route passes the raw body values); a non-row
+   *  value fails the lookup the way SQL binding NULL did. */
   validateStayRefs(
     tripId: number,
-    placeId?: number,
-    startDayId?: number,
-    endDayId?: number,
+    placeId?: unknown,
+    startDayId?: unknown,
+    endDayId?: unknown,
   ): { field: string; message: string }[] {
     const errors: { field: string; message: string }[] = [];
     if (placeId !== undefined && !this.existsOnTrip('places', placeId, tripId))
@@ -1222,15 +1224,17 @@ export class DexieStore
     start_day_id: number;
     end_day_id: number;
     check_in: string | null;
+    check_in_end?: string | null;
     check_out: string | null;
     confirmation: string | null;
+    notes?: string | null;
   }): number {
     const id = this.allocId('accommodations');
     this.put('accommodations', {
       id,
       ...fields,
-      check_in_end: null,
-      notes: null,
+      check_in_end: fields.check_in_end ?? null,
+      notes: fields.notes ?? null,
       created_at: nowIso(),
     } as Accommodation);
     return id;
@@ -1243,8 +1247,10 @@ export class DexieStore
       start_day_id: number;
       end_day_id: number;
       check_in: string | null;
+      check_in_end?: string | null;
       check_out: string | null;
       confirmation: string | null;
+      notes?: string | null;
     },
   ): void {
     const a = this.accommodationsMap().get(accommodationId);
@@ -1252,6 +1258,18 @@ export class DexieStore
       Object.assign(a, fields);
       this.put('accommodations', a);
     }
+  }
+
+  /** The raw stay row (detached) — the adapter's `getAccommodation(id, tripId)`
+   *  pair: it scopes the 404 itself (`WHERE id = ? AND trip_id = ?`). */
+  stayRow(id: number): Accommodation | undefined {
+    const a = this.accommodationsMap().get(id);
+    return a ? detached(a) : undefined;
+  }
+
+  /** `SELECT name FROM places WHERE id = ?` — the linked-reservation title lookup. */
+  placeName(id: number | null | undefined): string | undefined {
+    return this.place(id)?.name;
   }
 
   getStayCheckIn(accommodationId: number): string | null | undefined {
@@ -2057,14 +2075,10 @@ export class DexieStore
       .map((r) => this.reservationWire(r));
   }
 
-  /** The server's getAccommodationWithPlace / listAccommodations join. The
-   *  LEFT JOIN on reservations fans out one row per linked booking. */
-  accommodationWire(a: Accommodation): Accommodation[] {
+  /** `a.*` plus the LEFT JOIN places columns every accommodation wire carries. */
+  private accommodationPlaceJoin(a: Accommodation) {
     const p = this.place(a.place_id);
-    const linked = this.reservationsOfTrip(a.trip_id).filter(
-      (r) => r.accommodation_id != null && Number(r.accommodation_id) === a.id,
-    );
-    const base = {
+    return {
       ...a,
       place_name: p?.name ?? null,
       place_address: p?.address ?? null,
@@ -2072,6 +2086,23 @@ export class DexieStore
       place_lat: p?.lat ?? null,
       place_lng: p?.lng ?? null,
     };
+  }
+
+  /** The server's getAccommodationWithPlace — the row + place join, no
+   *  reservation fan-out. What create/update answers with. */
+  accommodationDetailWire(id: number): Accommodation | undefined {
+    const a = this.accommodationsMap().get(id);
+    if (!a) return undefined;
+    return detached(this.accommodationPlaceJoin(a));
+  }
+
+  /** The server's getAccommodationWithPlace / listAccommodations join. The
+   *  LEFT JOIN on reservations fans out one row per linked booking. */
+  accommodationWire(a: Accommodation): Accommodation[] {
+    const linked = this.reservationsOfTrip(a.trip_id).filter(
+      (r) => r.accommodation_id != null && Number(r.accommodation_id) === a.id,
+    );
+    const base = this.accommodationPlaceJoin(a);
     if (!linked.length) return [detached({ ...base, reservation_title: null })];
     return linked.map((r) => detached({ ...base, reservation_title: r.title ?? null }));
   }

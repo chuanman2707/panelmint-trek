@@ -18,6 +18,7 @@ vi.mock('../Map/tripRouteGeometry', async (importActual) => {
 const { calculateRouteWithLegs } = await import('../Map/RouteCalculator')
 const { routeTrip } = await import('../Map/tripRouteGeometry')
 const { downloadTripPDF } = await import('./TripPDF')
+const { accommodationsApi } = await import('../../api/client')
 
 const leg = (distance: number): RouteSegment => ({
   mid: [0, 0], from: [0, 0], to: [0, 0],
@@ -55,8 +56,9 @@ beforeEach(() => {
     value: { origin: 'http://localhost:3000', pathname: '/', href: 'http://localhost:3000/', search: '' },
     writable: true,
   })
+  // Stays come from the local adapter now — spy it rather than an HTTP route.
+  vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
   server.use(
-    http.get('/api/trips/:id/accommodations', () => HttpResponse.json({ accommodations: [] })),
     http.get('/api/pdf-sections/:tripId', () => HttpResponse.json({ sections: [] })),
   )
   vi.mocked(calculateRouteWithLegs).mockReset()
@@ -109,13 +111,13 @@ describe('trip route map in the PDF', () => {
   it('FE-COMP-TRIPPDF-MAP-004b: a day that only routes via its hotel still draws', async () => {
     // The envelope the endpoint actually answers with — a bare array here is what let
     // the missing hotel legs through unnoticed.
-    server.use(http.get('/api/trips/:id/accommodations', () => HttpResponse.json({
+    vi.mocked(accommodationsApi.list).mockResolvedValue({
       accommodations: [{
         id: 2, trip_id: 1, place_id: 5, start_day_id: 1, end_day_id: 2,
         check_in: null, check_in_end: null, check_out: null,
         place_name: 'Hotel', place_lat: 48.8714, place_lng: 2.3426,
       }],
-    })))
+    } as never)
 
     await downloadTripPDF({
       ...args,

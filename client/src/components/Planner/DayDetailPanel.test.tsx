@@ -11,7 +11,7 @@ import { usePermissionsStore } from '../../store/permissionsStore';
 import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildAdmin, buildTrip, buildDay, buildPlace, buildReservation } from '../../../tests/helpers/factories';
-import { weatherApi } from '../../api/client';
+import { weatherApi, accommodationsApi } from '../../api/client';
 import { clearWeatherCache } from '../../api/ext/openmeteo';
 import DayDetailPanel from './DayDetailPanel';
 
@@ -86,14 +86,20 @@ beforeEach(() => {
     // the panel renders its "No weather" state, like the old { error } default.
     http.get('https://api.open-meteo.com/v1/forecast', () =>
       HttpResponse.json({ daily: { time: [] }, hourly: { time: [] } })),
-    http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [] })),
   );
+  // accommodationsApi is the local adapter — stub it like the old MSW GET did;
+  // a case overrides on this spy (or spies create/update/delete) when it needs a stay.
+  vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] });
   seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
   seedStore(useSettingsStore, {
     settings: { time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: false },
   });
 });
+
+/** Serve stay rows on the list spy — the shape the local adapter's GET answered. */
+const serveStays = (rows: unknown[]) =>
+  vi.mocked(accommodationsApi.list).mockResolvedValue({ accommodations: rows } as never);
 
 describe('DayDetailPanel', () => {
 
@@ -308,31 +314,19 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-017: accommodation with check-in shows hotel name', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     expect(await screen.findByText('Grand Hotel')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-018: check-in time shown for check-in day', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+    }]);
     // day.id = 1 = start_day_id (check-in day)
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('14:00');
@@ -343,16 +337,10 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-019: check-out time shown for check-out day', async () => {
     const checkOutDay = buildDay({ id: 3, trip_id: 1, date: '2025-06-17', title: 'Check Out Day' });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+    }]);
     render(<DayDetailPanel
       {...defaultProps}
       day={checkOutDay}
@@ -362,32 +350,20 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-020: confirmation code shown', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: 'HOTEL99',
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: 'HOTEL99',
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     expect(await screen.findByText('HOTEL99')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-021: accommodation edit/remove buttons shown when canEditDays=true', async () => {
     seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Grand Hotel');
     // Pencil and X buttons should be present in the accommodation row
@@ -398,16 +374,13 @@ describe('DayDetailPanel', () => {
   it('FE-PLANNER-DAYDETAIL-080: a failing accommodation edit keeps the picker open and says so', async () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
-          }],
-        }),
-      ),
-      http.put('/api/trips/1/accommodations/1', () => HttpResponse.json({ error: 'Stay overlaps' }, { status: 400 })),
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
+    }]);
+    // The adapter throws LocalApiError with the same axios-shaped response body.
+    vi.spyOn(accommodationsApi, 'update').mockRejectedValue(
+      { response: { status: 400, data: { error: 'Stay overlaps' } } },
     );
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Grand Hotel');
@@ -426,16 +399,10 @@ describe('DayDetailPanel', () => {
     const regularUser = buildUser({ id: 999, role: 'user' });
     seedStore(useAuthStore, { user: regularUser, isAuthenticated: true });
     seedStore(usePermissionsStore, { permissions: { day_edit: 'admin' } });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Budget Inn', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '15:00', check_out: null, confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Budget Inn', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '15:00', check_out: null, confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Budget Inn');
     // No edit/remove buttons — only close button in header
@@ -476,16 +443,10 @@ describe('DayDetailPanel', () => {
       confirmation_number: 'SECRET',
       accommodation_id: 1,
     });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Secret Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Secret Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} reservations={[linkedReservation]} />);
     await screen.findByText('Secret Hotel');
     // Find the element containing the confirmation number
@@ -563,16 +524,12 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-030: selecting a place in hotel picker enables save button', async () => {
     const place = buildPlace({ id: 10, name: 'Maison Blanche' });
-    server.use(
-      http.post('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodation: {
-            id: 99, place_id: 10, place_name: 'Maison Blanche', place_address: null,
-            start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
-          },
-        })
-      ),
-    );
+    vi.spyOn(accommodationsApi, 'create').mockResolvedValue({
+      accommodation: {
+        id: 99, place_id: 10, place_name: 'Maison Blanche', place_address: null,
+        start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
+      },
+    } as never);
     render(<DayDetailPanel {...defaultProps} places={[place]} />);
     const addButton = await screen.findByText(/Add accommodation/i);
     await userEvent.click(addButton);
@@ -596,16 +553,10 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-032: edit accommodation button opens picker in edit mode', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Edit Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '15:00', check_out: '10:00', confirmation: 'EDIT01',
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Edit Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '15:00', check_out: '10:00', confirmation: 'EDIT01',
+    }]);
     seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Edit Hotel');
@@ -658,16 +609,10 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-034: accommodation with all fields shows full details grid', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Full Details Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 1, check_in: '14:00', check_out: '11:00', confirmation: 'FULL01',
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Full Details Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 1, check_in: '14:00', check_out: '11:00', confirmation: 'FULL01',
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Full Details Hotel');
     await waitFor(() => {
@@ -679,16 +624,10 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-035: middle-day accommodation shows no check-in/out label', async () => {
     const middleDay = buildDay({ id: 2, trip_id: 1, date: '2025-06-16', title: 'Middle Day' });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Overnight Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Overnight Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} day={middleDay} days={[day, middleDay]} />);
     await screen.findByText('Overnight Hotel');
     expect(screen.queryByText(/Check-in & Check-out/i)).toBeNull();
@@ -745,16 +684,10 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-039: add another accommodation button visible when accommodations exist', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Existing Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Existing Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
+    }]);
     seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Existing Hotel');
@@ -764,19 +697,12 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-041: save new accommodation calls API and updates list', async () => {
     const place = buildPlace({ id: 10, name: 'New Hotel' });
-    server.use(
-      http.post('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodation: {
-            id: 99, place_id: 10, place_name: 'New Hotel', place_address: null,
-            start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
-          },
-        })
-      ),
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({ accommodations: [] })
-      ),
-    );
+    vi.spyOn(accommodationsApi, 'create').mockResolvedValue({
+      accommodation: {
+        id: 99, place_id: 10, place_name: 'New Hotel', place_address: null,
+        start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
+      },
+    } as never);
     render(<DayDetailPanel {...defaultProps} places={[place]} />);
     // Open picker
     const addButton = await screen.findByText(/Add accommodation/i);
@@ -795,20 +721,14 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-042: remove accommodation calls delete API', async () => {
     let deleteWasCalled = false;
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 5, place_id: 5, place_name: 'Hotel To Remove', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
-          }],
-        })
-      ),
-      http.delete('/api/trips/1/accommodations/5', () => {
-        deleteWasCalled = true;
-        return HttpResponse.json({ success: true });
-      }),
-    );
+    serveStays([{
+      id: 5, place_id: 5, place_name: 'Hotel To Remove', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
+    }]);
+    vi.spyOn(accommodationsApi, 'delete').mockImplementation(async () => {
+      deleteWasCalled = true;
+      return { success: true } as never;
+    });
     seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Hotel To Remove');
@@ -825,16 +745,10 @@ describe('DayDetailPanel', () => {
     seedStore(useSettingsStore, {
       settings: { time_format: '12h', temperature_unit: 'celsius', blur_booking_codes: false },
     });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'AM Hotel', place_address: null,
-            start_day_id: 1, end_day_id: 1, check_in: '14:00', check_out: '09:00', confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'AM Hotel', place_address: null,
+      start_day_id: 1, end_day_id: 1, check_in: '14:00', check_out: '09:00', confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('AM Hotel');
     // 14:00 in 12h = 2:00 PM
@@ -851,16 +765,10 @@ describe('DayDetailPanel', () => {
       confirmation_number: null,
       accommodation_id: 1,
     });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Pending Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Pending Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} reservations={[pendingReservation]} />);
     await screen.findByText('Pending Hotel');
     await screen.findByText('Pending Booking');
@@ -882,25 +790,19 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-046: save edited accommodation calls update API', async () => {
     let updateCalled = false;
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 7, place_id: 5, place_name: 'Edit Me Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 1, check_in: '15:00', check_out: null, confirmation: null,
-          }],
-        })
-      ),
-      http.put('/api/trips/1/accommodations/7', () => {
-        updateCalled = true;
-        return HttpResponse.json({
-          accommodation: {
-            id: 7, place_id: 5, place_name: 'Edit Me Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 1, check_in: '15:00', check_out: null, confirmation: 'NEW01',
-          },
-        });
-      }),
-    );
+    serveStays([{
+      id: 7, place_id: 5, place_name: 'Edit Me Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 1, check_in: '15:00', check_out: null, confirmation: null,
+    }]);
+    vi.spyOn(accommodationsApi, 'update').mockImplementation(async () => {
+      updateCalled = true;
+      return {
+        accommodation: {
+          id: 7, place_id: 5, place_name: 'Edit Me Hotel', place_address: 'Paris',
+          start_day_id: 1, end_day_id: 1, check_in: '15:00', check_out: null, confirmation: 'NEW01',
+        },
+      } as never;
+    });
     const place = buildPlace({ id: 5, name: 'Edit Me Hotel' });
     render(<DayDetailPanel {...defaultProps} places={[place]} />);
     await screen.findByText('Edit Me Hotel');
@@ -930,16 +832,10 @@ describe('DayDetailPanel', () => {
       confirmation_number: 'REVEAL123',
       accommodation_id: 2,
     });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 2, place_id: 5, place_name: 'Blurred Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 2, place_id: 5, place_name: 'Blurred Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: null, confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} reservations={[linkedReservation]} />);
     await screen.findByText('Blurred Hotel');
     const codeEl = await screen.findByText(/#REVEAL123/);
@@ -966,16 +862,10 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-050: content area is hidden when collapsed=true', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Visible Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
-          }],
-        })
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Visible Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} collapsed={true} />);
     await waitFor(() => {
       const content = document.querySelector('[style*="overflow-y: auto"]');
@@ -1059,18 +949,16 @@ describe('DayDetailPanel', () => {
     const days = buildNonMonotonicDays();
     const place = buildPlace({ id: 50, name: 'Range Hotel' });
     let capturedBody: any;
-    server.use(
-      http.post('/api/trips/1/accommodations', async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({
-          accommodation: {
-            id: 99, place_id: 50, place_name: 'Range Hotel', place_address: null,
-            start_day_id: capturedBody.start_day_id, end_day_id: capturedBody.end_day_id,
-            check_in: null, check_out: null, confirmation: null,
-          },
-        });
-      }),
-    );
+    vi.spyOn(accommodationsApi, 'create').mockImplementation(async (_tripId, body) => {
+      capturedBody = body;
+      return {
+        accommodation: {
+          id: 99, place_id: 50, place_name: 'Range Hotel', place_address: null,
+          start_day_id: capturedBody.start_day_id, end_day_id: capturedBody.end_day_id,
+          check_in: null, check_out: null, confirmation: null,
+        },
+      } as never;
+    });
 
     render(<DayDetailPanel {...defaultProps} day={days[0]} days={days} places={[place]} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
@@ -1094,18 +982,16 @@ describe('DayDetailPanel', () => {
     const days = buildNonMonotonicDays();
     const place = buildPlace({ id: 51, name: 'Span Hotel' });
     let capturedBody: any;
-    server.use(
-      http.post('/api/trips/1/accommodations', async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({
-          accommodation: {
-            id: 100, place_id: 51, place_name: 'Span Hotel', place_address: null,
-            start_day_id: capturedBody.start_day_id, end_day_id: capturedBody.end_day_id,
-            check_in: null, check_out: null, confirmation: null,
-          },
-        });
-      }),
-    );
+    vi.spyOn(accommodationsApi, 'create').mockImplementation(async (_tripId, body) => {
+      capturedBody = body;
+      return {
+        accommodation: {
+          id: 100, place_id: 51, place_name: 'Span Hotel', place_address: null,
+          start_day_id: capturedBody.start_day_id, end_day_id: capturedBody.end_day_id,
+          check_in: null, check_out: null, confirmation: null,
+        },
+      } as never;
+    });
 
     render(<DayDetailPanel {...defaultProps} day={days[0]} days={days} places={[place]} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
@@ -1133,18 +1019,16 @@ describe('DayDetailPanel', () => {
     const days = buildNonMonotonicDays();
     const place = buildPlace({ id: 52, name: 'Full Trip Hotel' });
     let capturedBody: any;
-    server.use(
-      http.post('/api/trips/1/accommodations', async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({
-          accommodation: {
-            id: 101, place_id: 52, place_name: 'Full Trip Hotel', place_address: null,
-            start_day_id: capturedBody.start_day_id, end_day_id: capturedBody.end_day_id,
-            check_in: null, check_out: null, confirmation: null,
-          },
-        });
-      }),
-    );
+    vi.spyOn(accommodationsApi, 'create').mockImplementation(async (_tripId, body) => {
+      capturedBody = body;
+      return {
+        accommodation: {
+          id: 101, place_id: 52, place_name: 'Full Trip Hotel', place_address: null,
+          start_day_id: capturedBody.start_day_id, end_day_id: capturedBody.end_day_id,
+          check_in: null, check_out: null, confirmation: null,
+        },
+      } as never;
+    });
 
     render(<DayDetailPanel {...defaultProps} day={days[0]} days={days} places={[place]} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
@@ -1170,18 +1054,16 @@ describe('DayDetailPanel', () => {
     ];
     const place = buildPlace({ id: 53, name: 'Seq Hotel' });
     let capturedBody: any;
-    server.use(
-      http.post('/api/trips/1/accommodations', async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({
-          accommodation: {
-            id: 102, place_id: 53, place_name: 'Seq Hotel', place_address: null,
-            start_day_id: capturedBody.start_day_id, end_day_id: capturedBody.end_day_id,
-            check_in: null, check_out: null, confirmation: null,
-          },
-        });
-      }),
-    );
+    vi.spyOn(accommodationsApi, 'create').mockImplementation(async (_tripId, body) => {
+      capturedBody = body;
+      return {
+        accommodation: {
+          id: 102, place_id: 53, place_name: 'Seq Hotel', place_address: null,
+          start_day_id: capturedBody.start_day_id, end_day_id: capturedBody.end_day_id,
+          check_in: null, check_out: null, confirmation: null,
+        },
+      } as never;
+    });
 
     render(<DayDetailPanel {...defaultProps} day={seqDays[0]} days={seqDays} places={[place]} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
@@ -1204,25 +1086,20 @@ describe('DayDetailPanel', () => {
   it('FE-PLANNER-DAYDETAIL-060: non-monotonic IDs — hotel stays visible after edit-save (issue #889 regression)', async () => {
     const days = buildNonMonotonicDays();
     let getCallCount = 0;
-    server.use(
-      http.get('/api/trips/1/accommodations', () => {
-        getCallCount++;
-        const acc = getCallCount === 1
-          // Initial load: single-day so old filter (17>=17 && 17<=17) passes — hotel visible, edit possible
-          ? { id: 1, place_id: 50, place_name: 'Span Hotel', place_address: null, start_day_id: 17, end_day_id: 17, check_in: null, check_out: null, confirmation: null }
-          // Post-save relist: full span — old filter (17>=17 && 17<=7) would drop it, new code keeps it
-          : { id: 1, place_id: 50, place_name: 'Span Hotel', place_address: null, start_day_id: 17, end_day_id: 7, check_in: null, check_out: null, confirmation: null };
-        return HttpResponse.json({ accommodations: [acc] });
-      }),
-      http.put('/api/trips/1/accommodations/1', async ({ request }) => {
-        const body = await request.json() as any;
-        return HttpResponse.json({
-          accommodation: { id: 1, place_id: 50, place_name: 'Span Hotel', place_address: null,
-            start_day_id: body.start_day_id, end_day_id: body.end_day_id,
-            check_in: null, check_out: null, confirmation: null },
-        });
-      }),
-    );
+    vi.mocked(accommodationsApi.list).mockImplementation(async () => {
+      getCallCount++;
+      const acc = getCallCount === 1
+        // Initial load: single-day so old filter (17>=17 && 17<=17) passes — hotel visible, edit possible
+        ? { id: 1, place_id: 50, place_name: 'Span Hotel', place_address: null, start_day_id: 17, end_day_id: 17, check_in: null, check_out: null, confirmation: null }
+        // Post-save relist: full span — old filter (17>=17 && 17<=7) would drop it, new code keeps it
+        : { id: 1, place_id: 50, place_name: 'Span Hotel', place_address: null, start_day_id: 17, end_day_id: 7, check_in: null, check_out: null, confirmation: null };
+      return { accommodations: [acc] } as never;
+    });
+    vi.spyOn(accommodationsApi, 'update').mockImplementation(async (_tripId, _stayId, body) => ({
+      accommodation: { id: 1, place_id: 50, place_name: 'Span Hotel', place_address: null,
+        start_day_id: body.start_day_id, end_day_id: body.end_day_id,
+        check_in: null, check_out: null, confirmation: null },
+    } as never));
 
     render(<DayDetailPanel {...defaultProps} day={days[0]} days={days} />);
     await screen.findByText('Span Hotel');
@@ -1247,16 +1124,11 @@ describe('DayDetailPanel', () => {
     const place = buildPlace({ id: 55, name: 'Created Hotel' });
     // Current day: days[5] = id 22, position 5 (within any full-span range)
     const currentDay = days[5];
-    server.use(
-      http.post('/api/trips/1/accommodations', async ({ request }) => {
-        const body = await request.json() as any;
-        return HttpResponse.json({
-          accommodation: { id: 200, place_id: 55, place_name: 'Created Hotel', place_address: null,
-            start_day_id: body.start_day_id, end_day_id: body.end_day_id,
-            check_in: null, check_out: null, confirmation: null },
-        });
-      }),
-    );
+    vi.spyOn(accommodationsApi, 'create').mockImplementation(async (_tripId, body) => ({
+      accommodation: { id: 200, place_id: 55, place_name: 'Created Hotel', place_address: null,
+        start_day_id: body.start_day_id, end_day_id: body.end_day_id,
+        check_in: null, check_out: null, confirmation: null },
+    } as never));
 
     render(<DayDetailPanel {...defaultProps} day={currentDay} days={days} places={[place]} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
@@ -1275,14 +1147,8 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-062: non-monotonic IDs — hotel shown on initial load when it spans the full trip', async () => {
     const days = buildNonMonotonicDays();
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{ id: 1, place_id: 60, place_name: 'Full Trip Hotel', place_address: null,
-            start_day_id: 17, end_day_id: 7, check_in: null, check_out: null, confirmation: null }],
-        })
-      ),
-    );
+    serveStays([{ id: 1, place_id: 60, place_name: 'Full Trip Hotel', place_address: null,
+      start_day_id: 17, end_day_id: 7, check_in: null, check_out: null, confirmation: null }]);
 
     // Day 1 (id=17): old filter: 17>=17 && 17<=7 → false. New: position 0 in [0,15] → visible.
     render(<DayDetailPanel {...defaultProps} day={days[0]} days={days} />);
@@ -1347,15 +1213,10 @@ describe('DayDetailPanel', () => {
   // ── Accommodation time formatting ───────────────────────────────────────────
 
   it('FE-PLANNER-DAYDETAIL-071: an ISO check-in is rendered as a local time, not the raw string', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'ISO Hotel', place_address: null,
-            start_day_id: 1, end_day_id: 1, check_in: '2025-06-15T14:30:00Z', check_out: null, confirmation: null,
-          }],
-        })),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'ISO Hotel', place_address: null,
+      start_day_id: 1, end_day_id: 1, check_in: '2025-06-15T14:30:00Z', check_out: null, confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('ISO Hotel');
     expect(screen.getByText(/\d{1,2}:\d{2}/)).toBeInTheDocument();
@@ -1366,30 +1227,20 @@ describe('DayDetailPanel', () => {
     seedStore(useSettingsStore, {
       settings: { time_format: '12h', temperature_unit: 'celsius', blur_booking_codes: false },
     });
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Odd Hotel', place_address: null,
-            start_day_id: 1, end_day_id: 1, check_in: 'on arrival', check_out: null, confirmation: null,
-          }],
-        })),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Odd Hotel', place_address: null,
+      start_day_id: 1, end_day_id: 1, check_in: 'on arrival', check_out: null, confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Odd Hotel');
     expect(screen.getByText('on arrival')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-073: an existing accommodation still offers to add another', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'First Hotel', place_address: null,
-            start_day_id: 1, end_day_id: 1, check_in: '14:00', check_out: '11:00', confirmation: 'X1',
-          }],
-        })),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'First Hotel', place_address: null,
+      start_day_id: 1, end_day_id: 1, check_in: '14:00', check_out: '11:00', confirmation: 'X1',
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('First Hotel');
     await userEvent.click(await screen.findByText(/Add accommodation/i));
@@ -1417,15 +1268,13 @@ describe('DayDetailPanel', () => {
   it('FE-PLANNER-DAYDETAIL-075: check-in, check-in-until, check-out and confirmation feed the saved accommodation', async () => {
     const place = buildPlace({ id: 70, name: 'Pension Anna' });
     let body: Record<string, unknown> | null = null;
-    server.use(
-      http.post('/api/trips/1/accommodations', async ({ request }) => {
-        body = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({
-          accommodation: { id: 300, place_id: 70, place_name: 'Pension Anna', place_address: null,
-            start_day_id: 1, end_day_id: 1, check_in: '15:00', check_in_end: '20:00', check_out: '10:00', confirmation: 'ZZ-9' },
-        });
-      }),
-    );
+    vi.spyOn(accommodationsApi, 'create').mockImplementation(async (_tripId, data) => {
+      body = data as Record<string, unknown>;
+      return {
+        accommodation: { id: 300, place_id: 70, place_name: 'Pension Anna', place_address: null,
+          start_day_id: 1, end_day_id: 1, check_in: '15:00', check_in_end: '20:00', check_out: '10:00', confirmation: 'ZZ-9' },
+      } as never;
+    });
     render(<DayDetailPanel {...defaultProps} places={[place]} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
     await userEvent.click(await screen.findByRole('button', { name: /Pension Anna/i }));
@@ -1550,11 +1399,7 @@ describe('DayDetailPanel remaining branches', () => {
   });
 
   it('FE-W5DDP-004: a hotel photo, a check-in window and a confirmation code all render', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({ accommodations: [hotel({ place_image: '/uploads/places/hotel.jpg', check_in_end: '18:00', confirmation: 'ABC123' })] }),
-      ),
-    );
+    serveStays([hotel({ place_image: '/uploads/places/hotel.jpg', check_in_end: '18:00', confirmation: 'ABC123' })]);
     render(<DayDetailPanel {...defaultProps} />);
 
     expect(await screen.findByText('14:00 – 18:00')).toBeInTheDocument();
@@ -1564,9 +1409,7 @@ describe('DayDetailPanel remaining branches', () => {
 
   it('FE-W5DDP-005: a blurred booking code unblurs on hover and toggles on click', async () => {
     seedStore(useSettingsStore, { settings: { time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: true } });
-    server.use(
-      http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [hotel({ accommodation_id: 1 })] })),
-    );
+    serveStays([hotel({ accommodation_id: 1 })]);
     render(
       <DayDetailPanel
         {...defaultProps}
@@ -1593,18 +1436,14 @@ describe('DayDetailPanel remaining branches', () => {
     const onAccommodationChange = vi.fn();
     let updateBody: Record<string, unknown> | null = null;
     let listCalls = 0;
-    server.use(
-      http.get('/api/trips/1/accommodations', () => {
-        listCalls += 1;
-        return HttpResponse.json({
-          accommodations: [hotel(listCalls > 1 ? { place_name: 'Reloaded Hotel' } : {})],
-        });
-      }),
-      http.put('/api/trips/1/accommodations/1', async ({ request }) => {
-        updateBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ accommodation: hotel() });
-      }),
-    );
+    vi.mocked(accommodationsApi.list).mockImplementation(async () => {
+      listCalls += 1;
+      return { accommodations: [hotel(listCalls > 1 ? { place_name: 'Reloaded Hotel' } : {})] } as never;
+    });
+    vi.spyOn(accommodationsApi, 'update').mockImplementation(async (_tripId, _stayId, body) => {
+      updateBody = body as Record<string, unknown>;
+      return { accommodation: hotel() } as never;
+    });
 
     render(<DayDetailPanel {...defaultProps} places={[buildPlace({ id: 5, name: 'Grand Hotel' })]} onAccommodationChange={onAccommodationChange} />);
     await screen.findByText('Grand Hotel');
@@ -1702,11 +1541,7 @@ describe('DayDetailPanel remaining branches', () => {
   });
 
   it('FE-W5DDP-012: an ISO check-in timestamp is rendered in local time', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({ accommodations: [hotel({ check_in: '2025-06-15T14:00', check_out: null })] }),
-      ),
-    );
+    serveStays([hotel({ check_in: '2025-06-15T14:00', check_out: null })]);
     render(<DayDetailPanel {...defaultProps} />);
 
     expect(await screen.findByText('14:00')).toBeInTheDocument();
@@ -1736,9 +1571,7 @@ describe('DayDetailPanel remaining branches, part two', () => {
   });
 
   it('FE-W5DDP-014: an unblurred booking code stays readable and pending bookings look different', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [hotel()] })),
-    );
+    serveStays([hotel()]);
     render(
       <DayDetailPanel
         {...defaultProps}
@@ -1859,13 +1692,11 @@ describe('DayDetailPanel remaining branches, part two', () => {
   it('FE-W5DDP-020: an empty reload after the edit-save clears the accommodation', async () => {
     const user = userEvent.setup();
     let listCalls = 0;
-    server.use(
-      http.get('/api/trips/1/accommodations', () => {
-        listCalls += 1;
-        return listCalls === 1 ? HttpResponse.json({ accommodations: [hotel()] }) : HttpResponse.json({});
-      }),
-      http.put('/api/trips/1/accommodations/1', () => HttpResponse.json({ accommodation: hotel() })),
-    );
+    vi.mocked(accommodationsApi.list).mockImplementation(async () => {
+      listCalls += 1;
+      return (listCalls === 1 ? { accommodations: [hotel()] } : {}) as never;
+    });
+    vi.spyOn(accommodationsApi, 'update').mockResolvedValue({ accommodation: hotel() } as never);
 
     render(<DayDetailPanel {...defaultProps} places={[buildPlace({ id: 5, name: 'Grand Hotel' })]} />);
     await screen.findByText('Grand Hotel');
@@ -1898,17 +1729,11 @@ describe('DayDetailPanel time format', () => {
   });
 
   it('FE-DDP1725-003: an accommodation check-in stored with a meridiem shows in 24h', async () => {
-    server.use(
-      http.get('/api/trips/1/accommodations', () =>
-        HttpResponse.json({
-          accommodations: [{
-            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
-            start_day_id: 1, end_day_id: 3, check_in: '3:00 PM', check_in_end: null,
-            check_out: '11:00 AM', confirmation: null,
-          }],
-        }),
-      ),
-    );
+    serveStays([{
+      id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+      start_day_id: 1, end_day_id: 3, check_in: '3:00 PM', check_in_end: null,
+      check_out: '11:00 AM', confirmation: null,
+    }]);
     render(<DayDetailPanel {...defaultProps} />);
 
     expect(await screen.findByText('15:00')).toBeInTheDocument();

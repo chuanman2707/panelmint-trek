@@ -43,9 +43,8 @@ export const tripsHandlers = [
     return HttpResponse.json({ owner, members: [] });
   }),
 
-  http.get('/api/trips/:id/accommodations', () => {
-    return HttpResponse.json({ accommodations: [] });
-  }),
+  // No /api/trips/:id/accommodations handler — stays are served by the local
+  // adapter (api/local/accommodations.ts); nothing reaches the wire for them.
 
   http.get('/api/trips/:id/bundle', ({ params }) => {
     const tripId = Number(params.id);

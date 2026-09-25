@@ -3,9 +3,15 @@ import type { Assignment } from '../types'
 
 /** The day-plan half of what an accommodation write answers with. */
 export interface StayStopsResult {
-  assignment?: Assignment | null
-  /** The booking's own stop, carried to the day the booking now covers. */
-  movedAssignment?: { assignment: Assignment; oldDayId: number } | null
+  /** The seat the write put down — one for the ordinary case, a list when a
+   * stay spans nights and every night took a seat at once. */
+  assignment?: Assignment | Assignment[] | null
+  /** The booking's own stop carried to the day the booking now covers — again
+   * a list when several nights were carried at once. */
+  movedAssignment?:
+    | { assignment: Assignment; oldDayId: number }
+    | { assignment: Assignment; oldDayId: number }[]
+    | null
   /** Stops the booking let go of but left standing (a night dropped, the place kept). */
   updatedAssignments?: Assignment[]
   removedAssignments?: { id: number; dayId: number }[]
@@ -29,9 +35,20 @@ export function applyStayStops(result: StayStopsResult | null | undefined): void
   for (const removed of result.removedAssignments ?? []) {
     handleRemoteEvent({ type: 'assignment:deleted', assignmentId: removed.id, dayId: removed.dayId })
   }
-  if (result.assignment) handleRemoteEvent({ type: 'assignment:created', assignment: result.assignment })
-  if (result.movedAssignment) {
-    const { assignment, oldDayId } = result.movedAssignment
+  const created = result.assignment == null
+    ? []
+    : Array.isArray(result.assignment)
+      ? result.assignment
+      : [result.assignment]
+  for (const assignment of created) {
+    handleRemoteEvent({ type: 'assignment:created', assignment })
+  }
+  const moved = result.movedAssignment == null
+    ? []
+    : Array.isArray(result.movedAssignment)
+      ? result.movedAssignment
+      : [result.movedAssignment]
+  for (const { assignment, oldDayId } of moved) {
     handleRemoteEvent({ type: 'assignment:moved', assignment, oldDayId, newDayId: assignment.day_id })
   }
   for (const updated of result.updatedAssignments ?? []) {

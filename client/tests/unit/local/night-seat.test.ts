@@ -11,9 +11,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  attachStayNights,
   attachStayStop,
   carryVias,
   dropStayStops,
+  mirrorTouchedDays,
+  moveStayNights,
   moveStayStop,
   reseatOwnStop,
   seatAmong,
@@ -247,6 +250,182 @@ describe('stay mirror (attachStayStop / dropStayStops)', () => {
     const mirror = dropStayStops(s, 7);
     expect(s.assignments.find((a) => a.id === 20)).toBeUndefined();
     expect(mirror.removed).toEqual([{ id: 20, dayId: 1 }]);
+  });
+});
+
+describe('multi-night mirror (attachStayNights / moveStayNights)', () => {
+  it('seats every seat day, reporting the extras in createdExtra', () => {
+    const s = new MemoryStore({
+      places: [{ ...place(9), stop_type: null }],
+      assignments: [],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 3, check_in: '15:00' }],
+    });
+    const mirror = attachStayNights(s, 7, 9, [1, 2], '15:00');
+    expect(mirror.created?.day_id).toBe(1);
+    expect(mirror.createdExtra.map((a) => a.day_id)).toEqual([2]);
+    expect(s.assignments.filter((a) => a.accommodation_id === 7)).toHaveLength(2);
+    expect(s.places.find((p) => p.id === 9)?.stop_type).toBe('hotel');
+    // Two seats put down → both days are the touched set.
+    expect(mirrorTouchedDays(mirror).sort()).toEqual([1, 2]);
+  });
+
+  it('keeps the traveller’s stop on a night the place already covers', () => {
+    const s = new MemoryStore({
+      places: [place(9)],
+      assignments: [stop(11, 2, 9, 0)],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 3, check_in: '15:00' }],
+    });
+    const mirror = attachStayNights(s, 7, 9, [1, 2], '15:00');
+    expect(mirror.created?.day_id).toBe(1);
+    expect(mirror.createdExtra).toEqual([]);
+    expect(s.assignments.find((a) => a.id === 11)?.accommodation_id).toBeNull();
+  });
+
+  it('takes back the seat of a night a shortened stay no longer covers', () => {
+    const s = new MemoryStore({
+      places: [place(9)],
+      assignments: [stop(20, 1, 9, 0, 7), stop(21, 2, 9, 0, 7)],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 3, check_in: '15:00' }],
+    });
+    const mirror = moveStayNights(s, 7, 9, [1], '15:00');
+    expect(mirror.removed).toEqual([{ id: 21, dayId: 2 }]);
+    expect(s.assignments.find((a) => a.id === 21)).toBeUndefined();
+    expect(s.assignments.find((a) => a.id === 20)?.accommodation_id).toBe(7);
+  });
+
+  it('carries a surplus row onto a newly covered night — same row, new home', () => {
+    const s = new MemoryStore({
+      places: [place(9)],
+      assignments: [stop(20, 1, 9, 0, 7), stop(21, 2, 9, 0, 7)],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 3, check_in: '15:00' }],
+    });
+    // [1,3] → [2,4]: nights shift from {1,2} to {2,3} — day 2 stays put, day 1's
+    // row is carried onto day 3 keeping its id.
+    const mirror = moveStayNights(s, 7, 9, [2, 3], '15:00');
+    expect(mirror.moved).toMatchObject({ oldDayId: 1, assignment: { id: 20, day_id: 3 } });
+    expect(mirror.removed).toEqual([]);
+    expect(s.assignments.find((a) => a.id === 20)?.day_id).toBe(3);
+    expect(s.assignments.find((a) => a.id === 21)?.day_id).toBe(2);
+  });
+
+  it('removes every own stop when the stay loses its place', () => {
+    const s = new MemoryStore({
+      places: [place(9)],
+      assignments: [stop(20, 1, 9, 0, 7), stop(21, 2, 9, 0, 7)],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 3, check_in: '15:00' }],
+    });
+    const mirror = moveStayNights(s, 7, null, [1, 2], '15:00');
+    expect(mirror.removed).toEqual([
+      { id: 20, dayId: 1 },
+      { id: 21, dayId: 2 },
+    ]);
+    expect(s.assignments.filter((a) => a.accommodation_id === 7)).toHaveLength(0);
+  });
+
+  it('answers the empty mirror for a stay that never had a place', () => {
+    const s = new MemoryStore({ places: [], assignments: [] });
+    expect(attachStayNights(s, 7, null, [1, 2], '15:00')).toEqual({
+      created: null,
+      createdExtra: [],
+      moved: null,
+      movedExtra: [],
+      updated: [],
+      removed: [],
+      stamped: null,
+    });
+    expect(s.assignments).toHaveLength(0);
+  });
+
+  it('carries several surplus rows at once — moved and movedExtra', () => {
+    const s = new MemoryStore({
+      places: [place(9)],
+      assignments: [stop(20, 1, 9, 0, 7), stop(21, 2, 9, 0, 7), stop(22, 3, 9, 0, 7)],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 4, check_in: '15:00' }],
+    });
+    // [1,4] → [4,5]: a same-day stay now — all three seats are surplus, and
+    // only the first lands on the one remaining night.
+    const mirror = moveStayNights(s, 7, 9, [4], '15:00');
+    expect(mirror.moved).toMatchObject({ oldDayId: 1, assignment: { id: 20, day_id: 4 } });
+    expect(mirror.movedExtra).toEqual([]);
+    expect(mirror.removed).toEqual([
+      { id: 21, dayId: 2 },
+      { id: 22, dayId: 3 },
+    ]);
+
+    // And the two-carry case: {1,2,3} nights → {4,5} nights carries two rows.
+    const s2 = new MemoryStore({
+      places: [place(9)],
+      assignments: [stop(20, 1, 9, 0, 7), stop(21, 2, 9, 0, 7), stop(22, 3, 9, 0, 7)],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 4, check_in: '15:00' }],
+    });
+    const mirror2 = moveStayNights(s2, 7, 9, [4, 5], '15:00');
+    expect(mirror2.moved).toMatchObject({ oldDayId: 1, assignment: { id: 20, day_id: 4 } });
+    expect(mirror2.movedExtra).toEqual([
+      { oldDayId: 2, assignment: expect.objectContaining({ id: 21, day_id: 5 }) },
+    ]);
+    expect(mirror2.removed).toEqual([{ id: 22, dayId: 3 }]);
+  });
+
+  it('takes back a kept stop whose new place the day already holds', () => {
+    // The stay moved hotels, but the day already pins the new hotel — two own
+    // rows would stand on the same place, so the booking's goes away.
+    const s = new MemoryStore({
+      places: [place(9), place(5)],
+      assignments: [stop(20, 1, 9, 0, 7), stop(11, 1, 5, 1)],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 2, check_in: '15:00' }],
+    });
+    const mirror = moveStayNights(s, 7, 5, [1], '15:00');
+    expect(mirror.removed).toEqual([{ id: 20, dayId: 1 }]);
+    expect(s.assignments.find((a) => a.accommodation_id === 7)).toBeUndefined();
+    expect(s.assignments.find((a) => a.id === 11)?.accommodation_id).toBeNull();
+  });
+
+  it('a reseat on a covered night is a same-day move, not a rebuild', () => {
+    const s = new MemoryStore({
+      places: [place(9), place(2)],
+      assignments: [
+        stop(20, 1, 9, 0, 7), // the 15:00 check-in seat, ahead of dinner
+        { ...stop(11, 1, 2, 1), assignment_time: '19:00' },
+        stop(21, 2, 9, 0, 7),
+      ],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 3, check_in: '21:00' }],
+    });
+    // check_in 15:00→21:00: the day-1 seat now belongs behind the 19:00 dinner —
+    // a new hour reseats it on its own day; the day-2 seat is untouched.
+    const mirror = moveStayNights(s, 7, 9, [1, 2], '21:00', { checkInChanged: true });
+    expect(mirror.moved).toMatchObject({ oldDayId: 1, assignment: { id: 20, day_id: 1 } });
+    expect(mirror.movedExtra).toEqual([]);
+    expect(s.assignments.find((a) => a.id === 20)?.order_index).toBe(1);
+    expect(s.assignments.find((a) => a.id === 21)?.day_id).toBe(2);
+  });
+
+  it('a stop the clocks call settled is left alone even off the insert seat', () => {
+    // The 15:00 seat already stands behind an untimed pause — a fresh insert
+    // would lead, but nothing the clocks measure moved, so the edit mirrors
+    // nothing (remirrorStay's seatHolds clause).
+    const s = new MemoryStore({
+      places: [place(9), place(2)],
+      assignments: [
+        stop(11, 1, 2, 0), // untimed pause
+        stop(20, 1, 9, 1, 7),
+      ],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 2, check_in: '15:00' }],
+    });
+    const mirror = moveStayNights(s, 7, 9, [1], '15:00');
+    expect(mirror.moved).toBeNull();
+    expect(mirror.removed).toEqual([]);
+    expect(s.assignments.find((a) => a.id === 20)?.order_index).toBe(1);
+  });
+
+  it('mirrorTouchedDays names every day the mirror reached, once', () => {
+    const s = new MemoryStore({
+      places: [place(9)],
+      assignments: [stop(20, 1, 9, 0, 7), stop(21, 2, 9, 0, 7), stop(22, 3, 9, 0, 7)],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 9, start_day_id: 1, end_day_id: 4, check_in: '15:00' }],
+    });
+    const mirror = moveStayNights(s, 7, 9, [4, 5], '15:00');
+    // Carries touched days 1,4 (moved) and 2,5 (movedExtra); the drop touched 3.
+    expect(mirrorTouchedDays(mirror).sort()).toEqual([1, 2, 3, 4, 5]);
   });
 });
 

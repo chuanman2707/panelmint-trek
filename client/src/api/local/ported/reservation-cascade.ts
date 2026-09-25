@@ -161,22 +161,28 @@ export interface ReservationCascadeStore {
   existsOnTrip(table: 'days' | 'places', id: unknown, tripId: number): boolean;
   /** Row exists at all (which trip it sits on is the guards' question). */
   rowExists(table: RefTable, id: unknown): boolean;
-  /** Stay-ref validation (AccommodationsService.validateAccommodationRefs). */
+  /** Stay-ref validation (AccommodationsService.validateAccommodationRefs).
+   *  The refs arrive untyped — the REST route hands the raw body values over,
+   *  and a non-row value fails the lookup exactly like SQL binding NULL. */
   validateStayRefs(
     tripId: number,
-    placeId?: number,
-    startDayId?: number,
-    endDayId?: number
+    placeId?: unknown,
+    startDayId?: unknown,
+    endDayId?: unknown
   ): { field: string; message: string }[];
 
+  /** The day_accommodations INSERT. The booking surface leaves check_in_end /
+   *  notes out — they bind NULL like the server's omitted columns do. */
   insertStay(fields: {
     trip_id: number;
     place_id: number | null;
     start_day_id: number;
     end_day_id: number;
     check_in: string | null;
+    check_in_end?: string | null;
     check_out: string | null;
     confirmation: string | null;
+    notes?: string | null;
   }): number;
   updateStay(
     accommodationId: number,
@@ -185,8 +191,10 @@ export interface ReservationCascadeStore {
       start_day_id: number;
       end_day_id: number;
       check_in: string | null;
+      check_in_end?: string | null;
       check_out: string | null;
       confirmation: string | null;
+      notes?: string | null;
     }
   ): void;
   /** The stay's check_in (for the moveStayStop checkInChanged comparison). */

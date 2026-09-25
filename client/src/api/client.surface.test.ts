@@ -315,7 +315,7 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-019: reservationsApi and accommodationsApi map booking endpoints', async () => {
+  it('FE-APISURF-019: reservationsApi maps booking endpoints', async () => {
     await assertCalls([
       { n: 'reservations.list', r: () => reservationsApi.list(1), e: 'GET /api/trips/1/reservations' },
       { n: 'reservations.create', r: () => reservationsApi.create(1, { title: 'Hotel' }), e: 'POST /api/trips/1/reservations' },
@@ -323,10 +323,27 @@ describe('client > endpoint wiring', () => {
       { n: 'reservations.delete', r: () => reservationsApi.delete(1, 2), e: 'DELETE /api/trips/1/reservations/2' },
       { n: 'reservations.setTravelers', r: () => reservationsApi.setTravelers(1, 2, [4]), e: 'PUT /api/trips/1/reservations/2/travelers' },
       { n: 'reservations.updatePositions', r: () => reservationsApi.updatePositions(1, [{ id: 2, day_plan_position: 0 }], 3), e: 'PUT /api/trips/1/reservations/positions' },
-      { n: 'accommodations.list', r: () => accommodationsApi.list(1), e: 'GET /api/trips/1/accommodations' },
-      { n: 'accommodations.create', r: () => accommodationsApi.create(1, { place_id: 5, start_day_id: 1, end_day_id: 2 }), e: 'POST /api/trips/1/accommodations' },
-      { n: 'accommodations.update', r: () => accommodationsApi.update(1, 4, { end_day_id: 3 }), e: 'PUT /api/trips/1/accommodations/4' },
-      { n: 'accommodations.delete', r: () => accommodationsApi.delete(1, 4), e: 'DELETE /api/trips/1/accommodations/4' },
+    ])
+  })
+
+  it('FE-APISURF-020: accommodationsApi runs locally (Dexie-backed, zero HTTP)', async () => {
+    // The adapter's own suite (tests/unit/local/accommodations.test.ts) pins the
+    // envelopes, error strings and the night-seat side channels; here each
+    // method only has to resolve over seeded rows without emitting a request.
+    const seedStayWorld = async () => {
+      await seedTripAndDays() // trips 1+3; days 1,2,3 on trip 1
+      await db.places.put(buildPlace({ id: 5, trip_id: 1 }))
+      await db.accommodations.put({
+        id: 4, trip_id: 1, place_id: 5, start_day_id: 1, end_day_id: 2,
+        check_in: '15:00', check_in_end: null, check_out: '11:00',
+        confirmation: null, notes: null, created_at: '2025-01-01T00:00:00.000Z',
+      } as never)
+    }
+    await assertCalls([
+      { n: 'accommodations.list', r: async () => { await seedStayWorld(); return accommodationsApi.list(1) }, e: 'local' },
+      { n: 'accommodations.create', r: async () => { await seedStayWorld(); return accommodationsApi.create(1, { place_id: 5, start_day_id: 1, end_day_id: 2 }) }, e: 'local' },
+      { n: 'accommodations.update', r: async () => { await seedStayWorld(); return accommodationsApi.update(1, 4, { end_day_id: 3 }) }, e: 'local' },
+      { n: 'accommodations.delete', r: async () => { await seedStayWorld(); return accommodationsApi.delete(1, 4) }, e: 'local' },
     ])
   })
 
