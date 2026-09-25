@@ -118,8 +118,9 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
         setAcSource(result.source || '')
         setSuggestions(result.suggestions || [])
       } catch (err: unknown) {
-        // Superseded request — axios rejects an aborted call with CanceledError.
-        if (err instanceof Error && err.name === 'CanceledError') return
+        // Superseded request — the local adapter rejects an aborted call with
+        // AbortError; axios used to throw CanceledError, kept for safety.
+        if (err instanceof Error && (err.name === 'AbortError' || err.name === 'CanceledError')) return
         setSuggestions([])
       }
     },

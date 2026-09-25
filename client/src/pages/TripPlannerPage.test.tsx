@@ -872,9 +872,15 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-029: handleSavePlace edit path covers updatePlace logic', () => {
     it('calls onEditPlace then onSave on PlaceFormModal to exercise the edit-place handler', async () => {
+      const place = buildPlace({ id: 1, trip_id: 42, lat: 48.8566, lng: 2.3522 });
+      // updatePlace goes through placeRepo → the Dexie-backed placesApi, so the
+      // row being edited has to exist in `panelmintDb`, not just the store.
+      // Seed BEFORE fake timers take over — fake-indexeddb resolves writes via
+      // setImmediate, which vi.useFakeTimers() hijacks.
+      await db.places.put(place);
+
       vi.useFakeTimers();
 
-      const place = buildPlace({ id: 1, trip_id: 42, lat: 48.8566, lng: 2.3522 });
       seedTripStore({ id: 42 });
       seedStore(useTripStore, { places: [place] } as any);
 

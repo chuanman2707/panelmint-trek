@@ -5,7 +5,8 @@ import { useLeaveMode, type LeaveSubject } from './useLeaveMode'
 import { useAuthStore } from '../../store/authStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
-import { buildAssignment, buildPlace } from '../../../tests/helpers/factories'
+import { buildAssignment, buildPlace, buildTrip } from '../../../tests/helpers/factories'
+import { db } from '../../db/panelmintDb'
 import { server } from '../../../tests/helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 
@@ -31,8 +32,12 @@ let updatePlace: ReturnType<typeof vi.fn>
 let refreshDays: ReturnType<typeof vi.fn>
 let addToast: ReturnType<typeof vi.fn<AddToast>>
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores()
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
   setAssignmentTimes = vi.fn(async () => undefined)
   updatePlace = vi.fn(async () => undefined)
   refreshDays = vi.fn(async () => undefined)
@@ -151,10 +156,14 @@ describe('useLeaveMode', () => {
     })
     seedStore(useTripStore, { trip: { id: 4, user_id: 1 }, places: [pool], assignments: { '11': [stored] } })
     useTripStore.setState({ refreshDays } as never)
+    // The visit's time write is still HTTP (assignmentsApi); the place write is
+    // local — updatePlace goes through placeRepo → placesApi on `panelmintDb`,
+    // so the trip and the place row have to exist there.
+    await db.trips.put(buildTrip({ id: 4 }))
+    await db.places.put(pool as never)
     server.use(
       http.put('/api/trips/4/assignments/102/time', () =>
         HttpResponse.json({ assignment: { ...stored, assignment_end_time: null, place: { ...pool, place_time: '09:00' } } })),
-      http.put('/api/trips/4/places/202', () => HttpResponse.json({ place: { ...pool, end_time: null } })),
     )
     const { result } = renderHook(() => useLeaveMode(subject))
     await act(async () => { await result.current.remove!() })

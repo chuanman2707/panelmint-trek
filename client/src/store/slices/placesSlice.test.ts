@@ -1,15 +1,16 @@
-// FE-TSLICE-PLACE-001 to FE-TSLICE-PLACE-015 (image upload, ratings, bulk ops, error paths)
-import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
+// FE-TSLICE-PLACE-001 to FE-TSLICE-PLACE-015 (ratings, bulk ops, error paths)
+//
+// placesApi is the Dexie-backed local adapter now, so these pin slice logic at
+// the module boundary: spies return/reject what the adapter would and the
+// store's own behavior (pool updates, assignment pruning, error propagation)
+// is what is under test.
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildAssignment, buildPlace } from '../../../tests/helpers/factories';
 import { placesApi } from '../../api/client';
 import { useTripStore } from '../tripStore';
-import type { Place } from '../../types';
 
 beforeEach(() => {
   resetAllStores();
-  server.resetHandlers();
 });
 
 afterEach(() => {
@@ -27,47 +28,32 @@ describe('placesSlice', () => {
       const place = buildPlace({ id: 10, trip_id: 1 });
       seedStore(useTripStore, { places: [place] });
 
-      let sent: number | undefined;
-      server.use(
-        http.put('/api/trips/1/places/10/rating', async ({ request }) => {
-          const body = await request.json() as { rating: number };
-          sent = body.rating;
-          return HttpResponse.json({ place: { ...place, rating_avg: 4.5, rating_count: 2 } });
-        }),
-      );
+      const rate = vi.spyOn(placesApi, 'rate')
+        .mockResolvedValue({ place: { ...place, rating_avg: 4.5, rating_count: 2 } });
 
       const result = await useTripStore.getState().ratePlace(1, 10, 5);
 
-      expect(sent).toBe(5);
+      expect(rate).toHaveBeenCalledWith(1, 10, 5);
       expect(result.rating_avg).toBe(4.5);
       expect(useTripStore.getState().places[0].rating_count).toBe(2);
     });
 
-    it('FE-TSLICE-PLACE-005: a null rating clears the vote via DELETE', async () => {
+    it('FE-TSLICE-PLACE-005: a null rating clears the vote', async () => {
       const place = buildPlace({ id: 10, trip_id: 1, rating_avg: 4 });
       seedStore(useTripStore, { places: [place] });
 
-      let deleted = false;
-      server.use(
-        http.delete('/api/trips/1/places/10/rating', () => {
-          deleted = true;
-          return HttpResponse.json({ place: { ...place, rating_avg: null, rating_count: 0 } });
-        }),
-      );
+      const rate = vi.spyOn(placesApi, 'rate')
+        .mockResolvedValue({ place: { ...place, rating_avg: null, rating_count: 0 } });
 
       await useTripStore.getState().ratePlace(1, 10, null);
 
-      expect(deleted).toBe(true);
+      expect(rate).toHaveBeenCalledWith(1, 10, null);
       expect(useTripStore.getState().places[0].rating_avg).toBeNull();
     });
 
     it('FE-TSLICE-PLACE-006: throws with the server message when rating fails', async () => {
       seedStore(useTripStore, { places: [buildPlace({ id: 10, trip_id: 1 })] });
-      server.use(
-        http.put('/api/trips/1/places/10/rating', () =>
-          HttpResponse.json({ error: 'Rating out of range' }, { status: 422 }),
-        ),
-      );
+      vi.spyOn(placesApi, 'rate').mockRejectedValue(apiError('Rating out of range'));
 
       await expect(useTripStore.getState().ratePlace(1, 10, 9)).rejects.toThrow('Rating out of range');
     });
@@ -77,11 +63,7 @@ describe('placesSlice', () => {
     it('FE-TSLICE-PLACE-007: rethrows the server message and keeps the pool intact', async () => {
       const place = buildPlace({ id: 10, trip_id: 1 });
       seedStore(useTripStore, { places: [place] });
-      server.use(
-        http.delete('/api/trips/1/places/10', () =>
-          HttpResponse.json({ error: 'Place is locked' }, { status: 409 }),
-        ),
-      );
+      vi.spyOn(placesApi, 'delete').mockRejectedValue(apiError('Place is locked'));
 
       await expect(useTripStore.getState().deletePlace(1, 10)).rejects.toThrow('Place is locked');
       expect(useTripStore.getState().places).toHaveLength(1);
@@ -101,18 +83,12 @@ describe('placesSlice', () => {
         },
       });
 
-      let sentIds: number[] = [];
-      server.use(
-        http.post('/api/trips/1/places/bulk-delete', async ({ request }) => {
-          const body = await request.json() as { ids: number[] };
-          sentIds = body.ids;
-          return HttpResponse.json({ deleted: body.ids, count: body.ids.length });
-        }),
-      );
+      const bulkDelete = vi.spyOn(placesApi, 'bulkDelete')
+        .mockResolvedValue({ deleted: [10, 20], count: 2, cancelled: { reservationIds: [], budgetItemIds: [], accommodationIds: [] } });
 
       await useTripStore.getState().deletePlacesMany(1, [10, 20]);
 
-      expect(sentIds).toEqual([10, 20]);
+      expect(bulkDelete).toHaveBeenCalledWith(1, [10, 20]);
       expect(useTripStore.getState().places.map(p => p.id)).toEqual([30]);
       expect(useTripStore.getState().assignments['1'].map(x => x.id)).toEqual([101]);
       // Day 2 held no deleted place, so it is untouched.
@@ -122,28 +98,18 @@ describe('placesSlice', () => {
     it('FE-TSLICE-PLACE-009: an empty id list is a no-op and issues no request', async () => {
       const a = buildPlace({ id: 10, trip_id: 1 });
       seedStore(useTripStore, { places: [a] });
-      let called = false;
-      server.use(
-        http.post('/api/trips/1/places/bulk-delete', () => {
-          called = true;
-          return HttpResponse.json({ deleted: [], count: 0 });
-        }),
-      );
+      const bulkDelete = vi.spyOn(placesApi, 'bulkDelete');
 
       await useTripStore.getState().deletePlacesMany(1, []);
 
-      expect(called).toBe(false);
+      expect(bulkDelete).not.toHaveBeenCalled();
       expect(useTripStore.getState().places).toHaveLength(1);
     });
 
     it('FE-TSLICE-PLACE-010: throws and keeps the pool when the bulk delete fails', async () => {
       const a = buildPlace({ id: 10, trip_id: 1 });
       seedStore(useTripStore, { places: [a] });
-      server.use(
-        http.post('/api/trips/1/places/bulk-delete', () =>
-          HttpResponse.json({ error: 'Bulk delete refused' }, { status: 500 }),
-        ),
-      );
+      vi.spyOn(placesApi, 'bulkDelete').mockRejectedValue(apiError('Bulk delete refused'));
 
       await expect(useTripStore.getState().deletePlacesMany(1, [10])).rejects.toThrow('Bulk delete refused');
       expect(useTripStore.getState().places).toHaveLength(1);
@@ -160,9 +126,7 @@ describe('placesSlice', () => {
       });
       const before = useTripStore.getState().assignments;
 
-      server.use(
-        http.post('/api/trips/1/places/bulk-update', () => HttpResponse.json({ updated: [10], count: 1 })),
-      );
+      vi.spyOn(placesApi, 'bulkUpdate').mockResolvedValue({ updated: [10], count: 1 });
 
       await useTripStore.getState().updatePlacesMany(1, [10], { category_id: 7 });
 
@@ -173,11 +137,7 @@ describe('placesSlice', () => {
     it('FE-TSLICE-PLACE-012: throws with the server message when the bulk update fails', async () => {
       const a = buildPlace({ id: 10, trip_id: 1, category_id: 1 });
       seedStore(useTripStore, { places: [a] });
-      server.use(
-        http.post('/api/trips/1/places/bulk-update', () =>
-          HttpResponse.json({ error: 'Unknown category' }, { status: 400 }),
-        ),
-      );
+      vi.spyOn(placesApi, 'bulkUpdate').mockRejectedValue(apiError('Unknown category'));
 
       await expect(
         useTripStore.getState().updatePlacesMany(1, [10], { category_id: 99 }),
@@ -191,9 +151,7 @@ describe('placesSlice', () => {
       const stale = buildPlace({ id: 10, trip_id: 1, name: 'Stale' });
       seedStore(useTripStore, { places: [stale] });
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-      server.use(
-        http.get('/api/trips/1/places', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
-      );
+      vi.spyOn(placesApi, 'list').mockRejectedValue(apiError('boom'));
 
       await expect(useTripStore.getState().refreshPlaces(1)).resolves.toBeUndefined();
 
@@ -206,11 +164,7 @@ describe('placesSlice', () => {
     it('FE-TSLICE-PLACE-015: throws the server message and leaves the pool untouched', async () => {
       const place = buildPlace({ id: 10, trip_id: 1, name: 'Louvre' });
       seedStore(useTripStore, { places: [place] });
-      server.use(
-        http.put('/api/trips/1/places/10', () =>
-          HttpResponse.json({ error: 'Place is locked' }, { status: 409 }),
-        ),
-      );
+      vi.spyOn(placesApi, 'update').mockRejectedValue(apiError('Place is locked'));
 
       await expect(
         useTripStore.getState().updatePlace(1, 10, { name: 'Orsay' }),
@@ -221,11 +175,7 @@ describe('placesSlice', () => {
 
   describe('addPlace', () => {
     it('FE-TSLICE-PLACE-014: surfaces the server message on failure', async () => {
-      server.use(
-        http.post('/api/trips/1/places', () =>
-          HttpResponse.json({ error: 'Name required' }, { status: 422 }),
-        ),
-      );
+      vi.spyOn(placesApi, 'create').mockRejectedValue(apiError('Name required'));
 
       await expect(useTripStore.getState().addPlace(1, { name: '' })).rejects.toThrow('Name required');
     });

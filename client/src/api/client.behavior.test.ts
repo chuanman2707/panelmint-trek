@@ -228,14 +228,4 @@ describe('client > dev-only contract drift checks', () => {
     )
   })
 
-  it('FE-APIWIRE-023: a drifting maps response is reported under its own label', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    server.use(http.post('/api/maps/search', () => HttpResponse.json({ nonsense: true })))
-
-    await expect(mapsApi.search('Rome')).resolves.toEqual({ nonsense: true })
-    expect(warn).toHaveBeenCalledWith(
-      '[api] maps.search: response did not match the @trek/shared schema',
-      expect.anything(),
-    )
-  })
 })

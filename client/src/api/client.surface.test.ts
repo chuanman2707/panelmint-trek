@@ -17,7 +17,7 @@ import {
   apiClient,
   tripsApi, daysApi, placesApi, assignmentsApi, packingApi, todoApi,
   tagsApi, categoriesApi,
-  mapsApi, airportsApi, budgetApi, filesApi, reservationsApi, weatherApi,
+  airportsApi, budgetApi, filesApi, reservationsApi, weatherApi,
   accommodationsApi, dayNotesApi,
 } from './client'
 
@@ -177,18 +177,15 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-005: placesApi maps CRUD, rating and list-import endpoints', async () => {
+  it('FE-APISURF-005: placesApi runs locally (Dexie-backed, zero HTTP)', async () => {
+    // The adapter's own suite pins method behavior; here we only assert that
+    // the facade resolves without touching the axios layer.
+    const seedTrip = () => db.trips.put(buildTrip({ id: 1 }))
+    await seedTrip()
     await assertCalls([
-      { n: 'list', r: () => placesApi.list(1), e: 'GET /api/trips/1/places' },
-      { n: 'create', r: () => placesApi.create(1, { name: 'Colosseum' }), e: 'POST /api/trips/1/places' },
-      { n: 'get', r: () => placesApi.get(1, 5), e: 'GET /api/trips/1/places/5' },
-      { n: 'update', r: () => placesApi.update(1, 5, { name: 'Forum' }), e: 'PUT /api/trips/1/places/5' },
-      { n: 'delete', r: () => placesApi.delete(1, 5), e: 'DELETE /api/trips/1/places/5' },
-      { n: 'searchImage', r: () => placesApi.searchImage(1, 5), e: 'GET /api/trips/1/places/5/image' },
-      { n: 'importGoogleList', r: () => placesApi.importGoogleList(1, 'https://maps.app/x'), e: 'POST /api/trips/1/places/import/google-list' },
-      { n: 'importNaverList', r: () => placesApi.importNaverList(1, 'https://naver/x'), e: 'POST /api/trips/1/places/import/naver-list' },
-      { n: 'bulkDelete', r: () => placesApi.bulkDelete(1, [5, 6]), e: 'POST /api/trips/1/places/bulk-delete' },
-      { n: 'bulkUpdate', r: () => placesApi.bulkUpdate(1, [5], { category_id: 2 }), e: 'POST /api/trips/1/places/bulk-update' },
+      { n: 'list', r: () => placesApi.list(1), e: 'local' },
+      { n: 'bulkDelete', r: () => placesApi.bulkDelete(1, []), e: 'local' },
+      { n: 'bulkUpdate', r: () => placesApi.bulkUpdate(1, [], { category_id: 2 }), e: 'local' },
     ])
   })
 
@@ -242,38 +239,23 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-009: tagsApi runs locally while categoriesApi maps its global endpoints', async () => {
+  it('FE-APISURF-009: tagsApi and categoriesApi run locally (zero HTTP)', async () => {
     // tagsApi is Dexie-backed now ('local' = resolves with zero HTTP requests);
     // update/delete need a self-owned row to act on, so seed it first.
+    // categoriesApi is a seeded read palette — mutations reject local 403, so
+    // only list is exercised here; the adapter's own suite pins the rest.
     const seedTag = () => db.tags.put(buildTag({ id: 2, user_id: 1 }))
     await assertCalls([
       { n: 'tags.list', r: () => tagsApi.list(), e: 'local' },
       { n: 'tags.create', r: () => tagsApi.create({ name: 'Food' }), e: 'local' },
       { n: 'tags.update', r: async () => { await seedTag(); return tagsApi.update(2, { name: 'Eat' }) }, e: 'local' },
       { n: 'tags.delete', r: async () => { await seedTag(); return tagsApi.delete(2) }, e: 'local' },
-      { n: 'categories.list', r: () => categoriesApi.list(), e: 'GET /api/categories' },
-      { n: 'categories.create', r: () => categoriesApi.create({ name: 'Museum' }), e: 'POST /api/categories' },
-      { n: 'categories.update', r: () => categoriesApi.update(2, { name: 'Art' }), e: 'PUT /api/categories/2' },
-      { n: 'categories.delete', r: () => categoriesApi.delete(2), e: 'DELETE /api/categories/2' },
+      { n: 'categories.list', r: () => categoriesApi.list(), e: 'local' },
     ])
   })
 
-  it('FE-APISURF-055: mapsApi.search asks only the core index — plugin providers are gone', async () => {
-    log = []
-    await mapsApi.search('Rome')
-    expect(log.map(r => `${r.method} ${r.url.split('?')[0]}`)).toEqual([
-      'POST /api/maps/search',
-    ])
-  })
-
-  it('FE-APISURF-016: mapsApi and airportsApi map the geo endpoints', async () => {
+  it('FE-APISURF-016: airportsApi reads the bundled dataset', async () => {
     await assertCalls([
-      { n: 'maps.autocomplete', r: () => mapsApi.autocomplete('Rom'), e: 'POST /api/maps/autocomplete' },
-      { n: 'maps.details', r: () => mapsApi.details('place/1'), e: 'GET /api/maps/details/place%2F1' },
-      { n: 'maps.placePhoto', r: () => mapsApi.placePhoto('place/1'), e: 'GET /api/maps/place-photo/place%2F1' },
-      { n: 'maps.reverse', r: () => mapsApi.reverse(41.9, 12.5), e: 'GET /api/maps/reverse' },
-      { n: 'maps.resolveUrl', r: () => mapsApi.resolveUrl('https://maps.app.goo.gl/x'), e: 'POST /api/maps/resolve-url' },
-      { n: 'maps.pois', r: () => mapsApi.pois('cafe', { south: 1, west: 2, north: 3, east: 4 }), e: 'GET /api/maps/pois' },
       // airportsApi reads the bundled dataset (src/data/airports.json) — BER is
       // a real row, so both calls resolve with no request at all.
       { n: 'airports.search', r: () => airportsApi.search('BER'), e: 'local' },
@@ -404,23 +386,6 @@ describe('client > request payloads', () => {
     expect(log).toHaveLength(0)
   })
 
-  it('FE-APISURF-026: placesApi bulk operations merge ids with the patch', async () => {
-    expect((await traceOne(() => placesApi.bulkDelete(1, [5, 6]))).body).toEqual({ ids: [5, 6] })
-    expect((await traceOne(() => placesApi.bulkUpdate(1, [5], { category_id: null }))).body)
-      .toEqual({ ids: [5], category_id: null })
-  })
-
-  it('FE-APISURF-027: placesApi.rate deletes on null and PUTs the value otherwise', async () => {
-    const cleared = await traceOne(() => placesApi.rate(1, 5, null))
-    expect(cleared.method).toBe('DELETE')
-    expect(cleared.url).toBe('/api/trips/1/places/5/rating')
-
-    const set = await traceOne(() => placesApi.rate(1, 5, 4))
-    expect(set.method).toBe('PUT')
-    expect(set.url).toBe('/api/trips/1/places/5/rating')
-    expect(set.body).toEqual({ rating: 4 })
-  })
-
   it('FE-APISURF-033: tripsApi.copy clones the trip locally with no request', async () => {
     // Local copy: no request body exists — assert the no-arg call clones trip 3.
     await seedTripAndDays()
@@ -457,17 +422,6 @@ describe('client > query parameters', () => {
   it('FE-APISURF-037: budgetApi.settlement adds the base currency only when given', async () => {
     expect((await traceOne(() => budgetApi.settlement(1))).url).toBe('/api/trips/1/budget/settlement')
     expect((await traceOne(() => budgetApi.settlement(1, 'EUR'))).url).toBe('/api/trips/1/budget/settlement?base=EUR')
-  })
-
-  it('FE-APISURF-041: mapsApi flattens the POI bbox into the query string', async () => {
-    const rec = await traceOne(() => mapsApi.pois('cafe', { south: 41.8, west: 12.4, north: 42.0, east: 12.6 }, 'de'))
-    const qs = new URLSearchParams(rec.url.split('?')[1])
-    expect(qs.get('category')).toBe('cafe')
-    expect(qs.get('south')).toBe('41.8')
-    expect(qs.get('west')).toBe('12.4')
-    expect(qs.get('north')).toBe('42')
-    expect(qs.get('east')).toBe('12.6')
-    expect(qs.get('lang')).toBe('de')
   })
 
   it('FE-APISURF-042: weatherApi forwards lat/lng plus the date or language to Open-Meteo', async () => {
@@ -566,49 +520,6 @@ describe('client > multipart uploads', () => {
     expect(config.onUploadProgress).toBe(onUploadProgress)
     expect(config.signal).toBe(controller.signal)
     expect(config.timeout).toBe(0)
-  })
-
-  it('FE-APISURF-048: placesApi.uploadImage posts the file under the image field', async () => {
-    const post = spyPost()
-    const file = new File(['bytes'], 'shot.jpg', { type: 'image/jpeg' })
-
-    await placesApi.uploadImage(1, 5, file)
-
-    expect(post.mock.calls[0][0]).toBe('/trips/1/places/5/image')
-    const fd = post.mock.calls[0][1] as FormData
-    expect((fd.get('image') as File).name).toBe('shot.jpg')
-  })
-
-  it('FE-APISURF-049: placesApi.importGpx only appends the flags it was given', async () => {
-    const post = spyPost()
-    const file = new File(['<gpx/>'], 'track.gpx')
-
-    await placesApi.importGpx(1, file)
-    expect(post.mock.calls[0][0]).toBe('/trips/1/places/import/gpx')
-    const bare = post.mock.calls[0][1] as FormData
-    expect(bare.get('importWaypoints')).toBeNull()
-    expect(bare.get('importRoutes')).toBeNull()
-    expect(bare.get('importTracks')).toBeNull()
-
-    await placesApi.importGpx(1, file, { waypoints: true, routes: false, tracks: true })
-    const flagged = post.mock.calls[1][1] as FormData
-    expect(flagged.get('importWaypoints')).toBe('true')
-    expect(flagged.get('importRoutes')).toBe('false')
-    expect(flagged.get('importTracks')).toBe('true')
-  })
-
-  it('FE-APISURF-050: placesApi.importMapFile appends the point/path flags', async () => {
-    const post = spyPost()
-    const file = new File(['{}'], 'map.kml')
-
-    await placesApi.importMapFile(1, file)
-    expect(post.mock.calls[0][0]).toBe('/trips/1/places/import/map')
-    expect((post.mock.calls[0][1] as FormData).get('importPoints')).toBeNull()
-
-    await placesApi.importMapFile(1, file, { points: true, paths: false })
-    const flagged = post.mock.calls[1][1] as FormData
-    expect(flagged.get('importPoints')).toBe('true')
-    expect(flagged.get('importPaths')).toBe('false')
   })
 
 })

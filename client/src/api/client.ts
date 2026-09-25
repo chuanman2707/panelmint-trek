@@ -1,21 +1,11 @@
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
-import type { Place } from '../types'
 import { randomId } from '../utils/randomId'
 import {
-  mapsSearchResultSchema,
-  mapsAutocompleteResultSchema,
-  mapsPlaceDetailsResultSchema,
-  mapsPlacePhotoResultSchema,
-  mapsReverseResultSchema,
-  mapsResolveUrlResultSchema,
-  mapsPlaceEnrichmentResultSchema,
   type AssignmentReorderRequest,
   type PackingReorderRequest,
   type PackingCreateBagRequest,
   type TodoReorderRequest,
-  type PlaceCreateRequest,
-  type PlaceUpdateRequest,
   type ReservationCreateRequest,
   type ReservationUpdateRequest,
   type AccommodationCreateRequest,
@@ -32,8 +22,6 @@ import {
   type AssignmentParticipantsRequest,
   type AssignmentTimeRequest,
   type AssignmentTransportRequest,
-  type PlaceBulkDeleteRequest,
-  type PlaceBulkUpdateRequest,
   type DayNoteCreateRequest,
   type DayNoteUpdateRequest,
   type PackingImportRequest,
@@ -47,9 +35,6 @@ import {
   type TodoCategoryAssigneesRequest,
   type FileUpdateRequest,
   type FileLinkRequest,
-  type CreateCategoryRequest,
-  type UpdateCategoryRequest,
-  type PlaceImportListRequest,
   RoadtripDayTrack,
   RoadtripVia,
   RoadtripViaBatchRequest,
@@ -75,23 +60,6 @@ export function parseInDev<S extends z.ZodTypeAny>(schema: S, data: unknown, lab
     }
   }
   return data as z.infer<S>
-}
-
-/**
- * Same dev-only drift check as parseInDev, but passes the payload straight
- * through with its original inferred type instead of the schema type. Use this
- * for endpoints whose existing consumers rely on the loose `r.data` type — it
- * adds the development contract-drift warning without retyping the public
- * surface (so it can never break a consumer that worked before).
- */
-function checkInDev<T>(schema: z.ZodTypeAny, data: T, label: string): T {
-  if (API_DEV) {
-    const result = schema.safeParse(data)
-    if (!result.success) {
-      console.warn(`[api] ${label}: response did not match the @trek/shared schema`, result.error.issues)
-    }
-  }
-  return data
 }
 const RATE_LIMIT_MESSAGES: Record<string, string> = {
   en:      'Too many attempts. Please try again later.',
@@ -212,58 +180,7 @@ export function postMultipart<T = any>(url: string, formData: FormData, opts?: U
 
 // Local adapters (api/local/*) — each domain's axios object was deleted when
 // its adapter landed (README.md barrel strategy, step 3).
-export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi } from './local'
-
-export const placesApi = {
-  list: (tripId: number | string, params?: Record<string, unknown>) => apiClient.get(`/trips/${tripId}/places`, { params }).then(r => r.data),
-  // Typed: an untyped `r.data` is what let `{ place }` be read as a bare place,
-  // so every hotel booking minted an unlinked duplicate (#2243).
-  create: (tripId: number | string, data: PlaceCreateRequest): Promise<{ place: Place }> =>
-    apiClient.post(`/trips/${tripId}/places`, data).then(r => r.data),
-  get: (tripId: number | string, id: number | string) => apiClient.get(`/trips/${tripId}/places/${id}`).then(r => r.data),
-  update: (tripId: number | string, id: number | string, data: PlaceUpdateRequest) => apiClient.put(`/trips/${tripId}/places/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, id: number | string) => apiClient.delete(`/trips/${tripId}/places/${id}`).then(r => r.data),
-  searchImage: (tripId: number | string, id: number | string) => apiClient.get(`/trips/${tripId}/places/${id}/image`).then(r => r.data),
-  uploadImage: (tripId: number | string, id: number | string, file: File) => {
-    const fd = new FormData()
-    fd.append('image', file)
-    return postMultipart<{ place: Place }>(`/trips/${tripId}/places/${id}/image`, fd)
-  },
-  rate: (tripId: number | string, id: number | string, rating: number | null): Promise<{ place: Place }> =>
-    rating === null
-      ? apiClient.delete(`/trips/${tripId}/places/${id}/rating`).then(r => r.data)
-      : apiClient.put(`/trips/${tripId}/places/${id}/rating`, { rating }).then(r => r.data),
-  importGpx: (tripId: number | string, file: File, opts?: { waypoints?: boolean; routes?: boolean; tracks?: boolean }) => {
-    const fd = new FormData()
-    fd.append('file', file)
-    if (opts?.waypoints !== undefined) fd.append('importWaypoints', String(opts.waypoints))
-    if (opts?.routes !== undefined) fd.append('importRoutes', String(opts.routes))
-    if (opts?.tracks !== undefined) fd.append('importTracks', String(opts.tracks))
-    return postMultipart(`/trips/${tripId}/places/import/gpx`, fd)
-  },
-  importMapFile: (tripId: number | string, file: File, opts?: { points?: boolean; paths?: boolean }) => {
-    const fd = new FormData()
-    fd.append('file', file)
-    if (opts?.points !== undefined) fd.append('importPoints', String(opts.points))
-    if (opts?.paths !== undefined) fd.append('importPaths', String(opts.paths))
-    return postMultipart(`/trips/${tripId}/places/import/map`, fd)
-  },
-  // A longer timeout than the shared 8 s, like the other routes here that wait
-  // on somebody else's service. A directions link whose stops are only named
-  // has to be geocoded one at a time behind a 1.1 s throttle, so a route with
-  // eight stops needs about ten seconds. Giving up at eight left the server
-  // finishing the import and writing the places while the browser reported a
-  // failure, and a retry then spent the whole geocoding budget again only to
-  // have the dedupe skip every stop.
-  importGoogleList: (tripId: number | string, url: string, enrich?: boolean) =>
-      apiClient.post(`/trips/${tripId}/places/import/google-list`, { url, enrich } satisfies PlaceImportListRequest, { timeout: 60000 }).then(r => r.data),
-  importNaverList: (tripId: number | string, url: string, enrich?: boolean) =>
-      apiClient.post(`/trips/${tripId}/places/import/naver-list`, { url, enrich } satisfies PlaceImportListRequest).then(r => r.data),
-  bulkDelete: (tripId: number | string, ids: number[]) =>
-      apiClient.post(`/trips/${tripId}/places/bulk-delete`, { ids } satisfies PlaceBulkDeleteRequest).then(r => r.data),
-  bulkUpdate: (tripId: number | string, ids: number[], data: Omit<PlaceBulkUpdateRequest, 'ids'>) =>
-      apiClient.post(`/trips/${tripId}/places/bulk-update`, { ids, ...data } satisfies PlaceBulkUpdateRequest).then(r => r.data),
-}
+export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi } from './local'
 
 export const assignmentsApi = {
   list: (tripId: number | string, dayId: number | string) => apiClient.get(`/trips/${tripId}/days/${dayId}/assignments`).then(r => r.data),
@@ -316,82 +233,11 @@ export const todoApi = {
   setCategoryAssignees: (tripId: number | string, categoryName: string, userIds: number[]) => apiClient.put(`/trips/${tripId}/todo/category-assignees/${encodeURIComponent(categoryName)}`, { user_ids: userIds } satisfies TodoCategoryAssigneesRequest).then(r => r.data),
 }
 
-export const categoriesApi = {
-  list: () => apiClient.get('/categories').then(r => r.data),
-  create: (data: CreateCategoryRequest) => apiClient.post('/categories', data).then(r => r.data),
-  update: (id: number, data: UpdateCategoryRequest) => apiClient.put(`/categories/${id}`, data).then(r => r.data),
-  delete: (id: number) => apiClient.delete(`/categories/${id}`).then(r => r.data),
-}
-
-export const mapsApi = {
-  /**
-   * `locationBias` is what tells the search which "Hase-dera" is meant, and it
-   * is the difference between finding the temple the user stands next to and
-   * one 400km away. The route has always accepted it; nothing passed it.
-   *
-   * It also decides whether the index answers at all: a common single word
-   * without coordinates is refused upstream as too expensive, and the search
-   * then falls back to Nominatim alone.
-   *
-   * `provider: 'google'` sends this one search to Google alone, the "search Google
-   * instead" link under a list the index answered with the wrong place. The server
-   * ignores it unless Google holds the keyed slot: without a Google key, or with
-   * Amap or OpenStreetMap picked as the provider, the index answers as usual.
-   */
-  search: (query: string, lang?: string, locationBias?: { lat: number; lng: number; radius?: number }, provider?: 'google') =>
-    apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query, locationBias, ...(provider ? { provider } : {}) }).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.search')),
-  autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal, sessionToken?: string) =>
-    apiClient.post('/maps/autocomplete', { input, lang, locationBias, sessionToken }, { signal }).then(r => checkInDev(mapsAutocompleteResultSchema, r.data, 'maps.autocomplete')),
-  details: (placeId: string, lang?: string, sessionToken?: string) =>
-    apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang, sessionToken } })
-      .then(r => checkInDev(mapsPlaceDetailsResultSchema, r.data, 'maps.details')),
-  // Pictures and a description for a place that is being looked at but not yet
-  // saved. Fans out to several providers server-side, so it takes a signal and
-  // the caller is expected to abort it when the selection changes, and a longer
-  // timeout than the global 8s — a cold Wikimedia connection alone can eat that.
-  placeEnrichment: (
-    body: { placeId?: string; lat: number; lng: number; name: string; lang?: string; details?: Record<string, unknown> },
-    signal?: AbortSignal,
-  ) => apiClient.post('/maps/enrichment', body, { signal, timeout: 25000 })
-      .then(r => checkInDev(mapsPlaceEnrichmentResultSchema, r.data, 'maps.placeEnrichment')),
-  // Author + licence for a picture already stored in the photo cache, keyed by
-  // the cache key embedded in its proxy URL. Local read, no provider call.
-  placePhotoCredit: (key: string) =>
-    apiClient.get(`/maps/enrichment/credit/${encodeURIComponent(key)}`).then(r => r.data as { credit: string | null }),
-  placePhoto: (placeId: string, lat?: number, lng?: number, name?: string) => apiClient.get(`/maps/place-photo/${encodeURIComponent(placeId)}`, { params: { lat, lng, name } }).then(r => checkInDev(mapsPlacePhotoResultSchema, r.data, 'maps.placePhoto')),
-  reverse: (lat: number, lng: number, lang?: string) => apiClient.get('/maps/reverse', { params: { lat, lng, lang } }).then(r => checkInDev(mapsReverseResultSchema, r.data, 'maps.reverse')),
-  resolveUrl: (url: string) => apiClient.post('/maps/resolve-url', { url }).then(r => checkInDev(mapsResolveUrlResultSchema, r.data, 'maps.resolveUrl')),
-  // OSM-only POI explore: places of a category within the current map viewport bbox.
-  // Overpass can be slow on a fresh (uncached) area, so this call gets a longer
-  // timeout than the global default instead of aborting at 8s and showing nothing.
-  /**
-   * Every place in a box, for the offline cache. One call per trip area, not
-   * per keystroke, so the timeout is generous where the search ones are short.
-   */
-  area: (
-    bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number },
-    limit?: number,
-    signal?: AbortSignal,
-  ) =>
-    apiClient
-      .get('/maps/area', { params: { ...bbox, limit }, signal, timeout: 30000 })
-      .then(
-        (r) =>
-          r.data as {
-            results: Record<string, unknown>[]
-            truncated: boolean
-            unavailable?: boolean
-          },
-      ),
-
-  pois: (category: string, bbox: { south: number; west: number; north: number; east: number }, lang?: string, signal?: AbortSignal) =>
-    apiClient.get('/maps/pois', { params: { category, ...bbox, lang }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
-}
-
 /**
  * Road-trip via points (#1797): the places a day's drive is routed through without
  * stopping. Separate from places on purpose — a via bends the route, a stop is somewhere
- * you go.
+ * you go. Unreachable in the local build (the static addon store never enables
+ * `roadtrip`); kept only until Task 20 removes the roadtrip UI.
  */
 export const roadtripApi = {
   /** Every via of the trip, so all days can be routed without a request per day. */

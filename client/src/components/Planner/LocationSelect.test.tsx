@@ -1,9 +1,8 @@
 // FE-PLANNER-LOCSEL-001 to FE-PLANNER-LOCSEL-019
 import { useState } from 'react';
-import { delay, http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
 import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render';
-import { server } from '../../../tests/helpers/msw/server';
+import { mapsApi } from '../../api/client';
 import LocationSelect, { type LocationPoint } from './LocationSelect';
 
 interface SearchHit {
@@ -23,9 +22,24 @@ async function settle(ms = 450) {
   await act(async () => { await new Promise((r) => setTimeout(r, ms)); });
 }
 
-function searchRoute(places: SearchHit[] | (() => Response | Promise<Response>)) {
-  return http.post('/api/maps/search', typeof places === 'function' ? places : () => HttpResponse.json({ places }));
+/**
+ * mapsApi is the local facade over the browser-side provider clients now —
+ * there is no /api/maps route to intercept, so the search is stubbed at the
+ * module boundary with the envelope the component reads (`{ places }`).
+ */
+function mockSearch(places: SearchHit[] | ((query: string) => Promise<{ places: SearchHit[] }>)) {
+  const spy = vi.spyOn(mapsApi, 'search');
+  if (typeof places === 'function') {
+    spy.mockImplementation(places as typeof mapsApi.search);
+  } else {
+    spy.mockResolvedValue({ places: places as unknown as Record<string, unknown>[], source: 'openstreetmap' });
+  }
+  return spy;
 }
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 // Controlled host — `value` drives the input text and mutes the search for the
 // already-picked name, exactly like ReservationModal wires it up.
@@ -58,20 +72,19 @@ describe('LocationSelect', () => {
 
   it('FE-PLANNER-LOCSEL-005: fewer than three characters never reach the API', async () => {
     const user = userEvent.setup();
-    let calls = 0;
-    server.use(searchRoute(() => { calls++; return HttpResponse.json({ places: [GARE] }); }));
+    const search = mockSearch([GARE]);
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'Ga');
 
     await settle();
-    expect(calls).toBe(0);
+    expect(search).not.toHaveBeenCalled();
     expect(screen.queryByText('Gare du Nord')).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-LOCSEL-006: three characters open the dropdown with name and address', async () => {
     const user = userEvent.setup();
-    server.use(searchRoute([GARE]));
+    mockSearch([GARE]);
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'Gare');
@@ -82,25 +95,20 @@ describe('LocationSelect', () => {
 
   it('FE-PLANNER-LOCSEL-007: the query and locale are forwarded to the maps API', async () => {
     const user = userEvent.setup();
-    let body: { query?: string } = {};
-    let lang: string | null = null;
-    server.use(http.post('/api/maps/search', async ({ request }) => {
-      lang = new URL(request.url).searchParams.get('lang');
-      body = await request.json() as { query?: string };
-      return HttpResponse.json({ places: [GARE] });
-    }));
+    const search = mockSearch([GARE]);
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), '  Gare du Nord  ');
     await screen.findByText('Gare du Nord');
 
-    expect(body.query).toBe('Gare du Nord');
-    expect(lang).toBe('en-US');
+    // mapsApi.search(query, locale, locationBias)
+    expect(search.mock.calls[0]?.[0]).toBe('Gare du Nord');
+    expect(search.mock.calls[0]?.[1]).toBe('en-US');
   });
 
   it('FE-PLANNER-LOCSEL-008: a hit whose address equals its name shows no duplicate subtitle', async () => {
     const user = userEvent.setup();
-    server.use(searchRoute([{ name: 'Rue de Rivoli', address: 'Rue de Rivoli', lat: 48.85, lng: 2.35, osm_id: 'n9' }]));
+    mockSearch([{ name: 'Rue de Rivoli', address: 'Rue de Rivoli', lat: 48.85, lng: 2.35, osm_id: 'n9' }]);
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'Rivoli');
@@ -111,7 +119,7 @@ describe('LocationSelect', () => {
   it('FE-PLANNER-LOCSEL-009: a nameless hit is labelled by its address', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(searchRoute([{ address: '12 Rue Oberkampf', lat: 48.86, lng: 2.37, google_place_id: 'g1' }]));
+    mockSearch([{ address: '12 Rue Oberkampf', lat: 48.86, lng: 2.37, google_place_id: 'g1' }]);
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'Oberkampf');
@@ -127,7 +135,10 @@ describe('LocationSelect', () => {
 
   it('FE-PLANNER-LOCSEL-010: shows the loading row while the request is in flight', async () => {
     const user = userEvent.setup();
-    server.use(searchRoute(async () => { await delay(200); return HttpResponse.json({ places: [GARE] }); }));
+    mockSearch(async () => {
+      await new Promise((r) => setTimeout(r, 200));
+      return { places: [GARE] };
+    });
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'Gare');
@@ -140,7 +151,7 @@ describe('LocationSelect', () => {
   it('FE-PLANNER-LOCSEL-011: picking a hit reports name, coordinates and address', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(searchRoute([GARE]));
+    mockSearch([GARE]);
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'Gare');
@@ -158,7 +169,7 @@ describe('LocationSelect', () => {
   it('FE-PLANNER-LOCSEL-012: string coordinates are coerced to numbers', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(searchRoute([{ name: 'Porto Cruise Terminal', address: null, lat: '41.1496', lng: '-8.6109', osm_id: 'n3' }]));
+    mockSearch([{ name: 'Porto Cruise Terminal', address: null, lat: '41.1496', lng: '-8.6109', osm_id: 'n3' }]);
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'Porto');
@@ -170,7 +181,7 @@ describe('LocationSelect', () => {
   it('FE-PLANNER-LOCSEL-013: a hit without usable coordinates is ignored', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(searchRoute([{ name: 'Broken Hit', address: 'nowhere', lat: 'abc', lng: '2.35', osm_id: 'n4' }]));
+    mockSearch([{ name: 'Broken Hit', address: 'nowhere', lat: 'abc', lng: '2.35', osm_id: 'n4' }]);
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'Broken');
@@ -195,7 +206,7 @@ describe('LocationSelect', () => {
   it('FE-PLANNER-LOCSEL-015: typing over a picked location drops the selection', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(searchRoute([]));
+    mockSearch([]);
 
     render(<Host initial={{ name: 'Gare du Nord', lat: 48.88, lng: 2.35 }} onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'X');
@@ -206,7 +217,7 @@ describe('LocationSelect', () => {
   it('FE-PLANNER-LOCSEL-016: ArrowDown/ArrowUp move the highlight and Enter picks it', async () => {
     const user = userEvent.setup();
     const onPick = vi.fn();
-    server.use(searchRoute([GARE, LYON]));
+    mockSearch([GARE, LYON]);
 
     render(<Host onPick={onPick} />);
     await user.type(screen.getByRole('textbox'), 'Gare');
@@ -219,7 +230,7 @@ describe('LocationSelect', () => {
 
   it('FE-PLANNER-LOCSEL-017: Escape closes the dropdown and keeps the typed text', async () => {
     const user = userEvent.setup();
-    server.use(searchRoute([GARE]));
+    mockSearch([GARE]);
 
     render(<Host />);
     const input = screen.getByRole('textbox');
@@ -234,7 +245,7 @@ describe('LocationSelect', () => {
 
   it('FE-PLANNER-LOCSEL-018: a mousedown outside the field closes the dropdown', async () => {
     const user = userEvent.setup();
-    server.use(searchRoute([GARE]));
+    mockSearch([GARE]);
 
     render(<Host />);
     await user.type(screen.getByRole('textbox'), 'Gare');
@@ -247,12 +258,10 @@ describe('LocationSelect', () => {
 
   it('FE-PLANNER-LOCSEL-019: a failing search drops the previous suggestions', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/maps/search', async ({ request }) => {
-      const { query } = await request.json() as { query: string };
-      return query === 'Gare'
-        ? HttpResponse.json({ places: [GARE] })
-        : HttpResponse.json({ error: 'Places API is disabled' }, { status: 502 });
-    }));
+    mockSearch(async (query) => {
+      if (query === 'Gare') return { places: [GARE] };
+      throw new Error('Places API is disabled');
+    });
 
     render(<Host />);
     const input = screen.getByRole('textbox');

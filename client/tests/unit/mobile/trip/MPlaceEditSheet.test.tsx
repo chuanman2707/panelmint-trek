@@ -1,12 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { HttpResponse, http } from 'msw'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MPlaceEditSheet from '../../../../src/mobile/screens/trip/sheets/MPlaceEditSheet'
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { Assignment, Category, Place } from '../../../../src/types'
+import { mapsApi } from '../../../../src/api/client'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { useAddonStore } from '../../../../src/store/addonStore'
 import { useTripStore } from '../../../../src/store/tripStore'
-import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
@@ -41,13 +40,20 @@ const submit = () => screen.getByRole('button', { name: /^(common\.add|common\.s
 describe('MPlaceEditSheet', () => {
   beforeEach(() => {
     resetAllStores()
-    server.use(
-      http.post('/api/maps/search', () => HttpResponse.json({
-        source: 'osm',
-        places: [{ name: 'Ueno Koen', address: 'Taito', lat: 35.7, lng: 139.7, google_place_id: 'ChIJ_ueno' }],
-      })),
-      http.post('/api/maps/autocomplete', () => HttpResponse.json({ source: 'osm', suggestions: [] })),
-    )
+    // mapsApi is the local facade over the browser-side provider clients — the
+    // embedded PlPlaceSearch calls it directly, so it is stubbed at the module
+    // boundary rather than at a no-longer-existent /api/maps route.
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      source: 'osm',
+      places: [{ name: 'Ueno Koen', address: 'Taito', lat: 35.7, lng: 139.7, google_place_id: 'ChIJ_ueno' }],
+    })
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({ source: 'osm', suggestions: [] })
+    vi.spyOn(mapsApi, 'details').mockResolvedValue({ place: null })
+    vi.spyOn(mapsApi, 'resolveUrl').mockRejectedValue(new Error('Could not extract coordinates from URL'))
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('FE-MOB-PLEDIT-001: stays unmounted while the planner has no editor open', () => {
@@ -361,16 +367,11 @@ describe('MPlaceEditSheet', () => {
   })
 
   /**
-   * Types into the search row and returns the bias the autocomplete request
+   * Types into the search row and returns the bias the autocomplete call
    * carried. The hint comes from useLocationBias, which reads the trip store,
    * not the planner prop, so both are seeded the way the running app has them.
    */
   async function capturedBias(places: Place[], day?: { id: number; placeIds: number[] }) {
-    const bodies: Record<string, unknown>[] = []
-    server.use(http.post('/api/maps/autocomplete', async ({ request }) => {
-      bodies.push(await request.json() as Record<string, unknown>)
-      return HttpResponse.json({ source: 'osm', suggestions: [] })
-    }))
     seedStore(useTripStore, {
       places,
       assignments: day ? { [String(day.id)]: day.placeIds.map(id => ({ place_id: id })) } : {},
@@ -378,8 +379,10 @@ describe('MPlaceEditSheet', () => {
     })
     setup({ places })
     fireEvent.change(screen.getByPlaceholderText('places.mapsSearchPlaceholder'), { target: { value: 'ueno' } })
-    await waitFor(() => expect(bodies).toHaveLength(1))
-    return bodies[0].locationBias
+    const autocomplete = vi.mocked(mapsApi.autocomplete)
+    // autocomplete(input, language, locationBias, signal, session)
+    await waitFor(() => expect(autocomplete).toHaveBeenCalled())
+    return autocomplete.mock.calls[0][2]
   }
 
   it('FE-MOB-PLEDIT-029: biases the maps search on the trip box while the trip fits one region', async () => {

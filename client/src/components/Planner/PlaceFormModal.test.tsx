@@ -1,8 +1,8 @@
 // FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036, FE-PLANNER-PLACEFORM-016 to FE-PLANNER-PLACEFORM-067, plus FE-PLANNER-PLACEFORM-068 to -080
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
+import { mapsApi } from '../../api/client';
+import { LocalApiError } from '../../api/local/helpers';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
@@ -40,6 +40,18 @@ beforeEach(() => {
   resetAllStores();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, hasMapsKey: false });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
+  // mapsApi is the local facade over the browser-side provider clients — there
+  // is no /api/maps route left to intercept, so every method is stubbed at the
+  // module boundary with an empty answer. A test that cares about a call
+  // re-spies on it with its own value.
+  vi.spyOn(mapsApi, 'search').mockResolvedValue({ places: [], source: 'openstreetmap' });
+  vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({ suggestions: [], source: 'openstreetmap' });
+  vi.spyOn(mapsApi, 'details').mockResolvedValue({ place: null });
+  vi.spyOn(mapsApi, 'resolveUrl').mockRejectedValue(new LocalApiError(400, 'Could not extract coordinates from URL'));
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('PlaceFormModal', () => {
@@ -165,13 +177,10 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-018: maps search populates results via button click', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({
-          places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
+      source: 'openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -188,11 +197,10 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-018c: without a Google key the list offers nothing', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }],
+      source: 'trek-places+openstreetmap',
+    });
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
     await user.type(searchInput, 'Tokyo Station');
@@ -206,11 +214,10 @@ describe('PlaceFormModal', () => {
     // under another provider the link would re-run the same search and stay.
     const user = userEvent.setup();
     seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, hasMapsKey: true, placesProvider: 'openstreetmap' });
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }], source: 'trek-places+openstreetmap' }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Weigh station', address: 'Ritzville', lat: '47.1', lng: '-118.4' }],
+      source: 'trek-places+openstreetmap',
+    });
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
     await user.type(searchInput, 'Tokyo Station');
@@ -223,13 +230,10 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-019: pressing Enter in search input triggers search', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({
-          places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
+      source: 'openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -241,13 +245,10 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-020: clicking a maps result fills the form', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({
-          places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Eiffel Tower', address: 'Paris', lat: '48.8584', lng: '2.2945' }],
+      source: 'openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -266,11 +267,10 @@ describe('PlaceFormModal', () => {
     window.__addToast = addToast;
 
     const user = userEvent.setup();
-    // The backend forwards the real upstream error (e.g. a Google Places API message);
+    // The adapter surfaces the real upstream error (e.g. a Google Places API message);
     // the modal must show it instead of a generic "search failed" so the cause is visible.
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({ error: 'Places API (New) has not been used in project 123 or it is disabled' }, { status: 403 })),
+    vi.spyOn(mapsApi, 'search').mockRejectedValue(
+      new LocalApiError(403, 'Places API (New) has not been used in project 123 or it is disabled'),
     );
 
     render(<PlaceFormModal {...defaultProps} />);
@@ -306,22 +306,16 @@ describe('PlaceFormModal', () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({
-          suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
-          source: 'nominatim',
-        }),
-      ),
-      // details rejects (e.g. proxy 504 from a hung Overpass mirror)
-      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({
-          places: [{ name: 'Eiffel Tower', address: 'Paris, France', lat: '48.8584', lng: '2.2945' }],
-          source: 'openstreetmap',
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({
+      suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+      source: 'nominatim',
+    });
+    // details rejects (e.g. a hung Overpass mirror timing out)
+    vi.spyOn(mapsApi, 'details').mockRejectedValue(new LocalApiError(500, 'boom'));
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Eiffel Tower', address: 'Paris, France', lat: '48.8584', lng: '2.2945' }],
+      source: 'openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     const suggestion = await openSuggestion(user);
@@ -340,27 +334,22 @@ describe('PlaceFormModal', () => {
     // typed, and whatever came back first was taken as the place the user had
     // already picked. The row carries coordinates, so the fallback uses those.
     const user = userEvent.setup();
-    let searched = 0;
-    server.use(
-      http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({
-          suggestions: [{
-            placeId: 'node:9712313',
-            mainText: 'Tokio Hauptbahnhof',
-            secondaryText: '東京駅丸の内駅舎',
-            source: 'openstreetmap',
-            lat: 35.6811816,
-            lng: 139.76598265,
-          }],
-          source: 'trek-places',
-        }),
-      ),
-      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
-      http.post('/api/maps/search', () => {
-        searched += 1;
-        return HttpResponse.json({ places: [{ name: 'Etwas ganz anderes', lat: '1', lng: '1' }], source: 'trek-places' });
-      }),
-    );
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({
+      suggestions: [{
+        placeId: 'node:9712313',
+        mainText: 'Tokio Hauptbahnhof',
+        secondaryText: '東京駅丸の内駅舎',
+        source: 'openstreetmap',
+        lat: 35.6811816,
+        lng: 139.76598265,
+      }],
+      source: 'trek-places',
+    });
+    vi.spyOn(mapsApi, 'details').mockResolvedValue({ place: null, disabled: true });
+    const search = vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Etwas ganz anderes', lat: '1', lng: '1' }],
+      source: 'trek-places',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Tokio');
@@ -368,26 +357,20 @@ describe('PlaceFormModal', () => {
 
     expect(await screen.findByDisplayValue('35.6811816')).toBeInTheDocument();
     expect(screen.getByDisplayValue('139.76598265')).toBeInTheDocument();
-    expect(searched).toBe(0);
+    expect(search).not.toHaveBeenCalled();
   });
 
   it('FE-PLANNER-PLACEFORM-021c: suggestion click falls back when details is disabled (place: null)', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({
-          suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
-          source: 'nominatim',
-        }),
-      ),
-      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({
-          places: [{ name: 'Eiffel Tower', address: 'Paris, France', lat: '48.8584', lng: '2.2945' }],
-          source: 'openstreetmap',
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({
+      suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+      source: 'nominatim',
+    });
+    vi.spyOn(mapsApi, 'details').mockResolvedValue({ place: null, disabled: true });
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Eiffel Tower', address: 'Paris, France', lat: '48.8584', lng: '2.2945' }],
+      source: 'openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     const suggestion = await openSuggestion(user);
@@ -400,16 +383,12 @@ describe('PlaceFormModal', () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({
-          suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
-          source: 'nominatim',
-        }),
-      ),
-      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: null, disabled: true })),
-      http.post('/api/maps/search', () => HttpResponse.json({ places: [], source: 'openstreetmap' })),
-    );
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({
+      suggestions: [{ placeId: 'node:123', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+      source: 'nominatim',
+    });
+    vi.spyOn(mapsApi, 'details').mockResolvedValue({ place: null, disabled: true });
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({ places: [], source: 'openstreetmap' });
 
     render(<PlaceFormModal {...defaultProps} />);
     const suggestion = await openSuggestion(user);
@@ -432,14 +411,10 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-022b: a suggestion says which index answered', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({
-          suggestions: [{ placeId: 'gers:abc', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
-          source: 'trek-places',
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({
+      suggestions: [{ placeId: 'gers:abc', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+      source: 'trek-places',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -453,17 +428,13 @@ describe('PlaceFormModal', () => {
     // for half the rows. Marking every suggestion TREK is how a list that did
     // contain OpenStreetMap places read as if it never had.
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/autocomplete', () =>
-        HttpResponse.json({
-          suggestions: [
-            { placeId: 'gers:abc', mainText: 'Tokyo Station Beer Stand', secondaryText: 'Chiyoda', source: 'trek-places' },
-            { placeId: 'node:9712313', mainText: 'Tokio Hauptbahnhof', secondaryText: '東京駅', source: 'openstreetmap' },
-          ],
-          source: 'trek-places',
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({
+      suggestions: [
+        { placeId: 'gers:abc', mainText: 'Tokyo Station Beer Stand', secondaryText: 'Chiyoda', source: 'trek-places' },
+        { placeId: 'node:9712313', mainText: 'Tokio Hauptbahnhof', secondaryText: '東京駅', source: 'openstreetmap' },
+      ],
+      source: 'trek-places',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Tokyo Station');
@@ -477,17 +448,13 @@ describe('PlaceFormModal', () => {
     // a label above the list could only name one of them. The index marks its
     // own rows, so the unmarked one is OpenStreetMap by elimination.
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({
-          places: [
-            { name: 'Eiffel Tower', address: 'Paris', lat: '48.85', lng: '2.29', source: 'trek-places' },
-            { name: 'Champ de Mars', address: 'Paris', lat: '48.85', lng: '2.29' },
-          ],
-          source: 'trek-places+openstreetmap',
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [
+        { name: 'Eiffel Tower', address: 'Paris', lat: '48.85', lng: '2.29', source: 'trek-places' },
+        { name: 'Champ de Mars', address: 'Paris', lat: '48.85', lng: '2.29' },
+      ],
+      source: 'trek-places+openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -504,16 +471,12 @@ describe('PlaceFormModal', () => {
     // switches providers.
     const user = userEvent.setup();
     const onSave = vi.fn();
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({
-          places: [
-            { name: '天安门', address: '北京市东城区', lat: '39.9087', lng: '116.3975', amap_poi_id: 'amap:B000A7BD6C', source: 'amap' },
-          ],
-          source: 'amap',
-        }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [
+        { name: '天安门', address: '北京市东城区', lat: '39.9087', lng: '116.3975', amap_poi_id: 'amap:B000A7BD6C', source: 'amap' },
+      ],
+      source: 'amap',
+    });
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Tiananmen');
@@ -836,13 +799,7 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-042: a tight cluster of trip places biases the autocomplete bounding box', async () => {
     const user = userEvent.setup();
-    const bodies: Record<string, unknown>[] = [];
-    server.use(
-      http.post('/api/maps/autocomplete', async ({ request }) => {
-        bodies.push((await request.json()) as Record<string, unknown>);
-        return HttpResponse.json({ suggestions: [] });
-      }),
-    );
+    const autocomplete = vi.mocked(mapsApi.autocomplete);
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
       places: [
@@ -856,8 +813,9 @@ describe('PlaceFormModal', () => {
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
 
-    await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0].locationBias).toEqual({
+    // mapsApi.autocomplete(query, language, locationBias, signal, session)
+    await waitFor(() => expect(autocomplete).toHaveBeenCalled());
+    expect(autocomplete.mock.calls[0][2]).toEqual({
       low: { lat: 48.85, lng: 2.34 },
       high: { lat: 48.87, lng: 2.37 },
     });
@@ -865,13 +823,7 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-043: places spread over more than 500 km send no location bias', async () => {
     const user = userEvent.setup();
-    const bodies: Record<string, unknown>[] = [];
-    server.use(
-      http.post('/api/maps/autocomplete', async ({ request }) => {
-        bodies.push((await request.json()) as Record<string, unknown>);
-        return HttpResponse.json({ suggestions: [] });
-      }),
-    );
+    const autocomplete = vi.mocked(mapsApi.autocomplete);
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
       places: [buildPlace({ lat: 48.85, lng: 2.34 }), buildPlace({ lat: 41.89, lng: 12.49 })],
@@ -880,19 +832,13 @@ describe('PlaceFormModal', () => {
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
 
-    await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0].locationBias).toBeUndefined();
+    await waitFor(() => expect(autocomplete).toHaveBeenCalled());
+    expect(autocomplete.mock.calls[0][2]).toBeUndefined();
   });
 
   it('FE-PLANNER-PLACEFORM-043b: trip places with unusable coordinates yield no bias at all', async () => {
     const user = userEvent.setup();
-    const bodies: Record<string, unknown>[] = [];
-    server.use(
-      http.post('/api/maps/autocomplete', async ({ request }) => {
-        bodies.push((await request.json()) as Record<string, unknown>);
-        return HttpResponse.json({ suggestions: [] });
-      }),
-    );
+    const autocomplete = vi.mocked(mapsApi.autocomplete);
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
       places: [buildPlace({ lat: 'x' as unknown as number, lng: 'y' as unknown as number })],
@@ -901,19 +847,13 @@ describe('PlaceFormModal', () => {
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
 
-    await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0].locationBias).toBeUndefined();
+    await waitFor(() => expect(autocomplete).toHaveBeenCalled());
+    expect(autocomplete.mock.calls[0][2]).toBeUndefined();
   });
 
   it('FE-PLANNER-PLACEFORM-045b: focusing with a Google Maps URL in the box fetches no suggestions', async () => {
     const user = userEvent.setup();
-    let calls = 0;
-    server.use(
-      http.post('/api/maps/autocomplete', () => {
-        calls += 1;
-        return HttpResponse.json({ suggestions: [] });
-      }),
-    );
+    const autocomplete = vi.mocked(mapsApi.autocomplete);
 
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -921,7 +861,7 @@ describe('PlaceFormModal', () => {
     fireEvent.focus(searchInput);
 
     await waitFor(() => expect(screen.queryByText('Paris, France')).not.toBeInTheDocument());
-    expect(calls).toBe(0);
+    expect(autocomplete).not.toHaveBeenCalled();
   });
 
   it('FE-PLANNER-PLACEFORM-044: a failing autocomplete clears the dropdown instead of surfacing an error', async () => {
@@ -929,7 +869,7 @@ describe('PlaceFormModal', () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     const user = userEvent.setup();
-    server.use(http.post('/api/maps/autocomplete', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    vi.spyOn(mapsApi, 'autocomplete').mockRejectedValue(new LocalApiError(500, 'boom'));
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -943,52 +883,42 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-045: re-focusing the search box refetches when the dropdown is empty', async () => {
     const user = userEvent.setup();
-    let calls = 0;
-    server.use(
-      http.post('/api/maps/autocomplete', () => {
-        calls += 1;
-        return HttpResponse.json({ suggestions: [] });
-      }),
-    );
+    const autocomplete = vi.mocked(mapsApi.autocomplete);
 
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
     await user.type(searchInput, 'Eiffel');
-    await waitFor(() => expect(calls).toBe(1));
+    await waitFor(() => expect(autocomplete).toHaveBeenCalledTimes(1));
 
     fireEvent.focus(searchInput);
-    await waitFor(() => expect(calls).toBe(2));
+    await waitFor(() => expect(autocomplete).toHaveBeenCalledTimes(2));
   });
 
   // ── Maps search / Google Maps URL resolve ──────────────────────────────────
 
   it('FE-PLANNER-PLACEFORM-046: clicking search with an empty box makes no request', async () => {
     const user = userEvent.setup();
-    let calls = 0;
-    server.use(
-      http.post('/api/maps/search', () => {
-        calls += 1;
-        return HttpResponse.json({ places: [] });
-      }),
-    );
+    const search = vi.mocked(mapsApi.search);
 
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
     const searchBtn = within(searchInput.closest('.flex') as HTMLElement).getByRole('button');
     await user.click(searchBtn);
 
-    expect(calls).toBe(0);
+    expect(search).not.toHaveBeenCalled();
   });
 
   it('FE-PLANNER-PLACEFORM-047: pasting a Google Maps URL resolves it straight into the form', async () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/resolve-url', () =>
-        HttpResponse.json({ name: 'Notre-Dame', address: 'Parvis Notre-Dame, Paris', lat: 48.8530, lng: 2.3499, google_ftid: 'ftid-1' }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'resolveUrl').mockResolvedValue({
+      name: 'Notre-Dame',
+      address: 'Parvis Notre-Dame, Paris',
+      lat: 48.8530,
+      lng: 2.3499,
+      google_ftid: 'ftid-1',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'https://maps.google.com/maps?q=notredame');
@@ -1006,12 +936,14 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-048: an unresolvable Google Maps URL falls through to the text search', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/resolve-url', () => HttpResponse.json({ name: 'Notre-Dame', lat: null, lng: null })),
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Notre-Dame de Paris', address: 'Paris', lat: '48.853', lng: '2.3499' }] }),
-      ),
-    );
+    // resolveUrl answers 400 on a link with no usable coordinates, so the
+    // `resolved.lat && resolved.lng` guard only ever sees the 0,0 edge now —
+    // that is what this resolution models.
+    vi.spyOn(mapsApi, 'resolveUrl').mockResolvedValue({ name: 'Notre-Dame', address: null, lat: 0, lng: 0 });
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Notre-Dame de Paris', address: 'Paris', lat: '48.853', lng: '2.3499' }],
+      source: 'openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'https://maps.google.com/maps?q=notredame');
@@ -1023,23 +955,20 @@ describe('PlaceFormModal', () => {
   // ── Autocomplete keyboard navigation ───────────────────────────────────────
 
   const twoSuggestions = () =>
-    http.post('/api/maps/autocomplete', () =>
-      HttpResponse.json({
-        suggestions: [
-          { placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' },
-          { placeId: 'node:2', mainText: 'Eiffel Museum', secondaryText: 'Berlin, Germany' },
-        ],
-      }),
-    );
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({
+      suggestions: [
+        { placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' },
+        { placeId: 'node:2', mainText: 'Eiffel Museum', secondaryText: 'Berlin, Germany' },
+      ],
+      source: 'openstreetmap',
+    });
 
   it('FE-PLANNER-PLACEFORM-049: ArrowDown/ArrowUp move the highlight and Enter picks the highlighted suggestion', async () => {
     const user = userEvent.setup();
-    server.use(
-      twoSuggestions(),
-      http.get('/api/maps/details/:placeId', () =>
-        HttpResponse.json({ place: { name: 'Eiffel Museum', address: 'Berlin', lat: 52.52, lng: 13.405 } }),
-      ),
-    );
+    twoSuggestions();
+    vi.spyOn(mapsApi, 'details').mockResolvedValue({
+      place: { name: 'Eiffel Museum', address: 'Berlin', lat: 52.52, lng: 13.405 },
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -1061,14 +990,8 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-050: Escape closes the dropdown without searching', async () => {
     const user = userEvent.setup();
-    let searches = 0;
-    server.use(
-      twoSuggestions(),
-      http.post('/api/maps/search', () => {
-        searches += 1;
-        return HttpResponse.json({ places: [] });
-      }),
-    );
+    twoSuggestions();
+    const search = vi.mocked(mapsApi.search);
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -1076,17 +999,16 @@ describe('PlaceFormModal', () => {
 
     await user.keyboard('{Escape}');
     expect(screen.queryByText('Paris, France')).not.toBeInTheDocument();
-    expect(searches).toBe(0);
+    expect(search).not.toHaveBeenCalled();
   });
 
   it('FE-PLANNER-PLACEFORM-051: Enter with nothing highlighted closes the dropdown and runs the full search', async () => {
     const user = userEvent.setup();
-    server.use(
-      twoSuggestions(),
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Eiffel Tower', address: 'Champ de Mars', lat: '48.8584', lng: '2.2945' }] }),
-      ),
-    );
+    twoSuggestions();
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Eiffel Tower', address: 'Champ de Mars', lat: '48.8584', lng: '2.2945' }],
+      source: 'openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -1101,11 +1023,9 @@ describe('PlaceFormModal', () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     const user = userEvent.setup();
-    server.use(
-      twoSuggestions(),
-      http.get('/api/maps/details/:placeId', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-      http.post('/api/maps/search', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-    );
+    twoSuggestions();
+    vi.spyOn(mapsApi, 'details').mockRejectedValue(new LocalApiError(500, 'nope'));
+    vi.spyOn(mapsApi, 'search').mockRejectedValue(new LocalApiError(500, 'nope'));
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -1130,11 +1050,10 @@ describe('PlaceFormModal', () => {
       trip: buildTrip({ id: 1 }),
       places: [buildPlace({ name: 'Already Here', google_place_id: 'gp-1', lat: null, lng: null })],
     });
-    server.use(
-      http.post('/api/maps/search', () =>
-        HttpResponse.json({ places: [{ name: 'Same Spot', address: 'Somewhere', lat: '10', lng: '10', google_place_id: 'gp-1' }] }),
-      ),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({
+      places: [{ name: 'Same Spot', address: 'Somewhere', lat: '10', lng: '10', google_place_id: 'gp-1' }],
+      source: 'openstreetmap',
+    });
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'same spot');
@@ -1328,7 +1247,7 @@ describe('PlaceFormModal remaining branches', () => {
 
   it('FE-W5PFM-003: an autocomplete response without a suggestions array shows no dropdown', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/maps/autocomplete', () => HttpResponse.json({})));
+    vi.spyOn(mapsApi, 'autocomplete').mockResolvedValue({} as never);
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'Eiffel');
@@ -1340,17 +1259,22 @@ describe('PlaceFormModal remaining branches', () => {
   it('FE-W5PFM-004: an aborted autocomplete is swallowed without logging', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const user = userEvent.setup();
-    const gate: { release?: () => void } = {};
     let seen = 0;
-    server.use(
-      http.post('/api/maps/autocomplete', async () => {
-        seen += 1;
-        if (seen === 1) await new Promise<void>(res => { gate.release = res; });
-        return HttpResponse.json({
-          suggestions: [{ placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+    vi.spyOn(mapsApi, 'autocomplete').mockImplementation(async (_query, _lang, _bias, signal) => {
+      seen += 1;
+      // The first call stays open until the next keystroke aborts it — the real
+      // adapter rejects with AbortError at that point, which the modal swallows.
+      if (seen === 1) {
+        await new Promise<never>((_, rej) => {
+          if (signal?.aborted) rej(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+          signal?.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' })));
         });
-      }),
-    );
+      }
+      return {
+        suggestions: [{ placeId: 'node:1', mainText: 'Eiffel Tower', secondaryText: 'Paris, France' }],
+        source: 'openstreetmap',
+      };
+    });
 
     render(<PlaceFormModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search places...');
@@ -1359,7 +1283,6 @@ describe('PlaceFormModal remaining branches', () => {
     // The second query aborts the still-open first one
     await user.type(searchInput, 'el tower');
     await waitFor(() => expect(seen).toBe(2));
-    gate.release?.();
 
     expect(await screen.findByText('Paris, France')).toBeInTheDocument();
     expect(screen.getAllByText('Eiffel Tower')).toHaveLength(1);
@@ -1369,9 +1292,7 @@ describe('PlaceFormModal remaining branches', () => {
 
   it('FE-W5PFM-005: a resolved URL without a name or address keeps the form values', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/resolve-url', () => HttpResponse.json({ lat: 48.853, lng: 2.3499 })),
-    );
+    vi.spyOn(mapsApi, 'resolveUrl').mockResolvedValue({ lat: 48.853, lng: 2.3499, name: null, address: null });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Kept Name');
@@ -1384,7 +1305,7 @@ describe('PlaceFormModal remaining branches', () => {
 
   it('FE-W5PFM-006: a search response without a places array renders no results', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/maps/search', () => HttpResponse.json({})));
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({} as never);
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText('Search places...'), 'nowhere');
@@ -1396,9 +1317,7 @@ describe('PlaceFormModal remaining branches', () => {
 
   it('FE-W5PFM-007: picking a bare search result leaves the typed fields alone', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/maps/search', () => HttpResponse.json({ places: [{ name: 'Bare Result' }] })),
-    );
+    vi.spyOn(mapsApi, 'search').mockResolvedValue({ places: [{ name: 'Bare Result' }], source: 'openstreetmap' });
 
     render(<PlaceFormModal {...defaultProps} />);
     await user.type(screen.getByPlaceholderText(/Street, City, Country/i), 'Rue de Rivoli');
@@ -1525,7 +1444,7 @@ describe('PlaceFormModal remaining branches', () => {
    */
   describe('picking a second place', () => {
     const searchFor = async (user: ReturnType<typeof userEvent.setup>, place: Record<string, unknown>) => {
-      server.use(http.post('/api/maps/search', () => HttpResponse.json({ places: [place] })));
+      vi.mocked(mapsApi.search).mockResolvedValue({ places: [place], source: 'openstreetmap' });
       const searchInput = screen.getByPlaceholderText('Search places...');
       await user.clear(searchInput);
       await user.type(searchInput, String(place.name));

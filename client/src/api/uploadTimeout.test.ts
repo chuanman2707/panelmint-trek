@@ -16,7 +16,6 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import {
   apiClient,
   tripsApi,
-  placesApi,
   filesApi,
 } from './client'
 import { db } from '../db/panelmintDb'
@@ -40,12 +39,9 @@ describe('every multipart upload disables the global request timeout', () => {
   }
 
   const fd = () => new FormData()
-  const file = () => new File(['x'], 'f.bin')
 
   // [id, description, invoke, expected url]
   const cases: [string, string, () => Promise<unknown>, string][] = [
-    ['FE-API-UPLOAD-003', 'placesApi.importGpx (10 MB)', () => placesApi.importGpx(7, file()), '/trips/7/places/import/gpx'],
-    ['FE-API-UPLOAD-004', 'placesApi.importMapFile (10 MB)', () => placesApi.importMapFile(7, file()), '/trips/7/places/import/map'],
     ['FE-API-UPLOAD-009', 'filesApi.upload (500 MB)', () => filesApi.upload(7, fd()), '/trips/7/files'],
   ]
 

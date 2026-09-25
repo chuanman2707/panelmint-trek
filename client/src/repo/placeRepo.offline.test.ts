@@ -2,20 +2,35 @@
 // Offline write paths (straight-to-Dexie optimistic rows) and the bulk online
 // paths, which tests/unit/repo/placeRepo.test.ts does not touch. There is no
 // replay queue any more — offline writes ARE the stored state.
+// Online paths call the Dexie-backed `placesApi` adapter, so those tests seed
+// `panelmintDb` (trip + place rows) rather than installing HTTP handlers.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import 'fake-indexeddb/auto'
-import { http, HttpResponse } from 'msw'
-import { server } from '../../tests/helpers/msw/server'
 import { placeRepo } from './placeRepo'
+import { placesApi } from '../api/client'
+import { db } from '../db/panelmintDb'
+import type { LocalPlace } from '../db/panelmintDb'
 import { offlineDb, clearAll } from '../db/offlineDb'
-import { buildPlace } from '../../tests/helpers/factories'
+import { buildTrip, buildPlace } from '../../tests/helpers/factories'
 
 function setOnline(v: boolean): void {
   Object.defineProperty(navigator, 'onLine', { value: v, writable: true, configurable: true })
 }
 
+async function resetMainDb() {
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
+}
+
+async function seedPlace(overrides: Partial<LocalPlace>) {
+  await db.places.put(buildPlace(overrides) as LocalPlace)
+}
+
 beforeEach(async () => {
   await clearAll()
+  await resetMainDb()
   setOnline(false)
 })
 
@@ -99,17 +114,16 @@ describe('placeRepo.deleteMany', () => {
 
   it('FE-REPO-PLACE-009: online — calls the bulk endpoint and drops the rows locally', async () => {
     setOnline(true)
+    await db.trips.put(buildTrip({ id: 3 }))
+    await seedPlace({ id: 94, trip_id: 3 })
+    await seedPlace({ id: 95, trip_id: 3 })
     await offlineDb.places.bulkPut([buildPlace({ id: 94, trip_id: 3 }), buildPlace({ id: 95, trip_id: 3 })])
 
-    let body: unknown
-    server.use(http.post('/api/trips/3/places/bulk-delete', async ({ request }) => {
-      body = await request.json()
-      return HttpResponse.json({ deleted: [94, 95], count: 2 })
-    }))
+    const bulkSpy = vi.spyOn(placesApi, 'bulkDelete')
 
     const result = await placeRepo.deleteMany(3, [94, 95])
-    expect(result).toEqual({ deleted: [94, 95], count: 2 })
-    expect(body).toEqual({ ids: [94, 95] })
+    expect(result).toMatchObject({ deleted: [94, 95], count: 2 })
+    expect(bulkSpy).toHaveBeenCalledWith(3, [94, 95])
     expect(await offlineDb.places.where('trip_id').equals(3).count()).toBe(0)
   })
 })
@@ -136,26 +150,27 @@ describe('placeRepo.updateMany', () => {
 
   it('FE-REPO-PLACE-012: online — calls the bulk endpoint and merges into the cached rows', async () => {
     setOnline(true)
+    await db.trips.put(buildTrip({ id: 3 }))
+    await seedPlace({ id: 98, trip_id: 3 })
+    await seedPlace({ id: 99, trip_id: 3 })
     await offlineDb.places.bulkPut([buildPlace({ id: 98, trip_id: 3 }), buildPlace({ id: 99, trip_id: 3 })])
 
-    let body: unknown
-    server.use(http.post('/api/trips/3/places/bulk-update', async ({ request }) => {
-      body = await request.json()
-      return HttpResponse.json({ updated: [98, 99], count: 2 })
-    }))
+    const bulkSpy = vi.spyOn(placesApi, 'bulkUpdate')
 
     const result = await placeRepo.updateMany(3, [98, 99], { category_id: 7 })
     expect(result.count).toBe(2)
-    expect(body).toEqual({ ids: [98, 99], category_id: 7 })
+    expect(bulkSpy).toHaveBeenCalledWith(3, [98, 99], { category_id: 7 })
     expect((await offlineDb.places.get(98))!.category_id).toBe(7)
     expect((await offlineDb.places.get(99))!.category_id).toBe(7)
   })
 
   it('FE-REPO-PLACE-013: online — ids missing from the cache are skipped on the merge', async () => {
     setOnline(true)
+    await db.trips.put(buildTrip({ id: 3 }))
+    await seedPlace({ id: 100, trip_id: 3 })
     await offlineDb.places.put(buildPlace({ id: 100, trip_id: 3 }))
-    server.use(http.post('/api/trips/3/places/bulk-update', () => HttpResponse.json({ updated: [100, 101], count: 2 })))
-
+    // 101 exists nowhere — the adapter skips it (updated === [100]) and the
+    // cache merge has no row to write.
     await placeRepo.updateMany(3, [100, 101], { category_id: 8 })
     expect((await offlineDb.places.get(100))!.category_id).toBe(8)
     expect(await offlineDb.places.get(101)).toBeUndefined()

@@ -19,7 +19,7 @@ import {
 } from '../../tests/helpers/factories';
 import { offlineDb } from '../db/offlineDb';
 import { db } from '../db/panelmintDb';
-import { tripsApi, daysApi, tagsApi } from '../api/client';
+import { tripsApi, daysApi, tagsApi, placesApi, categoriesApi } from '../api/client';
 import { LocalApiError } from '../api/local/helpers';
 import type { DayRow } from '../api/local/dexieStore';
 import { setForcedOffline } from '../sync/networkMode';
@@ -152,16 +152,16 @@ describe('tripStore', () => {
     it('FE-TSTORE-003: fills every slice and builds the assignments/dayNotes maps', async () => {
       await seedLocalTrip(buildTrip({ id: 1, title: 'Paris' }));
       server.use(
-        http.get('/api/trips/1/places', () => HttpResponse.json({ places: [buildPlace({ id: 500, trip_id: 1 })] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [buildPackingItem({ id: 60, trip_id: 1 })] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 70, trip_id: 1 })] })),
         http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [buildBudgetItem({ id: 80, trip_id: 1 })] })),
         http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [buildReservation({ id: 90, trip_id: 1 })] })),
         http.get('/api/trips/1/files', () => HttpResponse.json({ files: [buildTripFile({ id: 95, trip_id: 1 })] })),
-        http.get('/api/categories', () => HttpResponse.json({ categories: [buildCategory({ id: 12 })] })),
       );
-      // tagsApi is local — the "endpoint answer" is a self-owned db.tags row.
+      // places/tags/categories are local — the "endpoint answers" are rows in
+      // `panelmintDb` (place 500 arrived via seedLocalTrip's assignment join).
       await db.tags.put(buildTag({ id: 11, name: 'Loaded tag' }));
+      await db.categories.put(buildCategory({ id: 12 }));
 
       await useTripStore.getState().loadTrip(1);
 
@@ -199,9 +199,6 @@ describe('tripStore', () => {
         placesDuringLoad = useTripStore.getState().places.map((p) => p.id);
         return { trip: buildTrip({ id: 1 }) };
       });
-      server.use(
-        http.get('/api/trips/1/places', () => HttpResponse.json({ places: [] })),
-      );
 
       await useTripStore.getState().loadTrip(1);
 
@@ -235,9 +232,9 @@ describe('tripStore', () => {
       // tagsApi reads db.tags now — its "endpoint failure" is a rejection at
       // the adapter boundary, which is what triggers the offlineDb fallback.
       vi.spyOn(tagsApi, 'list').mockRejectedValue(new LocalApiError(502, 'offline'));
-      server.use(
-        http.get('/api/categories', () => HttpResponse.json({ error: 'offline' }, { status: 502 })),
-      );
+      // categoriesApi is local too — its "endpoint failure" is a rejection at
+      // the adapter boundary, which is what triggers the offlineDb fallback.
+      vi.spyOn(categoriesApi, 'list').mockRejectedValue(new LocalApiError(502, 'offline'));
 
       await useTripStore.getState().loadTrip(1);
 
@@ -308,10 +305,15 @@ describe('tripStore', () => {
   describe('hydrateActiveTrip', () => {
     it('FE-TSTORE-008: silently re-pulls every collaborative slice and nudges the planner', async () => {
       seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [], days: [] });
-      await seedLocalTrip();
+      // Days without embedded assignments so the re-pulled places list holds
+      // exactly the row seeded below.
+      await seedLocalTrip(buildTrip({ id: 1 }), [
+        buildDay({ id: 1, trip_id: 1, day_number: 1 }),
+        buildDay({ id: 2, trip_id: 1, day_number: 2 }),
+      ]);
+      await db.places.put(buildPlace({ id: 501, trip_id: 1 }));
 
       server.use(
-        http.get('/api/trips/1/places', () => HttpResponse.json({ places: [buildPlace({ id: 501, trip_id: 1 })] })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [buildPackingItem({ id: 61, trip_id: 1 })] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 71, trip_id: 1 })] })),
         http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [buildBudgetItem({ id: 81, trip_id: 1 })] })),
@@ -343,8 +345,9 @@ describe('tripStore', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       await db.trips.put(buildTrip({ id: 1 }));
 
+      // placeRepo.list is local now — its failure is a rejected adapter call.
+      vi.spyOn(placesApi, 'list').mockRejectedValue(new LocalApiError(500, 'nope'));
       server.use(
-        http.get('/api/trips/1/places', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
         http.get('/api/trips/1/packing', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 72, trip_id: 1 })] })),
       );

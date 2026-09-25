@@ -52,4 +52,24 @@ export const externalHandlers = [
       daily: { time: [] },
       hourly: { time: [] },
     })),
+
+  /**
+   * The places ext clients (src/api/ext/*) — the local mapsApi facade calls
+   * them straight from the browser. Every default answers "provider has no
+   * data": Photon/Nominatim get empty result sets so the search→fallback
+   * ladder resolves to `{ places: [] }` instead of egressing; the Overpass
+   * mirrors get an empty `elements` page; the wiki endpoints get a 404, which
+   * `ext/wikimedia` already reads as "no enrichment for this place". A test
+   * about the providers overrides with server.use().
+   */
+  http.get('https://photon.komoot.io/api/', () => HttpResponse.json({ features: [] })),
+  http.get('https://nominatim.openstreetmap.org/*', () => HttpResponse.json([])),
+  http.post('https://overpass-api.de/api/interpreter', () => HttpResponse.json({ elements: [] })),
+  http.post('https://overpass.kumi.systems/api/interpreter', () => HttpResponse.json({ elements: [] })),
+  http.post('https://overpass.private.coffee/api/interpreter', () => HttpResponse.json({ elements: [] })),
+  http.post('https://maps.mail.ru/osm/tools/overpass/api/interpreter', () => HttpResponse.json({ elements: [] })),
+  http.get('https://en.wikipedia.org/*', () => new HttpResponse(null, { status: 404 })),
+  http.get('https://en.wikivoyage.org/*', () => new HttpResponse(null, { status: 404 })),
+  http.get('https://www.wikidata.org/*', () => new HttpResponse(null, { status: 404 })),
+  http.get('https://commons.wikimedia.org/*', () => HttpResponse.json({ query: { pages: {} } })),
 ];

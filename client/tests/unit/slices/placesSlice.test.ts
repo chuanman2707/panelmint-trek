@@ -1,17 +1,42 @@
+/**
+ * placesSlice tests — migrated off MSW. The slice's actions run through
+ * `placeRepo`, which (online) calls the Dexie-backed `placesApi` adapter, so
+ * each test seeds `panelmintDb` (trip row + place rows + the self local user)
+ * instead of installing HTTP handlers.
+ */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores, seedStore } from '../../helpers/store';
-import { buildPlace, buildAssignment } from '../../helpers/factories';
-import { server } from '../../helpers/msw/server';
+import { buildTrip, buildPlace, buildAssignment } from '../../helpers/factories';
+import { db } from '../../../src/db/panelmintDb';
+import type { LocalPlace } from '../../../src/db/panelmintDb';
 
-beforeEach(() => {
+async function resetDb() {
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+}
+
+async function seedTrip(id = 1) {
+  await db.trips.put(buildTrip({ id }));
+}
+
+async function seedPlace(overrides: Partial<LocalPlace> = {}) {
+  const place = buildPlace(overrides) as LocalPlace;
+  await db.places.put(place);
+  return place;
+}
+
+beforeEach(async () => {
   resetAllStores();
+  await resetDb();
 });
 
 describe('placesSlice', () => {
   describe('addPlace', () => {
     it('FE-PLACES-001: addPlace calls API and prepends place to places array', async () => {
+      await seedTrip(1);
       const existing = buildPlace({ trip_id: 1 });
       seedStore(useTripStore, { places: [existing] });
 
@@ -26,13 +51,8 @@ describe('placesSlice', () => {
     it('FE-PLACES-002: addPlace on failure throws and places remain unchanged', async () => {
       const existing = buildPlace({ trip_id: 1 });
       seedStore(useTripStore, { places: [existing] });
-
-      server.use(
-        http.post('/api/trips/:id/places', () =>
-          HttpResponse.json({ message: 'Server error' }, { status: 500 })
-        ),
-      );
-
+      // Trip 1 is not seeded → the local adapter rejects with a 404, mirroring
+      // the old server's failure response.
       await expect(useTripStore.getState().addPlace(1, { name: 'Fail' })).rejects.toThrow();
       expect(useTripStore.getState().places).toEqual([existing]);
     });
@@ -40,15 +60,9 @@ describe('placesSlice', () => {
 
   describe('updatePlace', () => {
     it('FE-PLACES-003: updatePlace calls API and updates place in array', async () => {
-      const place = buildPlace({ id: 10, trip_id: 1, name: 'Old Name' });
+      await seedTrip(1);
+      const place = await seedPlace({ id: 10, trip_id: 1, name: 'Old Name' });
       seedStore(useTripStore, { places: [place] });
-
-      server.use(
-        http.put('/api/trips/:id/places/:placeId', async ({ params, request }) => {
-          const body = await request.json() as Record<string, unknown>;
-          return HttpResponse.json({ place: { ...place, ...body, id: Number(params.placeId) } });
-        }),
-      );
 
       const result = await useTripStore.getState().updatePlace(1, 10, { name: 'New Name' });
 
@@ -58,19 +72,13 @@ describe('placesSlice', () => {
     });
 
     it('FE-PLACES-004: updatePlace cascades to assignments map — assignment place field updated', async () => {
-      const place = buildPlace({ id: 10, trip_id: 1, name: 'Old Place' });
+      await seedTrip(1);
+      const place = await seedPlace({ id: 10, trip_id: 1, name: 'Old Place' });
       const assignment = buildAssignment({ id: 100, day_id: 1, place });
       seedStore(useTripStore, {
         places: [place],
         assignments: { '1': [assignment] },
       });
-
-      server.use(
-        http.put('/api/trips/1/places/10', async ({ request }) => {
-          const body = await request.json() as Record<string, unknown>;
-          return HttpResponse.json({ place: { ...place, ...body } });
-        }),
-      );
 
       await useTripStore.getState().updatePlace(1, 10, { name: 'Updated Place' });
 
@@ -81,15 +89,12 @@ describe('placesSlice', () => {
 
   describe('updatePlacesMany', () => {
     it('FE-PLACES-008: applies the patch to every listed place and cascades to assignments', async () => {
-      const a = buildPlace({ id: 10, trip_id: 1, category_id: 1 });
-      const b = buildPlace({ id: 20, trip_id: 1, category_id: 1 });
-      const c = buildPlace({ id: 30, trip_id: 1, category_id: 9 });
+      await seedTrip(1);
+      const a = await seedPlace({ id: 10, trip_id: 1, category_id: 1 });
+      const b = await seedPlace({ id: 20, trip_id: 1, category_id: 1 });
+      const c = await seedPlace({ id: 30, trip_id: 1, category_id: 9 });
       const assignment = buildAssignment({ id: 100, day_id: 1, place: a });
       seedStore(useTripStore, { places: [a, b, c], assignments: { '1': [assignment] } });
-
-      server.use(
-        http.post('/api/trips/1/places/bulk-update', () => HttpResponse.json({ updated: [10, 20], count: 2 })),
-      );
 
       await useTripStore.getState().updatePlacesMany(1, [10, 20], { category_id: 5 });
 
@@ -110,13 +115,10 @@ describe('placesSlice', () => {
 
   describe('deletePlace', () => {
     it('FE-PLACES-005: deletePlace removes place from places array', async () => {
-      const place1 = buildPlace({ id: 10, trip_id: 1 });
-      const place2 = buildPlace({ id: 20, trip_id: 1 });
+      await seedTrip(1);
+      const place1 = await seedPlace({ id: 10, trip_id: 1 });
+      const place2 = await seedPlace({ id: 20, trip_id: 1 });
       seedStore(useTripStore, { places: [place1, place2], assignments: {} });
-
-      server.use(
-        http.delete('/api/trips/1/places/10', () => HttpResponse.json({ success: true })),
-      );
 
       await useTripStore.getState().deletePlace(1, 10);
 
@@ -126,8 +128,9 @@ describe('placesSlice', () => {
     });
 
     it('FE-PLACES-006: deletePlace cascades — assignments referencing the place are removed', async () => {
-      const place = buildPlace({ id: 10, trip_id: 1 });
-      const otherPlace = buildPlace({ id: 20, trip_id: 1 });
+      await seedTrip(1);
+      const place = await seedPlace({ id: 10, trip_id: 1 });
+      const otherPlace = await seedPlace({ id: 20, trip_id: 1 });
       const assignmentWithPlace = buildAssignment({ id: 100, day_id: 1, place });
       const assignmentOther = buildAssignment({ id: 200, day_id: 1, place: otherPlace });
 
@@ -135,10 +138,6 @@ describe('placesSlice', () => {
         places: [place, otherPlace],
         assignments: { '1': [assignmentWithPlace, assignmentOther] },
       });
-
-      server.use(
-        http.delete('/api/trips/1/places/10', () => HttpResponse.json({ success: true })),
-      );
 
       await useTripStore.getState().deletePlace(1, 10);
 
@@ -150,13 +149,11 @@ describe('placesSlice', () => {
 
   describe('refreshPlaces', () => {
     it('FE-PLACES-007: refreshPlaces re-fetches and replaces places array', async () => {
+      await seedTrip(1);
       const stale = buildPlace({ id: 99, trip_id: 1, name: 'Stale' });
       seedStore(useTripStore, { places: [stale] });
 
-      const fresh = buildPlace({ trip_id: 1, name: 'Fresh' });
-      server.use(
-        http.get('/api/trips/1/places', () => HttpResponse.json({ places: [fresh] })),
-      );
+      await seedPlace({ id: 5, trip_id: 1, name: 'Fresh' });
 
       await useTripStore.getState().refreshPlaces(1);
 

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
+import 'fake-indexeddb/auto';
+import { db } from '../../../src/db/panelmintDb';
+import { buildPlace, buildTrip } from '../../helpers/factories';
 
 const {
   apiClient,
@@ -15,6 +18,13 @@ const {
   accommodationsApi,
   dayNotesApi,
 } = await import('../../../src/api/client');
+
+/** Clean IndexedDB for the local-adapter smoke tests. */
+async function resetDb() {
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+}
 
 describe('API client interceptors', () => {
   beforeEach(() => {
@@ -38,7 +48,9 @@ describe('API client interceptors', () => {
       })
     );
 
-    await placesApi.create(1, { name: 'Paris' });
+    // Probe the axios instance directly — the interceptor lives on apiClient;
+    // placesApi is a local adapter now and would never reach the wire.
+    await apiClient.post('/trips/1/places', { name: 'Paris' });
     expect(receivedKey).toBeTruthy();
   });
 
@@ -78,7 +90,7 @@ describe('API client interceptors', () => {
         HttpResponse.json({ error: 'slow down' }, { status: 429 }))
     );
 
-    await expect(mapsApi.autocomplete('x')).rejects.toThrow();
+    await expect(apiClient.post('/maps/autocomplete', { input: 'x' })).rejects.toThrow();
   });
 
   it('FE-API-005: successful API call returns response data', async () => {
@@ -88,12 +100,13 @@ describe('API client interceptors', () => {
     expect(res.data).toMatchObject({ settings: { theme: 'dark' } });
   });
 
-  it('FE-API-017: placesApi.create posts to /api/trips/1/places and returns data directly', async () => {
-    const place = { id: 1, name: 'Paris', trip_id: 1 };
-    server.use(http.post('/api/trips/1/places', () => HttpResponse.json(place)));
+  it('FE-API-017: placesApi.create writes the place locally and returns { place }', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
 
     const result = await placesApi.create(1, { name: 'Paris' });
-    expect(result).toMatchObject({ name: 'Paris' });
+    expect(result.place).toMatchObject({ name: 'Paris', trip_id: 1 });
+    expect(await db.places.get(result.place.id)).toMatchObject({ name: 'Paris' });
   });
 
   it('FE-API-018: packingApi.bulkImport posts correct payload', async () => {
@@ -130,19 +143,19 @@ describe('API namespace smoke tests', () => {
     await expect(assignmentsApi.list(1, 1)).resolves.toEqual([]);
   });
 
-  it('categoriesApi.list fetches categories', async () => {
-    server.use(http.get('/api/categories', () => HttpResponse.json([])));
-    await expect(categoriesApi.list()).resolves.toEqual([]);
+  it('categoriesApi.list returns the seeded palette envelope', async () => {
+    await resetDb();
+    await expect(categoriesApi.list()).resolves.toEqual({ categories: [] });
   });
 
-  it('mapsApi.search posts query', async () => {
-    server.use(http.post('/api/maps/search', () => HttpResponse.json({ results: [] })));
-    await expect(mapsApi.search('Paris')).resolves.toMatchObject({ results: [] });
-  });
-
-  it('mapsApi.reverse fetches reverse geocode', async () => {
-    server.use(http.get('/api/maps/reverse', () => HttpResponse.json({ display_name: 'Rome' })));
-    await expect(mapsApi.reverse(41.9, 12.5)).resolves.toMatchObject({ display_name: 'Rome' });
+  it('mapsApi keeps its no-network stubs honest', async () => {
+    // search/reverse/autocomplete/details/enrichment delegate to the ext
+    // clients — covered by src/api/local/maps.test.ts and the ext suites. The
+    // two deliberate stubs resolve without any network at all.
+    await expect(mapsApi.placePhoto('place/1')).resolves.toMatchObject({ photoUrl: null });
+    await expect(
+      mapsApi.area({ minLat: 0, minLng: 0, maxLat: 1, maxLng: 1 }),
+    ).resolves.toMatchObject({ results: [], unavailable: true });
   });
 
   it('budgetApi.list fetches budget items', async () => {
@@ -170,24 +183,40 @@ describe('API namespace smoke tests', () => {
     await expect(dayNotesApi.list(1, 1)).resolves.toEqual([]);
   });
 
-  it('placesApi.list fetches places', async () => {
-    server.use(http.get('/api/trips/1/places', () => HttpResponse.json([])));
-    await expect(placesApi.list(1)).resolves.toEqual([]);
+  it('placesApi.list returns the trip places from Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.places.put(buildPlace({ id: 5, trip_id: 1 }));
+
+    await expect(placesApi.list(1)).resolves.toEqual({
+      places: [expect.objectContaining({ id: 5 })],
+    });
   });
 
-  it('placesApi.get fetches a place', async () => {
-    server.use(http.get('/api/trips/1/places/5', () => HttpResponse.json({ id: 5 })));
-    await expect(placesApi.get(1, 5)).resolves.toMatchObject({ id: 5 });
+  it('placesApi.get returns a single place', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.places.put(buildPlace({ id: 5, trip_id: 1 }));
+
+    await expect(placesApi.get(1, 5)).resolves.toMatchObject({ place: { id: 5 } });
   });
 
-  it('placesApi.update updates a place', async () => {
-    server.use(http.put('/api/trips/1/places/5', () => HttpResponse.json({ id: 5 })));
-    await expect(placesApi.update(1, 5, { name: 'Rome' })).resolves.toMatchObject({ id: 5 });
+  it('placesApi.update writes the change to Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.places.put(buildPlace({ id: 5, trip_id: 1, name: 'Rome' }));
+
+    await expect(placesApi.update(1, 5, { name: 'Venice' })).resolves.toMatchObject({ place: { id: 5, name: 'Venice' } });
+    expect((await db.places.get(5))?.name).toBe('Venice');
   });
 
-  it('placesApi.delete deletes a place', async () => {
-    server.use(http.delete('/api/trips/1/places/5', () => HttpResponse.json({ ok: true })));
-    await expect(placesApi.delete(1, 5)).resolves.toMatchObject({ ok: true });
+  it('placesApi.delete removes the row', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.places.put(buildPlace({ id: 5, trip_id: 1 }));
+
+    await placesApi.delete(1, 5);
+    expect(await db.places.get(5)).toBeUndefined();
   });
 
   // ── packingApi additional methods ────────────────────────────────────────────
@@ -225,16 +254,15 @@ describe('API namespace smoke tests', () => {
   });
 
   // ── categoriesApi additional methods ────────────────────────────────────────
-  // (tagsApi is a local adapter — covered by tests/unit/local/tags.test.ts.)
+  // (categoriesApi is a local adapter — a frozen seeded palette; mutations
+  // reject with a local 403. tagsApi is covered by tests/unit/local/tags.test.ts.)
 
-  it('categoriesApi.create creates a category', async () => {
-    server.use(http.post('/api/categories', () => HttpResponse.json({ id: 1, name: 'Food' })));
-    await expect(categoriesApi.create({ name: 'Food' })).resolves.toMatchObject({ id: 1 });
+  it('categoriesApi.create rejects — the palette is frozen in the local build', async () => {
+    await expect(categoriesApi.create({ name: 'Food' })).rejects.toThrow('fixed palette');
   });
 
-  it('categoriesApi.delete deletes a category', async () => {
-    server.use(http.delete('/api/categories/1', () => HttpResponse.json({ ok: true })));
-    await expect(categoriesApi.delete(1)).resolves.toMatchObject({ ok: true });
+  it('categoriesApi.delete rejects — the palette is frozen in the local build', async () => {
+    await expect(categoriesApi.delete(1)).rejects.toThrow('fixed palette');
   });
 
   it('budgetApi.create creates a budget item', async () => {
@@ -283,71 +311,8 @@ describe('API namespace smoke tests', () => {
     await expect(dayNotesApi.delete(1, 1, 1)).resolves.toMatchObject({ ok: true });
   });
 
-  // ── mapsApi additional methods ────────────────────────────────────────────────
-
-  it('FE-MAPS-001: mapsApi.autocomplete sends input, lang, and locationBias', async () => {
-    let capturedBody: any = null;
-
-    server.use(
-      http.post('/api/maps/autocomplete', async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({
-          suggestions: [{ placeId: 'ChIJ1234', mainText: 'Paris', secondaryText: 'France' }],
-          source: 'google',
-        });
-      })
-    );
-
-    const result = await mapsApi.autocomplete('Par', 'fr', { low: { lat: 48.5, lng: 2.0 }, high: { lat: 49.0, lng: 2.8 } });
-
-    expect(capturedBody).toEqual({
-      input: 'Par',
-      lang: 'fr',
-      locationBias: { low: { lat: 48.5, lng: 2.0 }, high: { lat: 49.0, lng: 2.8 } },
-    });
-    expect(result.suggestions).toHaveLength(1);
-    expect(result.suggestions[0].mainText).toBe('Paris');
-    expect(result.source).toBe('google');
-  });
-
-  it('FE-MAPS-002: mapsApi.autocomplete works without optional params', async () => {
-    server.use(
-      http.post('/api/maps/autocomplete', async ({ request }) => {
-        const body: any = await request.json();
-        expect(body.lang).toBeUndefined();
-        expect(body.locationBias).toBeUndefined();
-        return HttpResponse.json({ suggestions: [], source: 'nominatim' });
-      })
-    );
-
-    const result = await mapsApi.autocomplete('test');
-    expect(result.suggestions).toEqual([]);
-  });
-
-  it('FE-MAPS-003: mapsApi.autocomplete rejects on server error', async () => {
-    server.use(
-      http.post('/api/maps/autocomplete', () => {
-        return HttpResponse.json({ error: 'Rate limited' }, { status: 429 });
-      })
-    );
-
-    await expect(mapsApi.autocomplete('test')).rejects.toThrow();
-  });
-
-  it('FE-MAPS-004: mapsApi.autocomplete rejects when AbortSignal is aborted', async () => {
-    const controller = new AbortController();
-
-    server.use(
-      http.post('/api/maps/autocomplete', async () => {
-        // Never resolves — request will be aborted
-        await new Promise(() => {});
-        return HttpResponse.json({ suggestions: [] });
-      })
-    );
-
-    const promise = mapsApi.autocomplete('Paris', undefined, undefined, controller.signal);
-    controller.abort();
-
-    await expect(promise).rejects.toThrow();
-  });
+  // ── mapsApi additional methods ──────────────────────────────────────────────
+  // The facade delegates to api/ext/* (Photon, Nominatim, Overpass, Wikimedia);
+  // request shapes and provider fallbacks are pinned in src/api/local/maps.test.ts
+  // and the ext suites, not repeated here.
 });
