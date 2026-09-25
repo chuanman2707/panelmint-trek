@@ -2,6 +2,7 @@ import { assignmentSchema } from '@trek/shared'
 import { saveAssignmentEndDay } from '../api/assignmentEndDay'
 import { assignmentsApi } from '../api/client'
 import { cacheAssignment } from '../db/cacheAssignment'
+import { applyLocalEffect } from '../store/localEffects'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import type { Assignment } from '../types'
 
@@ -31,7 +32,12 @@ export const assignmentRepo = {
    */
   async setTimes(tripId: number | string, assignment: Assignment, times: AssignmentTimes): Promise<Assignment> {
     if (!isEffectivelyOffline()) {
-      const saved = assignmentSchema.parse((await assignmentsApi.updateTime(tripId, assignment.id, times)).assignment)
+      const res = await assignmentsApi.updateTime(tripId, assignment.id, times)
+      // The local adapter hands back the day's re-sorted order the server
+      // used to broadcast — the socket is gone, so replay it through the
+      // store effect (null means the save left every stop where it was).
+      applyLocalEffect('assignment:reordered', res.reordered)
+      const saved = assignmentSchema.parse(res.assignment)
       await cacheAssignment(saved)
       return saved
     }

@@ -6,7 +6,6 @@ import { vacayHandlers } from './vacay';
 import { tripsHandlers } from './trips';
 import { placesHandlers } from './places';
 import { pluginSearchHandlers } from './pluginSearch';
-import { assignmentsHandlers } from './assignments';
 import { packingHandlers } from './packing';
 import { todoHandlers } from './todo';
 import { budgetHandlers } from './budget';
@@ -27,7 +26,6 @@ export const defaultHandlers = [
   ...tripsHandlers,
   ...placesHandlers,
   ...pluginSearchHandlers,
-  ...assignmentsHandlers,
   ...packingHandlers,
   ...todoHandlers,
   ...budgetHandlers,

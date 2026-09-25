@@ -2,7 +2,6 @@ import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
 import { randomId } from '../utils/randomId'
 import {
-  type AssignmentReorderRequest,
   type PackingReorderRequest,
   type PackingCreateBagRequest,
   type TodoReorderRequest,
@@ -17,11 +16,6 @@ import {
   type PackingSetSharingRequest,
   type TodoCreateItemRequest,
   type TodoUpdateItemRequest,
-  type AssignmentCreateRequest,
-  type AssignmentNotesRequest,
-  type AssignmentParticipantsRequest,
-  type AssignmentTimeRequest,
-  type AssignmentTransportRequest,
   type DayNoteCreateRequest,
   type DayNoteUpdateRequest,
   type PackingImportRequest,
@@ -180,25 +174,7 @@ export function postMultipart<T = any>(url: string, formData: FormData, opts?: U
 
 // Local adapters (api/local/*) — each domain's axios object was deleted when
 // its adapter landed (README.md barrel strategy, step 3).
-export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi } from './local'
-
-export const assignmentsApi = {
-  list: (tripId: number | string, dayId: number | string) => apiClient.get(`/trips/${tripId}/days/${dayId}/assignments`).then(r => r.data),
-  create: (tripId: number | string, dayId: number | string, data: AssignmentCreateRequest) => apiClient.post(`/trips/${tripId}/days/${dayId}/assignments`, data).then(r => r.data),
-  delete: (tripId: number | string, dayId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/days/${dayId}/assignments/${id}`).then(r => r.data),
-  reorder: (tripId: number | string, dayId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/days/${dayId}/assignments/reorder`, { orderedIds } satisfies AssignmentReorderRequest).then(r => r.data),
-  move: (tripId: number | string, assignmentId: number, newDayId: number | string, orderIndex: number | null) => apiClient.put(`/trips/${tripId}/assignments/${assignmentId}/move`, { new_day_id: newDayId, order_index: orderIndex }).then(r => r.data),
-  update: (tripId: number | string, dayId: number | string, id: number, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/days/${dayId}/assignments/${id}`, data).then(r => r.data),
-  getParticipants: (tripId: number | string, id: number) => apiClient.get(`/trips/${tripId}/assignments/${id}/participants`).then(r => r.data),
-  setParticipants: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/assignments/${id}/participants`, { user_ids: userIds } satisfies AssignmentParticipantsRequest).then(r => r.data),
-  updateTime: (tripId: number | string, id: number, times: AssignmentTimeRequest) => apiClient.put(`/trips/${tripId}/assignments/${id}/time`, times).then(r => r.data),
-  // Day-specific note on an assignment (#2163) — null clears it.
-  updateNotes: (tripId: number | string, id: number, data: AssignmentNotesRequest) => apiClient.put(`/trips/${tripId}/assignments/${id}/notes`, data).then(r => r.data),
-  // Per-segment travel mode (#1281): mode of the leg leaving this stop (null = inherit day default).
-  // direction defaults to 'outgoing' server-side, so only send it for the incoming (boundary-leg) case
-  // and keep the outgoing payload byte-for-byte identical to the pre-#1281 shape.
-  updateTransport: (tripId: number | string, id: number, mode: string | null, direction: 'outgoing' | 'incoming' = 'outgoing') => apiClient.put(`/trips/${tripId}/assignments/${id}/transport`, (direction === 'incoming' ? { transport_mode: mode, direction } : { transport_mode: mode }) satisfies Partial<AssignmentTransportRequest>).then(r => r.data),
-}
+export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi, assignmentsApi } from './local'
 
 export const packingApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing`).then(r => r.data),

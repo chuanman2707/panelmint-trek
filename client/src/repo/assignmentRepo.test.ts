@@ -54,7 +54,9 @@ describe('assignment time persistence', () => {
 
   it('saves through the time route online and caches what came back', async () => {
     vi.mocked(isEffectivelyOffline).mockReturnValue(false)
-    vi.mocked(assignmentsApi.updateTime).mockResolvedValue({ assignment: { ...assignment, assignment_end_time: null } })
+    vi.mocked(assignmentsApi.updateTime).mockResolvedValue({
+      assignment: { ...assignment, assignment_end_time: null }, reordered: null, vias: null,
+    })
     const saved = await assignmentRepo.setTimes(9, { ...assignment, assignment_end_time: '14:00' }, times)
     expect(assignmentsApi.updateTime).toHaveBeenCalledWith(9, 7, times)
     expect(saved.assignment_end_time).toBeNull()

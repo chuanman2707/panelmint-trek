@@ -1,13 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useLeaveMode, type LeaveSubject } from './useLeaveMode'
 import { useAuthStore } from '../../store/authStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
-import { buildAssignment, buildPlace, buildTrip } from '../../../tests/helpers/factories'
+import { buildAssignment, buildDay, buildPlace, buildTrip } from '../../../tests/helpers/factories'
 import { db } from '../../db/panelmintDb'
-import { server } from '../../../tests/helpers/msw/server'
+import type { DayRow, StoredAssignment } from '../../api/local/dexieStore'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 
 // FE-ROADTRIP-LEAVE-001..014: the part of the stay dialog that is about a time set to
@@ -156,15 +155,21 @@ describe('useLeaveMode', () => {
     })
     seedStore(useTripStore, { trip: { id: 4, user_id: 1 }, places: [pool], assignments: { '11': [stored] } })
     useTripStore.setState({ refreshDays } as never)
-    // The visit's time write is still HTTP (assignmentsApi); the place write is
-    // local — updatePlace goes through placeRepo → placesApi on `panelmintDb`,
-    // so the trip and the place row have to exist there.
+    // Both writes are local now: the visit's time write goes through
+    // assignmentsApi (api/local) and the place write through
+    // placeRepo → placesApi — so trip 4, place 202 and day 11 carrying the
+    // embedded stop 102 all have to exist in `panelmintDb`.
     await db.trips.put(buildTrip({ id: 4 }))
     await db.places.put(pool as never)
-    server.use(
-      http.put('/api/trips/4/assignments/102/time', () =>
-        HttpResponse.json({ assignment: { ...stored, assignment_end_time: null, place: { ...pool, place_time: '09:00' } } })),
-    )
+    const day = { vias: [], ...buildDay({ id: 11, trip_id: 4, day_number: 1 }) } as DayRow
+    day.assignments = [{
+      id: 102, day_id: 11, place_id: 202, order_index: 0, notes: null,
+      reservation_status: 'none', reservation_notes: null, reservation_datetime: null,
+      assignment_time: '09:00', assignment_end_time: '14:00', end_day: 0,
+      accommodation_id: null, leg_transport_mode: null, incoming_leg_transport_mode: null,
+      created_at: '2025-01-01T00:00:00.000Z',
+    } as StoredAssignment] as never
+    await db.days.put(day)
     const { result } = renderHook(() => useLeaveMode(subject))
     await act(async () => { await result.current.remove!() })
     const after = useTripStore.getState().assignments['11']![0]!

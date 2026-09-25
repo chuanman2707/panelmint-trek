@@ -9,7 +9,6 @@ const {
   apiClient,
   placesApi,
   packingApi,
-  assignmentsApi,
   categoriesApi,
   mapsApi,
   budgetApi,
@@ -132,17 +131,12 @@ describe('API client interceptors', () => {
 });
 
 // ── API namespace smoke tests ────────────────────────────────────────────────
-// (tripsApi/daysApi/tagsApi/weatherApi are local adapters — api/local/* — so
-// there is no /api/trips, /api/trips/:id/days, /api/tags or /api/weather
-// traffic left to smoke-test here; their coverage lives in
-// tests/unit/local/{trips,days,tags,weather}.test.ts.)
+// (tripsApi/daysApi/tagsApi/weatherApi/placesApi/categoriesApi/mapsApi and now
+// assignmentsApi are local adapters — api/local/* — so there is no matching
+// /api traffic left to smoke-test here; their coverage lives in
+// tests/unit/local/*.test.ts.)
 
 describe('API namespace smoke tests', () => {
-  it('assignmentsApi.list fetches day assignments', async () => {
-    server.use(http.get('/api/trips/1/days/1/assignments', () => HttpResponse.json([])));
-    await expect(assignmentsApi.list(1, 1)).resolves.toEqual([]);
-  });
-
   it('categoriesApi.list returns the seeded palette envelope', async () => {
     await resetDb();
     await expect(categoriesApi.list()).resolves.toEqual({ categories: [] });
@@ -234,23 +228,6 @@ describe('API namespace smoke tests', () => {
   it('packingApi.delete deletes a packing item', async () => {
     server.use(http.delete('/api/trips/1/packing/1', () => HttpResponse.json({ ok: true })));
     await expect(packingApi.delete(1, 1)).resolves.toMatchObject({ ok: true });
-  });
-
-  // ── assignmentsApi additional methods ────────────────────────────────────────
-
-  it('assignmentsApi.create creates an assignment', async () => {
-    server.use(http.post('/api/trips/1/days/1/assignments', () => HttpResponse.json({ id: 1 })));
-    await expect(assignmentsApi.create(1, 1, { place_id: 5 })).resolves.toMatchObject({ id: 1 });
-  });
-
-  it('assignmentsApi.delete deletes an assignment', async () => {
-    server.use(http.delete('/api/trips/1/days/1/assignments/1', () => HttpResponse.json({ ok: true })));
-    await expect(assignmentsApi.delete(1, 1, 1)).resolves.toMatchObject({ ok: true });
-  });
-
-  it('assignmentsApi.reorder reorders assignments', async () => {
-    server.use(http.put('/api/trips/1/days/1/assignments/reorder', () => HttpResponse.json({ ok: true })));
-    await expect(assignmentsApi.reorder(1, 1, [3, 1, 2])).resolves.toMatchObject({ ok: true });
   });
 
   // ── categoriesApi additional methods ────────────────────────────────────────

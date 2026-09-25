@@ -11,6 +11,7 @@ import { useToast } from '../../components/shared/Toast'
 import { Map, Ticket, PackageCheck, Wallet, Train, Route } from 'lucide-react'
 import { useTranslation, translateApiError } from '../../i18n'
 import { accommodationsApi, tripsApi, assignmentsApi, mapsApi, placesApi } from '../../api/client'
+import { applyLocalEffect } from '../../store/localEffects'
 import { getDayOrder } from '../../utils/dayOrder'
 import { TRANSPORT_TYPES } from '../../utils/dayMerge'
 import { isOvernightCategory } from '../../components/Roadtrip/stopKinds'
@@ -1872,7 +1873,10 @@ export function useTripPlanner() {
       await tripActions.updatePlace(tripId, editingPlace.id, placeData)
       // If editing from assignment context, save time per-assignment
       if (editingAssignmentId) {
-        await assignmentsApi.updateTime(tripId, editingAssignmentId, { place_time: place_time || null, end_time: end_time || null })
+        const timeRes = await assignmentsApi.updateTime(tripId, editingAssignmentId, { place_time: place_time || null, end_time: end_time || null })
+        // The local adapter answers the day re-sort the server used to
+        // broadcast — replay it through the store before refreshDays re-reads.
+        applyLocalEffect('assignment:reordered', timeRes.reordered)
         // The form only includes assignment_notes when the user changed it, so
         // an untouched note never produces a PUT (#2163). '' clears like null.
         if (assignment_notes !== undefined) {

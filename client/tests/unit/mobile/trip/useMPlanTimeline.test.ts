@@ -91,7 +91,7 @@ describe('useMPlanTimeline', () => {
     resetAllStores()
     routeCalc.segments = []
     vi.spyOn(weatherApi, 'get').mockResolvedValue(FORECAST)
-    vi.spyOn(assignmentsApi, 'updateTransport').mockResolvedValue({})
+    vi.spyOn(assignmentsApi, 'updateTransport').mockResolvedValue({ assignment: A_MUSEUM })
     vi.spyOn(reservationsApi, 'updatePositions').mockResolvedValue({})
     vi.spyOn(window, 'open').mockImplementation(() => null)
   })

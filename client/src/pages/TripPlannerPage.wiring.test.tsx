@@ -646,7 +646,7 @@ describe('TripPlannerPage — day detail and inspector', () => {
   })
 
   it('FE-PAGE-TPW-026: the desktop inspector edits, deletes and rates through the hook', async () => {
-    vi.spyOn(assignmentsApi, 'setParticipants').mockResolvedValue({ participants: [{ user_id: 5 }] })
+    vi.spyOn(assignmentsApi, 'setParticipants').mockResolvedValue({ participants: [{ user_id: 5, username: 'u5' }] })
     useTripStore.setState({ assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place })] } } as never)
     renderPage({ selectedPlace: place, selectedAssignmentId: 10 })
 
@@ -663,7 +663,7 @@ describe('TripPlannerPage — day detail and inspector', () => {
 
     await act(async () => { await props('inspector').onSetParticipants(10, 7, [5]) })
     expect(assignmentsApi.setParticipants).toHaveBeenCalledWith(42, 10, [5])
-    expect(useTripStore.getState().assignments['7'][0].participants).toEqual([{ user_id: 5 }])
+    expect(useTripStore.getState().assignments['7'][0].participants).toEqual([{ user_id: 5, username: 'u5' }])
 
     await act(async () => { await props('inspector').onUpdatePlace(1, { name: 'X' }) })
     await act(async () => { await props('inspector').onRate(1, 4) })
@@ -725,12 +725,12 @@ describe('TripPlannerPage — day detail and inspector', () => {
   })
 
   it('FE-PAGE-TPW-029b: the mobile sheet writes participants and toasts its own failures', async () => {
-    vi.spyOn(assignmentsApi, 'setParticipants').mockResolvedValue({ participants: [{ user_id: 5 }] })
+    vi.spyOn(assignmentsApi, 'setParticipants').mockResolvedValue({ participants: [{ user_id: 5, username: 'u5' }] })
     useTripStore.setState({ assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place })] } } as never)
     renderPage({ selectedPlace: place, isMobile: true })
 
     await act(async () => { await props('inspector').onSetParticipants(10, 7, [5]) })
-    expect(useTripStore.getState().assignments['7'][0].participants).toEqual([{ user_id: 5 }])
+    expect(useTripStore.getState().assignments['7'][0].participants).toEqual([{ user_id: 5, username: 'u5' }])
 
     vi.mocked(assignmentsApi.setParticipants).mockRejectedValue(new Error('no rights'))
     const tripActions = {

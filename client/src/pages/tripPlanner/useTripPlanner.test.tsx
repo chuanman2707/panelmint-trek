@@ -168,8 +168,10 @@ beforeEach(() => {
 
   vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [], current_user_id: 1 })
   vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
-  vi.spyOn(assignmentsApi, 'updateTime').mockResolvedValue({})
-  vi.spyOn(assignmentsApi, 'updateNotes').mockResolvedValue({})
+  vi.spyOn(assignmentsApi, 'updateTime').mockResolvedValue({
+    assignment: buildAssignment(), reordered: null, vias: null,
+  })
+  vi.spyOn(assignmentsApi, 'updateNotes').mockResolvedValue({ assignment: buildAssignment() })
   vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: '', address: '' } as never)
   vi.spyOn(mapsApi, 'search').mockResolvedValue({ places: [] } as never)
   vi.mocked(accommodationRepo.list).mockResolvedValue({ accommodations: [] })

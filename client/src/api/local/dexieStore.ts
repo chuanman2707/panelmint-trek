@@ -558,14 +558,7 @@ export class DexieStore
   private assignmentWire(a: StoredAssignment): Assignment | null {
     const p = this.place(a.place_id);
     if (!p) return null;
-    const participants = [
-      ...(this.map('assignmentParticipants') as Map<number, { assignment_id: number; user_id: number }>).values(),
-    ]
-      .filter((r) => r.assignment_id === a.id)
-      .map((r): AssignmentParticipant => {
-        const u = this.usersMap().get(r.user_id);
-        return { user_id: r.user_id, username: u?.name ?? `Guest ${r.user_id}`, avatar: null };
-      });
+    const participants = this.participantsOf(a.id);
     return detached({
       id: a.id,
       day_id: a.day_id,
@@ -767,10 +760,24 @@ export class DexieStore
 
   /** The server's createAssignment: clamp into [0, end], shift the rest down. */
   insertOwnedStop(dayId: number, placeId: number, orderIndex: number, accommodationId: number): number {
+    return this.insertStop(dayId, placeId, orderIndex, null, accommodationId);
+  }
+
+  /** The INSERT half of createAssignment, shared by insertOwnedStop
+   *  (booking-owned) and insertTravellerStop (the REST route). An
+   *  `orderIndex` clamps into [0, end] and shifts the rest down; undefined
+   *  appends, which is what every caller but one asked for. */
+  private insertStop(
+    dayId: number,
+    placeId: number,
+    orderIndex: number | undefined,
+    notes: string | null,
+    accommodationId: number | null,
+  ): number {
     const day = this.daysMap().get(dayId);
     if (!day) return -1;
     const end = (this.maxOrderIndex(dayId) ?? -1) + 1;
-    const at = Math.max(0, Math.min(orderIndex, end));
+    const at = orderIndex !== undefined ? Math.max(0, Math.min(orderIndex, end)) : end;
     if (at < end) this.bumpOrderIndexes(dayId, at);
     const id = this.allocId('days.assignments');
     this.assignmentsOf(day).push({
@@ -778,7 +785,7 @@ export class DexieStore
       day_id: dayId,
       place_id: placeId,
       order_index: at,
-      notes: null,
+      notes,
       reservation_status: 'none',
       reservation_notes: null,
       reservation_datetime: null,
@@ -886,6 +893,86 @@ export class DexieStore
   getAssignment(id: number): unknown {
     const ref = this.findAssignment(id);
     return ref ? this.assignmentWire(ref.assignment) : null;
+  }
+
+  // ==================================================================
+  // Assignments adapter (api/local/assignments.ts) — the seam the REST
+  // surface runs on; not part of a ported store interface.
+  // ==================================================================
+
+  /** The server's getAssignmentForTrip JOIN (`JOIN days ON d.trip_id`) —
+   *  the stored row plus the day it sits on, so the adapter reads trip_id
+   *  and day_id for its guards and patches then flushes the row through
+   *  put('days', day). */
+  assignmentRef(id: unknown): { day: DayRow; assignment: StoredAssignment } | undefined {
+    return this.findAssignment(id);
+  }
+
+  /** REST createAssignment — the route never sends an order index, so the
+   *  stop always lands at the end; it carries the caller's note and stays
+   *  traveller-owned (accommodation_id null), unlike insertOwnedStop's
+   *  booking-owned stops. */
+  insertTravellerStop(dayId: number, placeId: number, notes: string | null): number {
+    return this.insertStop(dayId, placeId, undefined, notes, null);
+  }
+
+  /** The server's reorderAssignments — `UPDATE day_assignments SET
+   *  order_index = ? WHERE id = ? AND day_id = ?` per listed id, in array
+   *  order. An id that is not on this day (foreign or nonexistent) is a
+   *  silent no-op that still consumes its slot — no permutation check. */
+  reorderDayStops(dayId: number, orderedIds: number[]): void {
+    const day = this.daysMap().get(dayId);
+    if (!day) return;
+    let touched = false;
+    orderedIds.forEach((stopId, index) => {
+      const a = this.assignmentsOf(day).find((x) => x.id === stopId && x.day_id === dayId);
+      if (!a) return;
+      a.order_index = index;
+      touched = true;
+    });
+    if (touched) this.put('days', day);
+  }
+
+  /** The server's rosterUserIds — trip_members.user_id ∪ trips.user_id. */
+  rosterUserIds(tripId: number): Set<number> {
+    const ids = new Set<number>();
+    const trip = this.tripRaw(tripId);
+    if (trip) ids.add(trip.user_id);
+    for (const m of this.memberRows(tripId)) ids.add(m.id);
+    return ids;
+  }
+
+  /** The server's setParticipants junction rewrite — DELETE every row of
+   *  the assignment, then INSERT OR IGNORE each scoped id; the Set is the
+   *  UNIQUE(assignment_id, user_id) collapse INSERT OR IGNORE performed. */
+  setAssignmentParticipants(assignmentId: number, userIds: number[]): void {
+    const participants = this.map('assignmentParticipants') as Map<
+      number,
+      { assignment_id: number; user_id: number }
+    >;
+    for (const [k, p] of [...participants]) {
+      if (p.assignment_id === assignmentId) this.delete('assignmentParticipants', k);
+    }
+    for (const userId of new Set(userIds)) {
+      this.put('assignmentParticipants', {
+        id: this.allocId('assignmentParticipants'),
+        assignment_id: assignmentId,
+        user_id: userId,
+      });
+    }
+  }
+
+  /** Participant rows in the wire projection — the server's
+   *  `COALESCE(u.display_name, u.username) AS username, u.avatar` join.
+   *  Local users have no avatar (always null); a missing user keeps the
+   *  same 'Guest N' fallback assignmentWire uses. */
+  participantsOf(assignmentId: number): AssignmentParticipant[] {
+    return this.assignmentParticipantRows()
+      .filter((r) => r.assignment_id === assignmentId)
+      .map((r): AssignmentParticipant => {
+        const u = this.usersMap().get(r.user_id);
+        return { user_id: r.user_id, username: u?.name ?? `Guest ${r.user_id}`, avatar: null };
+      });
   }
 
   // ==================================================================

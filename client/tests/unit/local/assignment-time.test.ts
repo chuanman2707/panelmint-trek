@@ -153,7 +153,6 @@ describe('updateTime', () => {
   });
 });
 
-describe.todo('assignment time via Dexie adapter', () => {
-  // getAssignment's wire shape and the broadcast `vias` payload depend on the
-  // repo layer's row mapping — covered once the seam is wired to offlineDb.
-});
+// The Dexie-backed half — getAssignment's wire shape, the broadcast `vias`
+// payload and the full {assignment, reordered, vias} response the adapter
+// hands callers — is pinned in tests/unit/local/assignments.test.ts.

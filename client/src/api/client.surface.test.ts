@@ -5,8 +5,8 @@ import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import { db } from '../db/panelmintDb'
-import { buildDay, buildTag, buildTrip } from '../../tests/helpers/factories'
-import type { DayRow } from './local/dexieStore'
+import { buildDay, buildPlace, buildTag, buildTrip } from '../../tests/helpers/factories'
+import type { DayRow, StoredAssignment } from './local/dexieStore'
 import type { LocalTripMember } from '../db/panelmintDb'
 import { clearWeatherCache } from './ext/openmeteo'
 
@@ -189,18 +189,36 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-006: assignmentsApi maps day-plan endpoints', async () => {
+  it('FE-APISURF-006: assignmentsApi runs locally (Dexie-backed, zero HTTP)', async () => {
+    // The adapter's own suite (tests/unit/local/assignments.test.ts) pins
+    // envelopes, guards and the updateTime side channels; here each method
+    // only has to resolve over seeded rows without emitting a request.
+    const seedAssignmentWorld = async () => {
+      await seedTripAndDays() // trips 1+3; days 1,2,3 on trip 1
+      await db.places.put(buildPlace({ id: 5, trip_id: 1 }))
+      const day = (await db.days.get(2)) as DayRow
+      day.assignments = [{
+        id: 7, day_id: 2, place_id: 5, order_index: 0, notes: null,
+        reservation_status: 'none', reservation_notes: null, reservation_datetime: null,
+        assignment_time: null, assignment_end_time: null, end_day: 0,
+        accommodation_id: null, leg_transport_mode: null, incoming_leg_transport_mode: null,
+        created_at: '2025-01-01T00:00:00.000Z',
+      } as StoredAssignment] as never
+      await db.days.put(day)
+    }
     await assertCalls([
-      { n: 'list', r: () => assignmentsApi.list(1, 2), e: 'GET /api/trips/1/days/2/assignments' },
-      { n: 'create', r: () => assignmentsApi.create(1, 2, { place_id: 5 }), e: 'POST /api/trips/1/days/2/assignments' },
-      { n: 'delete', r: () => assignmentsApi.delete(1, 2, 7), e: 'DELETE /api/trips/1/days/2/assignments/7' },
-      { n: 'reorder', r: () => assignmentsApi.reorder(1, 2, [7, 8]), e: 'PUT /api/trips/1/days/2/assignments/reorder' },
-      { n: 'move', r: () => assignmentsApi.move(1, 7, 3, 0), e: 'PUT /api/trips/1/assignments/7/move' },
-      { n: 'update', r: () => assignmentsApi.update(1, 2, 7, { notes: 'x' }), e: 'PUT /api/trips/1/days/2/assignments/7' },
-      { n: 'getParticipants', r: () => assignmentsApi.getParticipants(1, 7), e: 'GET /api/trips/1/assignments/7/participants' },
-      { n: 'setParticipants', r: () => assignmentsApi.setParticipants(1, 7, [4]), e: 'PUT /api/trips/1/assignments/7/participants' },
-      { n: 'updateTime', r: () => assignmentsApi.updateTime(1, 7, { place_time: '09:00' }), e: 'PUT /api/trips/1/assignments/7/time' },
-      { n: 'updateTransport', r: () => assignmentsApi.updateTransport(1, 7, null), e: 'PUT /api/trips/1/assignments/7/transport' },
+      { n: 'list', r: async () => { await seedAssignmentWorld(); return assignmentsApi.list(1, 2) }, e: 'local' },
+      { n: 'create', r: async () => { await seedAssignmentWorld(); return assignmentsApi.create(1, 2, { place_id: 5 }) }, e: 'local' },
+      { n: 'delete', r: async () => { await seedAssignmentWorld(); return assignmentsApi.delete(1, 2, 7) }, e: 'local' },
+      { n: 'reorder', r: async () => { await seedAssignmentWorld(); return assignmentsApi.reorder(1, 2, [7, 8]) }, e: 'local' },
+      { n: 'move', r: async () => { await seedAssignmentWorld(); return assignmentsApi.move(1, 7, 3, 0) }, e: 'local' },
+      { n: 'update', r: async () => { await seedAssignmentWorld(); return assignmentsApi.update(1, 2, 7, { notes: 'x' }) }, e: 'local' },
+      { n: 'getParticipants', r: async () => { await seedAssignmentWorld(); return assignmentsApi.getParticipants(1, 7) }, e: 'local' },
+      { n: 'setParticipants', r: async () => { await seedAssignmentWorld(); return assignmentsApi.setParticipants(1, 7, [4]) }, e: 'local' },
+      { n: 'updateTime', r: async () => { await seedAssignmentWorld(); return assignmentsApi.updateTime(1, 7, { place_time: '09:00' }) }, e: 'local' },
+      { n: 'updateTransport', r: async () => { await seedAssignmentWorld(); return assignmentsApi.updateTransport(1, 7, null) }, e: 'local' },
+      { n: 'updateNotes', r: async () => { await seedAssignmentWorld(); return assignmentsApi.updateNotes(1, 7, { notes: 'n' }) }, e: 'local' },
+      { n: 'setEndDay', r: async () => { await seedAssignmentWorld(); return assignmentsApi.setEndDay(1, 7, { end_day: true }) }, e: 'local' },
     ])
   })
 
@@ -349,7 +367,30 @@ describe('client > request payloads', () => {
   })
 
   it('FE-APISURF-023: user-id collections are sent as user_ids', async () => {
-    expect((await traceOne(() => assignmentsApi.setParticipants(1, 7, [4, 5]))).body).toEqual({ user_ids: [4, 5] })
+    // setParticipants is local — its "body" is the junction rewrite the wire
+    // user_ids used to cause, filtered to the trip roster (4 is a member, 5
+    // is off-roster and drops like the server's scope filter did).
+    await seedTripAndDays()
+    await db.places.put(buildPlace({ id: 5, trip_id: 1 }))
+    await db.localUsers.put({ id: 4, name: 'ann', is_self: 0 })
+    await db.tripMembers.put({
+      tripId: 1, id: 4, username: 'ann', role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true,
+    } as LocalTripMember)
+    const day = (await db.days.get(2)) as DayRow
+    day.assignments = [{
+      id: 7, day_id: 2, place_id: 5, order_index: 0, notes: null,
+      reservation_status: 'none', reservation_notes: null, reservation_datetime: null,
+      assignment_time: null, assignment_end_time: null, end_day: 0,
+      accommodation_id: null, leg_transport_mode: null, incoming_leg_transport_mode: null,
+      created_at: '2025-01-01T00:00:00.000Z',
+    } as StoredAssignment] as never
+    await db.days.put(day)
+    log = []
+    const { participants } = await assignmentsApi.setParticipants(1, 7, [4, 5])
+    expect(participants).toEqual([{ user_id: 4, username: 'ann', avatar: null }])
+    expect((await db.assignmentParticipants.toArray()).map((r) => r.user_id)).toEqual([4])
+    expect(log).toHaveLength(0)
     expect((await traceOne(() => budgetApi.setMembers(1, 2, [4]))).body).toEqual({ user_ids: [4] })
     expect((await traceOne(() => packingApi.setBagMembers(1, 2, [6]))).body).toEqual({ user_ids: [6] })
     expect((await traceOne(() => reservationsApi.setTravelers(1, 2, [4, 6]))).body).toEqual({ user_ids: [4, 6] })
@@ -371,8 +412,22 @@ describe('client > request payloads', () => {
     await db.days.put({ ...buildDay({ id: 2, trip_id: 1 }), vias: [] } as DayRow)
     await daysApi.updateTransport(1, 2, 'walk')
     expect((await db.days.get(2))?.default_transport_mode).toBe('walk')
+    // assignmentsApi.updateTransport is local too — the "body" is the stored
+    // leg_transport_mode column the transport_mode wire key used to set.
+    await db.places.put(buildPlace({ id: 5, trip_id: 1 }))
+    const aDay = (await db.days.get(2)) as DayRow
+    aDay.assignments = [{
+      id: 7, day_id: 2, place_id: 5, order_index: 0, notes: null,
+      reservation_status: 'none', reservation_notes: null, reservation_datetime: null,
+      assignment_time: null, assignment_end_time: null, end_day: 0,
+      accommodation_id: null, leg_transport_mode: 'walking', incoming_leg_transport_mode: null,
+      created_at: '2025-01-01T00:00:00.000Z',
+    } as StoredAssignment] as never
+    await db.days.put(aDay)
+    await assignmentsApi.updateTransport(1, 7, null)
+    const after = ((await db.days.get(2)) as DayRow).assignments as unknown as StoredAssignment[]
+    expect(after[0].leg_transport_mode).toBeNull()
     expect(log).toHaveLength(0)
-    expect((await traceOne(() => assignmentsApi.updateTransport(1, 7, null))).body).toEqual({ transport_mode: null })
     expect((await traceOne(() => budgetApi.togglePaid(1, 2, 4, false))).body).toEqual({ paid: false })
   })
 

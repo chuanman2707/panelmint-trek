@@ -9,6 +9,7 @@ import { avatarSrc } from '../../utils/avatarSrc'
 import { safeHttpUrl } from '../../utils/safeUrl'
 import { ChevronDown, ChevronRight, ChevronUp, Compass, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, Bookmark, StickyNote, Zap } from 'lucide-react'
 import { assignmentsApi, reservationsApi, daysApi } from '../../api/client'
+import { applyLocalEffect } from '../../store/localEffects'
 import { calculateRouteWithLegs, optimizeRoute, generateGoogleMapsUrl, generateCoMapsUrl, type NamedWaypoint } from '../Map/RouteCalculator'
 import GoogleMapsIcon from '../shared/GoogleMapsIcon'
 import PlaceAvatar from '../shared/PlaceAvatar'
@@ -920,7 +921,10 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
     // Remove time from assignment
     try {
-      await assignmentsApi.updateTime(tripId, fromId, { place_time: null, end_time: null })
+      const timeRes = await assignmentsApi.updateTime(tripId, fromId, { place_time: null, end_time: null })
+      // The local adapter answers any re-sort in-band (null when only
+      // clearing) — replay it the way every updateTime caller does.
+      applyLocalEffect('assignment:reordered', timeRes.reordered)
       const key = String(dayId)
       const currentAssignments = { ...assignments }
       if (currentAssignments[key]) {
