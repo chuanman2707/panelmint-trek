@@ -18,6 +18,7 @@ vi.mock('../../../src/api/ext/fx', () => ({
 import { fetchExchangeRates } from '../../../src/api/ext/fx';
 import { tripsApi } from '../../../src/api/local/trips';
 import { usersApi } from '../../../src/api/local/users';
+import { budgetApi } from '../../../src/api/local/budget';
 import { db } from '../../../src/db/panelmintDb';
 import { LocalApiError } from '../../../src/api/local/helpers';
 import { buildTrip, buildDay, buildPlace, buildReservation, buildBudgetItem, buildPackingItem, buildTodoItem } from '../../helpers/factories';
@@ -399,6 +400,43 @@ describe('tripsApi.copy', () => {
     const participants = await db.assignmentParticipants.toArray();
     expect(participants).toHaveLength(2); // source row + copied row
     expect(participants.find((p) => p.assignment_id === copiedAssignments[0].id)).toBeTruthy();
+  });
+
+  it('carries the budget category order onto the new trip', async () => {
+    await seedTrip();
+    // A non-default group order: 'food' outranks 'travel' — the
+    // budget_category_order rows carry that, the items don't.
+    await db.budgetCategoryOrder.bulkPut([
+      { id: 91, trip_id: 1, category: 'travel', sort_order: 1 },
+      { id: 92, trip_id: 1, category: 'food', sort_order: 0 },
+    ]);
+    await db.budgetItems.bulkPut([
+      // Train's sort_order beats Dinner's — under the 999999 fallback the
+      // copy would list it first; only the carried category order puts
+      // 'food' ahead.
+      buildBudgetItem({ id: 41, trip_id: 1, category: 'travel', name: 'Train', sort_order: 0 }),
+      buildBudgetItem({ id: 42, trip_id: 1, category: 'food', name: 'Dinner', sort_order: 1 }),
+    ]);
+
+    const { trip } = await tripsApi.copy(1, {});
+
+    // Row-for-row copy under the NEW trip id; the source rows are untouched.
+    const copiedRows = await db.budgetCategoryOrder.where('trip_id').equals(trip.id).toArray();
+    expect(
+      copiedRows
+        .map((r) => ({ category: r.category, sort_order: r.sort_order }))
+        .sort((a, b) => a.sort_order - b.sort_order),
+    ).toEqual([
+      { category: 'food', sort_order: 0 },
+      { category: 'travel', sort_order: 1 },
+    ]);
+    expect(await db.budgetCategoryOrder.where('trip_id').equals(1).count()).toBe(2);
+
+    // The copy's budget list honours the carried order (Dinner first), the
+    // same ordering listBudgetItemsWire produced for the source.
+    const { items } = await budgetApi.list(trip.id);
+    expect(items.map((i) => i.name)).toEqual(['Dinner', 'Train']);
+    expect((await budgetApi.list(1)).items.map((i) => i.name)).toEqual(['Dinner', 'Train']);
   });
 
   it('404s a missing source trip', async () => {

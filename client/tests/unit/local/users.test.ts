@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { usersApi } from '../../../src/api/local/users';
 import { tripsApi } from '../../../src/api/local/trips';
 import { db } from '../../../src/db/panelmintDb';
+import type { LocalTripMember } from '../../../src/db/panelmintDb';
 import type { LocalUser } from '../../../src/types';
 import { buildTrip, buildPackingItem, buildTodoItem } from '../../helpers/factories';
 
@@ -167,5 +168,37 @@ describe('usersApi.delete', () => {
     const stored = (await db.budgetItems.get(item.id))!;
     expect(stored.members!.map((m) => m.user_id)).toEqual([bram.id]);
     expect(stored.persons).toBe(1);
+  });
+});
+
+describe('owner guard', () => {
+  // A trip self reaches through a member row but does not own — the
+  // TripOwnerGuard 403 fires before the DTO pipe and the name checks.
+  beforeEach(async () => {
+    await db.trips.put(buildTrip({ id: 1, user_id: 9 }));
+    await db.tripMembers.put({
+      tripId: 1,
+      id: SELF.id,
+      username: 'Me',
+      role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z',
+      invited_by_username: null,
+      is_guest: false,
+    } as LocalTripMember);
+  });
+
+  it('rejects create/rename/delete; the roster read still answers', async () => {
+    // The member link makes the trip reachable, so `list` is fine...
+    await expect(usersApi.list(1)).resolves.toEqual({ users: [] });
+    // ...but every write hits 'Only the owner can manage guests'.
+    for (const p of [
+      usersApi.create(1, 'Anna'),
+      usersApi.rename(1, 2, 'Ana'),
+      usersApi.delete(1, 2),
+    ]) {
+      const err = await fail(p);
+      expect(err.response.status).toBe(403);
+      expect(err.response.data.error).toBe('Only the owner can manage guests');
+    }
   });
 });

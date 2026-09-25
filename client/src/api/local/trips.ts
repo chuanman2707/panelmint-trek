@@ -600,7 +600,9 @@ export const tripsApi = {
  *    stay is skipped, matching `if (newPlaceId && newStartDay && newEndDay)`);
  *  - reservations keep ingest_state but drop every `external_*`/sync column;
  *  - budget items drop `place_id` and `receipts` (members/payers embedded on
- *    the row DO travel — the server copied their junction tables);
+ *    the row DO travel — the server copied their junction tables), and the
+ *    trip's `budget_category_order` rows copy verbatim so the copy keeps the
+ *    source's group ordering;
  *  - packing items keep the copier's restricted items, reset `checked`, lose
  *    `quantity` (the server's column list omits it — the copy reads back the
  *    DEFAULT 1) and lose recipients/contributors; to-dos lose their assignee;
@@ -860,6 +862,18 @@ function copyTrip(store: DexieStore, src: Trip, title?: string): { trip: Trip } 
       receipts: [],
       created_at: nowIso(),
     } as BudgetItem);
+  }
+
+  // budget_category_order copies row-for-row (SELECT category, sort_order →
+  // INSERT under the new trip id) — without it every copied category drops to
+  // the 999999 default rank and the source's group ordering is lost.
+  for (const [category, sortOrder] of store.categoryOrderOf(src.id)) {
+    store.put('budgetCategoryOrder', {
+      id: store.allocId('budgetCategoryOrder'),
+      trip_id: newTripId,
+      category,
+      sort_order: sortOrder,
+    });
   }
 
   // Server whitelist: (name, color, weight_limit_grams, sort_order) — the

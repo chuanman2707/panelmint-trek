@@ -23,7 +23,7 @@
  */
 import { tripCreateGuestRequestSchema, tripRenameGuestRequestSchema } from '@trek/shared';
 import type { LocalUser, TripMember } from '../../types';
-import { apiError, badRequest, notFound, numId, parseBody } from './helpers';
+import { apiError, badRequest, detached, notFound, numId, parseBody } from './helpers';
 import { DexieStore, SELF_ID, withStore } from './dexieStore';
 
 /** TripAccessGuard's verdict: reachable trip or the 404 it produced. */
@@ -66,7 +66,9 @@ export const usersApi = {
       const users: LocalUser[] = [];
       for (const m of store.memberRows(tid)) {
         const u = store.user(m.id);
-        if (u && u.is_self !== 1) users.push(u);
+        // store.user() hands back the live map row — every seam read answers
+        // with a detached snapshot the caller can scribble on safely.
+        if (u && u.is_self !== 1) users.push(detached(u));
       }
       return { users };
     }),
