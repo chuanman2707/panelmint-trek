@@ -13,7 +13,7 @@
  * check-in…check-out across N nights puts N seats on the plan. Response
  * envelopes, widened where a spanning stay moves more than one seat at once
  * (a lone seat keeps the single-object shape):
- *   POST   → { accommodation, assignment, movedAssignment, removedAssignments, updatedAssignments }
+ *   POST   → { accommodation, assignment, movedAssignment, removedAssignments, updatedAssignments, stampedPlace }
  *   PUT    → same fields
  *   DELETE → { success: true, removedAssignments, updatedAssignments }
  */
@@ -166,6 +166,9 @@ describe('accommodationsApi.create', () => {
       movedAssignment: null,
       removedAssignments: [],
       updatedAssignments: [],
+      // The socket's place:updated, carried in-band — the write typed the
+      // untyped place 'hotel', and the sender's session hears about it.
+      stampedPlace: expect.objectContaining({ id: 5, stop_type: 'hotel' }),
     });
 
     const stayId = res.accommodation.id;
@@ -287,8 +290,9 @@ describe('accommodationsApi.create', () => {
     await seedDay(1);
     await seedPlace(5, { name: 'Camp Riverside', stop_type: 'campsite' });
 
-    await accommodationsApi.create(1, { place_id: 5, start_day_id: 1, end_day_id: 1 });
+    const res = await accommodationsApi.create(1, { place_id: 5, start_day_id: 1, end_day_id: 1 });
 
+    expect(res.stampedPlace).toBeNull();
     expect((await db.places.get(5))?.stop_type).toBe('campsite');
   });
 
@@ -479,6 +483,35 @@ describe('accommodationsApi.update', () => {
     expect((await stopsOn(1)).map((s) => s.place_id)).toEqual([8, 5]);
     expect(res.movedAssignment).toMatchObject({ oldDayId: 1, assignment: { id: stopId, day_id: 1 } });
     expect(res.removedAssignments).toEqual([]);
+  });
+
+  it('LOCAL-ACC-014b — a move whose only outcome is a duplicated own stop still stamps the place', async () => {
+    // The stay re-books to a hotel the traveller already pinned on its day: the
+    // booking's own row is the duplicate and is taken back — nothing created or
+    // moved. The server still stamped the place 'hotel' (remirrorStay's rebuild
+    // path stamps inside mirrorStay, before its dayHasPlace return).
+    await seedTrip();
+    await seedDay(1, [storedStop({ id: 50, day_id: 1, place_id: 5, order_index: 0 })]);
+    await seedDay(2);
+    await seedPlace(9, { name: 'Old Hotel' });
+    await seedPlace(5, { name: 'Riverside Rooms' }); // untyped, pinned by the traveller
+    const created = await accommodationsApi.create(1, {
+      place_id: 9,
+      start_day_id: 1,
+      end_day_id: 2,
+      check_in: '15:00',
+    });
+    const stayId = created.accommodation.id;
+    const ownStopId = (created.assignment as Assignment).id;
+
+    const res = await accommodationsApi.update(1, stayId, { place_id: 5 });
+
+    expect(res).toMatchObject({ assignment: null, movedAssignment: null });
+    expect(res.removedAssignments).toEqual([{ id: ownStopId, dayId: 1 }]);
+    expect(res.stampedPlace).toMatchObject({ id: 5, stop_type: 'hotel' });
+    expect((await db.places.get(5))?.stop_type).toBe('hotel');
+    // The traveller's pin stands untouched.
+    expect(await stopsOn(1)).toEqual([expect.objectContaining({ id: 50, place_id: 5, accommodation_id: null })]);
   });
 
   it('LOCAL-ACC-015 — missing, foreign-trip and bad-ref ids 404 verbatim', async () => {

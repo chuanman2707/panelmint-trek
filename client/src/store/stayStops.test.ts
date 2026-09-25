@@ -1,7 +1,8 @@
+import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useTripStore } from './tripStore'
 import { applyStayStops } from './stayStops'
-import type { Assignment } from '../types'
+import type { Assignment, Place } from '../types'
 
 vi.mock('../db/offlineDb', () => ({
   offlineDb: { days: { get: vi.fn(), put: vi.fn() }, places: { put: vi.fn(), delete: vi.fn() } },
@@ -11,8 +12,11 @@ vi.mock('../db/offlineDb', () => ({
 const stop = (id: number, dayId: number): Assignment =>
   ({ id, day_id: dayId, place_id: 7, order_index: 0, notes: null, place: { id: 7, name: 'Hotel Adlon' } }) as unknown as Assignment
 
+const place = (id: number, over: Partial<Place> = {}): Place =>
+  ({ id, trip_id: 1, name: `Place ${id}`, ...over }) as Place
+
 beforeEach(() => {
-  useTripStore.setState({ assignments: {} })
+  useTripStore.setState({ assignments: {}, places: [] })
 })
 
 describe('applyStayStops', () => {
@@ -58,5 +62,22 @@ describe('applyStayStops', () => {
     expect(useTripStore.getState().assignments['2']).toEqual([])
     expect(useTripStore.getState().assignments['3']).toEqual([stop(77, 3)])
     expect(useTripStore.getState().assignments['4']).toEqual([stop(78, 4)])
+  })
+
+  it('FE-STAY-STOPS-006 types the stored place the write stamped as lodging', () => {
+    // The socket's place:updated reached the sender's session too — without the
+    // replay the place list's service-stop filter and the map marker keep the
+    // stale untyped place until a refetch.
+    useTripStore.setState({ places: [place(7, { name: 'Hotel Adlon', stop_type: null })] })
+    applyStayStops({ assignment: stop(77, 3), stampedPlace: place(7, { name: 'Hotel Adlon', stop_type: 'hotel' }) })
+    expect(useTripStore.getState().places[0]?.stop_type).toBe('hotel')
+    // …and the embedded copy on the stop the write just put down.
+    expect(useTripStore.getState().assignments['3']?.[0]?.place?.stop_type).toBe('hotel')
+  })
+
+  it('FE-STAY-STOPS-007 leaves a traveller-typed place alone (stampedPlace null)', () => {
+    useTripStore.setState({ places: [place(7, { name: 'Camp Riverside', stop_type: 'campsite' })] })
+    applyStayStops({ assignment: stop(77, 3), stampedPlace: null })
+    expect(useTripStore.getState().places[0]?.stop_type).toBe('campsite')
   })
 })

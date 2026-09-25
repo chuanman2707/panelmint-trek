@@ -11,16 +11,18 @@
  * stay — every day from check-in up to, not including, check-out — and only
  * ever touches the booking's own stops.
  *
- * Wire parity (the axios surface this replaced), widened for spanning stays:
- *   POST   → { accommodation, assignment, movedAssignment, removedAssignments, updatedAssignments }
+ * Wire parity (the axios surface this replaced), widened for spanning stays
+ * and the socket's side channel:
+ *   POST   → { accommodation, assignment, movedAssignment, removedAssignments, updatedAssignments, stampedPlace }
  *   PUT    → same fields
  *   DELETE → { success: true, removedAssignments, updatedAssignments }
  * `assignment`/`movedAssignment` carry the one seat an ordinary write makes;
  * a stay spanning nights answers with a list instead. The fields are the
  * mirror's side channel: callers replay them through applyStayStops
- * (store/stayStops.ts) the way the socket used to announce them. `stamped`/
- * `vias` are not on the REST response — the socket carried those — so they
- * are not emitted here either.
+ * (store/stayStops.ts) the way the socket used to announce them. `stampedPlace`
+ * is the socket's `place:updated` — the broadcast reached the sender too, so
+ * the place list and the map see the 'hotel' stamp the write made. `vias` is
+ * not emitted: the road-trip surface refetches its own days.
  *
  * Errors reproduce the controller verbatim: 'Trip not found', the bespoke
  * 400 'place_id, start_day_id, and end_day_id are required', the first
@@ -33,7 +35,7 @@ import {
   type AccommodationCreateRequest,
   type AccommodationUpdateRequest,
 } from '@trek/shared';
-import type { Accommodation, Assignment } from '../../types';
+import type { Accommodation, Assignment, Place } from '../../types';
 import { DexieStore, withStore } from './dexieStore';
 import { apiError, badRequest, notFound, numId, parseBody } from './helpers';
 import { attachStayNights, dropStayStops, moveStayNights, type MirroredAssignment } from './ported/night-seat';
@@ -106,6 +108,10 @@ export interface StayWriteResult {
     | null;
   removedAssignments?: { id: number; dayId: number }[];
   updatedAssignments?: Assignment[];
+  /** The place this write typed as lodging (the mirror's `stamped`) — the
+   *  socket's `place:updated`, which the sender's session got too. null when
+   *  the place was already typed or the write never reached the day plan. */
+  stampedPlace: Place | null;
 }
 
 /** DELETE's answer: the booking's stops, taken back or handed over. */
@@ -193,6 +199,7 @@ export const accommodationsApi = {
         movedAssignment: null,
         removedAssignments: [],
         updatedAssignments: [],
+        stampedPlace: mirror.stamped as Place | null,
       };
     }),
 
@@ -264,6 +271,7 @@ export const accommodationsApi = {
         movedAssignment: wireMoved(mirror.moved, mirror.movedExtra),
         removedAssignments: mirror.removed,
         updatedAssignments: mirror.updated.map((m) => m as Assignment),
+        stampedPlace: mirror.stamped as Place | null,
       };
     }),
 

@@ -366,9 +366,11 @@ describe('multi-night mirror (attachStayNights / moveStayNights)', () => {
     expect(mirror2.removed).toEqual([{ id: 22, dayId: 3 }]);
   });
 
-  it('takes back a kept stop whose new place the day already holds', () => {
+  it('takes back a kept stop whose new place the day already holds — and still stamps it', () => {
     // The stay moved hotels, but the day already pins the new hotel — two own
-    // rows would stand on the same place, so the booking's goes away.
+    // rows would stand on the same place, so the booking's goes away. Nothing
+    // was created or carried, yet the server's rebuild path stamped the place
+    // inside mirrorStay, before its dayHasPlace return — so does this one.
     const s = new MemoryStore({
       places: [place(9), place(5)],
       assignments: [stop(20, 1, 9, 0, 7), stop(11, 1, 5, 1)],
@@ -378,6 +380,8 @@ describe('multi-night mirror (attachStayNights / moveStayNights)', () => {
     expect(mirror.removed).toEqual([{ id: 20, dayId: 1 }]);
     expect(s.assignments.find((a) => a.accommodation_id === 7)).toBeUndefined();
     expect(s.assignments.find((a) => a.id === 11)?.accommodation_id).toBeNull();
+    expect(s.places.find((p) => p.id === 5)?.stop_type).toBe('hotel');
+    expect(mirror.stamped).toMatchObject({ id: 5 });
   });
 
   it('a reseat on a covered night is a same-day move, not a rebuild', () => {
@@ -414,6 +418,10 @@ describe('multi-night mirror (attachStayNights / moveStayNights)', () => {
     const mirror = moveStayNights(s, 7, 9, [1], '15:00');
     expect(mirror.moved).toBeNull();
     expect(mirror.removed).toEqual([]);
+    // remirrorStay's settled no-op returns before the stamp — the untyped
+    // place stays untyped.
+    expect(mirror.stamped).toBeNull();
+    expect(s.places.find((p) => p.id === 9)?.stop_type).toBeUndefined();
     expect(s.assignments.find((a) => a.id === 20)?.order_index).toBe(1);
   });
 

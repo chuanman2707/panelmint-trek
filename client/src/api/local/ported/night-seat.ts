@@ -666,7 +666,15 @@ export function moveStayNights(
 
   mirror.created = created[0] ?? null;
   mirror.createdExtra = created.slice(1);
-  if (placeId && (created.length > 0 || mirror.moved || mirror.movedExtra.length > 0)) {
+  // The stamp ran wherever the server stamped: remirrorStay's relocate and
+  // rebuild paths both type the place once the day plan changed — including a
+  // write whose only outcome is taking back a duplicated own stop (the rebuild
+  // path stamps inside mirrorStay, before its dayHasPlace return). A fully
+  // settled edit never reaches those paths, and stamps nothing either.
+  if (
+    placeId &&
+    (created.length > 0 || mirror.moved || mirror.movedExtra.length > 0 || mirror.removed.length > 0)
+  ) {
     mirror.stamped = stampLodging(store, placeId);
   }
   reanchorVias(store, mirror, before);
