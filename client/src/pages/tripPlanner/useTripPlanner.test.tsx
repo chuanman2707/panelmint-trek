@@ -16,7 +16,6 @@ import {
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb } from '../../db/offlineDb'
-import { getCached, fetchPhoto } from '../../services/photoService'
 import type { Place, Reservation, Settings } from '../../types'
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -63,11 +62,6 @@ vi.mock('../../sync/networkMode', async (importOriginal) => {
 
 vi.mock('../../repo/accommodationRepo', () => ({
   accommodationRepo: { list: vi.fn(async () => ({ accommodations: [] })) },
-}))
-
-vi.mock('../../services/photoService', () => ({
-  getCached: vi.fn(() => undefined),
-  fetchPhoto: vi.fn(),
 }))
 
 // ── Store fixtures ────────────────────────────────────────────────────────────
@@ -179,7 +173,6 @@ beforeEach(() => {
   vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: '', address: '' } as never)
   vi.spyOn(mapsApi, 'search').mockResolvedValue({ places: [] } as never)
   vi.mocked(accommodationRepo.list).mockResolvedValue({ accommodations: [] })
-  vi.mocked(getCached).mockReturnValue(undefined)
 })
 
 afterEach(() => {
@@ -288,49 +281,6 @@ describe('useTripPlanner — bootstrap', () => {
     expect(result.current.splashDone).toBe(true)
 
     vi.useRealTimers()
-  })
-
-  it('FE-TP-HOOK-013: place photos are prefetched only for places without an image', async () => {
-    seedStore(useAuthStore, { placesPhotosEnabled: true })
-    const withImage = buildPlace({ id: 1, image_url: '/uploads/a.jpg', lat: 1, lng: 2 })
-    const withOsm = buildPlace({ id: 2, image_url: null, osm_id: 'node/7', lat: 3, lng: 4 })
-    const coordsOnly = buildPlace({ id: 3, image_url: null, osm_id: null, google_place_id: null, lat: 5, lng: 6 })
-    seedTrip({ places: [withImage, withOsm, coordsOnly] })
-
-    await renderPlanner()
-
-    await waitFor(() => expect(fetchPhoto).toHaveBeenCalledTimes(2))
-    expect(vi.mocked(fetchPhoto).mock.calls[0][0]).toBe('node/7')
-    expect(vi.mocked(fetchPhoto).mock.calls[1][1]).toBe('coords:5:6')
-  })
-
-  it('FE-TP-HOOK-014: an already cached photo is not fetched again', async () => {
-    seedStore(useAuthStore, { placesPhotosEnabled: true })
-    vi.mocked(getCached).mockReturnValue({ url: '/x.jpg' } as never)
-    seedTrip({ places: [buildPlace({ id: 2, image_url: null, osm_id: 'node/7', lat: 3, lng: 4 })] })
-
-    await renderPlanner()
-
-    await waitFor(() => expect(getCached).toHaveBeenCalled())
-    expect(fetchPhoto).not.toHaveBeenCalled()
-  })
-})
-
-describe('useTripPlanner — tabs', () => {
-  it('FE-TP-HOOK-015: addon tabs appear only for enabled addons', async () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'packing', name: 'Lists', type: 'trip', icon: '', enabled: true }],
-      loaded: true,
-    })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    await waitFor(() => {
-      expect(result.current.TRIP_TABS.map(t => t.id)).toEqual(
-        ['plan', 'transports', 'buchungen', 'listen'],
-      )
-    })
   })
 
   it('FE-TP-HOOK-016: switching to the Costs tab loads the budget items and persists the tab', async () => {

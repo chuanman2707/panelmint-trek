@@ -7,7 +7,6 @@ import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { dayColor } from '../../components/Roadtrip/dayColors'
-import { getCached, fetchPhoto } from '../../services/photoService'
 import { useToast } from '../../components/shared/Toast'
 import { Map, Ticket, PackageCheck, Wallet, Train, Route } from 'lucide-react'
 import { useTranslation, translateApiError } from '../../i18n'
@@ -91,7 +90,6 @@ export function useTripPlanner() {
   const { t, language, locale } = useTranslation()
   const { settings } = useSettingsStore()
   const roadtripSettings = useRoadtripSettings(s => s, tripId)
-  const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
   const trip = useTripStore(s => s.trip)
   const days = useTripStore(s => s.days)
   const allPlaces = useTripStore(s => s.places)
@@ -485,20 +483,6 @@ export function useTripPlanner() {
   // Layout is width-driven (isMobile); the drag bridge is pointer-driven (isTouch).
   // Conflating them is what left a tablet's places list undraggable-but-unscrollable (#1432).
   const isTouch = useIsTouch()
-
-  // Start photo fetches during splash screen so images are ready when map mounts
-  useEffect(() => {
-    if (isLoading || !places || places.length === 0 || !placesPhotosEnabled) return
-    for (const p of places) {
-      if (p.image_url) continue
-      const cacheKey = p.google_place_id || p.osm_id || `${p.lat},${p.lng}`
-      if (!cacheKey || getCached(cacheKey)) continue
-      const photoId = p.google_place_id || p.osm_id
-      if (photoId || (p.lat && p.lng)) {
-        fetchPhoto(cacheKey, photoId || `coords:${p.lat}:${p.lng}`, p.lat, p.lng, p.name)
-      }
-    }
-  }, [isLoading, places])
 
   // Load the trip. loadTrip hydrates every trip-scoped slice (days, places,
   // packing, todo, budget, reservations, files) so offline hydration is uniform
@@ -2415,8 +2399,7 @@ export function useTripPlanner() {
   }, [isLoading, trip])
 
   return {
-    tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
-    trip, days, places, assignments, storedAssignments, packingItems, todoItems, categories, reservations, budgetItems, files,
+    tripId, navigate, toast, t, language, locale, settings,     trip, days, places, assignments, storedAssignments, packingItems, todoItems, categories, reservations, budgetItems, files,
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, tripAccommodations, setTripAccommodations,

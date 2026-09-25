@@ -1,4 +1,4 @@
-import { Search, Plus, X, Upload, FileDown, ChevronDown, Check, MapPin, Star, CalendarPlus, CalendarDays } from 'lucide-react'
+import { Search, Plus, X, ChevronDown, Check, MapPin, Star, CalendarPlus, CalendarDays } from 'lucide-react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import Tooltip from '../shared/Tooltip'
 import CustomSelect from '../shared/CustomSelect'
@@ -14,25 +14,9 @@ import type { SidebarState } from './usePlacesSidebar'
  */
 const COMPACT_BUTTONS_WIDTH = 232
 
-export function PlacesDropOverlay({ t }: SidebarState) {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 10,
-      background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
-      border: '2px dashed var(--accent)',
-      borderRadius: 4,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: 10, pointerEvents: 'none',
-    }}>
-      <Upload size={28} strokeWidth={1.5} color="var(--accent)" />
-      <span className="text-accent" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('places.sidebarDrop')}</span>
-    </div>
-  )
-}
-
 export function PlacesHeader(S: SidebarState) {
   const {
-    canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t, setFileImportOpen, setListImportOpen, hasMultipleListImportProviders,
+    canEditPlaces, onAddPlace, onAddPlaceToSelectedDay, selectedDayId, t,
     places, categories, categoryFilters, search, setSearch, plannedIds, plannedFilterIds, dayScoped, onClearSelectedDay, hasTracks,
     filter, setFilter, setSelectedIds, selectMode, setSelectMode,
     catDropOpen, setCatDropOpen, toggleCategoryFilter, setCategoryFilters,
@@ -45,8 +29,6 @@ export function PlacesHeader(S: SidebarState) {
   // that as roomy so the labels do not flash away and back on every mount.
   const compact = buttonRowWidth > 0 && buttonRowWidth < COMPACT_BUTTONS_WIDTH
   const addLabel = t(dayOpen ? 'places.addPlaceShort' : 'places.addPlace')
-  const fileImportLabel = t('places.importFile')
-  const listImportLabel = t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList')
   return (
     <div className="border-b border-edge-faint" style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
       {canEditPlaces && <div ref={buttonRowRef} style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
@@ -111,44 +93,6 @@ export function PlacesHeader(S: SidebarState) {
           </Tooltip>
         )}
       </div>}
-      {canEditPlaces && <>
-      {/* Same squeeze rule as the row above, measured off the same rail: once the
-          add buttons lose their labels these two would not fit either. */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-        <button type="button"
-          onClick={() => setFileImportOpen(true)}
-          aria-label={compact ? fileImportLabel : undefined}
-          title={compact ? fileImportLabel : undefined}
-          className="border border-dashed border-edge text-content-faint"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            flex: 1, minWidth: 0, padding: '5px 12px', borderRadius: 8,
-            background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'inherit',
-            overflow: 'hidden', whiteSpace: 'nowrap',
-          }}
-        >
-          <FileDown size={11} strokeWidth={2} /> {!compact && fileImportLabel}
-        </button>
-        <button type="button"
-          onClick={() => setListImportOpen(true)}
-          aria-label={compact ? listImportLabel : undefined}
-          title={compact ? listImportLabel : undefined}
-          className="border border-dashed border-edge text-content-faint"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            flex: 1, minWidth: 0, padding: '5px 12px', borderRadius: 8,
-            background: 'none', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'inherit',
-            overflow: 'hidden', whiteSpace: 'nowrap',
-          }}
-        >
-          <MapPin size={11} strokeWidth={2} /> {!compact && listImportLabel}
-        </button>
-      </div>
-      <div className="bg-edge" style={{ height: 1, margin: '2px 0 10px' }} />
-      </>}
-
       {/* Filter-Tabs */}
       {(() => {
         const baseFiltered = places.filter(p => {

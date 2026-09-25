@@ -4,7 +4,6 @@ import { http, HttpResponse } from 'msw'
 import { downloadTripPDF } from './TripPDF'
 import { server } from '../../../tests/helpers/msw/server'
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
-import { useAuthStore } from '../../store/authStore'
 import { getMergedItems, getTransportForDay } from '../../utils/dayMerge'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -53,9 +52,6 @@ beforeEach(() => {
     http.get('/api/trips/:id/accommodations', () =>
       HttpResponse.json({ accommodations: [] })
     ),
-    http.get('/api/maps/place-photo/:placeId', () =>
-      HttpResponse.json({ photoUrl: null })
-    ),
     // Mixed-currency exports fetch FX rates; keep the suite hermetic.
     http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json([])),
   )
@@ -66,7 +62,7 @@ beforeEach(() => {
 afterEach(() => {
   // Clean up any overlay left by the function under test
   document.getElementById('pdf-preview-overlay')?.remove()
-  useAuthStore.setState({ placesPhotosEnabled: false })
+
   vi.restoreAllMocks()
 })
 
@@ -522,53 +518,6 @@ describe('downloadTripPDF', () => {
     // The proxy path (no file extension) must still embed as an absolute <img>.
     expect(iframe!.srcdoc).toContain('http://localhost:3000/api/maps/place-photo/ChIJabc/bytes')
     expect(iframe!.srcdoc).toContain('class="place-thumb"')
-  })
-
-  it('FE-COMP-TRIPPDF-019: fetches google place photos for places with google_place_id', async () => {
-    // Photo fetching is gated on the capability flag — it is off in the local
-    // build, so the test turns it on to cover the proxy path.
-    useAuthStore.setState({ placesPhotosEnabled: true })
-    let photoCalled = false
-    server.use(
-      http.get('/api/maps/place-photo/:placeId', () => {
-        photoCalled = true
-        return HttpResponse.json({ photoUrl: 'https://example.com/photo.jpg' })
-      }),
-    )
-    const argsWithGooglePlace = {
-      ...richArgs,
-      assignments: {
-        '10': [{
-          ...assignmentForDay,
-          place: { ...placeWithDetails, image_url: null, google_place_id: 'ChIJrTLr-GyuEmsRBfy61i59si0' },
-        }],
-      } as any,
-    }
-    await downloadTripPDF(argsWithGooglePlace)
-    expect(photoCalled).toBe(true)
-  })
-
-  it('FE-COMP-TRIPPDF-019b: fetches photos for OSM places via osm_id recovered from the places pool (#1130)', async () => {
-    useAuthStore.setState({ placesPhotosEnabled: true })
-    let fetchedId: string | null = null
-    server.use(
-      http.get('/api/maps/place-photo/:placeId', ({ params }) => {
-        fetchedId = params.placeId as string
-        return HttpResponse.json({ photoUrl: 'https://example.com/osm.jpg' })
-      }),
-    )
-    // The assignment projection drops osm_id; the full place in `places` carries it.
-    const osmPlace = { ...placeWithDetails, id: 101, image_url: null, google_place_id: null, osm_id: 'node/240109189', lat: 41.89, lng: 12.49 }
-    const args = {
-      ...richArgs,
-      places: [osmPlace],
-      assignments: {
-        '10': [{ ...assignmentForDay, id: 201, place_id: 101, place: { ...placeWithDetails, id: 101, image_url: null, google_place_id: null } }],
-      } as any,
-    }
-    await downloadTripPDF(args)
-    // osm_id is used as the photo key (not the coords fallback), proving the pool lookup works.
-    expect(fetchedId).toBe('node/240109189')
   })
 
   it('FE-COMP-TRIPPDF-020: renders empty day message when no items assigned', async () => {

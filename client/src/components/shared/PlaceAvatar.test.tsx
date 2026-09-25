@@ -1,52 +1,4 @@
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render';
-import { useAuthStore } from '../../store/authStore';
-import { getCached, isLoading, fetchPhoto, onThumbReady } from '../../services/photoService';
-
-// Mock photoService — all functions are no-ops / return null
-vi.mock('../../services/photoService', () => ({
-  getCached: vi.fn(() => null),
-  isLoading: vi.fn(() => false),
-  fetchPhoto: vi.fn(),
-  onThumbReady: vi.fn(() => () => {}),
-}));
-
-// Mock IntersectionObserver as a class constructor
-const mockDisconnect = vi.fn();
-const mockObserve = vi.fn();
-let observerInstance: MockIntersectionObserver | null = null;
-
-class MockIntersectionObserver {
-  callback: (entries: Partial<IntersectionObserverEntry>[]) => void;
-  constructor(callback: (entries: Partial<IntersectionObserverEntry>[]) => void) {
-    this.callback = callback;
-    observerInstance = this;
-  }
-  observe = mockObserve;
-  disconnect = mockDisconnect;
-  unobserve = vi.fn();
-}
-
-beforeAll(() => {
-  (globalThis as any).IntersectionObserver = MockIntersectionObserver;
-});
-
-beforeEach(() => {
-  // The suite covers the photo-fetch path — the capability flag is off in the
-  // local build, so it is turned on for these tests.
-  useAuthStore.setState({ placesPhotosEnabled: true });
-  vi.mocked(getCached).mockReturnValue(null);
-  vi.mocked(isLoading).mockReturnValue(false);
-  vi.mocked(fetchPhoto).mockReset();
-  vi.mocked(onThumbReady).mockReturnValue(() => {});
-});
-
-afterEach(() => {
-  useAuthStore.setState({ placesPhotosEnabled: false });
-  mockDisconnect.mockClear();
-  mockObserve.mockClear();
-  observerInstance = null;
-});
-
 import PlaceAvatar from './PlaceAvatar';
 
 const basePlaceNoImage = {
@@ -81,7 +33,6 @@ describe('PlaceAvatar', () => {
   it('FE-COMP-AVATAR-003: renders an icon (no img) when no image_url', () => {
     render(<PlaceAvatar place={basePlaceNoImage} />);
     expect(screen.queryByRole('img')).toBeNull();
-    // The wrapper div should still be present
     const { container } = render(<PlaceAvatar place={basePlaceNoImage} />);
     expect(container.querySelector('div')).toBeTruthy();
   });
@@ -103,11 +54,9 @@ describe('PlaceAvatar', () => {
   it('FE-COMP-AVATAR-006: falls back to icon when image fails to load', () => {
     render(<PlaceAvatar place={basePlaceWithImage} />);
     const img = screen.getByRole('img');
-    // Simulate image load error
     act(() => {
       fireEvent.error(img);
     });
-    // After error, img is removed and icon takes over
     expect(screen.queryByRole('img')).toBeNull();
   });
 
@@ -137,54 +86,16 @@ describe('PlaceAvatar', () => {
     expect(container.querySelector('svg')).toBeTruthy();
   });
 
-  it('FE-COMP-AVATAR-011: calls fetchPhoto when visible and no image_url, no cache', () => {
-    render(<PlaceAvatar place={basePlaceNoImage} />);
-
-    act(() => {
-      observerInstance?.callback([{ isIntersecting: true }]);
-    });
-
-    expect(vi.mocked(fetchPhoto)).toHaveBeenCalled();
+  it('FE-COMP-AVATAR-011: tracks a changed image_url on re-render', () => {
+    const { rerender } = render(<PlaceAvatar place={basePlaceNoImage} />);
+    expect(screen.queryByRole('img')).toBeNull();
+    rerender(<PlaceAvatar place={basePlaceWithImage} />);
+    expect(screen.getByRole('img')).toBeTruthy();
   });
 
-  it('FE-COMP-AVATAR-012: sets photoSrc from cached thumbnail when cache hit', () => {
-    vi.mocked(getCached).mockReturnValue({ thumbDataUrl: 'data:image/jpeg;base64,abc', photoUrl: null } as any);
-
-    const { container } = render(
-      <PlaceAvatar place={{ ...basePlaceNoImage, google_place_id: 'gid123' }} />
-    );
-
-    const img = container.querySelector('img') as HTMLImageElement;
-    expect(img).toBeTruthy();
-    expect(img.src).toContain('data:image/jpeg;base64,abc');
-  });
-
-  it('FE-COMP-AVATAR-013: registers onThumbReady callback when photo is loading', () => {
-    vi.mocked(getCached).mockReturnValue(null);
-    vi.mocked(isLoading).mockReturnValue(true);
-
-    render(<PlaceAvatar place={{ ...basePlaceNoImage, google_place_id: 'gid456' }} />);
-
-    act(() => {
-      observerInstance?.callback([{ isIntersecting: true }]);
-    });
-
-    expect(vi.mocked(onThumbReady)).toHaveBeenCalledWith('gid456', expect.any(Function));
-  });
-
-  it('FE-COMP-AVATAR-014: does not call fetchPhoto when image_url is set', () => {
-    render(<PlaceAvatar place={basePlaceWithImage} />);
-    expect(vi.mocked(fetchPhoto)).not.toHaveBeenCalled();
-  });
-
-  it('FE-COMP-AVATAR-015: IntersectionObserver disconnected on unmount', () => {
-    const { unmount } = render(<PlaceAvatar place={basePlaceNoImage} />);
-    unmount();
-    expect(mockDisconnect).toHaveBeenCalled();
-  });
-
-  it('FE-COMP-AVATAR-016: does not set up IntersectionObserver when image_url present', () => {
-    render(<PlaceAvatar place={basePlaceWithImage} />);
-    expect(mockObserve).not.toHaveBeenCalled();
+  it('FE-COMP-AVATAR-012: clears the image when image_url is removed', () => {
+    const { rerender } = render(<PlaceAvatar place={basePlaceWithImage} />);
+    rerender(<PlaceAvatar place={basePlaceNoImage} />);
+    expect(screen.queryByRole('img')).toBeNull();
   });
 });

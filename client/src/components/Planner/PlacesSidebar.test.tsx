@@ -1,32 +1,13 @@
 // FE-COMP-PLACES-001 to FE-COMP-PLACES-015 + FE-PLANNER-SIDEBAR-016 to 043
 import { render, screen, fireEvent, waitFor, act, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
-import { placesApi } from '../../api/client';
 import { installTouchDragBridge } from '../../utils/touchDragBridge';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildPlace, buildCategory, buildDay, buildAssignment } from '../../../tests/helpers/factories';
-import { server } from '../../../tests/helpers/msw/server';
 import PlacesSidebar from './PlacesSidebar';
-
-// Mock photoService so PlaceAvatar doesn't trigger API calls
-vi.mock('../../services/photoService', () => ({
-  getCached: vi.fn(() => null),
-  isLoading: vi.fn(() => false),
-  fetchPhoto: vi.fn(),
-  onThumbReady: vi.fn(() => () => {}),
-}));
-
-// PlaceAvatar uses `new IntersectionObserver(...)` — needs a class-based mock
-class MockIO {
-  observe = vi.fn();
-  disconnect = vi.fn();
-  unobserve = vi.fn();
-}
-beforeAll(() => { (globalThis as any).IntersectionObserver = MockIO; });
 
 const defaultProps = {
   tripId: 1,
@@ -656,117 +637,6 @@ describe('Mobile day-picker (portal)', () => {
   });
 });
 
-// ── GPX import ────────────────────────────────────────────────────────────────
-
-describe('GPX import', () => {
-  it('FE-PLANNER-SIDEBAR-038: "Import file" button opens the file import modal', async () => {
-    const user = userEvent.setup();
-    render(<PlacesSidebar {...defaultProps} />);
-    await user.click(screen.getByText(/Import file/i));
-    expect(await screen.findByText(/\.gpx.*\.kml.*\.kmz/i)).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-SIDEBAR-039: successful GPX import via modal shows success toast', async () => {
-    const importSpy = vi.spyOn(placesApi, 'importGpx').mockResolvedValueOnce({ count: 2, places: [{ id: 10 }, { id: 11 }] });
-    const loadTrip = vi.fn().mockResolvedValue(undefined);
-    seedStore(useTripStore, { loadTrip });
-    const addToast = vi.fn();
-    (window as any).__addToast = addToast;
-    const user = userEvent.setup();
-    render(<PlacesSidebar {...defaultProps} pushUndo={vi.fn()} />);
-    await user.click(screen.getByText(/Import file/i));
-    const fileInput = document.querySelector('input[type="file"][accept=".gpx,.kml,.kmz"]') as HTMLInputElement;
-    expect(fileInput).toBeTruthy();
-    const file = new File(['track data'], 'route.gpx', { type: 'application/gpx+xml' });
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [file] } });
-    });
-    await user.click(screen.getByRole('button', { name: /^import$/i }));
-    await waitFor(() => {
-      expect(addToast).toHaveBeenCalledWith(
-        expect.stringContaining('2'),
-        'success',
-        undefined,
-      );
-    });
-    importSpy.mockRestore();
-  });
-});
-
-// ── Google Maps list import ───────────────────────────────────────────────────
-
-describe('Google Maps list import', () => {
-  it('FE-PLANNER-SIDEBAR-040: "Google List" button opens the URL dialog', async () => {
-    const user = userEvent.setup();
-    render(<PlacesSidebar {...defaultProps} />);
-    await user.click(screen.getByText(/List Import/i));
-    expect(await screen.findByPlaceholderText(/maps\.app\.goo\.gl/i)).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-SIDEBAR-041: import button disabled when URL input is empty', async () => {
-    const user = userEvent.setup();
-    render(<PlacesSidebar {...defaultProps} />);
-    await user.click(screen.getByText(/List Import/i));
-    await screen.findByPlaceholderText(/maps\.app\.goo\.gl/i);
-    const importBtn = screen.getByRole('button', { name: /^Import$/i });
-    expect(importBtn).toBeDisabled();
-  });
-
-  it('FE-PLANNER-SIDEBAR-042: successful Google list import shows success toast and closes dialog', async () => {
-    server.use(
-      http.post('/api/trips/1/places/import/google-list', () =>
-        HttpResponse.json({ count: 3, listName: 'My List', places: [{ id: 20 }, { id: 21 }, { id: 22 }] })
-      ),
-    );
-    const loadTrip = vi.fn().mockResolvedValue(undefined);
-    seedStore(useTripStore, { loadTrip });
-    const addToast = vi.fn();
-    (window as any).__addToast = addToast;
-    const user = userEvent.setup();
-    render(<PlacesSidebar {...defaultProps} pushUndo={vi.fn()} />);
-    await user.click(screen.getByText(/List Import/i));
-    const urlInput = await screen.findByPlaceholderText(/maps\.app\.goo\.gl/i);
-    await user.type(urlInput, 'https://maps.app.goo.gl/abc123');
-    await user.click(screen.getByRole('button', { name: /^Import$/i }));
-    await waitFor(() => {
-      expect(addToast).toHaveBeenCalledWith(
-        expect.stringContaining('3'),
-        'success',
-        undefined,
-      );
-    });
-    // Dialog should close
-    await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/maps\.app\.goo\.gl/i)).not.toBeInTheDocument();
-    });
-  });
-
-  it('FE-PLANNER-SIDEBAR-043: pressing Enter in URL field triggers import', async () => {
-    server.use(
-      http.post('/api/trips/1/places/import/google-list', () =>
-        HttpResponse.json({ count: 1, listName: 'Test', places: [{ id: 30 }] })
-      ),
-    );
-    const loadTrip = vi.fn().mockResolvedValue(undefined);
-    seedStore(useTripStore, { loadTrip });
-    const addToast = vi.fn();
-    (window as any).__addToast = addToast;
-    const user = userEvent.setup();
-    render(<PlacesSidebar {...defaultProps} pushUndo={vi.fn()} />);
-    await user.click(screen.getByText(/List Import/i));
-    const urlInput = await screen.findByPlaceholderText(/maps\.app\.goo\.gl/i);
-    await user.type(urlInput, 'https://maps.app.goo.gl/xyz{Enter}');
-    await waitFor(() => {
-      expect(addToast).toHaveBeenCalledWith(
-        expect.stringContaining('1'),
-        'success',
-        undefined,
-      );
-    });
-  });
-
-});
-
 // #1616: a tablet is a coarse pointer at a desktop width, and it sees both panes, so
 // it has somewhere to drag a place to. A coarse pointer used to switch the drag off by
 // itself, which left the reporter's iPad selecting text instead of picking up a row.
@@ -782,21 +652,12 @@ describe('touch device at desktop width (#1616)', () => {
     expect((container.firstChild as HTMLElement).hasAttribute('data-touch-drag')).toBe(true);
   });
 
-  it('FE-PLANNER-SIDEBAR-045: dragging over the sidebar raises the drop-to-import overlay', () => {
-    const place = buildPlace({ id: 7, name: 'Tablet Place' });
-    const { container } = render(<PlacesSidebar {...tabletProps} places={[place]} />);
-    fireEvent.dragEnter(container.firstChild as HTMLElement);
-    expect(screen.getByText('Drop to import')).toBeInTheDocument();
-  });
-
   it('FE-PLANNER-SIDEBAR-046: below lg the rows stay undraggable and the bridge stays out', () => {
     const place = buildPlace({ id: 7, name: 'Narrow Place' });
     const { container } = render(<PlacesSidebar {...defaultProps} isMobile places={[place]} />);
     const placeRow = screen.getByText('Narrow Place').closest('div[draggable]')!;
     expect(placeRow.getAttribute('draggable')).toBe('false');
     expect((container.firstChild as HTMLElement).hasAttribute('data-touch-drag')).toBe(false);
-    fireEvent.dragEnter(container.firstChild as HTMLElement);
-    expect(screen.queryByText('Drop to import')).not.toBeInTheDocument();
   });
 });
 

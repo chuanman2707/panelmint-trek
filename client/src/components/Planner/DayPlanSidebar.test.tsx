@@ -75,13 +75,6 @@ vi.mock('../Map/RouteCalculator', () => ({
 class MockIO { observe = vi.fn(); disconnect = vi.fn(); unobserve = vi.fn() }
 beforeAll(() => { (globalThis as any).IntersectionObserver = MockIO })
 
-vi.mock('../../services/photoService', () => ({
-  getCached: vi.fn(() => null),
-  isLoading: vi.fn(() => false),
-  fetchPhoto: vi.fn(),
-  onThumbReady: vi.fn(() => () => {}),
-}))
-
 vi.mock('../../hooks/useDayNotes', () => ({
   useDayNotes: () => mockDayNotesState,
 }))

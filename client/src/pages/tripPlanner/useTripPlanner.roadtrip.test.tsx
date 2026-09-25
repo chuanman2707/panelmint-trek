@@ -62,11 +62,6 @@ vi.mock('../../repo/accommodationRepo', () => ({
   accommodationRepo: { list: vi.fn(async () => ({ accommodations: [] })) },
 }))
 
-vi.mock('../../services/photoService', () => ({
-  getCached: vi.fn(() => undefined),
-  fetchPhoto: vi.fn(),
-}))
-
 // ── The road trip fixtures ────────────────────────────────────────────────────
 // One object per hook, kept identity-stable across renders so the hook's own
 // memoisation behaves the way it does in the app. Set the fields BEFORE mounting.

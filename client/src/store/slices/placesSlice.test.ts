@@ -22,65 +22,6 @@ function apiError(message: string): unknown {
 }
 
 describe('placesSlice', () => {
-  describe('uploadPlaceImage', () => {
-    it('FE-TSLICE-PLACE-001: applies the returned place and keeps the assignment times', async () => {
-      const place = buildPlace({ id: 10, trip_id: 1, image_url: null });
-      const assignment = buildAssignment({
-        id: 100,
-        day_id: 3,
-        // The override is what makes the embedded copy differ from the pool row:
-        // the server projects COALESCE(assignment_time, place_time), so without
-        // it these two could not disagree in the first place.
-        assignment_time: '09:00',
-        assignment_end_time: '10:30',
-        place: { ...place, place_time: '09:00', end_time: '10:30' },
-      });
-      seedStore(useTripStore, { places: [place], assignments: { '3': [assignment] } });
-
-      const uploaded: Place = { ...place, image_url: '/uploads/places/pic.jpg' };
-      vi.spyOn(placesApi, 'uploadImage').mockResolvedValue({ place: uploaded });
-
-      const result = await useTripStore
-        .getState()
-        .uploadPlaceImage(1, 10, new File(['x'], 'pic.jpg', { type: 'image/jpeg' }));
-
-      expect(result.image_url).toBe('/uploads/places/pic.jpg');
-      expect(useTripStore.getState().places[0].image_url).toBe('/uploads/places/pic.jpg');
-      const embedded = useTripStore.getState().assignments['3'][0].place;
-      expect(embedded.image_url).toBe('/uploads/places/pic.jpg');
-      // The assignment owns these times, so the fresh place must not overwrite them.
-      expect(embedded.place_time).toBe('09:00');
-      expect(embedded.end_time).toBe('10:30');
-    });
-
-    it('FE-TSLICE-PLACE-002: leaves the assignments map alone when no day embeds the place', async () => {
-      const place = buildPlace({ id: 10, trip_id: 1 });
-      const other = buildPlace({ id: 20, trip_id: 1 });
-      const assignment = buildAssignment({ id: 100, day_id: 3, place: other });
-      seedStore(useTripStore, { places: [place, other], assignments: { '3': [assignment] } });
-      const before = useTripStore.getState().assignments;
-
-      vi.spyOn(placesApi, 'uploadImage').mockResolvedValue({
-        place: { ...place, image_url: '/uploads/places/pic.jpg' },
-      });
-
-      await useTripStore.getState().uploadPlaceImage(1, 10, new File(['x'], 'pic.jpg'));
-
-      expect(useTripStore.getState().assignments).toBe(before);
-      expect(useTripStore.getState().places[0].image_url).toBe('/uploads/places/pic.jpg');
-    });
-
-    it('FE-TSLICE-PLACE-003: surfaces the server message on failure', async () => {
-      seedStore(useTripStore, { places: [buildPlace({ id: 10, trip_id: 1 })] });
-      vi.spyOn(placesApi, 'uploadImage').mockRejectedValue(apiError('Image too large'));
-
-      await expect(
-        useTripStore.getState().uploadPlaceImage(1, 10, new File(['x'], 'pic.jpg')),
-      ).rejects.toThrow('Image too large');
-      expect(useTripStore.getState().places[0].image_url).toBeNull();
-    });
-  });
-
   describe('ratePlace', () => {
     it('FE-TSLICE-PLACE-004: a numeric rating is PUT and the fresh average is applied', async () => {
       const place = buildPlace({ id: 10, trip_id: 1 });

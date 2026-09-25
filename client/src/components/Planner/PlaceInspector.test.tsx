@@ -21,13 +21,6 @@ vi.mock('../../api/client', async (importOriginal) => {
   };
 });
 
-vi.mock('../../services/photoService', () => ({
-  getCached: vi.fn(() => null),
-  isLoading: vi.fn(() => false),
-  fetchPhoto: vi.fn(),
-  onThumbReady: vi.fn(() => () => {}),
-}));
-
 // ── IntersectionObserver stub ─────────────────────────────────────────────────
 
 class MockIO {
@@ -849,20 +842,6 @@ describe('PlaceInspector', () => {
     }
   });
 
-  // ── Custom thumbnail upload (#1136) ──────────────────────────────────────────
-
-  it('FE-PLANNER-INSPECTOR-049: onUploadImage in trip mode renders the upload-capable avatar', () => {
-    render(<PlaceInspector {...defaultProps} onUploadImage={vi.fn()} />);
-    // The place carries no image yet, so the avatar offers "Upload image".
-    expect(screen.getByRole('button', { name: 'Upload image' })).toBeTruthy();
-  });
-
-  it('FE-PLANNER-INSPECTOR-050: without onUploadImage the avatar has no upload control', () => {
-    render(<PlaceInspector {...defaultProps} />);
-    expect(screen.queryByRole('button', { name: 'Upload image' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Change image' })).toBeNull();
-  });
-
 // ── Track colour (#776) ──────────────────────────────────────────────────────
 
   it('FE-PLANNER-INSPECTOR-051: the colour row only exists for a place with geometry', () => {
@@ -1193,17 +1172,6 @@ describe('PlaceInspector', () => {
     expect(onSetParticipants).toHaveBeenCalledWith(9, 1, []);
   });
 
-  // ── Custom thumbnail callbacks (#1136) ───────────────────────────────────────
-
-  it('FE-PLANNER-INSPECTOR-088: removing the custom image clears image_url through onUpdatePlace', async () => {
-    const onUpdatePlace = vi.fn();
-    const onUploadImage = vi.fn(async () => {});
-    const withImage = buildPlace({ id: 706, name: 'Pictured', image_url: '/uploads/places/x.jpg' });
-    render(<PlaceInspector {...defaultProps} place={withImage} onUpdatePlace={onUpdatePlace} onUploadImage={onUploadImage} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Remove image' }));
-    expect(onUpdatePlace).toHaveBeenCalledWith(706, { image_url: null });
-  });
-
   it('FE-PLANNER-INSPECTOR-090: opening hours are read for the selected day, not for today', async () => {
     const withId = buildPlace({ id: 707, name: 'Day-aware', google_place_id: 'gp-707' });
     vi.mocked(mapsApi.details).mockResolvedValue({
@@ -1318,15 +1286,6 @@ describe('PlaceInspector', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it('FE-PLANNER-INSPECTOR-089: picking a file hands it to onUploadImage', async () => {
-    const onUploadImage = vi.fn(async () => {});
-    render(<PlaceInspector {...defaultProps} onUploadImage={onUploadImage} />);
-    const input = document.querySelector('input[accept*="image"]') as HTMLInputElement;
-    const file = new File(['x'], 'thumb.png', { type: 'image/png' });
-    fireEvent.change(input, { target: { files: [file] } });
-    await waitFor(() => expect(onUploadImage).toHaveBeenCalledWith(place.id, file));
   });
 
   it('FE-PLANNER-INSPECTOR-098: deselecting and reselecting a place survives a rerender', async () => {

@@ -2,7 +2,7 @@
 import { createElement } from 'react'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { FileText, Info, Clock, MapPin, Navigation, Train, Plane, Bus, Car, Ship, Sailboat, Bike, CarTaxiFront, Route, Coffee, Ticket, Star, Heart, Camera, Flag, Lightbulb, AlertTriangle, ShoppingBag, Bookmark, Hotel, LogIn, LogOut, KeyRound, BedDouble, Utensils, Users, ParkingSquare, LucideIcon } from 'lucide-react'
-import { accommodationsApi, mapsApi } from '../../api/client'
+import { accommodationsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNote, DistanceUnit } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
@@ -10,7 +10,6 @@ import { safeHexColor } from '../../utils/safeColor'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useAuthStore } from '../../store/authStore'
 import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry'
 import { buildTripMapSvg } from './tripMapSvg'
 import { formatDistance } from '../../utils/units'
@@ -157,30 +156,6 @@ function dayCost(assignments, dayId, locale, tripCurrency, rates) {
 // the full place from the trip's places pool and key the photo off the same id the
 // app UI uses (google_place_id || osm_id || coords) — otherwise OSM/coords-only
 // places fell back to category icons in the PDF even though they show photos in-app.
-async function fetchPlacePhotos(assignments: AssignmentsMap, places: Place[]) {
-  const photoMap = {} // placeId → photoUrl
-  // The assignment projection drops osm_id, so recover it from the full places pool.
-  const osmById = new Map((places || []).map(p => [p.id, p.osm_id]))
-  const allPlaces = Object.values(assignments).flatMap(a => a.map(x => x.place)).filter(Boolean)
-  const unique = [...new Map(allPlaces.map(p => [p.id, p])).values()]
-
-  const toFetch = unique
-    .map(p => ({ p, osm_id: osmById.get(p.id) }))
-    .filter(({ p, osm_id }) => !p.image_url && (p.google_place_id || osm_id || (p.lat != null && p.lng != null)))
-
-  await Promise.allSettled(
-    toFetch.map(async ({ p, osm_id }) => {
-      // Same key the app UI uses: google_place_id || osm_id || coords.
-      const photoId = p.google_place_id || osm_id || `coords:${p.lat}:${p.lng}`
-      try {
-        const data = await mapsApi.placePhoto(photoId, p.lat, p.lng, p.name)
-        if (data.photoUrl) photoMap[p.id] = data.photoUrl
-      } catch {}
-    })
-  )
-  return photoMap
-}
-
 interface downloadTripPDFProps {
   trip: Trip
   days: Day[]
@@ -225,7 +200,7 @@ function planAssignments(assignments: AssignmentsMap, showServiceStops: boolean)
 }
 
 // `assignments` is normalised here once, to the plan's own list; every read below
-// (and fetchPlacePhotos) relies on it being an object.
+// relies on it being an object.
 export async function downloadTripPDF({ trip, days, places, assignments: stored = {}, categories, dayNotes, reservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit, showServiceStops = true }: downloadTripPDFProps) {
   const assignments = planAssignments(stored, showServiceStops)
   const breaksPerDay = pageBreakPerDay()
@@ -307,12 +282,6 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
   <div class="trip-map-credit">${escHtml(tr('pdf.mapCredit'))}</div>
 </div>` : ''
 
-
-  // Pre-fetch place photos (Google, OSM and coords-only places) — skipped when
-  // the capability is off; PanelMint Local has no `/api/maps/place-photo` proxy.
-  const photoMap = useAuthStore.getState().placesPhotosEnabled
-    ? await fetchPlacePhotos(assignments, places)
-    : {}
 
   const totalAssigned = new Set(
     Object.values(assignments).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
@@ -531,11 +500,9 @@ export async function downloadTripPDF({ trip, days, places, assignments: stored 
           const cat = categories.find(c => c.id === place.category_id)
           const color = safeHexColor(cat?.color, '#6366f1')
 
-          // Image: direct > google photo > fallback icon. Both go through safeImg
-          // so the proxy path is resolved to an absolute URL the PDF can load.
-          const directImg = safeImg(place.image_url)
-          const googleImg = safeImg(photoMap[place.id])
-          const img = directImg || googleImg
+          // Image: the place's own URL or the fallback icon. There is no photo
+          // proxy to ask for a provider picture.
+          const img = safeImg(place.image_url)
 
           const iconSvg = categoryIconSvg(cat?.icon, color, 24)
           const thumbHtml = img

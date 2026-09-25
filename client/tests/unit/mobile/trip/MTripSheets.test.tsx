@@ -47,14 +47,6 @@ vi.mock('../../../../src/mobile/screens/trip/sheets/MNoteSheet', () => ({
   ),
 }))
 
-vi.mock('../../../../src/mobile/screens/trip/sheets/MImportSheet', () => ({
-  default: ({ open, onClose }: { open: boolean; onClose: () => void }) => (
-    <div data-testid="stub-import" data-open={String(open)}>
-      <button type="button" onClick={onClose}>close import</button>
-    </div>
-  ),
-}))
-
 vi.mock('../../../../src/mobile/screens/trip/sheets/MPlaceEditSheet', () => ({
   default: ({ planner }: StubProps) => <div data-testid="stub-placeedit" data-trip={planner.tripId} />,
 }))
@@ -146,7 +138,7 @@ describe('MTripSheets', () => {
   it('FE-MOB-SHOST-001: mounts every sheet of the host with the same planner and shell', () => {
     renderHost({}, { sheet: null })
     for (const id of ['stub-place', 'stub-day', 'stub-days', 'stub-accommodation', 'stub-transport',
-      'stub-bract', 'stub-mehr', 'stub-export', 'stub-note', 'stub-import', 'stub-placeedit',
+      'stub-bract', 'stub-mehr', 'stub-export', 'stub-note', 'stub-placeedit',
       'stub-reservation', 'stub-transportform', 'stub-tripform']) {
       expect(screen.getByTestId(id)).toBeInTheDocument()
     }
@@ -169,11 +161,10 @@ describe('MTripSheets', () => {
 
   it.each([
     ['note', 'stub-note'],
-    ['import', 'stub-import'],
     ['tripedit', 'stub-tripform'],
   ])('FE-MOB-SHOST-003: opens only %s for its own id', (id, testid) => {
     renderHost({}, { sheet: { id } })
-    const hostRouted = ['stub-note', 'stub-import', 'stub-tripform']
+    const hostRouted = ['stub-note', 'stub-tripform']
     for (const other of hostRouted) {
       expect(screen.getByTestId(other)).toHaveAttribute('data-open', String(other === testid))
     }
@@ -189,11 +180,10 @@ describe('MTripSheets', () => {
     expect(screen.getByTestId('stub-note')).toHaveAttribute('data-day', 'none')
   })
 
-  it('FE-MOB-SHOST-006: the note and import sheets close through the shell', () => {
+  it('FE-MOB-SHOST-006: the note sheet closes through the shell', () => {
     const { shell } = renderHost({}, { sheet: { id: 'note' } })
     fireEvent.click(screen.getByText('close note'))
-    fireEvent.click(screen.getByText('close import'))
-    expect(shell.closeSheet).toHaveBeenCalledTimes(2)
+    expect(shell.closeSheet).toHaveBeenCalledTimes(1)
   })
 
   it('FE-MOB-SHOST-007: saving the trip form updates the trip and toasts', async () => {

@@ -6,9 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace, buildReservation } from '../../../tests/helpers/factories'
 import { MAP_MAX_ZOOM } from '../../constants/mapDefaults'
-import { useAuthStore } from '../../store/authStore'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
-import * as photoService from '../../services/photoService'
 
 const mapMock = vi.hoisted(() => ({
   getContainer: vi.fn(() => document.createElement('div')),
@@ -51,10 +49,6 @@ const geoMock = vi.hoisted(() => ({
 vi.mock('../../hooks/useGeolocation', () => ({
   useGeolocation: () => geoMock,
 }))
-
-// onThumbReady callbacks are captured so a test can play back a photo landing
-// after the map already rendered.
-const thumbCallbacks = vi.hoisted(() => new Map<string, (thumb: string) => void>())
 
 // The cluster group and the Leaflet markers MapView reaches for when a selection lands
 // on a stop that shares its coordinates and so has no pin of its own. `stacked` decides
@@ -182,17 +176,6 @@ vi.mock('leaflet', () => {
   return { default: leaflet, ...leaflet }
 })
 
-vi.mock('../../services/photoService', () => ({
-  getCached: vi.fn(() => null),
-  isLoading: vi.fn(() => false),
-  fetchPhoto: vi.fn(),
-  onThumbReady: vi.fn((key: string, cb: (thumb: string) => void) => {
-    thumbCallbacks.set(key, cb)
-    return () => { thumbCallbacks.delete(key) }
-  }),
-  getAllThumbs: vi.fn(() => ({})),
-}))
-
 import { MapView } from './MapView'
 
 // Helper: build a place with the extra fields MapView uses (category_name/color/icon)
@@ -209,12 +192,6 @@ function buildMapPlace(overrides: Record<string, any> = {}) {
 
 const ORIGINAL_WIDTH = window.innerWidth
 
-beforeEach(() => {
-  // The photo-thumbnail suite covers the flag-on path; the local build's
-  // default is off, and resetAllStores restores that default after each test.
-  useAuthStore.setState({ placesPhotosEnabled: true })
-})
-
 afterEach(() => {
   vi.clearAllMocks()
   resetAllStores()
@@ -222,7 +199,6 @@ afterEach(() => {
   clusterMock.asked.length = 0
   clusterMock.stacked = false
   mapMock.panes.clear()
-  thumbCallbacks.clear()
   geoMock.position = null
   geoMock.mode = 'off'
   geoMock.error = null
@@ -420,16 +396,6 @@ describe('MapView', () => {
     render(<MapView places={places} />)
     // Marker still renders; base64 path in createPlaceIcon should be exercised
     expect(screen.getByTestId('marker')).toBeTruthy()
-  })
-
-  it('FE-COMP-MAPVIEW-015: uses cached photo thumb from photoService when available', () => {
-    vi.mocked(photoService.getCached).mockReturnValue({ thumbDataUrl: 'data:image/jpeg;base64,abc' } as any)
-    const places = [
-      buildMapPlace({ id: 20, lat: 48.0, lng: 2.0, google_place_id: 'gplace_123' }),
-    ]
-    render(<MapView places={places} />)
-    expect(screen.getByTestId('marker')).toBeTruthy()
-    vi.mocked(photoService.getCached).mockReturnValue(null)
   })
 
   it('FE-COMP-MAPVIEW-016: tooltip shows address when present', async () => {
@@ -1177,103 +1143,6 @@ describe('MapView bounds fitting', () => {
   })
 })
 
-describe('MapView photo thumbnails', () => {
-  const THUMB = 'data:image/jpeg;base64,THUMBDATA'
-
-  it('FE-COMP-MAPVIEW-068: a photo that arrives after mount is folded into the marker icon', async () => {
-    render(<MapView places={[buildMapPlace({ id: 21, lat: 48, lng: 2, google_place_id: 'gp-21' })]} />)
-    const deliver = thumbCallbacks.get('gp-21')
-    expect(deliver).toBeTypeOf('function')
-
-    // Two deliveries in one frame collapse into a single re-render.
-    act(() => { deliver!(THUMB); deliver!(THUMB) })
-    await waitFor(() => expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toContain(THUMB))
-  })
-
-  it('FE-COMP-MAPVIEW-069: re-delivering the same thumb does not change the icon', async () => {
-    render(<MapView places={[buildMapPlace({ id: 22, lat: 48, lng: 2, google_place_id: 'gp-22' })]} />)
-    const deliver = thumbCallbacks.get('gp-22')!
-    act(() => { deliver(THUMB) })
-    await waitFor(() => expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toContain(THUMB))
-
-    const before = iconHtmlOf(screen.getAllByTestId('marker')[0])
-    act(() => { deliver(THUMB) })
-    await waitFor(() => expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toBe(before))
-  })
-
-  it('FE-COMP-MAPVIEW-075: an unchanged batch keeps the previous photo state object', () => {
-    // Same case as above, but with the batching frame under the test's control so
-    // the "nothing changed" path in the state updater really runs before teardown.
-    const frames: FrameRequestCallback[] = []
-    const flush = () => { frames.splice(0).forEach(cb => cb(0)) }
-    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb))
-    vi.stubGlobal('cancelAnimationFrame', () => { frames.length = 0 })
-    try {
-      render(<MapView places={[buildMapPlace({ id: 24, lat: 48, lng: 2, google_place_id: 'gp-24' })]} />)
-      const deliver = thumbCallbacks.get('gp-24')!
-
-      act(() => { deliver(THUMB) })
-      act(flush)
-      const withThumb = iconHtmlOf(screen.getAllByTestId('marker')[0])
-      expect(withThumb).toContain(THUMB)
-
-      act(() => { deliver(THUMB) })
-      act(flush)
-      expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toBe(withThumb)
-    } finally {
-      vi.unstubAllGlobals()
-    }
-  })
-
-  it('FE-COMP-MAPVIEW-070: a place with a custom uploaded image is never auto-fetched', () => {
-    render(<MapView places={[buildMapPlace({ id: 23, lat: 48, lng: 2, image_url: '/uploads/places/mine.jpg' })]} />)
-    expect(thumbCallbacks.size).toBe(0)
-    expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
-    expect(iconHtmlOf(screen.getAllByTestId('marker')[0])).toContain('/uploads/places/mine.jpg')
-  })
-
-  it('FE-COMP-MAPVIEW-076: a place with neither provider id nor coordinates has no cache key and is skipped', () => {
-    render(<MapView places={[
-      buildMapPlace({ id: 25, lat: null, lng: null, image_url: 'https://example.com/a.jpg' }),
-      buildMapPlace({ id: 26, lat: null, lng: null, image_url: 'https://example.com/b.jpg' }),
-    ]} />)
-    expect(thumbCallbacks.size).toBe(0)
-    expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
-  })
-
-  it('FE-COMP-MAPVIEW-071: photos are not fetched at all when the feature is off', () => {
-    useAuthStore.setState({ placesPhotosEnabled: false })
-    render(<MapView places={[buildMapPlace({ id: 24, lat: 48, lng: 2, google_place_id: 'gp-24' })]} />)
-    expect(thumbCallbacks.size).toBe(0)
-    expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
-  })
-
-  it('FE-COMP-MAPVIEW-080: an uploaded photo fills its marker whatever its proportions', () => {
-    // Leaflet's marker pane sets `width: auto` on every img in it, so a photo sized
-    // by attributes was drawn at its full pixel size and the circle only ever showed
-    // the transparent corner of it, over the category colour.
-    render(<MapView places={[buildMapPlace({ id: 27, lat: 48, lng: 2, image_url: '/uploads/places/wide.jpg' })]} />)
-    const holder = document.createElement('div')
-    holder.innerHTML = iconHtmlOf(screen.getAllByTestId('marker')[0])
-    const img = holder.querySelector('img')!
-
-    expect(img.getAttribute('src')).toBe('/uploads/places/wide.jpg')
-    expect(img.style.width).toBe('100%')
-    expect(img.style.height).toBe('100%')
-  })
-
-  it('FE-COMP-MAPVIEW-081: taking the upload off a place asks for its auto photo again, without a reload', () => {
-    const place = buildMapPlace({ id: 28, lat: 48, lng: 2, google_place_id: 'gp-28', name: 'Tower', image_url: '/uploads/places/own.jpg' })
-    const { rerender } = render(<MapView places={[place]} />)
-    expect(vi.mocked(photoService.fetchPhoto)).not.toHaveBeenCalled()
-
-    rerender(<MapView places={[{ ...place, image_url: null }]} />)
-
-    expect(vi.mocked(photoService.fetchPhoto)).toHaveBeenCalledWith('gp-28', 'gp-28', 48, 2, 'Tower')
-    expect(thumbCallbacks.has('gp-28')).toBe(true)
-  })
-})
-
 // The marker HTML is a hand-built string handed to L.divIcon, i.e. innerHTML.
 // Two of its interpolations carry values a user controls.
 describe('MapView — untrusted values in the marker HTML', () => {
@@ -1294,11 +1163,11 @@ describe('MapView — untrusted values in the marker HTML', () => {
     expect(iconHtml()).not.toContain('evil.example')
   })
 
-  it('FE-COMP-MAPVIEW-074: an image_url that passes the /uploads/ prefix check is still escaped', () => {
-    // The prefix check only looks at the start of the string, so a payload can
+  it('FE-COMP-MAPVIEW-074: an image_url that passes the https check is still escaped', () => {
+    // The scheme check only looks at the start of the string, so a payload can
     // satisfy it and then break out of the src="…" attribute.
     render(<MapView places={[buildMapPlace({
-      lat: 48, lng: 2, image_url: '/uploads/x" onerror="alert(1)" y="',
+      lat: 48, lng: 2, image_url: 'https://x.test/a" onerror="alert(1)" y="',
     })]} />)
     expect(iconHtml()).not.toContain('onerror="alert(1)"')
     expect(iconHtml()).toContain('&quot;')

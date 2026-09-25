@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
-Check, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPin, Plus,
+Check, CheckCheck, CheckCircle2, ListChecks, Loader2, MapPin, Plus,
   SlidersHorizontal, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
@@ -26,7 +26,7 @@ import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBro
  *
  * Row taps and quick-add open the 'bract' place-actions sheet via
  * shell.openSheet('bract', { placeId, dayPicker }) — the sheet host renders
- * it. The header ellipsis opens the 'import' sheet (sheets/MImportSheet).
+ * it.
  */
 export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) {
   const { t, places, categories, assignments, days, trip } = planner
@@ -151,16 +151,6 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               label={t('places.filterTracks')}
               onClick={() => { setFilter('tracks'); setSelectedIds(new Set()) }}
             />
-          )}
-          {canEditPlaces && (
-            <button
-              type="button"
-              onClick={() => shell.openSheet('import')}
-              aria-label={t('mobileTrip.importPlaces')}
-              className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted"
-            >
-              <Download size={16} strokeWidth={2} />
-            </button>
           )}
         </div>
 

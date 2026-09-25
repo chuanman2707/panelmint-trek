@@ -456,32 +456,6 @@ describe('tripStore', () => {
     });
   });
 
-  describe('addCategory', () => {
-    it('FE-TSTORE-017: appends the created category to the global list', async () => {
-      seedStore(useTripStore, { categories: [buildCategory({ id: 1, name: 'Existing' })] });
-      server.use(
-        http.post('/api/categories', () =>
-          HttpResponse.json({ category: buildCategory({ id: 2, name: 'Museums', icon: 'landmark' }) }),
-        ),
-      );
-
-      const created = await useTripStore.getState().addCategory({ name: 'Museums', icon: 'landmark' });
-
-      expect(created.icon).toBe('landmark');
-      expect(useTripStore.getState().categories.map(c => c.name)).toEqual(['Existing', 'Museums']);
-    });
-
-    it('FE-TSTORE-018: throws the server message and keeps the list unchanged', async () => {
-      seedStore(useTripStore, { categories: [buildCategory({ id: 1 })] });
-      server.use(
-        http.post('/api/categories', () => HttpResponse.json({ error: 'Category exists' }, { status: 409 })),
-      );
-
-      await expect(useTripStore.getState().addCategory({ name: 'Museums' })).rejects.toThrow('Category exists');
-      expect(useTripStore.getState().categories).toHaveLength(1);
-    });
-  });
-
   describe('handleRemoteEvent', () => {
     it('FE-TSTORE-019: routes a socket event into the store', () => {
       const place = buildPlace({ id: 500, trip_id: 1, name: 'Before' });

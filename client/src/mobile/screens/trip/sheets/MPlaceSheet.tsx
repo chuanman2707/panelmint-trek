@@ -1,12 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
 import {
-Camera, ChevronRight, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
+ChevronRight, ExternalLink, Map as MapIcon, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation, translateApiError } from '../../../../i18n'
-import { normalizeImageFile } from '../../../../utils/convertHeic'
 import { assignmentsApi } from '../../../../api/client'
 import { useTripStore } from '../../../../store/tripStore'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
@@ -45,10 +44,8 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const [uploading, setUploading] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const navBtnRef = useRef<HTMLButtonElement>(null)
-  const [imgBusy, setImgBusy] = useState(false)
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const imageInputRef = useRef<HTMLInputElement | null>(null)
 
   const close = () => {
     planner.setSelectedPlaceId(null)
@@ -155,38 +152,12 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     assignmentInDay ? [assignmentInDay.id] : [],
   )
 
-  const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file || !place) return
-    setImgBusy(true)
-    try {
-      await planner.tripActions.uploadPlaceImage(planner.tripId, place.id, await normalizeImageFile(file))
-    } catch (err: unknown) {
-      planner.toast.error(translateApiError(t, err, 'places.imageUploadError'))
-    } finally {
-      setImgBusy(false)
-    }
-  }
-
   const handleTrackColor = async (color: string | null) => {
     if (!place) return
     try {
       await planner.tripActions.updatePlace(planner.tripId, place.id, { route_color: color })
     } catch (err: unknown) {
       planner.toast.error(translateApiError(t, err, 'common.unknownError'))
-    }
-  }
-
-  const handleImageRemove = async () => {
-    if (!place) return
-    setImgBusy(true)
-    try {
-      await planner.tripActions.updatePlace(planner.tripId, place.id, { image_url: null })
-    } catch (err: unknown) {
-      planner.toast.error(translateApiError(t, err, 'places.imageRemoveError'))
-    } finally {
-      setImgBusy(false)
     }
   }
 
@@ -253,34 +224,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                     <div className="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] border-[1.5px] border-[color:var(--m-avbr)] bg-[color:var(--m-ic)]">
                       <CatIcon size={20} strokeWidth={1.8} className="text-m-muted" />
                     </div>
-                  )}
-                  {canEditPlaces && (
-                    <>
-                      {/* Tap the thumbnail to set a custom image (#1136). */}
-                      <button
-                        type="button"
-                        onClick={() => { if (!imgBusy) imageInputRef.current?.click() }}
-                        aria-label={place.image_url ? t('places.changeImage') : t('places.uploadImage')}
-                        className="absolute inset-0 flex items-center justify-center rounded-[16px]"
-                        style={{ background: imgBusy ? 'rgba(0,0,0,0.45)' : 'transparent' }}
-                      >
-                        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}>
-                          {imgBusy ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
-                        </span>
-                      </button>
-                      {place.image_url && !imgBusy && (
-                        <button
-                          type="button"
-                          onClick={handleImageRemove}
-                          aria-label={t('places.removeImage')}
-                          className="absolute flex items-center justify-center rounded-full"
-                          style={{ top: -5, right: -5, width: 18, height: 18, background: '#ef4444', color: '#fff', border: '2px solid var(--m-sheet)' }}
-                        >
-                          <X size={9} strokeWidth={3} />
-                        </button>
-                      )}
-                      <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" className="hidden" onChange={handleImagePick} />
-                    </>
                   )}
                 </div>
                 {category && (

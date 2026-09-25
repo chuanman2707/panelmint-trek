@@ -50,7 +50,6 @@ interface PlaceFormModalProps {
   prefillCoords?: { lat: number; lng: number; name?: string; address?: string; website?: string; phone?: string; osm_id?: string; stop_type?: RoadtripStopType | null; duration_minutes?: number } | null
   tripId: number
   categories: Category[]
-  onCategoryCreated: (category: { name: string; color?: string; icon?: string }) => Promise<Category> | undefined
   assignmentId: number | null
   dayAssignments?: Assignment[]
   /** Mobile keeps the untouched single-column form; desktop adds the saved-place
@@ -143,7 +142,7 @@ function findDuplicatePlace(
 function usePlaceFormModal(props: PlaceFormModalProps) {
   const {
   isOpen, onClose, onSave, place, prefillCoords, tripId, categories,
-  onCategoryCreated, assignmentId, dayAssignments = [], isMobile = false,
+  assignmentId, dayAssignments = [], isMobile = false,
   onOpenExpense, serviceStop = null,
   } = props
   // Hidden while the addon is off, because the kinds only mean anything to the road trip
@@ -162,8 +161,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const searchMetaRef = useRef<{ query: string; source: string } | null>(null)
   const acMetaRef = useRef<{ query: string; source: string } | null>(null)
   const [isSearchingMaps, setIsSearchingMaps] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [showNewCategory, setShowNewCategory] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   // What the detail column is describing. Null until the user picks a result.
@@ -564,18 +561,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     setForm(prev => ({ ...prev, duration_minutes: minutes }))
   }, [])
 
-  const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) return
-    try {
-      const cat = await onCategoryCreated?.({ name: newCategoryName, color: '#6366f1', icon: 'MapPin' })
-      if (cat) setForm(prev => ({ ...prev, category_id: String(cat.id) }))
-      setNewCategoryName('')
-      setShowNewCategory(false)
-    } catch (err: unknown) {
-      toast.error(t('places.categoryCreateError'))
-    }
-  }
-
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     setPendingFiles(prev => [...prev, ...files])
@@ -705,7 +690,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     prefillCoords,
     tripId,
     categories,
-    onCategoryCreated,
     assignmentId,
     dayAssignments,
     isMobile,
@@ -717,10 +701,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     setMapsResults,
     isSearchingMaps,
     setIsSearchingMaps,
-    newCategoryName,
-    setNewCategoryName,
-    showNewCategory,
-    setShowNewCategory,
     isSaving,
     setIsSaving,
     pendingFiles,
@@ -753,7 +733,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     handleSelectMapsResult,
     handleSelectSuggestion,
     handleSearchKeyDown,
-    handleCreateCategory,
     handleFileAdd,
     handleRemoveFile,
     handlePaste,
@@ -784,7 +763,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     prefillCoords,
     tripId,
     categories,
-    onCategoryCreated,
     assignmentId,
     dayAssignments,
     isMobile,
@@ -796,10 +774,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     setMapsResults,
     isSearchingMaps,
     setIsSearchingMaps,
-    newCategoryName,
-    setNewCategoryName,
-    showNewCategory,
-    setShowNewCategory,
     isSaving,
     setIsSaving,
     pendingFiles,
@@ -830,7 +804,6 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
     handleSelectMapsResult,
     handleSelectSuggestion,
     handleSearchKeyDown,
-    handleCreateCategory,
     handleFileAdd,
     handleRemoveFile,
     handlePaste,
@@ -1114,52 +1087,23 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
         ) : (
         <div>
           <label className="block text-sm font-medium text-content-secondary mb-1">{t('places.formCategory')}</label>
-          {!showNewCategory ? (
-            <div className="flex gap-2">
-              <CustomSelect
-                value={form.category_id}
-                onChange={value => handleChange('category_id', String(value))}
-                placeholder={t('places.noCategory')}
-                options={[
-                  { value: '', label: t('places.noCategory') },
-                  ...(categories || []).map(c => ({
-                    // form.category_id is a string; CustomSelect matches options by
-                    // strict equality, so the option value must be a string too —
-                    // otherwise the chosen category never renders in the trigger.
-                    value: String(c.id),
-                    label: c.name,
-                  })),
-                ]}
-                style={{ flex: 1 }}
-                size="sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewCategory(true)}
-                aria-label={t('places.newCategory')}
-                title={t('places.newCategory')}
-                className="text-content-muted px-2 hover:text-content-secondary"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newCategoryName}
-                onChange={e => setNewCategoryName(e.target.value)}
-                placeholder={t('places.categoryNamePlaceholder')}
-                className="form-input" style={{ flex: 1 }}
-              />
-              <button type="button" onClick={handleCreateCategory} className="bg-accent text-accent-text px-3 rounded-lg hover:bg-accent-hover text-sm">
-                OK
-              </button>
-              <button type="button" onClick={() => setShowNewCategory(false)} className="text-content-muted px-2 text-sm">
-                {t('common.cancel')}
-              </button>
-            </div>
-          )}
+          <CustomSelect
+            value={form.category_id}
+            onChange={value => handleChange('category_id', String(value))}
+            placeholder={t('places.noCategory')}
+            options={[
+              { value: '', label: t('places.noCategory') },
+              ...(categories || []).map(c => ({
+                // form.category_id is a string; CustomSelect matches options by
+                // strict equality, so the option value must be a string too —
+                // otherwise the chosen category never renders in the trigger.
+                value: String(c.id),
+                label: c.name,
+              })),
+            ]}
+            style={{ flex: 1 }}
+            size="sm"
+          />
         </div>
         )}
 
