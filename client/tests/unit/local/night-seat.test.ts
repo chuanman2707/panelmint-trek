@@ -23,6 +23,7 @@ import {
   seatHolds,
   seatIndex,
   standsAhead,
+  staySeatDays,
   type Night,
   type SeatRow,
 } from '../../../src/api/local/ported/night-seat';
@@ -434,6 +435,35 @@ describe('multi-night mirror (attachStayNights / moveStayNights)', () => {
     const mirror = moveStayNights(s, 7, 9, [4, 5], '15:00');
     // Carries touched days 1,4 (moved) and 2,5 (movedExtra); the drop touched 3.
     expect(mirrorTouchedDays(mirror).sort()).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe('staySeatDays — the [start, end) night rule', () => {
+  it('seats every night from the check-in day up to, not including, check-out', () => {
+    // A 3-night stay over days 1..4: nights on 1, 2, 3 — day 4 is check-out.
+    expect(staySeatDays([1, 2, 3, 4], 1, 4)).toEqual([1, 2, 3]);
+    expect(staySeatDays([1, 2, 3], 1, 2)).toEqual([1]);
+  });
+
+  it('orders seats by the trip’s day_number order, not numeric ids (#889)', () => {
+    // Day ids are not sequential in the ordered plan: 9 is day_number 1,
+    // 4 is day_number 2, 7 is day_number 3. A stay from "day 9" to "day 7"
+    // seats [9, 4] — the slice between their positions.
+    expect(staySeatDays([9, 4, 7], 9, 7)).toEqual([9, 4]);
+  });
+
+  it('a same-day stay keeps the server’s one seat on the start day', () => {
+    expect(staySeatDays([1, 2, 3], 2, 2)).toEqual([2]);
+  });
+
+  it('a reversed stay falls back to the single start-day seat', () => {
+    expect(staySeatDays([1, 2, 3], 3, 1)).toEqual([3]);
+  });
+
+  it('dangling refs keep the single start-day seat', () => {
+    expect(staySeatDays([1, 2, 3], 1, 99)).toEqual([1]);
+    expect(staySeatDays([1, 2, 3], 99, 1)).toEqual([99]);
+    expect(staySeatDays([], 1, 2)).toEqual([1]);
   });
 });
 

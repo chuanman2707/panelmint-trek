@@ -8,6 +8,7 @@
 import Dexie from 'dexie'
 import { db } from './panelmintDb'
 import { SEED_CATEGORIES } from '../api/local/ported/seeds'
+import { backfillFlightEndpoints } from '../api/local/reservations'
 // The leaf module, not the store: importing settingsStore would drag the API
 // client and the legacy per-user offline cache into the boot path.
 import { DEFAULT_SETTINGS } from '../store/settingsDefaults'
@@ -81,6 +82,15 @@ export async function bootstrapLocalData(): Promise<void> {
     }
     await db.settings.put({ key: BOOTSTRAP_FLAG, value: true })
   })
+
+  // The server's AirportsService.onApplicationBootstrap hook: repair flight
+  // bookings whose metadata still carries departure/arrival IATAs but no
+  // endpoint rows. Runs after the seed transaction (its own withStore tx
+  // covers every table), unconditionally — the NOT EXISTS scan makes every
+  // pass after the first a no-op, and rows written before the port landed
+  // need the repair regardless of the seed flag. The adapter swallows
+  // errors: a repair pass must never keep the app from booting.
+  await backfillFlightEndpoints()
 }
 
 /**

@@ -1,12 +1,28 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores, seedStore } from '../../helpers/store';
-import { buildReservation } from '../../helpers/factories';
-import { server } from '../../helpers/msw/server';
+import { buildReservation, buildTrip } from '../../helpers/factories';
+import { db } from '../../../src/db/panelmintDb';
+import type { LocalUser, Reservation } from '../../../src/types';
 
-beforeEach(() => {
+const SELF: LocalUser = { id: 1, name: 'Me', is_self: 1 };
+
+/** A stored reservation row — the wire `Reservation` plus the embedded
+ *  collections `reservationWire` reads back (endpoints, day_positions). */
+const storedReservation = (over: Partial<Reservation> = {}): Reservation => ({
+  endpoints: [],
+  day_positions: null,
+  ingest_state: 'live',
+  ...buildReservation(over),
+});
+
+beforeEach(async () => {
   resetAllStores();
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put(SELF);
+  await db.trips.put(buildTrip({ id: 1 }));
 });
 
 describe('reservationsSlice', () => {
@@ -14,12 +30,8 @@ describe('reservationsSlice', () => {
     it('FE-RESERV-001: loadReservations fetches and replaces reservations', async () => {
       seedStore(useTripStore, { reservations: [] });
 
-      const reservation = buildReservation({ trip_id: 1 });
-      server.use(
-        http.get('/api/trips/1/reservations', () =>
-          HttpResponse.json({ reservations: [reservation] })
-        ),
-      );
+      const reservation = storedReservation({ trip_id: 1 });
+      await db.reservations.put(reservation);
 
       await useTripStore.getState().loadReservations(1);
 
@@ -30,7 +42,8 @@ describe('reservationsSlice', () => {
 
   describe('addReservation', () => {
     it('FE-RESERV-002: addReservation prepends to reservations array', async () => {
-      const existing = buildReservation({ trip_id: 1, title: 'Existing' });
+      const existing = storedReservation({ trip_id: 1, title: 'Existing' });
+      await db.reservations.put(existing);
       seedStore(useTripStore, { reservations: [existing] });
 
       const result = await useTripStore.getState().addReservation(1, {
@@ -47,29 +60,18 @@ describe('reservationsSlice', () => {
     });
 
     it('FE-RESERV-003: addReservation on failure throws', async () => {
-      server.use(
-        http.post('/api/trips/1/reservations', () =>
-          HttpResponse.json({ message: 'Error' }, { status: 500 })
-        ),
-      );
-
+      // Trip 99 is not in the database — the access guard's 404 rejects.
       await expect(
-        useTripStore.getState().addReservation(1, { title: 'Fail' })
+        useTripStore.getState().addReservation(99, { title: 'Fail' })
       ).rejects.toThrow();
     });
   });
 
   describe('updateReservation', () => {
     it('FE-RESERV-004: updateReservation replaces item in array by id', async () => {
-      const reservation = buildReservation({ id: 10, trip_id: 1, title: 'Old', status: 'pending' });
+      const reservation = storedReservation({ id: 10, trip_id: 1, title: 'Old', status: 'pending' });
+      await db.reservations.put(reservation);
       seedStore(useTripStore, { reservations: [reservation] });
-
-      server.use(
-        http.put('/api/trips/1/reservations/10', async ({ request }) => {
-          const body = await request.json() as Record<string, unknown>;
-          return HttpResponse.json({ reservation: { ...reservation, ...body } });
-        }),
-      );
 
       const result = await useTripStore.getState().updateReservation(1, 10, { title: 'Updated Hotel' });
 
@@ -80,15 +82,9 @@ describe('reservationsSlice', () => {
 
   describe('toggleReservationStatus', () => {
     it('FE-RESERV-005: toggleReservationStatus flips confirmed to pending optimistically', async () => {
-      const reservation = buildReservation({ id: 10, trip_id: 1, status: 'confirmed' });
+      const reservation = storedReservation({ id: 10, trip_id: 1, status: 'confirmed' });
+      await db.reservations.put(reservation);
       seedStore(useTripStore, { reservations: [reservation] });
-
-      server.use(
-        http.put('/api/trips/1/reservations/10', async ({ request }) => {
-          const body = await request.json() as Record<string, unknown>;
-          return HttpResponse.json({ reservation: { ...reservation, ...body } });
-        }),
-      );
 
       await useTripStore.getState().toggleReservationStatus(1, 10);
 
@@ -96,15 +92,9 @@ describe('reservationsSlice', () => {
     });
 
     it('FE-RESERV-006: toggleReservationStatus flips pending to confirmed optimistically', async () => {
-      const reservation = buildReservation({ id: 10, trip_id: 1, status: 'pending' });
+      const reservation = storedReservation({ id: 10, trip_id: 1, status: 'pending' });
+      await db.reservations.put(reservation);
       seedStore(useTripStore, { reservations: [reservation] });
-
-      server.use(
-        http.put('/api/trips/1/reservations/10', async ({ request }) => {
-          const body = await request.json() as Record<string, unknown>;
-          return HttpResponse.json({ reservation: { ...reservation, ...body } });
-        }),
-      );
 
       await useTripStore.getState().toggleReservationStatus(1, 10);
 
@@ -112,14 +102,9 @@ describe('reservationsSlice', () => {
     });
 
     it('FE-RESERV-007: toggleReservationStatus rolls back and surfaces the error on API failure', async () => {
-      const reservation = buildReservation({ id: 10, trip_id: 1, status: 'confirmed' });
+      const reservation = storedReservation({ id: 10, trip_id: 1, status: 'confirmed' });
+      // The row exists in state only — the local update 404s.
       seedStore(useTripStore, { reservations: [reservation] });
-
-      server.use(
-        http.put('/api/trips/1/reservations/10', () =>
-          HttpResponse.json({ message: 'Error' }, { status: 500 })
-        ),
-      );
 
       // Rolls back the optimistic toggle AND rejects, so the caller's catch can
       // show a toast (previously the failure was swallowed and the toast never fired).
@@ -140,8 +125,9 @@ describe('reservationsSlice', () => {
 
   describe('deleteReservation', () => {
     it('FE-RESERV-009: deleteReservation removes from reservations after API success', async () => {
-      const r1 = buildReservation({ id: 10, trip_id: 1 });
-      const r2 = buildReservation({ id: 20, trip_id: 1 });
+      const r1 = storedReservation({ id: 10, trip_id: 1 });
+      const r2 = storedReservation({ id: 20, trip_id: 1 });
+      await db.reservations.bulkPut([r1, r2]);
       seedStore(useTripStore, { reservations: [r1, r2] });
 
       await useTripStore.getState().deleteReservation(1, 10);
@@ -152,14 +138,9 @@ describe('reservationsSlice', () => {
     });
 
     it('FE-RESERV-010: deleteReservation on failure throws (no optimistic, server-first)', async () => {
-      const reservation = buildReservation({ id: 10, trip_id: 1 });
+      const reservation = storedReservation({ id: 10, trip_id: 1 });
+      // In state only — the local delete reports the row missing.
       seedStore(useTripStore, { reservations: [reservation] });
-
-      server.use(
-        http.delete('/api/trips/1/reservations/10', () =>
-          HttpResponse.json({ message: 'Error' }, { status: 500 })
-        ),
-      );
 
       await expect(useTripStore.getState().deleteReservation(1, 10)).rejects.toThrow();
 

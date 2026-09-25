@@ -2,11 +2,17 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores, seedStore } from '../../helpers/store';
-import { buildBudgetItem, buildReservation } from '../../helpers/factories';
+import { buildBudgetItem, buildReservation, buildTrip } from '../../helpers/factories';
 import { server } from '../../helpers/msw/server';
+import { db } from '../../../src/db/panelmintDb';
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await db.trips.put(buildTrip({ id: 1 }));
 });
 
 describe('budgetSlice', () => {
@@ -77,15 +83,15 @@ describe('budgetSlice', () => {
         reservations: [initialReservation],
       });
 
+      // The reservation list is local now — the refresh re-reads panelmintDb.
+      await db.reservations.put(newReservation);
+
       server.use(
         http.put('/api/trips/1/budget/10', async ({ request }) => {
           const body = await request.json() as Record<string, unknown>;
           // Return item with reservation_id to trigger loadReservations
           return HttpResponse.json({ item: { ...item, ...body, reservation_id: 42 } });
         }),
-        http.get('/api/trips/1/reservations', () =>
-          HttpResponse.json({ reservations: [newReservation] })
-        ),
       );
 
       await useTripStore.getState().updateBudgetItem(1, 10, { total_price: 200 } as Record<string, unknown>);

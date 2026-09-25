@@ -1,20 +1,11 @@
 import { reservationsApi } from '../api/client'
-import { offlineDb, upsertReservations } from '../db/offlineDb'
-import { onlineThenCache } from './withOfflineFallback'
 import type { Reservation } from '../types'
 
 export const reservationRepo = {
   async list(tripId: number | string): Promise<{ reservations: Reservation[] }> {
-    return onlineThenCache(
-      async () => {
-        const result = await reservationsApi.list(tripId)
-        upsertReservations(result.reservations)
-        return result
-      },
-      async () => ({
-        reservations: await offlineDb.reservations
-          .where('trip_id').equals(Number(tripId)).toArray(),
-      }),
-    )
+    // The adapter runs on panelmintDb — the list is always local and durable,
+    // so the offlineDb read-through cache and the online/offline split went
+    // away with the axios surface (same shape the accommodationRepo took).
+    return reservationsApi.list(tripId)
   },
 }

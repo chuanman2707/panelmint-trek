@@ -34,13 +34,14 @@ async function seedLocalTrip(id: number, days: import('../../src/types').Day[] =
 
 /**
  * Full set of MSW handlers for one trip's loadTrip fan-out — trips/days/tags
- * are local now, so the trip row (and any `data.tags` rows) are seeded into
- * `panelmint` and only the still-HTTP resources keep handlers.
+ * and reservations are local now, so the trip row (plus any `data.tags` /
+ * `data.reservations` rows) are seeded into `panelmint` and only the
+ * still-HTTP resources keep handlers.
  */
 async function tripHandlers(
   id: number,
   data: {
-    budget?: unknown[]; reservations?: unknown[]; files?: unknown[];
+    budget?: unknown[]; reservations?: import('../../src/types').Reservation[]; files?: unknown[];
     tags?: unknown[]; categories?: unknown[];
   },
 ) {
@@ -48,11 +49,13 @@ async function tripHandlers(
   for (const tag of data.tags ?? []) {
     await db.tags.put(tag as Tag);
   }
+  for (const reservation of data.reservations ?? []) {
+    await db.reservations.put(reservation);
+  }
   return [
     http.get(`/api/trips/${id}/packing`, () => HttpResponse.json({ items: [] })),
     http.get(`/api/trips/${id}/todo`, () => HttpResponse.json({ items: [] })),
     http.get(`/api/trips/${id}/budget`, () => HttpResponse.json({ items: data.budget ?? [] })),
-    http.get(`/api/trips/${id}/reservations`, () => HttpResponse.json({ reservations: data.reservations ?? [] })),
     http.get(`/api/trips/${id}/files`, () => HttpResponse.json({ files: data.files ?? [] })),
   ];
 }
@@ -212,7 +215,10 @@ describe('tripStore', () => {
       const state = useTripStore.getState();
 
       expect(state.budgetItems).toEqual([budgetItem]);
-      expect(state.reservations).toEqual([reservation]);
+      // The wire row gains adapter-joined fields (endpoints, travelers,
+      // day_positions, day_number, …) beyond the seeded columns.
+      expect(state.reservations).toHaveLength(1);
+      expect(state.reservations[0]).toMatchObject(reservation);
       expect(state.files).toEqual([file]);
     });
 
@@ -265,7 +271,6 @@ describe('tripStore', () => {
       http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: budget })),
-      http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [] })),
       http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
     ];
 
@@ -324,17 +329,15 @@ describe('tripStore', () => {
       expect(useTripStore.getState().trip).toMatchObject({ id: 1, title: 'Updated Trip' });
     });
 
-    it('FE-TRIP-011: updateTrip reloads reservations (re-anchored server-side on date changes, #1288)', async () => {
+    it('FE-TRIP-011: updateTrip reloads reservations (re-anchored on date changes, #1288)', async () => {
       await seedLocalTrip(1);
       const reservation = buildReservation({ id: 7, trip_id: 1, day_id: 21 });
-
-      server.use(
-        http.get('/api/trips/1/reservations', () => HttpResponse.json({ reservations: [reservation] })),
-      );
+      await db.reservations.put(reservation);
 
       await useTripStore.getState().updateTrip(1, { start_date: '2025-05-31' });
 
-      expect(useTripStore.getState().reservations).toEqual([reservation]);
+      expect(useTripStore.getState().reservations).toHaveLength(1);
+      expect(useTripStore.getState().reservations[0]).toMatchObject({ id: 7, trip_id: 1 });
     });
   });
 

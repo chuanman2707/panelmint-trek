@@ -1,4 +1,5 @@
 // FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-064
+import 'fake-indexeddb/auto';
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -6,6 +7,10 @@ import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
+import { db } from '../../db/panelmintDb';
+import { reservationsApi } from '../../api/client';
+import { LocalApiError } from '../../api/local/helpers';
+import type { LocalTripMember } from '../../db/panelmintDb';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import {
   buildUser,
@@ -54,11 +59,27 @@ const defaultProps = {
   onFileDelete: vi.fn().mockResolvedValue(undefined),
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [] });
   vi.clearAllMocks();
+  // setReservationTravelers runs the local adapter — seed the roster the
+  // assignable filter reads (owner via trips.user_id, bob via tripMembers).
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await db.localUsers.put({ id: 2, name: 'bob', is_self: 0 });
+  await db.trips.put(buildTrip({ id: 1 }));
+  await db.tripMembers.put({
+    tripId: 1, id: 2, username: 'bob', role: 'member',
+    added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true,
+  } as LocalTripMember);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('TransportModal', () => {
@@ -941,30 +962,27 @@ describe('TransportModal', () => {
 
   it('FE-PLANNER-TRANSMODAL-044: assigned travelers are written back after the save resolves', async () => {
     const onSave = vi.fn().mockResolvedValue({ id: 60 });
-    let body: { user_ids: number[] } | null = null;
-    server.use(
-      http.put('/api/trips/1/reservations/60/travelers', async ({ request }) => {
-        body = (await request.json()) as { user_ids: number[] };
-        return HttpResponse.json({ travelers: [] });
-      }),
-    );
+    // The traveler write is the local junction now — the persisted rows are
+    // what the request body used to carry.
+    await db.reservations.put(buildReservation({ id: 60, trip_id: 1 }));
 
     render(<TransportModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
     await userEvent.click(screen.getByText('bob'));
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
-    await waitFor(() => expect(body).not.toBeNull());
-    expect(body!.user_ids).toEqual([2]);
+    await waitFor(async () => {
+      const rows = await db.reservationTravelers.where('reservation_id').equals(60).toArray();
+      expect(rows.map((r) => r.user_id)).toEqual([2]);
+    });
   });
 
   it('FE-PLANNER-TRANSMODAL-045: a failing traveler write surfaces an error toast', async () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     const onSave = vi.fn().mockResolvedValue({ id: 61 });
-    server.use(
-      http.put('/api/trips/1/reservations/61/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-    );
+    await db.reservations.put(buildReservation({ id: 61, trip_id: 1 }));
+    vi.spyOn(reservationsApi, 'setTravelers').mockRejectedValue(new LocalApiError(500, 'nope'));
 
     render(<TransportModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH 400');
@@ -1132,17 +1150,12 @@ describe('TransportModal', () => {
 
   it('FE-PLANNER-TRANSMODAL-055: an existing traveler list is toggled off and written back empty', async () => {
     const onSave = vi.fn().mockResolvedValue({ id: 63 });
-    let body: { user_ids: number[] } | null = null;
-    server.use(
-      http.put('/api/trips/1/reservations/63/travelers', async ({ request }) => {
-        body = (await request.json()) as { user_ids: number[] };
-        return HttpResponse.json({ travelers: [] });
-      }),
-    );
     const res = buildReservation({ id: 63, type: 'flight', title: 'LH 400' });
     (res as unknown as { travelers: { user_id: number; username: string }[] }).travelers = [
       { user_id: 1, username: 'alice' },
     ];
+    await db.reservations.put(res);
+    await db.reservationTravelers.put({ id: 1, reservation_id: 63, user_id: 1 });
 
     render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} tripMembers={tripMembers} />);
     // Seeded from the reservation, so alice starts selected.
@@ -1150,8 +1163,9 @@ describe('TransportModal', () => {
     await userEvent.click(screen.getByText('alice'));
     await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
 
-    await waitFor(() => expect(body).not.toBeNull());
-    expect(body!.user_ids).toEqual([]);
+    await waitFor(async () => {
+      expect(await db.reservationTravelers.where('reservation_id').equals(63).count()).toBe(0);
+    });
   });
 
   it('FE-PLANNER-TRANSMODAL-056: a train stop can be added and removed again', async () => {

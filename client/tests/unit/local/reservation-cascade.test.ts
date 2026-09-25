@@ -131,6 +131,22 @@ describe('resolveDayIdFromTime', () => {
     expect(resolveDayIdFromTime(store, 1, '2026-03-03T12:00')).toBe(1);
     expect(resolveDayIdFromTime(store, 1, '2026-03-04T12:00')).toBe(2);
   });
+  it('a dateless day wins the nearest-day clamp — SQLite NULL-first (#889)', () => {
+    // JULIANDAY(NULL) is NULL and NULL sorts first under ASC, so the server's
+    // ORDER BY ABS(...) always landed on a dateless day before measuring any
+    // real distance — even with a dated day a single day away.
+    const withBlank = new MemoryStore({
+      days: [
+        { id: 1, trip_id: 1, day_number: 1, date: '2026-03-01' },
+        { id: 2, trip_id: 1, day_number: 2, date: '2026-03-05' },
+        { id: 3, trip_id: 1, day_number: 3, date: null },
+        { id: 4, trip_id: 1, day_number: 4, date: null },
+      ],
+    });
+    expect(resolveDayIdFromTime(withBlank, 1, '2026-03-04T12:00')).toBe(3);
+    // …and two dateless days settle by id, the way SQLite's stable sort did.
+    expect(withBlank.nearestDay(1, '2026-03-04')?.id).toBe(3);
+  });
   it('returns null without clamping or a usable date part', () => {
     expect(resolveDayIdFromTime(store, 1, '2026-03-03', false)).toBeNull();
     expect(resolveDayIdFromTime(store, 1, 'not-a-date')).toBeNull();
@@ -193,6 +209,46 @@ describe('createReservation', () => {
     expect(acc).toMatchObject({ place_id: 5, start_day_id: 1, end_day_id: 2, check_in: '15:00' });
   });
 
+  it('a multi-night hotel seats every night up to check-out, not just check-in', () => {
+    const store = new MemoryStore({
+      days: [
+        { id: 1, trip_id: 1, day_number: 1, date: '2026-03-01' },
+        { id: 2, trip_id: 1, day_number: 2, date: '2026-03-02' },
+        { id: 3, trip_id: 1, day_number: 3, date: '2026-03-03' },
+      ],
+      places: [{ id: 5, trip_id: 1, name: 'Hotel', lat: 1, lng: 1 }],
+    });
+    const { stayMirror } = createReservation(store, 1, {
+      title: 'Hotel',
+      type: 'hotel',
+      create_accommodation: { place_id: 5, start_day_id: 1, end_day_id: 3, check_in: '15:00' },
+    });
+    // Nights of day 1 and day 2 both get the booking-owned stop; day 3 is
+    // check-out. The first seat is `created`, the rest ride `createdExtra`.
+    expect(stayMirror.created?.day_id).toBe(1);
+    expect(stayMirror.createdExtra.map((a) => a.day_id)).toEqual([2]);
+    const accId = store.accommodations[0].id;
+    expect(store.assignments.filter((a) => a.accommodation_id === accId).map((a) => a.day_id).sort())
+      .toEqual([1, 2]);
+  });
+
+  it('a same-day stay keeps the single start-day seat', () => {
+    const store = new MemoryStore({
+      days: [
+        { id: 1, trip_id: 1, day_number: 1, date: '2026-03-01' },
+        { id: 2, trip_id: 1, day_number: 2, date: '2026-03-02' },
+      ],
+      places: [{ id: 5, trip_id: 1, name: 'Hotel', lat: 1, lng: 1 }],
+    });
+    createReservation(store, 1, {
+      title: 'Hotel',
+      type: 'hotel',
+      create_accommodation: { place_id: 5, start_day_id: 2, end_day_id: 2, check_in: '15:00' },
+    });
+    const accId = store.accommodations[0].id;
+    expect(store.assignments.filter((a) => a.accommodation_id === accId).map((a) => a.day_id)).toEqual([2]);
+  });
+
   it('replaces endpoints, skipping rows without coordinates', () => {
     const store = new MemoryStore({});
     createReservation(store, 1, {
@@ -252,6 +308,33 @@ describe('updateReservation', () => {
     const r = store.reservations[0];
     expect(r.reservation_time).toBeNull();
     expect(JSON.parse(r.metadata!).price).toBe(90);
+  });
+
+  it('shortening a multi-night stay re-seats only the nights still covered', () => {
+    const store = new MemoryStore({
+      days: [
+        { id: 1, trip_id: 1, day_number: 1, date: '2026-03-01' },
+        { id: 2, trip_id: 1, day_number: 2, date: '2026-03-02' },
+        { id: 3, trip_id: 1, day_number: 3, date: '2026-03-03' },
+      ],
+      places: [{ id: 5, trip_id: 1, name: 'Hotel', lat: 1, lng: 1 }],
+      accommodations: [{ id: 7, trip_id: 1, place_id: 5, start_day_id: 1, end_day_id: 3, check_in: '15:00' }],
+      assignments: [
+        { id: 20, day_id: 1, place_id: 5, order_index: 0, assignment_time: null, assignment_end_time: null, accommodation_id: 7 },
+        { id: 21, day_id: 2, place_id: 5, order_index: 0, assignment_time: null, assignment_end_time: null, accommodation_id: 7 },
+      ],
+      reservations: [res({ id: 1, type: 'hotel', accommodation_id: 7 })],
+    });
+    const current = store.getReservation(1, 1)! as never;
+    // The stay shrinks [1,3) → [1,2): the night-2 seat goes back.
+    const { stayMirror } = updateReservation(store, 1, 1, {
+      type: 'hotel',
+      create_accommodation: { place_id: 5, start_day_id: 1, end_day_id: 2, check_in: '15:00' },
+    }, current);
+    expect(stayMirror.removed).toEqual([{ id: 21, dayId: 2 }]);
+    expect(store.assignments.find((a) => a.id === 21)).toBeUndefined();
+    expect(store.assignments.find((a) => a.id === 20)?.accommodation_id).toBe(7);
+    expect(store.accommodations[0].end_day_id).toBe(2);
   });
 });
 

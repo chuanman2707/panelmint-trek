@@ -11,12 +11,14 @@ import type { RoadtripVia } from '@trek/shared';
 import type { AnchoredVia } from '@trek/shared/roadtrip';
 import type { AssignmentTimeStore, DayStopRow } from '../../../../src/api/local/ported/assignment-time';
 import type { DayOpsStore } from '../../../../src/api/local/ported/day-ops';
+import { staySeatDays } from '../../../../src/api/local/ported/night-seat';
 import type {
   MirroredAssignment,
   PinnedVia,
   SeatRow,
   StayMirrorStore,
 } from '../../../../src/api/local/ported/night-seat';
+import type { AirportBackfillStore } from '../../../../src/api/local/ported/airports';
 import type {
   BudgetSyncStore,
   ReservationCascadeStore,
@@ -87,6 +89,13 @@ export interface MemReservation {
   accommodation_id: number | string | null;
   metadata: string | null;
   needs_review: number;
+  day_plan_position?: number | null;
+  day_positions?: Record<string, number> | null;
+}
+/** reservation_travelers junction row. */
+export interface MemTraveler {
+  reservation_id: number;
+  user_id: number;
 }
 export interface MemEndpoint {
   id: number;
@@ -111,6 +120,7 @@ export interface MemVia {
 }
 export interface MemTrip {
   id: number;
+  user_id?: number;
   start_date: string | null;
   end_date: string | null;
 }
@@ -134,6 +144,7 @@ export interface MemTables {
   vias?: MemVia[];
   budgetItems?: MemBudgetItem[];
   settlements?: SettlementStoreRow[];
+  travelers?: MemTraveler[];
 }
 
 let seq = 1000;
@@ -146,7 +157,8 @@ export class MemoryStore
     AssignmentTimeStore,
     ReservationCascadeStore,
     BudgetSyncStore,
-    SettlementStore
+    SettlementStore,
+    AirportBackfillStore
 {
   trips: MemTrip[];
   days: MemDay[];
@@ -158,6 +170,7 @@ export class MemoryStore
   vias: MemVia[];
   budgetItems: MemBudgetItem[];
   settlements: SettlementStoreRow[];
+  travelers: MemTraveler[];
 
   constructor(t: MemTables = {}) {
     this.trips = t.trips ?? [];
@@ -170,6 +183,7 @@ export class MemoryStore
     this.vias = t.vias ?? [];
     this.budgetItems = t.budgetItems ?? [];
     this.settlements = t.settlements ?? [];
+    this.travelers = t.travelers ?? [];
   }
 
   get seat(): this {
@@ -494,13 +508,29 @@ export class MemoryStore
   }
 
   nearestDay(tripId: number, date: string) {
-    // ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC
+    // ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC — verbatim
+    // SQLite: JULIANDAY(NULL) is NULL and NULL sorts first under ASC, so a
+    // dateless day always wins nearest-day when one exists.
     const ms = (d: string | null) => (d ? Date.parse(`${d}T00:00:00Z`) : Number.NaN);
     const target = ms(date);
-    const sorted = this.days
-      .filter((d) => d.trip_id === tripId && d.date)
+    const days = this.days.filter((d) => d.trip_id === tripId);
+    const dateless = days.filter((d) => !d.date).sort((a, b) => a.id - b.id);
+    if (dateless[0]) return { id: dateless[0].id };
+    const sorted = days
+      .filter((d) => d.date)
       .sort((a, b) => Math.abs(ms(a.date) - target) - Math.abs(ms(b.date) - target) || (a.date! < b.date! ? -1 : 1));
     return sorted[0] ? { id: sorted[0].id } : undefined;
+  }
+
+  /** The `[start_day, end_day)` slice of this trip's days in `day_number`
+   *  order — the ported `staySeatDays` rule. Same read as
+   *  DexieStore.seatDayIds. */
+  seatDayIds(tripId: number, startDayId: number, endDayId: number): number[] {
+    return staySeatDays(
+      this.listDays(tripId).map((d) => d.id),
+      startDayId,
+      endDayId,
+    );
   }
 
   listResyncableReservations(tripId: number): ResyncRow[] {
@@ -754,6 +784,45 @@ export class MemoryStore
   deleteReservation(reservationId: number): void {
     this.reservations = this.reservations.filter((r) => r.id !== reservationId);
     this.endpoints = this.endpoints.filter((e) => e.reservation_id !== reservationId);
+    this.travelers = this.travelers.filter((t) => t.reservation_id !== reservationId);
+  }
+
+  /** DexieStore.assignableUserIds — the roster plus the trip's owner. */
+  assignableUserIds(tripId: number): Set<number> {
+    const ids = this.rosterUserIds();
+    const owner = this.trips.find((t) => t.id === tripId)?.user_id;
+    if (owner != null) ids.add(owner);
+    return ids;
+  }
+
+  /** setReservationTravelers — assignable ids only, deduped, delete + insert. */
+  setReservationTravelers(reservationId: number, tripId: number, userIds: number[]): void {
+    const allowed = this.assignableUserIds(tripId);
+    const ids = [...new Set(userIds)].filter((uid) => allowed.has(uid));
+    this.travelers = this.travelers.filter((t) => t.reservation_id !== reservationId);
+    for (const uid of ids) this.travelers.push({ reservation_id: reservationId, user_id: uid });
+  }
+
+  /** updatePositions — the same two branches as the Dexie seam. */
+  updateReservationPositions(
+    tripId: number,
+    positions: { id: number; day_plan_position?: number }[],
+    dayId?: number | string | null,
+  ): void {
+    if (dayId) {
+      const day = this.days.find((d) => d.id === Number(dayId));
+      for (const item of positions) {
+        const r = this.reservations.find((x) => x.id === item.id);
+        if (!r || r.trip_id !== tripId || !day || day.trip_id !== tripId) continue;
+        r.day_positions = { ...r.day_positions, [String(day.id)]: item.day_plan_position ?? 0 };
+      }
+    } else {
+      for (const item of positions) {
+        const r = this.reservations.find((x) => x.id === item.id);
+        if (!r || r.trip_id !== tripId) continue;
+        r.day_plan_position = item.day_plan_position ?? null;
+      }
+    }
   }
 
   // ── SettlementStore ────────────────────────────────────────────────────────

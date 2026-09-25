@@ -55,20 +55,6 @@ function requireStay(store: DexieStore, tripId: number, id: number | string): Ac
   return stay;
 }
 
-/**
- * The days a stay's nights land on: every trip day from the check-in day up to,
- * not including, the check-out day — the night of the check-out day is not the
- * hotel's anymore. A same-day (or reversed) stay keeps the server's one seat
- * on the start day. Day order is `day_number`, not id (#889).
- */
-function staySeatDays(store: DexieStore, tripId: number, startDayId: number, endDayId: number): number[] {
-  const days = store.daysOfTrip(tripId).map((d) => d.id!);
-  const start = days.indexOf(startDayId);
-  const end = days.indexOf(endDayId);
-  if (start < 0 || end < 0 || end <= start) return [startDayId];
-  return days.slice(start, end);
-}
-
 /** The mirror's created seats — one object when the night is the only seat, a
  * list when the stay spans nights, null when none were needed. */
 function wireAssignments(
@@ -189,7 +175,7 @@ export const accommodationsApi = {
 
         return {
           stayId,
-          mirror: attachStayNights(store, stayId, placeId, staySeatDays(store, tid, startDayId, endDayId), check_in),
+          mirror: attachStayNights(store, stayId, placeId, store.seatDayIds(tid, startDayId, endDayId), check_in),
         };
       });
 
@@ -247,7 +233,7 @@ export const accommodationsApi = {
           store,
           aid,
           newPlaceId,
-          staySeatDays(store, tid, newStartDayId, newEndDayId),
+          store.seatDayIds(tid, newStartDayId, newEndDayId),
           newCheckIn ?? null,
           {
             checkInChanged: check_in !== undefined && (check_in || null) !== (existing.check_in || null),

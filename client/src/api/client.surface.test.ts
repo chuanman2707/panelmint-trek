@@ -5,7 +5,7 @@ import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import { db } from '../db/panelmintDb'
-import { buildDay, buildPlace, buildTag, buildTrip } from '../../tests/helpers/factories'
+import { buildDay, buildPlace, buildReservation, buildTag, buildTrip } from '../../tests/helpers/factories'
 import type { DayRow, StoredAssignment } from './local/dexieStore'
 import type { LocalTripMember } from '../db/panelmintDb'
 import { clearWeatherCache } from './ext/openmeteo'
@@ -315,14 +315,26 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-019: reservationsApi maps booking endpoints', async () => {
+  it('FE-APISURF-019: reservationsApi runs locally (Dexie-backed, zero HTTP)', async () => {
+    // The adapter's own suite (tests/unit/local/reservations.test.ts) pins the
+    // envelopes, cascades and error strings; here each method only has to
+    // resolve over seeded rows without emitting a request.
+    const seedResWorld = async () => {
+      await seedTripAndDays() // trips 1+3; days 1,2,3 on trip 1
+      await db.reservations.put(buildReservation({ id: 2, trip_id: 1 }))
+      await db.localUsers.put({ id: 4, name: 'ann', is_self: 0 })
+      await db.tripMembers.put({
+        tripId: 1, id: 4, username: 'ann', role: 'member',
+        added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true,
+      } as LocalTripMember)
+    }
     await assertCalls([
-      { n: 'reservations.list', r: () => reservationsApi.list(1), e: 'GET /api/trips/1/reservations' },
-      { n: 'reservations.create', r: () => reservationsApi.create(1, { title: 'Hotel' }), e: 'POST /api/trips/1/reservations' },
-      { n: 'reservations.update', r: () => reservationsApi.update(1, 2, { title: 'Hostel' }), e: 'PUT /api/trips/1/reservations/2' },
-      { n: 'reservations.delete', r: () => reservationsApi.delete(1, 2), e: 'DELETE /api/trips/1/reservations/2' },
-      { n: 'reservations.setTravelers', r: () => reservationsApi.setTravelers(1, 2, [4]), e: 'PUT /api/trips/1/reservations/2/travelers' },
-      { n: 'reservations.updatePositions', r: () => reservationsApi.updatePositions(1, [{ id: 2, day_plan_position: 0 }], 3), e: 'PUT /api/trips/1/reservations/positions' },
+      { n: 'reservations.list', r: async () => { await seedResWorld(); return reservationsApi.list(1) }, e: 'local' },
+      { n: 'reservations.create', r: async () => { await seedResWorld(); return reservationsApi.create(1, { title: 'Hotel' }) }, e: 'local' },
+      { n: 'reservations.update', r: async () => { await seedResWorld(); return reservationsApi.update(1, 2, { title: 'Hostel' }) }, e: 'local' },
+      { n: 'reservations.delete', r: async () => { await seedResWorld(); return reservationsApi.delete(1, 2) }, e: 'local' },
+      { n: 'reservations.setTravelers', r: async () => { await seedResWorld(); return reservationsApi.setTravelers(1, 2, [4]) }, e: 'local' },
+      { n: 'reservations.updatePositions', r: async () => { await seedResWorld(); return reservationsApi.updatePositions(1, [{ id: 2, day_plan_position: 0 }], 3) }, e: 'local' },
     ])
   })
 
@@ -410,7 +422,14 @@ describe('client > request payloads', () => {
     expect(log).toHaveLength(0)
     expect((await traceOne(() => budgetApi.setMembers(1, 2, [4]))).body).toEqual({ user_ids: [4] })
     expect((await traceOne(() => packingApi.setBagMembers(1, 2, [6]))).body).toEqual({ user_ids: [6] })
-    expect((await traceOne(() => reservationsApi.setTravelers(1, 2, [4, 6]))).body).toEqual({ user_ids: [4, 6] })
+    // reservationsApi.setTravelers is local — its "body" is the junction
+    // rewrite filtered to the trip roster (4 is a member, 6 is off-roster).
+    await db.reservations.put(buildReservation({ id: 2, trip_id: 1 }))
+    log = []
+    const { travelers } = await reservationsApi.setTravelers(1, 2, [4, 6])
+    expect(travelers.map((t) => t.user_id)).toEqual([4])
+    expect((await db.reservationTravelers.toArray()).map((r) => r.user_id)).toEqual([4])
+    expect(log).toHaveLength(0)
   })
 
   it('FE-APISURF-024: single-value helpers wrap their argument in the documented key', async () => {

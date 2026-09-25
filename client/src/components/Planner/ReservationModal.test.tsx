@@ -1,4 +1,5 @@
 // FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-095
+import 'fake-indexeddb/auto';
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -6,6 +7,9 @@ import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
+import { db } from '../../db/panelmintDb';
+import { reservationsApi } from '../../api/client';
+import { LocalApiError } from '../../api/local/helpers';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import {
   buildUser,
@@ -67,12 +71,23 @@ const defaultProps = {
   accommodations: [],
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [] });
   // addonStore: budget addon disabled
   vi.clearAllMocks();
+  // setReservationTravelers runs the local adapter — seed the trip the
+  // assignable roster reads (owner via trips.user_id covers alice/id 1).
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await db.trips.put(buildTrip({ id: 1 }));
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('ReservationModal', () => {
@@ -1205,13 +1220,9 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-072: toggling travelers persists them once the booking has an id', async () => {
     const onSave = vi.fn().mockResolvedValue({ id: 90 });
-    let body: { user_ids: number[] } | null = null;
-    server.use(
-      http.put('/api/trips/1/reservations/90/travelers', async ({ request }) => {
-        body = (await request.json()) as { user_ids: number[] };
-        return HttpResponse.json({ travelers: [] });
-      }),
-    );
+    // The traveler write is the local junction now — the persisted rows are
+    // what the request body used to carry.
+    await db.reservations.put(buildReservation({ id: 90, trip_id: 1 }));
 
     render(<ReservationModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Museum tour');
@@ -1221,35 +1232,31 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByText('bob'));
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
-    await waitFor(() => expect(body).not.toBeNull());
-    expect(body!.user_ids).toEqual([1]);
+    await waitFor(async () => {
+      const rows = await db.reservationTravelers.where('reservation_id').equals(90).toArray();
+      expect(rows.map((r) => r.user_id)).toEqual([1]);
+    });
   });
 
   it('FE-PLANNER-RESMODAL-073: an unchanged traveler list is not written back', async () => {
     const onSave = vi.fn().mockResolvedValue({ id: 91 });
-    let calls = 0;
-    server.use(
-      http.put('/api/trips/1/reservations/91/travelers', () => {
-        calls += 1;
-        return HttpResponse.json({ travelers: [] });
-      }),
-    );
+    const setTravelers = vi.spyOn(reservationsApi, 'setTravelers');
     const res = buildReservation({ id: 91, type: 'event', title: 'Opera', travelers: [{ user_id: 1, username: 'alice' }] });
+    await db.reservations.put(res);
 
     render(<ReservationModal {...defaultProps} onSave={onSave} reservation={res} tripMembers={tripMembers} />);
     await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(calls).toBe(0);
+    expect(setTravelers).not.toHaveBeenCalled();
   });
 
   it('FE-PLANNER-RESMODAL-074: a failing traveler write surfaces an error toast', async () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     const onSave = vi.fn().mockResolvedValue({ id: 92 });
-    server.use(
-      http.put('/api/trips/1/reservations/92/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-    );
+    await db.reservations.put(buildReservation({ id: 92, trip_id: 1 }));
+    vi.spyOn(reservationsApi, 'setTravelers').mockRejectedValue(new LocalApiError(500, 'nope'));
 
     render(<ReservationModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
     await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Boat trip');

@@ -58,6 +58,7 @@ import type {
   PackingItem,
   Reservation,
   ReservationEndpoint,
+  ReservationTravelerRow,
   Tag,
   TodoItem,
   Trip,
@@ -74,6 +75,7 @@ import { detached, detachedList, nowIso } from './helpers';
 import { reserveIds } from './ids';
 import type { DayOpsStore } from './ported/day-ops';
 import type { AssignmentTimeStore, DayStopRow } from './ported/assignment-time';
+import { staySeatDays } from './ported/night-seat';
 import type {
   MirroredAssignment,
   PinnedVia,
@@ -81,11 +83,16 @@ import type {
   StayMirrorStore,
 } from './ported/night-seat';
 import type {
+  AirportBackfillStore,
+  BackfillCandidate,
+} from './ported/airports';
+import type {
   BudgetSyncStore,
   ReservationCascadeStore,
   ReservationEndpointInput,
   ResyncRow,
 } from './ported/reservation-cascade';
+import tzlookup from 'tz-lookup';
 
 /** `localUsers` row the bootstrap seeds as the self profile. */
 export const SELF_ID = 1;
@@ -281,7 +288,8 @@ export class DexieStore
     StayMirrorStore,
     AssignmentTimeStore,
     ReservationCascadeStore,
-    BudgetSyncStore
+    BudgetSyncStore,
+    AirportBackfillStore
 {
   private state: State;
   /** Highest id already persisted per table / embedded collection. */
@@ -1134,11 +1142,16 @@ export class DexieStore
   }
 
   /** ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC, date ASC LIMIT 1 —
-   *  dated days only (a dateless row has no JULIANDAY to compare). */
+   *  verbatim SQLite: JULIANDAY(NULL) is NULL and NULL keys sort first under
+   *  ASC, so a dateless day always wins nearest-day when one exists (ties
+   *  among them resolve in rowid order — the day id). */
   nearestDay(tripId: number, date: string): { id: number } | undefined {
     const ms = (d: string | null | undefined) => (d ? Date.parse(`${d}T00:00:00Z`) : Number.NaN);
     const target = ms(date);
-    const sorted = this.daysOfTrip(tripId)
+    const days = this.daysOfTrip(tripId);
+    const dateless = days.filter((d) => !d.date).sort((a, b) => a.id - b.id);
+    if (dateless[0]) return { id: dateless[0].id };
+    const sorted = days
       .filter((d) => d.date)
       .sort(
         (a, b) =>
@@ -1146,6 +1159,16 @@ export class DexieStore
           (a.date! < b.date! ? -1 : 1),
       );
     return sorted[0] ? { id: sorted[0].id } : undefined;
+  }
+
+  /** The `[start_day, end_day)` slice of this trip's days in `day_number`
+   *  order — the ported `staySeatDays` rule over `daysOfTrip`. */
+  seatDayIds(tripId: number, startDayId: number, endDayId: number): number[] {
+    return staySeatDays(
+      this.daysOfTrip(tripId).map((d) => d.id),
+      startDayId,
+      endDayId,
+    );
   }
 
   listResyncableReservations(tripId: number): ResyncRow[] {
@@ -1483,6 +1506,118 @@ export class DexieStore
       if (t.reservation_id === reservationId) this.delete('reservationTravelers', k);
     }
     this.delete('reservations', reservationId);
+  }
+
+  /** `SELECT user_id FROM trip_members WHERE trip_id = ?` plus the trip's
+   *  `user_id` owner — the service's assignableUserIds (#1517). */
+  assignableUserIds(tripId: number): Set<number> {
+    const ids = new Set(this.memberRows(tripId).map((m) => m.id));
+    const owner = this.tripRaw(tripId)?.user_id;
+    if (owner != null) ids.add(owner);
+    return ids;
+  }
+
+  /** setReservationTravelers verbatim: only assignable ids are kept (a stale
+   *  or foreign user id is silently dropped, never errors), deduped, then the
+   *  junction is rebuilt as DELETE + INSERT OR IGNORE. */
+  setReservationTravelers(reservationId: number, tripId: number, userIds: number[]): void {
+    const allowed = this.assignableUserIds(tripId);
+    const ids = [...new Set(userIds)].filter((uid) => allowed.has(uid));
+    const travelers = this.map('reservationTravelers') as Map<number, ReservationTravelerRow>;
+    for (const [k, t] of [...travelers]) {
+      if (t.reservation_id === reservationId) this.delete('reservationTravelers', k);
+    }
+    for (const uid of ids) {
+      this.put('reservationTravelers', {
+        id: this.allocId('reservationTravelers'),
+        reservation_id: reservationId,
+        user_id: uid,
+      });
+    }
+  }
+
+  /** updatePositions, verbatim the service's two branches: a truthy dayId
+   *  takes the per-day INSERT OR REPLACE — the row materialises only when the
+   *  reservation and the day agree on the trip (d.trip_id = r.trip_id AND
+   *  r.trip_id = tripId), so a stale id is a quiet no-op — and anything else
+   *  writes the global day_plan_position, an absent value binding NULL. */
+  updateReservationPositions(
+    tripId: number,
+    positions: { id: number; day_plan_position?: number }[],
+    dayId?: number | string | null,
+  ): void {
+    if (dayId) {
+      const day = this.daysMap().get(Number(dayId));
+      for (const item of positions) {
+        const r = this.reservationsMap().get(item.id);
+        if (!r || r.trip_id !== tripId || !day || day.trip_id !== tripId) continue;
+        r.day_positions = { ...r.day_positions, [String(day.id)]: item.day_plan_position ?? 0 };
+        this.put('reservations', r);
+      }
+    } else {
+      for (const item of positions) {
+        const r = this.reservationsMap().get(item.id);
+        if (!r || r.trip_id !== tripId) continue;
+        r.day_plan_position = item.day_plan_position ?? null;
+        this.put('reservations', r);
+      }
+    }
+  }
+
+  // ==================================================================
+  // AirportBackfillStore (ported/airports.ts backfillFlightEndpoints)
+  // ==================================================================
+
+  /** The server's NOT EXISTS scan: flight rows whose embedded endpoints
+   *  array is empty or absent. */
+  listFlightReservationsWithoutEndpoints(): BackfillCandidate[] {
+    return [...this.reservationsMap().values()]
+      .filter((r) => r.type === 'flight' && !(r.endpoints?.length))
+      .map((r) => ({
+        id: r.id,
+        metadata: r.metadata ?? null,
+        reservation_time: r.reservation_time ?? null,
+        reservation_end_time: r.reservation_end_time ?? null,
+      }));
+  }
+
+  /** Append one backfilled endpoint onto the reservation row — the server's
+   *  reservation_endpoints INSERT. `timezone` is the dataset row's `tz`,
+   *  falling back to `tzlookup` by coordinates then null (the `withTz`
+   *  pattern in api/local/airports.ts). */
+  insertEndpoint(row: {
+    reservation_id: number;
+    role: 'from' | 'to' | 'stop';
+    sequence: number;
+    name: string;
+    code: string | null;
+    lat: number;
+    lng: number;
+    timezone: string | null;
+    local_time: string | null;
+    local_date: string | null;
+  }): void {
+    const r = this.reservationsMap().get(row.reservation_id);
+    if (!r) return;
+    let timezone = row.timezone;
+    if (!timezone) {
+      try {
+        timezone = tzlookup(row.lat, row.lng);
+      } catch {
+        timezone = null;
+      }
+    }
+    r.endpoints = [...(r.endpoints ?? []), { id: this.allocId('reservations.endpoints'), ...row, timezone }];
+    this.put('reservations', r);
+  }
+
+  /** `UPDATE reservations SET needs_review = 1` — the backfill's flag for a
+   *  flight whose metadata cannot resolve to known airports. */
+  markNeedsReview(reservationId: number): void {
+    const r = this.reservationsMap().get(reservationId);
+    if (!r) return;
+    r.needs_review = 1;
+    this.put('reservations', r);
   }
 
   // ==================================================================

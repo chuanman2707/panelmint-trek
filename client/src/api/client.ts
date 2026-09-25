@@ -5,8 +5,6 @@ import {
   type PackingReorderRequest,
   type PackingCreateBagRequest,
   type TodoReorderRequest,
-  type ReservationCreateRequest,
-  type ReservationUpdateRequest,
   type BudgetCreateItemRequest,
   type BudgetUpdateItemRequest,
   type PackingCreateItemRequest,
@@ -269,15 +267,7 @@ export const filesApi = {
   getLinks: (tripId: number | string, fileId: number) => apiClient.get(`/trips/${tripId}/files/${fileId}/links`).then(r => r.data),
 }
 
-export const reservationsApi = {
-  list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/reservations`).then(r => r.data),
-  create: (tripId: number | string, data: ReservationCreateRequest) => apiClient.post(`/trips/${tripId}/reservations`, data).then(r => r.data),
-  update: (tripId: number | string, id: number, data: ReservationUpdateRequest) => apiClient.put(`/trips/${tripId}/reservations/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/reservations/${id}`).then(r => r.data),
-  // Assign trip members / named guests to a booking (#1517).
-  setTravelers: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/reservations/${id}/travelers`, { user_ids: userIds }).then(r => r.data),
-  updatePositions: (tripId: number | string, positions: { id: number; day_plan_position: number }[], dayId?: number) => apiClient.put(`/trips/${tripId}/reservations/positions`, { positions, day_id: dayId }).then(r => r.data),
-}
+export { reservationsApi } from './local'
 
 export const dayNotesApi = {
   list: (tripId: number | string, dayId: number | string) => apiClient.get(`/trips/${tripId}/days/${dayId}/notes`).then(r => r.data),

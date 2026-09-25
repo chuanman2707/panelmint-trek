@@ -155,6 +155,21 @@ export const noStayMirror = (): AccommodationMirror => ({
   stamped: null,
 });
 
+/**
+ * The days a stay's nights land on: every trip day from the check-in day up to,
+ * not including, the check-out day — the night of the check-out day is not the
+ * hotel's anymore. A same-day (or reversed, or dangling-ref) stay keeps the
+ * server's one seat on the start day. `dayIds` are the trip's days in
+ * `day_number` order, not id order (#889). Both reservation hotel bookings and
+ * day_accommodations seat through this one rule.
+ */
+export function staySeatDays(dayIds: number[], startDayId: number, endDayId: number): number[] {
+  const start = dayIds.indexOf(startDayId);
+  const end = dayIds.indexOf(endDayId);
+  if (start < 0 || end < 0 || end <= start) return [startDayId];
+  return dayIds.slice(start, end);
+}
+
 // ── night-seat.ts, verbatim over the store seam ─────────────────────────────
 
 /** A day's stops in order, each with the hour it is measured by: the visit's own, else

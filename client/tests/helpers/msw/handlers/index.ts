@@ -9,7 +9,6 @@ import { pluginSearchHandlers } from './pluginSearch';
 import { packingHandlers } from './packing';
 import { todoHandlers } from './todo';
 import { budgetHandlers } from './budget';
-import { reservationsHandlers } from './reservations';
 import { filesHandlers } from './files';
 import { tagsHandlers } from './tags';
 import { dayNotesHandlers } from './dayNotes';
@@ -29,7 +28,6 @@ export const defaultHandlers = [
   ...packingHandlers,
   ...todoHandlers,
   ...budgetHandlers,
-  ...reservationsHandlers,
   ...filesHandlers,
   ...tagsHandlers,
   ...dayNotesHandlers,

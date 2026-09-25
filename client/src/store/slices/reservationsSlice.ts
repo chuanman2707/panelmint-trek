@@ -1,5 +1,7 @@
 import { reservationsApi } from '../../api/client'
+import type { ReservationDeleteResult, ReservationWriteResult } from '../../api/local/reservations'
 import { reservationRepo } from '../../repo/reservationRepo'
+import { applyStayStops } from '../stayStops'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Reservation } from '../../types'
@@ -7,6 +9,36 @@ import { getApiErrorMessage } from '../../types'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
+
+/**
+ * Fold a reservation write's side channels into the store, in the order the
+ * server's socket fan-out ran: the mirrored day stops first (announceStayMirror
+ * never skipped the sender's session), then the accommodation ping — there is
+ * no `accommodation:*` store applier because stays live in planner-local state,
+ * so it lands as the `accommodations:refresh` nudge — then the budget events,
+ * and the reservation event itself last.
+ */
+function replayReservationWrite(get: GetState, result: ReservationWriteResult, event: 'reservation:created' | 'reservation:updated'): void {
+  applyStayStops(result)
+  if (result.accommodationPing) window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+  for (const ev of result.budgetEvents) {
+    get().applyLocalEffect(ev.event, { item: ev.item, itemId: ev.itemId })
+  }
+  get().applyLocalEffect(event, { reservation: result.reservation })
+}
+
+/** DELETE's fan-out: the mirror, `accommodation:deleted`, `budget:deleted`,
+ *  `reservation:deleted` — same order the controller broadcast them. */
+function replayReservationDelete(get: GetState, id: number, result: ReservationDeleteResult): void {
+  applyStayStops(result)
+  if (result.deletedAccommodationId != null) {
+    window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+  }
+  if (result.deletedBudgetItemId != null) {
+    get().applyLocalEffect('budget:deleted', { itemId: result.deletedBudgetItemId })
+  }
+  get().applyLocalEffect('reservation:deleted', { reservationId: id })
+}
 
 export interface ReservationsSlice {
   loadReservations: (tripId: number | string) => Promise<void>
@@ -30,7 +62,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
   addReservation: async (tripId, data) => {
     try {
       const result = await reservationsApi.create(tripId, data)
-      set(state => ({ reservations: [result.reservation, ...state.reservations] }))
+      replayReservationWrite(get, result, 'reservation:created')
       return result.reservation
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error creating reservation'))
@@ -40,9 +72,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
   updateReservation: async (tripId, id, data) => {
     try {
       const result = await reservationsApi.update(tripId, id, data)
-      set(state => ({
-        reservations: state.reservations.map(r => r.id === id ? result.reservation : r)
-      }))
+      replayReservationWrite(get, result, 'reservation:updated')
       return result.reservation
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error updating reservation'))
@@ -58,7 +88,11 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
       reservations: state.reservations.map(r => r.id === id ? { ...r, status: newStatus } : r)
     }))
     try {
-      await reservationsApi.update(tripId, id, { status: newStatus })
+      const result = await reservationsApi.update(tripId, id, { status: newStatus })
+      // Reconcile the optimistic toggle with the authoritative joined row —
+      // identical in the ordinary case, but a linked stay/budget side channel
+      // still has to reach the store.
+      replayReservationWrite(get, result, 'reservation:updated')
     } catch (err: unknown) {
       // Roll back the optimistic toggle and surface the failure so the caller's
       // catch can notify the user — without it the status silently snaps back.
@@ -69,8 +103,8 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
 
   deleteReservation: async (tripId, id) => {
     try {
-      await reservationsApi.delete(tripId, id)
-      set(state => ({ reservations: state.reservations.filter(r => r.id !== id) }))
+      const result = await reservationsApi.delete(tripId, id)
+      replayReservationDelete(get, id, result)
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error deleting reservation'))
     }
@@ -79,9 +113,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
   setReservationTravelers: async (tripId, id, userIds) => {
     try {
       const result = await reservationsApi.setTravelers(tripId, id, userIds)
-      set(state => ({
-        reservations: state.reservations.map(r => r.id === id ? { ...r, travelers: result.travelers } : r),
-      }))
+      get().applyLocalEffect('reservation:travelers-updated', { reservationId: id, travelers: result.travelers })
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error updating travelers'))
     }

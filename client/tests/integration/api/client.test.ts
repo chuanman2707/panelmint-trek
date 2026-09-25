@@ -163,9 +163,10 @@ describe('API namespace smoke tests', () => {
     await expect(filesApi.list(1)).resolves.toEqual([]);
   });
 
-  it('reservationsApi.list fetches reservations', async () => {
-    server.use(http.get('/api/trips/1/reservations', () => HttpResponse.json([])));
-    await expect(reservationsApi.list(1)).resolves.toEqual([]);
+  it('reservationsApi.list returns the trip bookings from Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await expect(reservationsApi.list(1)).resolves.toEqual({ reservations: [] });
   });
 
   it('accommodationsApi.list returns the trip stays from Dexie', async () => {
@@ -255,15 +256,23 @@ describe('API namespace smoke tests', () => {
   });
 
   // ── reservationsApi additional methods ───────────────────────────────────────
+  // (reservationsApi is a local adapter — Dexie-backed; its full parity
+  // coverage lives in tests/unit/local/reservations.test.ts.)
 
-  it('reservationsApi.create creates a reservation', async () => {
-    server.use(http.post('/api/trips/1/reservations', () => HttpResponse.json({ id: 1 })));
-    await expect(reservationsApi.create(1, { title: 'Hotel' })).resolves.toMatchObject({ id: 1 });
+  it('reservationsApi.create writes the booking to Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    const { reservation } = await reservationsApi.create(1, { title: 'Hotel' });
+    expect(reservation).toMatchObject({ trip_id: 1, title: 'Hotel' });
+    expect(await db.reservations.get(reservation.id)).toMatchObject({ title: 'Hotel' });
   });
 
-  it('reservationsApi.delete deletes a reservation', async () => {
-    server.use(http.delete('/api/trips/1/reservations/1', () => HttpResponse.json({ ok: true })));
-    await expect(reservationsApi.delete(1, 1)).resolves.toMatchObject({ ok: true });
+  it('reservationsApi.delete removes the booking row', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    const { reservation } = await reservationsApi.create(1, { title: 'Hotel' });
+    await expect(reservationsApi.delete(1, reservation.id)).resolves.toMatchObject({ success: true });
+    expect(await db.reservations.get(reservation.id)).toBeUndefined();
   });
 
   // ── accommodationsApi additional methods ─────────────────────────────────────

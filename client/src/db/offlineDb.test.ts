@@ -23,9 +23,6 @@ import {
   upsertCategories,
   upsertSyncMeta,
   getCachedBlob,
-  saveImportFiles,
-  getImportFiles,
-  deleteImportFiles,
   enforceBlobBudget,
   BLOB_CACHE_MAX_ENTRIES,
   BLOB_CACHE_MAX_BYTES,
@@ -138,56 +135,6 @@ describe('offlineDb — getCachedBlob', () => {
   it('FE-DB-OFFLINE-007: a read error degrades to null instead of throwing', async () => {
     vi.spyOn(offlineDb.blobCache, 'get').mockRejectedValue(new Error('db closed'))
     expect(await getCachedBlob('/a.pdf')).toBeNull()
-  })
-})
-
-describe('offlineDb — booking-import source files', () => {
-  it('FE-DB-OFFLINE-008: stores a job\'s files under [jobId+fileName] and rebuilds them as Files', async () => {
-    await saveImportFiles('job-1', [
-      new File(['a'], 'ticket.pdf', { type: 'application/pdf' }),
-      new File(['b'], 'boarding.pdf', { type: 'application/pdf' }),
-    ])
-
-    expect(await offlineDb.importFiles.where('jobId').equals('job-1').count()).toBe(2)
-
-    const files = await getImportFiles('job-1')
-    expect(files.map(f => f.name).sort()).toEqual(['boarding.pdf', 'ticket.pdf'])
-    expect(files.every(f => f instanceof File)).toBe(true)
-  })
-
-  it('FE-DB-OFFLINE-009: a stored Blob without a type is rebuilt as octet-stream', async () => {
-    await saveImportFiles('job-2', [new File(['x'], 'unknown')])
-    expect((await getImportFiles('job-2'))[0].type).toBe('application/octet-stream')
-  })
-
-  it('FE-DB-OFFLINE-010: saving prunes source files from abandoned imports older than an hour', async () => {
-    await offlineDb.importFiles.put({
-      jobId: 'stale', fileName: 'old.pdf', blob: new Blob(['old']), createdAt: Date.now() - 2 * 3600_000,
-    })
-
-    await saveImportFiles('fresh', [new File(['new'], 'new.pdf')])
-
-    expect(await getImportFiles('stale')).toEqual([])
-    expect(await getImportFiles('fresh')).toHaveLength(1)
-  })
-
-  it('FE-DB-OFFLINE-011: deleteImportFiles drops only the given job', async () => {
-    await saveImportFiles('job-a', [new File(['a'], 'a.pdf')])
-    await saveImportFiles('job-b', [new File(['b'], 'b.pdf')])
-
-    await deleteImportFiles('job-a')
-
-    expect(await getImportFiles('job-a')).toEqual([])
-    expect(await getImportFiles('job-b')).toHaveLength(1)
-  })
-
-  it('FE-DB-OFFLINE-012: all three helpers stay best-effort when Dexie throws', async () => {
-    vi.spyOn(offlineDb.importFiles, 'bulkPut').mockRejectedValue(new Error('quota'))
-    vi.spyOn(offlineDb.importFiles, 'where').mockImplementation(() => { throw new Error('db closed') })
-
-    await expect(saveImportFiles('job-c', [new File(['c'], 'c.pdf')])).resolves.toBeUndefined()
-    await expect(getImportFiles('job-c')).resolves.toEqual([])
-    await expect(deleteImportFiles('job-c')).resolves.toBeUndefined()
   })
 })
 

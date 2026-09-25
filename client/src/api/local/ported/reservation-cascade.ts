@@ -26,9 +26,9 @@
 import { typeToCostCategory } from '@trek/shared';
 import type { Reservation } from '../../../types';
 import {
-  attachStayStop,
+  attachStayNights,
   dropStayStops,
-  moveStayStop,
+  moveStayNights,
   noStayMirror,
   type AccommodationMirror,
   type StayMirrorStore,
@@ -146,8 +146,18 @@ export interface ReservationCascadeStore {
   /** The day row holding `date` on this trip. */
   dayByDate(tripId: number, date: string): { id: number } | undefined;
   /** Nearest day by |date difference|, ties to the earlier date (the server's
-   *  ORDER BY ABS(JULIANDAY...) ASC, date ASC). */
+   *  ORDER BY ABS(JULIANDAY...) ASC, date ASC). `JULIANDAY(NULL)` is NULL and
+   *  NULL sorts FIRST under ASC in SQLite, so a dateless day always wins —
+   *  a PanelMint-corrected semantic. */
   nearestDay(tripId: number, date: string): { id: number } | undefined;
+  /**
+   * The seat days a stay covers: the `[start_day, end_day)` slice of the trip's
+   * days in `day_number` order — `[startDayId]` when either ref is missing or
+   * reversed. The `staySeatDays` rule from ported/night-seat.ts: a hotel
+   * booking puts a stop on every night the room is held, not only the
+   * check-in day.
+   */
+  seatDayIds(tripId: number, startDayId: number, endDayId: number): number[];
   /** Dated, resyncable reservations: (type != 'hotel' OR accommodation_id IS NULL)
    *  AND reservation_time IS NOT NULL. */
   listResyncableReservations(tripId: number): ResyncRow[];
@@ -197,7 +207,7 @@ export interface ReservationCascadeStore {
       notes?: string | null;
     }
   ): void;
-  /** The stay's check_in (for the moveStayStop checkInChanged comparison). */
+  /** The stay's check_in (for the moveStayNights checkInChanged comparison). */
   getStayCheckIn(accommodationId: number): string | null | undefined;
   /** The stay exists and belongs to this trip. */
   stayOnTrip(accommodationId: unknown, tripId: number): boolean;
@@ -486,7 +496,13 @@ export function createReservation(
           confirmation: accConf || confirmation_number || null,
         });
         accommodationCreated = true;
-        stayMirror = attachStayStop(store.seat, resolvedAccommodationId, accPlaceId || null, start_day_id, check_in);
+        stayMirror = attachStayNights(
+          store.seat,
+          resolvedAccommodationId,
+          accPlaceId || null,
+          store.seatDayIds(tripId, start_day_id, end_day_id),
+          check_in
+        );
       }
     }
 
@@ -615,10 +631,15 @@ export function updateReservation(
             check_out: check_out || null,
             confirmation: accConf || confirmation_number || null,
           });
-          // The stay just moved. Its stop moves with it.
-          stayMirror = moveStayStop(store.seat, resolvedAccId, accPlaceId || null, start_day_id, check_in, {
-            checkInChanged: (check_in || null) !== (prior ?? null),
-          });
+          // The stay just moved. Its stops move with it, night by night.
+          stayMirror = moveStayNights(
+            store.seat,
+            resolvedAccId,
+            accPlaceId || null,
+            store.seatDayIds(tripId, start_day_id, end_day_id),
+            check_in,
+            { checkInChanged: (check_in || null) !== (prior ?? null) }
+          );
         } else if (accPlaceId) {
           resolvedAccId = store.insertStay({
             trip_id: tripId,
@@ -629,7 +650,13 @@ export function updateReservation(
             check_out: check_out || null,
             confirmation: accConf || confirmation_number || null,
           });
-          stayMirror = attachStayStop(store.seat, resolvedAccId, accPlaceId, start_day_id, check_in);
+          stayMirror = attachStayNights(
+            store.seat,
+            resolvedAccId,
+            accPlaceId,
+            store.seatDayIds(tripId, start_day_id, end_day_id),
+            check_in
+          );
         }
         accommodationChanged = true;
       }

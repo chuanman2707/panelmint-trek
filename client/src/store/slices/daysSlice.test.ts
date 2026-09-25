@@ -1,7 +1,5 @@
 // FE-TSLICE-DAYS-001 to FE-TSLICE-DAYS-008 (whole-day reorder + insert, #589)
 import 'fake-indexeddb/auto';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildDay, buildReservation, buildTrip } from '../../../tests/helpers/factories';
 import { useTripStore } from '../tripStore';
@@ -13,7 +11,6 @@ import type { DayRow } from '../../api/local/dexieStore';
 
 beforeEach(async () => {
   resetAllStores();
-  server.resetHandlers();
   await db.transaction('rw', db.tables, async () => {
     for (const t of db.tables) await t.clear();
   });
@@ -74,11 +71,9 @@ describe('daysSlice', () => {
       seedStore(useTripStore, { days, reservations: [] });
 
       const spy = vi.spyOn(daysApi, 'reorder');
-      server.use(
-        http.get('/api/trips/1/reservations', () =>
-          HttpResponse.json({ reservations: [buildReservation({ id: 77, trip_id: 1, title: 'Re-stamped' })] }),
-        ),
-      );
+      // Reorder re-stamps booking times on the same rows — loadReservations
+      // re-reads panelmintDb.
+      await db.reservations.put(buildReservation({ id: 77, trip_id: 1, title: 'Re-stamped' }));
 
       await useTripStore.getState().reorderDays(1, [3, 1, 2]);
 
