@@ -59,6 +59,20 @@ export interface SettingsRow {
   value: unknown
 }
 
+/**
+ * The server's `budget_category_order` table: one row per (trip, category)
+ * carrying the group's sort position (server schema.ts — PRIMARY KEY
+ * (trip_id, category)). A surrogate `id` keeps the DexieStore seam's numeric
+ * key handling intact; the UNIQUE pair rides on the `&[trip_id+category]`
+ * index like the other junction tables.
+ */
+export interface BudgetCategoryOrderRow {
+  id: number
+  trip_id: number
+  category: string
+  sort_order: number
+}
+
 export class PanelmintDb extends Dexie {
   trips!: Table<Trip, number>
   days!: Table<Day, number>
@@ -67,6 +81,7 @@ export class PanelmintDb extends Dexie {
   todoItems!: Table<TodoItem, number>
   budgetItems!: Table<BudgetItem, number>
   budgetSettlements!: Table<BudgetSettlement, number>
+  budgetCategoryOrder!: Table<BudgetCategoryOrderRow, number>
   reservations!: Table<Reservation, number>
   accommodations!: Table<Accommodation, number>
   tripMembers!: Table<LocalTripMember, [number, number]>
@@ -119,6 +134,15 @@ export class PanelmintDb extends Dexie {
       reservationTravelers: 'id, reservation_id, user_id, &[reservation_id+user_id]',
       assignmentParticipants: 'id, assignment_id, &[assignment_id+user_id]',
       syncMeta: 'tripId',
+    })
+
+    // v2 adds the budget category order — the server kept it as its own table
+    // (budget_category_order, PK (trip_id, category)); folding it into
+    // budget_items.sort_order can't express "an item joins an existing group
+    // at its stored rank" or remember a group order after its last item is
+    // deleted, so the port keeps the table verbatim.
+    this.version(2).stores({
+      budgetCategoryOrder: 'id, trip_id, &[trip_id+category]',
     })
   }
 }

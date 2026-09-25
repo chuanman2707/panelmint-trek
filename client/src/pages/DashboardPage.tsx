@@ -24,6 +24,7 @@ import { formatTime, splitReservationDateTime } from '../utils/formatters'
 import { CURRENCIES } from '../components/Budget/BudgetPanel.constants'
 import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
+import { fetchExchangeRates } from '../api/ext/fx'
 import { normalizeAppearance } from '@trek/shared'
 import '../styles/dashboard.css'
 
@@ -603,17 +604,12 @@ function CurrencyTool(): React.ReactElement {
   const [amount, setAmount] = useState('100')
   const [rates, setRates] = useState<Record<string, number> | null>(null)
 
-  const fetchRate = React.useCallback(() => {
-    fetch(`https://api.frankfurter.dev/v2/rates?base=${from}`)
-      .then(r => r.json())
-      .then((d: Array<{ quote: string; rate: number }>) => {
-        if (!Array.isArray(d)) { setRates(null); return }
-        // Frankfurter omits the base's own self-rate; seed it so `from` stays selectable.
-        const map: Record<string, number> = { [from]: 1 }
-        for (const r of d) map[r.quote] = r.rate
-        setRates(map)
-      })
-      .catch(() => setRates(null))
+  // Rates come from the shared Frankfurter client (api/ext/fx.ts) — cached for
+  // a few hours, so the refresh button passes `force` to re-hit upstream; a
+  // failed refresh keeps whatever the cache held (null → "unavailable" only
+  // when nothing usable exists at all).
+  const fetchRate = React.useCallback((force = false) => {
+    void fetchExchangeRates(from, { force }).then(setRates)
   }, [from])
 
   useEffect(() => { fetchRate() }, [fetchRate])
@@ -646,7 +642,7 @@ function CurrencyTool(): React.ReactElement {
     <div className="tool">
       <div className="tool-head">
         <div className="tool-title"><RefreshCw size={14} /> {t('dashboard.currency')}</div>
-        <button type="button" className="tool-action" aria-label={t('dashboard.aria.refreshRates')} onClick={fetchRate}><RefreshCw size={14} /></button>
+        <button type="button" className="tool-action" aria-label={t('dashboard.aria.refreshRates')} onClick={() => fetchRate(true)}><RefreshCw size={14} /></button>
       </div>
       <div className="fx-input">
         <div className="fx-field">

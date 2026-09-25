@@ -35,9 +35,7 @@ import {
   MAX_TRIP_DAYS,
   tripAddMemberRequestSchema,
   tripCopyRequestSchema,
-  tripCreateGuestRequestSchema,
   tripCreateRequestSchema,
-  tripRenameGuestRequestSchema,
   tripTransferOwnershipRequestSchema,
   tripUpdateRequestSchema,
   type ActiveTripResponse,
@@ -60,7 +58,7 @@ import type {
 import type { LocalPlace } from '../../db/panelmintDb';
 import type { PlaceWire } from './dexieStore';
 import { db } from '../../db/panelmintDb';
-import { fetchExchangeRates } from '../../hooks/useExchangeRates';
+import { fetchExchangeRates } from '../ext/fx';
 import { apiError, badRequest, LocalApiError, notFound, numId, nowIso, parseBody } from './helpers';
 import {
   DexieStore,
@@ -499,57 +497,9 @@ export const tripsApi = {
       return { success: true as const };
     }),
 
-  createGuest: (id: number | string, name: string): Promise<{ member: TripMember }> =>
-    withStore((store) => {
-      // TripOwnerGuard: access 404, then the route's declared 403, THEN the
-      // body pipe ran.
-      const trip = requireTrip(store, id);
-      if (trip.user_id !== SELF_ID) throw apiError(403, 'Only the owner can manage guests');
-      parseBody(tripCreateGuestRequestSchema, { name });
-      const display = (name || '').trim();
-      if (!display) throw badRequest('Guest name is required');
-      if (display.length > 50) throw badRequest('Guest name must be 50 characters or fewer');
-      const guest = store.createGuest(trip.id, display, SELF_ID);
-      return {
-        member: {
-          id: guest.id,
-          username: display,
-          email: guest.email,
-          role: 'member',
-          is_guest: true,
-          avatar_url: null,
-        },
-      };
-    }),
-
-  renameGuest: (id: number | string, userId: number, name: string): Promise<{ success: true }> =>
-    withStore((store) => {
-      const trip = requireTrip(store, id);
-      if (trip.user_id !== SELF_ID) throw apiError(403, 'Only the owner can manage guests');
-      parseBody(tripRenameGuestRequestSchema, { name });
-      const display = (name || '').trim();
-      if (!display) throw badRequest('Guest name is required');
-      if (display.length > 50) throw badRequest('Guest name must be 50 characters or fewer');
-      if (!store.guestOfTrip(trip.id, userId)) throw notFound('Guest');
-      const u = store.user(userId)!;
-      u.name = display;
-      store.put('localUsers', u);
-      const m = store.memberRow(trip.id, userId);
-      if (m) {
-        m.username = display;
-        store.put('tripMembers', m);
-      }
-      return { success: true as const };
-    }),
-
-  deleteGuest: (id: number | string, userId: number): Promise<{ success: true }> =>
-    withStore((store) => {
-      const trip = requireTrip(store, id);
-      if (trip.user_id !== SELF_ID) throw apiError(403, 'Only the owner can manage guests');
-      if (!store.guestOfTrip(trip.id, userId)) throw notFound('Guest');
-      store.purgeUserData(userId);
-      return { success: true as const };
-    }),
+  // The guest roster lives on `usersApi` (local/users.ts) — a guest is a
+  // localUsers row plus its trip_membership, which is a users-domain concern,
+  // not a trip-detail one.
 
   /**
    * Deep copy — the server's copy() table list, mapped onto the local row

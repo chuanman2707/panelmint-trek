@@ -153,9 +153,10 @@ describe('API namespace smoke tests', () => {
     ).resolves.toMatchObject({ results: [], unavailable: true });
   });
 
-  it('budgetApi.list fetches budget items', async () => {
-    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json([])));
-    await expect(budgetApi.list(1)).resolves.toEqual([]);
+  it('budgetApi.list returns the trip items from Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await expect(budgetApi.list(1)).resolves.toEqual({ items: [] });
   });
 
   it('filesApi.list fetches trip files', async () => {
@@ -245,14 +246,24 @@ describe('API namespace smoke tests', () => {
     await expect(categoriesApi.delete(1)).rejects.toThrow('fixed palette');
   });
 
-  it('budgetApi.create creates a budget item', async () => {
-    server.use(http.post('/api/trips/1/budget', () => HttpResponse.json({ id: 1 })));
-    await expect(budgetApi.create(1, { name: 'Hotel' })).resolves.toMatchObject({ id: 1 });
+  // ── budgetApi additional methods ──────────────────────────────────────────
+  // (budgetApi is a local adapter — Dexie-backed; its full parity coverage
+  // lives in tests/unit/local/budget.test.ts.)
+
+  it('budgetApi.create writes the item to Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    const { item } = await budgetApi.create(1, { name: 'Hotel' });
+    expect(item).toMatchObject({ trip_id: 1, name: 'Hotel' });
+    expect(await db.budgetItems.get(item.id)).toMatchObject({ name: 'Hotel' });
   });
 
-  it('budgetApi.delete deletes a budget item', async () => {
-    server.use(http.delete('/api/trips/1/budget/1', () => HttpResponse.json({ ok: true })));
-    await expect(budgetApi.delete(1, 1)).resolves.toMatchObject({ ok: true });
+  it('budgetApi.delete removes the item row', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    const { item } = await budgetApi.create(1, { name: 'Hotel' });
+    await expect(budgetApi.delete(1, item.id)).resolves.toEqual({ success: true });
+    expect(await db.budgetItems.get(item.id)).toBeUndefined();
   });
 
   // ── reservationsApi additional methods ───────────────────────────────────────

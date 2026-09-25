@@ -5,8 +5,6 @@ import {
   type PackingReorderRequest,
   type PackingCreateBagRequest,
   type TodoReorderRequest,
-  type BudgetCreateItemRequest,
-  type BudgetUpdateItemRequest,
   type PackingCreateItemRequest,
   type PackingUpdateItemRequest,
   type PackingSetSharingRequest,
@@ -19,9 +17,6 @@ import {
   type PackingUpdateBagRequest,
   type PackingCategoryAssigneesRequest,
   type PackingApplyTemplateRequest,
-  type BudgetUpdateMembersRequest,
-  type BudgetToggleMemberPaidRequest,
-  type BudgetReorderCategoriesRequest,
   type TodoCategoryAssigneesRequest,
   type FileUpdateRequest,
   type FileLinkRequest,
@@ -170,7 +165,7 @@ export function postMultipart<T = any>(url: string, formData: FormData, opts?: U
 
 // Local adapters (api/local/*) — each domain's axios object was deleted when
 // its adapter landed (README.md barrel strategy, step 3).
-export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi, assignmentsApi, accommodationsApi } from './local'
+export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi, assignmentsApi, accommodationsApi, budgetApi, usersApi } from './local'
 
 export const packingApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing`).then(r => r.data),
@@ -234,23 +229,6 @@ export const roadtripApi = {
     apiClient.put(`/trips/${tripId}/roadtrip/days/${dayId}/vias/${id}`, body).then(r => r.data as { via: RoadtripVia }),
   removeVia: (tripId: number | string, dayId: number | string, id: number) =>
     apiClient.delete(`/trips/${tripId}/roadtrip/days/${dayId}/vias/${id}`).then(r => r.data),
-}
-
-export const budgetApi = {
-  list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget`).then(r => r.data),
-  create: (tripId: number | string, data: BudgetCreateItemRequest) => apiClient.post(`/trips/${tripId}/budget`, data).then(r => r.data),
-  update: (tripId: number | string, id: number, data: BudgetUpdateItemRequest) => apiClient.put(`/trips/${tripId}/budget/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/budget/${id}`).then(r => r.data),
-  setMembers: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/budget/${id}/members`, { user_ids: userIds } satisfies BudgetUpdateMembersRequest).then(r => r.data),
-  togglePaid: (tripId: number | string, id: number, userId: number, paid: boolean) => apiClient.put(`/trips/${tripId}/budget/${id}/members/${userId}/paid`, { paid } satisfies BudgetToggleMemberPaidRequest).then(r => r.data),
-  setPayers: (tripId: number | string, id: number, payers: { user_id: number; amount: number }[]) => apiClient.put(`/trips/${tripId}/budget/${id}/payers`, { payers }).then(r => r.data),
-  perPersonSummary: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/summary/per-person`).then(r => r.data),
-  settlement: (tripId: number | string, base?: string) => apiClient.get(`/trips/${tripId}/budget/settlement`, base ? { params: { base } } : undefined).then(r => r.data),
-  createSettlement: (tripId: number | string, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string; settled_at?: string | null }) => apiClient.post(`/trips/${tripId}/budget/settlements`, data).then(r => r.data),
-  updateSettlement: (tripId: number | string, settlementId: number, data: { from_user_id: number; to_user_id: number; amount: number; currency?: string; settled_at?: string | null }) => apiClient.put(`/trips/${tripId}/budget/settlements/${settlementId}`, data).then(r => r.data),
-  deleteSettlement: (tripId: number | string, settlementId: number) => apiClient.delete(`/trips/${tripId}/budget/settlements/${settlementId}`).then(r => r.data),
-  reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
-  reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories } satisfies BudgetReorderCategoriesRequest).then(r => r.data),
 }
 
 export const filesApi = {

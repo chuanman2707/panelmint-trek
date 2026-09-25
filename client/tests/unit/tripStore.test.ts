@@ -33,10 +33,10 @@ async function seedLocalTrip(id: number, days: import('../../src/types').Day[] =
 }
 
 /**
- * Full set of MSW handlers for one trip's loadTrip fan-out — trips/days/tags
- * and reservations are local now, so the trip row (plus any `data.tags` /
- * `data.reservations` rows) are seeded into `panelmint` and only the
- * still-HTTP resources keep handlers.
+ * Full set of MSW handlers for one trip's loadTrip fan-out — trips/days/tags,
+ * budget and reservations are local now, so the trip row (plus any
+ * `data.tags` / `data.budget` / `data.reservations` rows) are seeded into
+ * `panelmint` and only the still-HTTP resources keep handlers.
  */
 async function tripHandlers(
   id: number,
@@ -49,13 +49,15 @@ async function tripHandlers(
   for (const tag of data.tags ?? []) {
     await db.tags.put(tag as Tag);
   }
+  for (const item of data.budget ?? []) {
+    await db.budgetItems.put(item as never);
+  }
   for (const reservation of data.reservations ?? []) {
     await db.reservations.put(reservation);
   }
   return [
     http.get(`/api/trips/${id}/packing`, () => HttpResponse.json({ items: [] })),
     http.get(`/api/trips/${id}/todo`, () => HttpResponse.json({ items: [] })),
-    http.get(`/api/trips/${id}/budget`, () => HttpResponse.json({ items: data.budget ?? [] })),
     http.get(`/api/trips/${id}/files`, () => HttpResponse.json({ files: data.files ?? [] })),
   ];
 }
@@ -214,9 +216,11 @@ describe('tripStore', () => {
       await useTripStore.getState().loadTrip(1);
       const state = useTripStore.getState();
 
-      expect(state.budgetItems).toEqual([budgetItem]);
-      // The wire row gains adapter-joined fields (endpoints, travelers,
-      // day_positions, day_number, …) beyond the seeded columns.
+      // The wire rows gain adapter-joined fields (members/payers usernames,
+      // endpoints, travelers, day_positions, day_number, …) beyond the seeded
+      // columns — match on what the test set.
+      expect(state.budgetItems).toHaveLength(1);
+      expect(state.budgetItems[0]).toMatchObject(budgetItem);
       expect(state.reservations).toHaveLength(1);
       expect(state.reservations[0]).toMatchObject(reservation);
       expect(state.files).toEqual([file]);
@@ -267,10 +271,9 @@ describe('tripStore', () => {
   });
 
   describe('hydrateActiveTrip', () => {
-    const loadHandlers = (budget: unknown[] = []) => [
+    const loadHandlers = () => [
       http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [] })),
-      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: budget })),
       http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
     ];
 
@@ -281,18 +284,20 @@ describe('tripStore', () => {
       expect(useTripStore.getState().trip!.id).toBe(1);
 
       // New collaborative state arrives (as if edited by someone while we were
-      // offline) — places are local, so the "edit" lands in `panelmintDb`.
+      // offline) — places/budget are local, so the "edit" lands in
+      // `panelmintDb`.
       const place = buildPlace({ trip_id: 1 });
       const budgetItem = buildBudgetItem({ trip_id: 1 });
       await db.places.put(place);
-      server.use(...loadHandlers([budgetItem]));
+      await db.budgetItems.put(budgetItem);
 
       await useTripStore.getState().hydrateActiveTrip(1);
       const state = useTripStore.getState();
 
       expect(state.places).toHaveLength(1);
       expect(state.places[0]).toMatchObject(place);
-      expect(state.budgetItems).toEqual([budgetItem]);
+      expect(state.budgetItems).toHaveLength(1);
+      expect(state.budgetItems[0]).toMatchObject(budgetItem);
       expect(state.trip!.id).toBe(1);      // trip not reset
       expect(state.isLoading).toBe(false); // no splash toggled
     });

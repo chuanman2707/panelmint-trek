@@ -8,7 +8,6 @@ import { placesHandlers } from './places';
 import { pluginSearchHandlers } from './pluginSearch';
 import { packingHandlers } from './packing';
 import { todoHandlers } from './todo';
-import { budgetHandlers } from './budget';
 import { filesHandlers } from './files';
 import { tagsHandlers } from './tags';
 import { dayNotesHandlers } from './dayNotes';
@@ -27,7 +26,6 @@ export const defaultHandlers = [
   ...pluginSearchHandlers,
   ...packingHandlers,
   ...todoHandlers,
-  ...budgetHandlers,
   ...filesHandlers,
   ...tagsHandlers,
   ...dayNotesHandlers,

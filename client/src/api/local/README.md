@@ -122,7 +122,7 @@ input must fail the same way.
 
 Local impls must match these method lists name-for-name:
 
-- `tripsApi`: `list, create, get, active, update, delete, uploadCover, searchCoverImages, archive, unarchive, getMembers, addMember, removeMember, transferOwnership, createGuest, renameGuest, deleteGuest, copy, bundle`
+- `tripsApi`: `list, create, get, active, update, delete, uploadCover, searchCoverImages, archive, unarchive, getMembers, addMember, removeMember, transferOwnership, copy, bundle` — the guest trio moved to `usersApi` (the roster is a users-domain concern)
 - `daysApi`: `list, create, update, updateTransport, delete, reorder`
 - `placesApi`: `list, create, get, update, delete, rate, bulkDelete, bulkUpdate` — `searchImage`, `uploadImage`, `importGpx`, `importMapFile`, `importGoogleList` and `importNaverList` were server-only and are gone; the local adapter does not stub them
 - `assignmentsApi`: `list, create, delete, reorder, move, update, getParticipants, setParticipants, updateTime, updateNotes, updateTransport` + `setEndDay` (the route `api/assignmentEndDay.ts` used to PUT itself; `updateTime` also answers the socket's `reordered`/`vias` side channels in-band)
@@ -132,6 +132,7 @@ Local impls must match these method lists name-for-name:
 - `categoriesApi`: `list, get` — the palette is seeded and frozen; `create`, `update` and `delete` answer a local 403 rather than mutating it
 - `mapsApi`: `search, autocomplete, details, placeEnrichment, placePhotoCredit, placePhoto, reverse, resolveUrl, pois, area` — a facade over `api/ext/*` (Photon/Nominatim, Overpass, Wikimedia); `placePhoto` is a stub because there is no server photo cache to serve from, and `placePhotoCredit` reads the credit map `ext/wikimedia` fills
 - `budgetApi`: `list, create, update, delete, setMembers, togglePaid, setPayers, perPersonSummary, settlement, createSettlement, updateSettlement, deleteSettlement, reorderItems, reorderCategories`
+- `usersApi`: `list, create, rename, delete` — the guest roster (localUsers + trip_membership); `create/rename/delete` replace `tripsApi.createGuest/renameGuest/deleteGuest` verbatim, `list` answers the trip's guest rows in membership order
 - `reservationsApi`: `list, create, update, delete, setTravelers, updatePositions`
 - `accommodationsApi`: `list, create, update, delete`
 - `dayNotesApi`: `list, create, update, delete`

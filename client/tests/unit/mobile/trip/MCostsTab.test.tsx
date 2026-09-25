@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { http, HttpResponse } from 'msw'
 import MCostsTab from '../../../../src/mobile/screens/trip/tabs/MCostsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { budgetApi } from '../../../../src/api/client'
@@ -11,7 +10,6 @@ import type { BudgetItem, Day, Trip } from '../../../../src/types'
 import { buildTrip, buildUser } from '../../../helpers/factories'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
 // FE-MOB-COSTT-001 to FE-MOB-COSTT-044
@@ -97,14 +95,25 @@ const SETTLEMENT = {
 
 let settlementBases: string[] = []
 
+type SettlementResponse = Awaited<ReturnType<typeof budgetApi.settlement>>
+
+/**
+ * The local adapter's settlement read — stubbed the way the MSW handler was:
+ * the tests pick the balances/flows/finalBudgets to render, and `base` capture
+ * still asserts which display currency the read was asked for.
+ */
 function serveSettlement(body: unknown = SETTLEMENT, fail = false) {
-  server.use(
-    http.get('/api/trips/:id/budget/settlement', ({ request }) => {
-      settlementBases.push(new URL(request.url).searchParams.get('base') ?? '')
-      return fail ? HttpResponse.error() : HttpResponse.json(body)
-    }),
-  )
+  vi.spyOn(budgetApi, 'settlement').mockImplementation(async (_tripId, base) => {
+    settlementBases.push(base ?? '')
+    if (fail) throw new Error('settlement read failed')
+    return body as SettlementResponse
+  })
 }
+
+/** Minimal transfer row for mutation mocks, in the adapter's wire shape. */
+type SettlementWire = Awaited<ReturnType<typeof budgetApi.createSettlement>>['settlement']
+const settlementRow = (over: Partial<SettlementWire> = {}): SettlementWire =>
+  ({ id: 1, trip_id: '7', from_user_id: 1, to_user_id: 2, amount: 1, currency: null, exchange_rate: 1, created_at: '2025-06-16 10:00:00', settled_at: null, created_by_user_id: 1, ...over })
 
 function planner(overrides: Partial<TripPlanner> = {}) {
   return buildPlanner({
@@ -454,7 +463,7 @@ describe('MCostsTab', () => {
   })
 
   it('FE-MOB-COSTT-029: records a manual payment and refreshes the settlement', async () => {
-    const create = vi.spyOn(budgetApi, 'createSettlement').mockResolvedValue({})
+    const create = vi.spyOn(budgetApi, 'createSettlement').mockResolvedValue({ settlement: settlementRow() })
     await renderTab()
     fireEvent.click(screen.getByRole('button', { name: 'costs.addPayment' }))
     const dialog = screen.getByRole('dialog', { name: 'costs.addPayment' })
@@ -677,7 +686,7 @@ describe('MCostsTab', () => {
   it('FE-MOB-COSTT-041: editing a recorded payment opens it pre-filled and saves the change', async () => {
     const payment = { id: 501, from_user_id: 1, to_user_id: 2, amount: 25, currency: 'USD', settled_at: '2026-04-28', created_at: '2026-04-30T09:00:00Z' }
     serveSettlement({ ...SETTLEMENT, settlements: [payment] })
-    const update = vi.spyOn(budgetApi, 'updateSettlement').mockResolvedValue({})
+    const update = vi.spyOn(budgetApi, 'updateSettlement').mockResolvedValue({ settlement: settlementRow() })
     await renderTab()
 
     fireEvent.click(within(rowOf('costs.payment')).getByRole('button', { name: 'common.edit' }))
@@ -709,7 +718,7 @@ describe('MCostsTab', () => {
     // amount as dollars (the server would freeze a fresh FX rate for it).
     const payment = { id: 505, from_user_id: 1, to_user_id: 2, amount: 10, currency: 'GBP', settled_at: '2026-04-28', created_at: '2026-04-30T09:00:00Z' }
     serveSettlement({ ...SETTLEMENT, settlements: [payment] })
-    const update = vi.spyOn(budgetApi, 'updateSettlement').mockResolvedValue({})
+    const update = vi.spyOn(budgetApi, 'updateSettlement').mockResolvedValue({ settlement: settlementRow() })
     await renderTab()
 
     const row = rowOf('costs.payment')
@@ -728,7 +737,7 @@ describe('MCostsTab', () => {
   it('FE-MOB-COSTT-044: a payment cannot be saved without a day', async () => {
     // Cleared, the server would store NULL and the ledger would quietly fall
     // back to the day the payment was recorded on.
-    const create = vi.spyOn(budgetApi, 'createSettlement').mockResolvedValue({})
+    const create = vi.spyOn(budgetApi, 'createSettlement').mockResolvedValue({ settlement: settlementRow() })
     await renderTab()
     fireEvent.click(screen.getByRole('button', { name: 'costs.addPayment' }))
     const dialog = screen.getByRole('dialog', { name: 'costs.addPayment' })

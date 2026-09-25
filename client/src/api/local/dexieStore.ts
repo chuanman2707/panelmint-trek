@@ -40,6 +40,7 @@
  */
 import {
   db,
+  type BudgetCategoryOrderRow,
   type LocalPlace,
   type LocalTripMember,
   type SettingsRow,
@@ -92,6 +93,11 @@ import type {
   ReservationEndpointInput,
   ResyncRow,
 } from './ported/reservation-cascade';
+import type {
+  SettlementStore,
+  SettlementStoreRow,
+  SettlementWriteData,
+} from './ported/settlement';
 import tzlookup from 'tz-lookup';
 
 /** `localUsers` row the bootstrap seeds as the self profile. */
@@ -186,6 +192,7 @@ type TableName =
   | 'accommodations'
   | 'budgetItems'
   | 'budgetSettlements'
+  | 'budgetCategoryOrder'
   | 'packingItems'
   | 'packingBags'
   | 'packingBagMembers'
@@ -209,6 +216,7 @@ const TABLE_NAMES: TableName[] = [
   'accommodations',
   'budgetItems',
   'budgetSettlements',
+  'budgetCategoryOrder',
   'packingItems',
   'packingBags',
   'packingBagMembers',
@@ -289,7 +297,8 @@ export class DexieStore
     AssignmentTimeStore,
     ReservationCascadeStore,
     BudgetSyncStore,
-    AirportBackfillStore
+    AirportBackfillStore,
+    SettlementStore
 {
   private state: State;
   /** Highest id already persisted per table / embedded collection. */
@@ -472,6 +481,14 @@ export class DexieStore
 
   private budgetItemsMap(): Map<number, BudgetItem> {
     return this.map('budgetItems') as Map<number, BudgetItem>;
+  }
+
+  private settlementsMap(): Map<number, BudgetSettlement> {
+    return this.map('budgetSettlements') as Map<number, BudgetSettlement>;
+  }
+
+  private catOrderMap(): Map<number, BudgetCategoryOrderRow> {
+    return this.map('budgetCategoryOrder') as Map<number, BudgetCategoryOrderRow>;
   }
 
   private usersMap(): Map<number, LocalUser> {
@@ -1709,6 +1726,216 @@ export class DexieStore
   }
 
   // ==================================================================
+  // Budget adapter seam (local/budget.ts — the controller's write paths)
+  // ==================================================================
+
+  /** The mutable stored row — the adapter's CASE-WHEN update writes on it,
+   *  then `put` marks the key dirty (same contract `tripRaw`/`memberRow`
+   *  carry). */
+  budgetItemRaw(id: number): BudgetItem | undefined {
+    return this.budgetItemsMap().get(id);
+  }
+
+  putBudgetItem(item: BudgetItem): void {
+    this.put('budgetItems', item);
+  }
+
+  /** The server's rosterMemberIds — the `userIds` ∩ trip-roster subset,
+   *  deduped (off-roster ids drop silently, no error). */
+  rosterMemberIds(tripId: number, userIds: number[]): Set<number> {
+    const unique = new Set(userIds);
+    if (unique.size === 0) return new Set();
+    const roster = this.rosterUserIds(tripId);
+    return new Set([...unique].filter((id) => roster.has(id)));
+  }
+
+  /** The JOIN'd member rows of an item — `loadItemMembers`: user_id, paid,
+   *  amount plus the users-table username/avatar. A member whose user row is
+   *  gone drops out, exactly like the server's INNER JOIN (purgeUserData
+   *  removes the junction first, so this is the belt-and-suspenders read). */
+  itemMembersWire(item: BudgetItem): NonNullable<BudgetItem['members']> {
+    const out: NonNullable<BudgetItem['members']> = [];
+    for (const m of item.members ?? []) {
+      const u = this.usersMap().get(m.user_id);
+      if (!u) continue;
+      out.push({
+        user_id: m.user_id,
+        paid: m.paid,
+        amount: m.amount ?? null,
+        username: u.name,
+        avatar: null,
+        avatar_url: null,
+      });
+    }
+    return out;
+  }
+
+  /** `loadItemPayers` — user_id, amount + joined username/avatar; drops rows
+   *  whose user is gone. */
+  itemPayersWire(item: BudgetItem): NonNullable<BudgetItem['payers']> {
+    const out: NonNullable<BudgetItem['payers']> = [];
+    for (const p of item.payers ?? []) {
+      const u = this.usersMap().get(p.user_id);
+      if (!u) continue;
+      out.push({
+        user_id: p.user_id,
+        amount: p.amount,
+        username: u.name,
+        avatar: null,
+        avatar_url: null,
+      });
+    }
+    return out;
+  }
+
+  /** The `SELECT *` + joins one-item read the server returned from
+   *  create/update/setPayers — members, payers, receipts hydrated. */
+  budgetItemWire(id: number): BudgetItem | undefined {
+    const b = this.budgetItemsMap().get(id);
+    if (!b) return undefined;
+    return detached({
+      ...b,
+      members: this.itemMembersWire(b),
+      payers: this.itemPayersWire(b),
+      receipts: b.receipts ?? [],
+    });
+  }
+
+  /** The category → sort_order map for one trip (`SELECT category,
+   *  sort_order FROM budget_category_order WHERE trip_id = ?`). */
+  categoryOrderOf(tripId: number): Map<string, number> {
+    const m = new Map<string, number>();
+    for (const r of this.catOrderMap().values()) {
+      if (r.trip_id === tripId) m.set(r.category, r.sort_order);
+    }
+    return m;
+  }
+
+  /** `INSERT OR IGNORE INTO budget_category_order` — the catExists branch of
+   *  createBudgetItem/updateBudgetItem (lands at MAX(sort_order)+1). */
+  ensureCategoryOrder(tripId: number, category: string): void {
+    let max = -1;
+    let exists = false;
+    for (const r of this.catOrderMap().values()) {
+      if (r.trip_id !== tripId) continue;
+      if (r.category === category) exists = true;
+      max = Math.max(max, r.sort_order);
+    }
+    if (exists) return;
+    this.put('budgetCategoryOrder', {
+      id: this.allocId('budgetCategoryOrder'),
+      trip_id: tripId,
+      category,
+      sort_order: max + 1,
+    });
+  }
+
+  /** The reorderCategories upsert — ON CONFLICT(trip_id, category) DO UPDATE
+   *  SET sort_order. */
+  upsertCategoryOrder(tripId: number, category: string, sortOrder: number): void {
+    for (const r of this.catOrderMap().values()) {
+      if (r.trip_id === tripId && r.category === category) {
+        r.sort_order = sortOrder;
+        this.put('budgetCategoryOrder', r);
+        return;
+      }
+    }
+    this.put('budgetCategoryOrder', {
+      id: this.allocId('budgetCategoryOrder'),
+      trip_id: tripId,
+      category,
+      sort_order: sortOrder,
+    });
+  }
+
+  // ==================================================================
+  // SettlementStore (ported/settlement.ts)
+  // ==================================================================
+
+  /** The stored row joined to its two parties — SETTLEMENT_SELECT. A row
+   *  whose from/to user is gone drops, matching the server's INNER JOINs. */
+  private settlementJoined(s: BudgetSettlement): SettlementStoreRow | undefined {
+    const from = this.usersMap().get(s.from_user_id);
+    const to = this.usersMap().get(s.to_user_id);
+    if (!from || !to) return undefined;
+    return {
+      id: s.id,
+      // The server bound the route-param string into trip_id, so the wire
+      // carried "1" — keep the string at this boundary (the stored Dexie row
+      // keeps the shared schema's number).
+      trip_id: String(s.trip_id),
+      from_user_id: s.from_user_id,
+      to_user_id: s.to_user_id,
+      amount: s.amount,
+      currency: s.currency ?? null,
+      exchange_rate: s.exchange_rate ?? null,
+      created_at: s.created_at ?? '',
+      settled_at: s.settled_at ?? null,
+      created_by_user_id: s.created_by_user_id ?? null,
+      from_username: from.name,
+      from_avatar: null,
+      to_username: to.name,
+      to_avatar: null,
+    };
+  }
+
+  listSettlementRows(tripId: number): SettlementStoreRow[] {
+    const rows: SettlementStoreRow[] = [];
+    for (const s of this.settlementsMap().values()) {
+      if (s.trip_id !== tripId) continue;
+      const joined = this.settlementJoined(s);
+      if (joined) rows.push(joined);
+    }
+    rows.sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id);
+    return rows;
+  }
+
+  getSettlementRow(id: number, tripId: number): SettlementStoreRow | undefined {
+    const s = this.settlementsMap().get(id);
+    if (!s || s.trip_id !== tripId) return undefined;
+    return this.settlementJoined(s);
+  }
+
+  insertSettlementRow(tripId: number, data: SettlementWriteData, createdByUserId?: number): number {
+    const id = this.allocId('budgetSettlements');
+    this.put('budgetSettlements', {
+      id,
+      trip_id: tripId,
+      from_user_id: data.from_user_id,
+      to_user_id: data.to_user_id,
+      amount: Math.round(data.amount * 100) / 100,
+      currency: data.currency ? data.currency.toUpperCase() : null,
+      exchange_rate: data.exchange_rate != null ? data.exchange_rate : 1,
+      created_at: nowIso(),
+      settled_at: data.settled_at || null,
+      created_by_user_id: createdByUserId ?? null,
+    } as BudgetSettlement);
+    return id;
+  }
+
+  /** `applySettlementRowUpdate` — the CASE-WHEN sentinel semantics verbatim:
+   *  currency/exchange_rate/settled_at only move when the key is present. */
+  applySettlementRowUpdate(id: number, tripId: number, data: SettlementWriteData): boolean {
+    const s = this.settlementsMap().get(id);
+    if (!s || s.trip_id !== tripId) return false;
+    s.from_user_id = data.from_user_id;
+    s.to_user_id = data.to_user_id;
+    s.amount = Math.round(data.amount * 100) / 100;
+    if (data.currency !== undefined) s.currency = data.currency ? data.currency.toUpperCase() : null;
+    if (data.exchange_rate !== undefined) s.exchange_rate = data.exchange_rate;
+    if (data.settled_at !== undefined) s.settled_at = data.settled_at || null;
+    this.put('budgetSettlements', s);
+    return true;
+  }
+
+  deleteSettlementRow(id: number, tripId: number): boolean {
+    const s = this.settlementsMap().get(id);
+    if (!s || s.trip_id !== tripId) return false;
+    this.delete('budgetSettlements', id);
+    return true;
+  }
+
+  // ==================================================================
   // Adapter-facing row access (trips/days adapters)
   // ==================================================================
 
@@ -2068,6 +2295,9 @@ export class DexieStore
     for (const s of [...settlements.values()]) {
       if (s.trip_id === tripId) this.delete('budgetSettlements', s.id);
     }
+    for (const c of [...this.catOrderMap().values()]) {
+      if (c.trip_id === tripId) this.delete('budgetCategoryOrder', c.id);
+    }
     const todos = this.map('todoItems') as Map<number, TodoItem>;
     for (const t of [...todos.values()]) {
       if (t.trip_id === tripId) this.delete('todoItems', t.id);
@@ -2314,26 +2544,23 @@ export class DexieStore
   }
 
   /** The server's listBudgetItems read model: rows ordered by
-   *  (category order → sort_order) — the local schema has no
-   *  budget_category_order table, so sort_order alone carries it — with
-   *  member/payer display fields resolved from the roster at read time, the
-   *  way the server's JOINs produced them. */
+   *  (budget_category_order.sort_order → budget_items.sort_order), missing
+   *  cat rows falling to 999999 — with member/payer display fields resolved
+   *  from the roster at read time, the way the server's JOINs produced them. */
   listBudgetItemsWire(tripId: number): BudgetItem[] {
+    const catOrder = this.categoryOrderOf(tripId);
     return this.budgetItemsOfTrip(tripId)
-      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id)
+      .sort(
+        (a, b) =>
+          (catOrder.get(a.category) ?? 999999) - (catOrder.get(b.category) ?? 999999) ||
+          (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+          a.id - b.id,
+      )
       .map((b) =>
         detached({
           ...b,
-          members: (b.members ?? []).map((m) => ({
-            ...m,
-            username: this.user(m.user_id)?.name ?? m.username ?? `Guest ${m.user_id}`,
-            avatar_url: null,
-          })),
-          payers: (b.payers ?? []).map((p) => ({
-            ...p,
-            username: this.user(p.user_id)?.name ?? p.username ?? `Guest ${p.user_id}`,
-            avatar_url: null,
-          })),
+          members: this.itemMembersWire(b),
+          payers: this.itemPayersWire(b),
           receipts: b.receipts ?? [],
         }),
       );

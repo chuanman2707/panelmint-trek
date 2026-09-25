@@ -1,55 +1,52 @@
-// FE-REPO-BUDGET-001 to FE-REPO-BUDGET-004
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+// FE-REPO-BUDGET-001 to FE-REPO-BUDGET-004 — the repo is a thin pass-through
+// to the local adapter now (the same shape reservationRepo took): panelmintDb
+// is the always-durable source, so the online/offline cache split and the
+// offlineDb mirror went away with the axios surface.
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import 'fake-indexeddb/auto'
-import { http, HttpResponse } from 'msw'
-import { server } from '../../tests/helpers/msw/server'
 import { budgetRepo } from './budgetRepo'
-import { offlineDb, clearAll } from '../db/offlineDb'
-import { buildBudgetItem } from '../../tests/helpers/factories'
-
-function setOnline(v: boolean): void {
-  Object.defineProperty(navigator, 'onLine', { value: v, writable: true, configurable: true })
-}
+import { budgetApi } from '../api/local/budget'
+import { LocalApiError } from '../api/local/helpers'
+import { db } from '../db/panelmintDb'
+import { buildBudgetItem, buildTrip } from '../../tests/helpers/factories'
 
 beforeEach(async () => {
-  await clearAll()
-  setOnline(true)
-})
-
-afterEach(() => {
   vi.restoreAllMocks()
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
 })
 
 describe('budgetRepo.list', () => {
-  it('FE-REPO-BUDGET-001: online — returns REST items and caches them', async () => {
-    const item = buildBudgetItem({ id: 61, trip_id: 12, name: 'Hotel', total_price: 420 })
-    server.use(http.get('/api/trips/12/budget', () => HttpResponse.json({ items: [item] })))
+  it('FE-REPO-BUDGET-001: returns the trip\'s items straight from panelmintDb', async () => {
+    await db.trips.put(buildTrip({ id: 12 }))
+    await db.budgetItems.put(buildBudgetItem({ id: 61, trip_id: 12, name: 'Hotel', total_price: 420 }))
 
     const result = await budgetRepo.list(12)
     expect(result.items[0].total_price).toBe(420)
-
-    await new Promise(r => setTimeout(r, 0))
-    expect((await offlineDb.budgetItems.get(61))!.name).toBe('Hotel')
+    // The Dexie row the adapter wrote IS the cache — no separate mirror.
+    expect((await db.budgetItems.get(61))!.name).toBe('Hotel')
   })
 
-  it('FE-REPO-BUDGET-002: offline — returns only this trip\'s cached items', async () => {
-    await offlineDb.budgetItems.bulkPut([
+  it('FE-REPO-BUDGET-002: returns only this trip\'s items', async () => {
+    await db.trips.bulkPut([buildTrip({ id: 12 }), buildTrip({ id: 13 })])
+    await db.budgetItems.bulkPut([
       buildBudgetItem({ id: 62, trip_id: 12 }),
       buildBudgetItem({ id: 63, trip_id: 13 }),
     ])
-    setOnline(false)
 
     const result = await budgetRepo.list('12')
     expect(result.items.map(i => i.id)).toEqual([62])
   })
 
-  it('FE-REPO-BUDGET-003: offline with an empty cache — returns an empty list', async () => {
-    setOnline(false)
+  it('FE-REPO-BUDGET-003: an empty trip answers an empty list', async () => {
+    await db.trips.put(buildTrip({ id: 404 }))
     expect((await budgetRepo.list(404)).items).toEqual([])
   })
 
-  it('FE-REPO-BUDGET-004: a 500 is rethrown, not masked by the cache', async () => {
-    server.use(http.get('/api/trips/12/budget', () => HttpResponse.json({ error: 'boom' }, { status: 500 })))
+  it('FE-REPO-BUDGET-004: an adapter failure is rethrown, not masked', async () => {
+    vi.spyOn(budgetApi, 'list').mockRejectedValueOnce(new LocalApiError(500, 'boom'))
     await expect(budgetRepo.list(12)).rejects.toThrow()
   })
 })

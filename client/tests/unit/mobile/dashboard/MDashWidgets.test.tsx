@@ -11,6 +11,7 @@ import {
 } from '../../../../src/mobile/screens/dashboard/MDashWidgets';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
 import { useAddonStore } from '../../../../src/store/addonStore';
+import { clearExchangeRateCache } from '../../../../src/api/ext/fx';
 import type { UpcomingReservation } from '../../../../src/pages/dashboard/dashboardModel';
 
 // FE-MOB-DWID-001 onwards
@@ -33,6 +34,9 @@ function enableCollectionsAddon(enabled: boolean) {
 
 beforeEach(() => {
   resetAllStores();
+  // The shared Frankfurter client caches per base for 6h (memory +
+  // trek_fx_<BASE> localStorage) — drop it so each case sees its own handler.
+  clearExchangeRateCache();
   fxHandler();
 });
 

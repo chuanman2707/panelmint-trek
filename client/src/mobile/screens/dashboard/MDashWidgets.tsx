@@ -12,6 +12,7 @@ import { CURRENCIES } from '../../../components/Budget/BudgetPanel.constants'
 import { formatTime, splitReservationDateTime } from '../../../utils/formatters'
 import { normalizeAppearance, MOBILE_DASH_TOKENS, type MobileDashToken } from '@trek/shared'
 import { upcomingKey, type UpcomingReservation } from '../../../pages/dashboard/dashboardModel'
+import { fetchExchangeRates } from '../../../api/ext/fx'
 
 const RES_ICON: Record<string, React.ReactElement> = {
   flight: <Plane size={14} strokeWidth={2} />,
@@ -109,35 +110,23 @@ function MCurrencyWidget(): React.ReactElement {
   const [rates, setRates] = useState<Record<string, number> | null>(null)
 
   // The request outlives the widget: this is a third-party endpoint on a mobile
-  // screen a user can leave immediately, and both handlers below set state. Left
-  // unguarded it settles after unmount, React schedules an update against a gone
-  // tree, and under a test runner that surfaces as an unhandled rejection long
-  // after the case that triggered it has passed.
-  const inFlight = useRef<AbortController | null>(null)
+  // screen a user can leave immediately, and the resolution below sets state.
+  // The sequence ref drops a stale answer (unmount or a newer call) instead of
+  // letting it write into a gone tree.
+  const seq = useRef(0)
 
-  const fetchRates = useCallback(() => {
-    inFlight.current?.abort()
-    const controller = new AbortController()
-    inFlight.current = controller
-    fetch(`https://api.frankfurter.dev/v2/rates?base=${from}`, { signal: controller.signal })
-      .then(r => r.json())
-      .then((d: Array<{ quote: string; rate: number }>) => {
-        if (controller.signal.aborted) return
-        if (!Array.isArray(d)) { setRates(null); return }
-        // Frankfurter omits the base's own self-rate; seed it so `from` stays selectable.
-        const map: Record<string, number> = { [from]: 1 }
-        for (const r of d) map[r.quote] = r.rate
-        setRates(map)
-      })
-      .catch(() => {
-        // An abort is not a failure: it means nobody is waiting for the answer.
-        if (!controller.signal.aborted) setRates(null)
-      })
+  // Rates come from the shared Frankfurter client (api/ext/fx.ts) — cached for
+  // a few hours; `force` is for the explicit refresh button only.
+  const fetchRates = useCallback((force = false) => {
+    const s = ++seq.current
+    void fetchExchangeRates(from, { force }).then((r) => {
+      if (s === seq.current) setRates(r)
+    })
   }, [from])
 
   useEffect(() => {
     fetchRates()
-    return () => inFlight.current?.abort()
+    return () => { seq.current++ }
   }, [fetchRates])
 
   // Same one-time localStorage → settings migration the desktop widget runs, so
@@ -166,7 +155,7 @@ function MCurrencyWidget(): React.ReactElement {
       icon={<RefreshCw size={12} strokeWidth={2.2} />}
       title={t('dashboard.currency')}
       action={
-        <button type="button" aria-label={t('dashboard.aria.refreshRates')} onClick={fetchRates} className="flex text-m-faint">
+        <button type="button" aria-label={t('dashboard.aria.refreshRates')} onClick={() => fetchRates(true)} className="flex text-m-faint">
           <RefreshCw size={13} strokeWidth={2} />
         </button>
       }

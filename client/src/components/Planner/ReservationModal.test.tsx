@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
 import { db } from '../../db/panelmintDb';
-import { reservationsApi } from '../../api/client';
+import { reservationsApi, budgetApi } from '../../api/client';
 import { LocalApiError } from '../../api/local/helpers';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import {
@@ -1301,19 +1301,13 @@ describe('ReservationModal', () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     seedLinkedCost();
-    let deleted = false;
-    server.use(
-      http.delete('/api/trips/1/budget/7', () => {
-        deleted = true;
-        return HttpResponse.json({ error: 'nope' }, { status: 500 });
-      }),
-    );
+    const deleted = vi.spyOn(budgetApi, 'delete').mockRejectedValue(new LocalApiError(500, 'nope'));
     render(
       <ReservationModal {...defaultProps} reservation={buildReservation({ id: 9, type: 'hotel', title: 'Hotel Paris' })} />,
     );
 
     await userEvent.click(screen.getByRole('button', { name: /Remove expense/i }));
-    await waitFor(() => expect(deleted).toBe(true));
+    await waitFor(() => expect(deleted).toHaveBeenCalledWith(1, 7));
     await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined));
     delete window.__addToast;
   });

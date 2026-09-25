@@ -4,6 +4,7 @@ import { useTripStore } from '../../src/store/tripStore';
 import { useSettingsStore } from '../../src/store/settingsStore';
 import { useAddonStore } from '../../src/store/addonStore';
 import { usePermissionsStore } from '../../src/store/permissionsStore';
+import { invalidateBudgetListLoads } from '../../src/store/slices/budgetSlice';
 // Journey store is reset individually in journey tests to avoid circular import issues
 
 // Capture initial states at import time (before any test modifies them)
@@ -13,6 +14,9 @@ const initialSettingsState = useSettingsStore.getState();
 const initialAddonState = useAddonStore.getState();
 const initialPermsState = usePermissionsStore.getState();
 export function resetAllStores(): void {
+  // A budget list still in flight read the world this reset is about to
+  // discard — retire it so its result can't be applied into the fresh state.
+  invalidateBudgetListLoads();
   useAuthStore.setState(initialAuthState, true);
   useTripStore.setState(initialTripState, true);
   useSettingsStore.setState(initialSettingsState, true);

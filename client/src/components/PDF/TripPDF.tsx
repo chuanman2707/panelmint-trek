@@ -13,7 +13,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { routeTrip, type TripRouteSummary } from '../Map/tripRouteGeometry'
 import { buildTripMapSvg } from './tripMapSvg'
 import { formatDistance } from '../../utils/units'
-import { fetchExchangeRates } from '../../hooks/useExchangeRates'
+import { fetchExchangeRates } from '../../api/ext/fx'
 import { getFlightLegs, getTrainLegs } from '../../utils/flightLegs'
 import { isServiceStopType } from '../Roadtrip/roadtripModel'
 

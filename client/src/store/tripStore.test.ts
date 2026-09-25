@@ -20,6 +20,7 @@ import {
 import { offlineDb } from '../db/offlineDb';
 import { db } from '../db/panelmintDb';
 import { tripsApi, daysApi, tagsApi, placesApi, categoriesApi } from '../api/client';
+import { budgetRepo } from '../repo/budgetRepo';
 import { reservationRepo } from '../repo/reservationRepo';
 import { LocalApiError } from '../api/local/helpers';
 import type { DayRow } from '../api/local/dexieStore';
@@ -34,7 +35,6 @@ async function clearCache(): Promise<void> {
     offlineDb.places.clear(),
     offlineDb.packingItems.clear(),
     offlineDb.todoItems.clear(),
-    offlineDb.budgetItems.clear(),
     offlineDb.reservations.clear(),
     offlineDb.tripFiles.clear(),
     offlineDb.tags.clear(),
@@ -155,12 +155,12 @@ describe('tripStore', () => {
       server.use(
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [buildPackingItem({ id: 60, trip_id: 1 })] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 70, trip_id: 1 })] })),
-        http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [buildBudgetItem({ id: 80, trip_id: 1 })] })),
         http.get('/api/trips/1/files', () => HttpResponse.json({ files: [buildTripFile({ id: 95, trip_id: 1 })] })),
       );
-      // places/tags/categories/reservations are local — the "endpoint answers"
-      // are rows in `panelmintDb` (place 500 arrived via seedLocalTrip's
-      // assignment join).
+      // places/tags/categories/reservations/budget are local — the "endpoint
+      // answers" are rows in `panelmintDb` (place 500 arrived via
+      // seedLocalTrip's assignment join).
+      await db.budgetItems.put(buildBudgetItem({ id: 80, trip_id: 1 }));
       await db.reservations.put(buildReservation({ id: 90, trip_id: 1 }));
       await db.tags.put(buildTag({ id: 11, name: 'Loaded tag' }));
       await db.categories.put(buildCategory({ id: 12 }));
@@ -210,11 +210,11 @@ describe('tripStore', () => {
 
     it('FE-TSTORE-005: a failing budget/reservations/files fetch is non-fatal', async () => {
       await db.trips.put(buildTrip({ id: 1 }));
-      // reservationRepo is local — its failure is a rejected adapter call, the
-      // same rejection loadTrip treats as non-fatal.
+      // budgetRepo/reservationRepo are local — their failure is a rejected
+      // adapter call, the same rejection loadTrip treats as non-fatal.
+      vi.spyOn(budgetRepo, 'list').mockRejectedValue(new LocalApiError(500, 'nope'));
       vi.spyOn(reservationRepo, 'list').mockRejectedValue(new LocalApiError(500, 'nope'));
       server.use(
-        http.get('/api/trips/1/budget', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
         http.get('/api/trips/1/files', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
       );
 
@@ -252,11 +252,11 @@ describe('tripStore', () => {
       await offlineDb.places.bulkPut([buildPlace({ id: 502, trip_id: 1 })]);
       await offlineDb.packingItems.bulkPut([buildPackingItem({ id: 62, trip_id: 1 })]);
       await offlineDb.todoItems.bulkPut([buildTodoItem({ id: 73, trip_id: 1 })]);
-      await offlineDb.budgetItems.bulkPut([buildBudgetItem({ id: 82, trip_id: 1 })]);
       await offlineDb.tripFiles.bulkPut([buildTripFile({ id: 97, trip_id: 1 })]);
-      // Reservations live in panelmintDb now — forced offline only gates the
-      // network, the local adapter reads the system of record either way.
+      // Reservations/budget live in panelmintDb now — forced offline only gates
+      // the network, the local adapter reads the system of record either way.
       await db.trips.put(buildTrip({ id: 1 }));
+      await db.budgetItems.put(buildBudgetItem({ id: 82, trip_id: 1 }));
       await db.reservations.put(buildReservation({ id: 93, trip_id: 1 }));
       await offlineDb.tags.put(buildTag({ id: 41, name: 'Offline tag' }));
       await offlineDb.categories.put(buildCategory({ id: 42, name: 'Offline category' }));
@@ -323,9 +323,9 @@ describe('tripStore', () => {
       server.use(
         http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [buildPackingItem({ id: 61, trip_id: 1 })] })),
         http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 71, trip_id: 1 })] })),
-        http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [buildBudgetItem({ id: 81, trip_id: 1 })] })),
         http.get('/api/trips/1/files', () => HttpResponse.json({ files: [buildTripFile({ id: 96, trip_id: 1 })] })),
       );
+      await db.budgetItems.put(buildBudgetItem({ id: 81, trip_id: 1 }));
       await db.reservations.put(buildReservation({ id: 91, trip_id: 1 }));
 
       const nudged = vi.fn();

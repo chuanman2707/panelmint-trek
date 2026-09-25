@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
 import { db } from '../../db/panelmintDb';
-import { reservationsApi } from '../../api/client';
+import { reservationsApi, budgetApi } from '../../api/client';
 import { LocalApiError } from '../../api/local/helpers';
 import type { LocalTripMember } from '../../db/panelmintDb';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
@@ -1030,7 +1030,7 @@ describe('TransportModal', () => {
     const addToast = vi.fn();
     window.__addToast = addToast;
     seedLinkedCost();
-    server.use(http.delete('/api/trips/1/budget/3', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    vi.spyOn(budgetApi, 'delete').mockRejectedValue(new LocalApiError(500, 'nope'));
 
     render(<TransportModal {...defaultProps} reservation={buildReservation({ id: 50, type: 'flight', title: 'LH 400' })} />);
     await userEvent.click(screen.getByRole('button', { name: /Remove expense/i }));

@@ -5,21 +5,22 @@ import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import { db } from '../db/panelmintDb'
-import { buildDay, buildPlace, buildReservation, buildTag, buildTrip } from '../../tests/helpers/factories'
+import { buildDay, buildBudgetItem, buildPlace, buildReservation, buildTag, buildTrip } from '../../tests/helpers/factories'
 import type { DayRow, StoredAssignment } from './local/dexieStore'
 import type { LocalTripMember } from '../db/panelmintDb'
 import { clearWeatherCache } from './ext/openmeteo'
 
-// tripsApi.create/update fetch live FX rates for the currency rebase — keep the
-// surface suite offline.
-vi.mock('../hooks/useExchangeRates', () => ({ fetchExchangeRates: vi.fn().mockResolvedValue(null) }))
+// tripsApi's currency rebase and budgetApi's FX freeze fetch live rates for
+// their transactions — keep the surface suite offline.
+vi.mock('./ext/fx', () => ({ fetchExchangeRates: vi.fn().mockResolvedValue(null) }))
 import {
   apiClient,
   tripsApi, daysApi, placesApi, assignmentsApi, packingApi, todoApi,
   tagsApi, categoriesApi,
   airportsApi, budgetApi, filesApi, reservationsApi, weatherApi,
-  accommodationsApi, dayNotesApi,
+  accommodationsApi, dayNotesApi, usersApi,
 } from './client'
+import { fetchExchangeRates } from './ext/fx'
 
 interface Recorded { method: string; url: string; body: unknown }
 
@@ -144,9 +145,11 @@ describe('client > endpoint wiring', () => {
         },
         e: 'local',
       },
-      { n: 'createGuest', r: async () => { await seedTripAndDays(); return tripsApi.createGuest(3, 'Anna') }, e: 'local' },
-      { n: 'renameGuest', r: async () => { await seedTripAndDays(); await seedMemberRow(9, 'Anna', 0); return tripsApi.renameGuest(3, 9, 'Ana') }, e: 'local' },
-      { n: 'deleteGuest', r: async () => { await seedTripAndDays(); await seedMemberRow(9, 'Anna', 0); return tripsApi.deleteGuest(3, 9) }, e: 'local' },
+      // The guest roster moved to usersApi — the member surface of it.
+      { n: 'users.list', r: async () => { await seedTripAndDays(); return usersApi.list(3) }, e: 'local' },
+      { n: 'users.create', r: async () => { await seedTripAndDays(); return usersApi.create(3, 'Anna') }, e: 'local' },
+      { n: 'users.rename', r: async () => { await seedTripAndDays(); await seedMemberRow(9, 'Anna', 0); return usersApi.rename(3, 9, 'Ana') }, e: 'local' },
+      { n: 'users.delete', r: async () => { await seedTripAndDays(); await seedMemberRow(9, 'Anna', 0); return usersApi.delete(3, 9) }, e: 'local' },
       { n: 'copy', r: async () => { await seedTripAndDays(); return tripsApi.copy(3, { title: 'Copy' }) }, e: 'local' },
       { n: 'bundle', r: async () => { await seedTripAndDays(); return tripsApi.bundle(3) }, e: 'local' },
     ])
@@ -281,22 +284,38 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-017: budgetApi maps item, member and settlement endpoints', async () => {
+  it('FE-APISURF-017: budgetApi runs locally (Dexie-backed, zero HTTP)', async () => {
+    // The adapter's own suite (tests/unit/local/budget.test.ts) pins envelopes,
+    // the ledger arithmetic and error strings; here each method only has to
+    // resolve over seeded rows without emitting a request.
+    const seedBudgetWorld = async () => {
+      await db.trips.put(buildTrip({ id: 1 }))
+      await db.localUsers.put({ id: 4, name: 'ann', is_self: 0 })
+      await db.tripMembers.put({
+        tripId: 1, id: 4, username: 'ann', role: 'member',
+        added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true,
+      } as LocalTripMember)
+      await db.budgetItems.put(buildBudgetItem({ id: 2, trip_id: 1, members: [{ user_id: 4, paid: 0, amount: null, username: 'ann' }] }))
+      await db.budgetSettlements.put({
+        id: 6, trip_id: 1, from_user_id: 4, to_user_id: 1, amount: 5,
+        created_at: '2025-01-01T00:00:00.000Z',
+      } as never)
+    }
     await assertCalls([
-      { n: 'list', r: () => budgetApi.list(1), e: 'GET /api/trips/1/budget' },
-      { n: 'create', r: () => budgetApi.create(1, { name: 'Hotel' }), e: 'POST /api/trips/1/budget' },
-      { n: 'update', r: () => budgetApi.update(1, 2, { name: 'Hostel' }), e: 'PUT /api/trips/1/budget/2' },
-      { n: 'delete', r: () => budgetApi.delete(1, 2), e: 'DELETE /api/trips/1/budget/2' },
-      { n: 'setMembers', r: () => budgetApi.setMembers(1, 2, [4, 5]), e: 'PUT /api/trips/1/budget/2/members' },
-      { n: 'togglePaid', r: () => budgetApi.togglePaid(1, 2, 4, true), e: 'PUT /api/trips/1/budget/2/members/4/paid' },
-      { n: 'setPayers', r: () => budgetApi.setPayers(1, 2, [{ user_id: 4, amount: 10 }]), e: 'PUT /api/trips/1/budget/2/payers' },
-      { n: 'perPersonSummary', r: () => budgetApi.perPersonSummary(1), e: 'GET /api/trips/1/budget/summary/per-person' },
-      { n: 'settlement', r: () => budgetApi.settlement(1), e: 'GET /api/trips/1/budget/settlement' },
-      { n: 'createSettlement', r: () => budgetApi.createSettlement(1, { from_user_id: 4, to_user_id: 5, amount: 10 }), e: 'POST /api/trips/1/budget/settlements' },
-      { n: 'updateSettlement', r: () => budgetApi.updateSettlement(1, 6, { from_user_id: 4, to_user_id: 5, amount: 12 }), e: 'PUT /api/trips/1/budget/settlements/6' },
-      { n: 'deleteSettlement', r: () => budgetApi.deleteSettlement(1, 6), e: 'DELETE /api/trips/1/budget/settlements/6' },
-      { n: 'reorderItems', r: () => budgetApi.reorderItems(1, [2, 3]), e: 'PUT /api/trips/1/budget/reorder/items' },
-      { n: 'reorderCategories', r: () => budgetApi.reorderCategories(1, ['Food']), e: 'PUT /api/trips/1/budget/reorder/categories' },
+      { n: 'list', r: async () => { await seedBudgetWorld(); return budgetApi.list(1) }, e: 'local' },
+      { n: 'create', r: async () => { await seedBudgetWorld(); return budgetApi.create(1, { name: 'Hotel' }) }, e: 'local' },
+      { n: 'update', r: async () => { await seedBudgetWorld(); return budgetApi.update(1, 2, { name: 'Hostel' }) }, e: 'local' },
+      { n: 'delete', r: async () => { await seedBudgetWorld(); return budgetApi.delete(1, 2) }, e: 'local' },
+      { n: 'setMembers', r: async () => { await seedBudgetWorld(); return budgetApi.setMembers(1, 2, [4]) }, e: 'local' },
+      { n: 'togglePaid', r: async () => { await seedBudgetWorld(); return budgetApi.togglePaid(1, 2, 4, true) }, e: 'local' },
+      { n: 'setPayers', r: async () => { await seedBudgetWorld(); return budgetApi.setPayers(1, 2, [{ user_id: 4, amount: 10 }]) }, e: 'local' },
+      { n: 'perPersonSummary', r: async () => { await seedBudgetWorld(); return budgetApi.perPersonSummary(1) }, e: 'local' },
+      { n: 'settlement', r: async () => { await seedBudgetWorld(); return budgetApi.settlement(1) }, e: 'local' },
+      { n: 'createSettlement', r: async () => { await seedBudgetWorld(); return budgetApi.createSettlement(1, { from_user_id: 4, to_user_id: 1, amount: 10 }) }, e: 'local' },
+      { n: 'updateSettlement', r: async () => { await seedBudgetWorld(); return budgetApi.updateSettlement(1, 6, { from_user_id: 4, to_user_id: 1, amount: 12 }) }, e: 'local' },
+      { n: 'deleteSettlement', r: async () => { await seedBudgetWorld(); return budgetApi.deleteSettlement(1, 6) }, e: 'local' },
+      { n: 'reorderItems', r: async () => { await seedBudgetWorld(); return budgetApi.reorderItems(1, [2, 3]) }, e: 'local' },
+      { n: 'reorderCategories', r: async () => { await seedBudgetWorld(); return budgetApi.reorderCategories(1, ['Food']) }, e: 'local' },
     ])
   })
 
@@ -390,9 +409,22 @@ describe('client > request payloads', () => {
     expect(log).toHaveLength(0)
     expect((await traceOne(() => packingApi.reorder(1, [2, 1]))).body).toEqual({ orderedIds: [2, 1] })
     expect((await traceOne(() => todoApi.reorder(1, [9]))).body).toEqual({ orderedIds: [9] })
-    expect((await traceOne(() => budgetApi.reorderItems(1, [4, 5]))).body).toEqual({ orderedIds: [4, 5] })
-    expect((await traceOne(() => budgetApi.reorderCategories(1, ['Food', 'Fun']))).body)
-      .toEqual({ orderedCategories: ['Food', 'Fun'] })
+    // budgetApi's reorders are local too — assert the persisted positions the
+    // wire body's orderedIds / orderedCategories fields used to set.
+    await db.trips.put(buildTrip({ id: 1 }))
+    await db.budgetItems.bulkPut([
+      buildBudgetItem({ id: 4, trip_id: 1, sort_order: 0 }),
+      buildBudgetItem({ id: 5, trip_id: 1, sort_order: 1 }),
+    ])
+    await budgetApi.reorderItems(1, [5, 4])
+    expect((await db.budgetItems.get(5))!.sort_order).toBe(0)
+    expect((await db.budgetItems.get(4))!.sort_order).toBe(1)
+    await budgetApi.reorderCategories(1, ['Food', 'Fun'])
+    const catOrder = await db.budgetCategoryOrder.where('trip_id').equals(1).toArray()
+    expect(catOrder.map((r) => [r.category, r.sort_order])).toEqual([['Food', 0], ['Fun', 1]])
+    // The local reorder block above emitted no request — reset the log the
+    // HTTP traceOne calls just filled.
+    expect(log.filter((r) => r.url.includes('budget'))).toHaveLength(0)
   })
 
   it('FE-APISURF-023: user-id collections are sent as user_ids', async () => {
@@ -420,7 +452,14 @@ describe('client > request payloads', () => {
     expect(participants).toEqual([{ user_id: 4, username: 'ann', avatar: null }])
     expect((await db.assignmentParticipants.toArray()).map((r) => r.user_id)).toEqual([4])
     expect(log).toHaveLength(0)
-    expect((await traceOne(() => budgetApi.setMembers(1, 2, [4]))).body).toEqual({ user_ids: [4] })
+    // budgetApi.setMembers is local — its "body" is the member rewrite the
+    // wire user_ids used to cause, roster-filtered like the others.
+    await db.budgetItems.put(buildBudgetItem({ id: 2, trip_id: 1 }))
+    log = []
+    const { members } = await budgetApi.setMembers(1, 2, [4, 5])
+    expect(members.map((m) => m.user_id)).toEqual([4])
+    expect((await db.budgetItems.get(2))!.members!.map((m) => m.user_id)).toEqual([4])
+    expect(log).toHaveLength(0)
     expect((await traceOne(() => packingApi.setBagMembers(1, 2, [6]))).body).toEqual({ user_ids: [6] })
     // reservationsApi.setTravelers is local — its "body" is the junction
     // rewrite filtered to the trip roster (4 is a member, 6 is off-roster).
@@ -443,7 +482,7 @@ describe('client > request payloads', () => {
     await tripsApi.transferOwnership(1, 9)
     expect((await db.trips.get(1))?.user_id).toBe(9)
     await db.trips.put(buildTrip({ id: 1 }))
-    await tripsApi.createGuest(1, 'Anna')
+    await usersApi.create(1, 'Anna')
     expect((await db.localUsers.toArray()).some((u) => u.name === 'Anna' && u.is_self === 0)).toBe(true)
     await db.days.put({ ...buildDay({ id: 2, trip_id: 1 }), vias: [] } as DayRow)
     await daysApi.updateTransport(1, 2, 'walk')
@@ -463,8 +502,19 @@ describe('client > request payloads', () => {
     await assignmentsApi.updateTransport(1, 7, null)
     const after = ((await db.days.get(2)) as DayRow).assignments as unknown as StoredAssignment[]
     expect(after[0].leg_transport_mode).toBeNull()
+    // budgetApi.togglePaid is local — its "body" is the member.paid column the
+    // wire {paid} used to set.
+    await db.localUsers.put({ id: 4, name: 'ann', is_self: 0 })
+    await db.tripMembers.put({
+      tripId: 1, id: 4, username: 'ann', role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true,
+    } as LocalTripMember)
+    await db.budgetItems.put(buildBudgetItem({ id: 2, trip_id: 1, members: [{ user_id: 4, paid: 1, amount: null, username: 'ann' }] }))
+    log = []
+    const { member } = await budgetApi.togglePaid(1, 2, 4, false)
+    expect(member).toMatchObject({ user_id: 4, paid: 0 })
+    expect((await db.budgetItems.get(2))!.members![0].paid).toBe(0)
     expect(log).toHaveLength(0)
-    expect((await traceOne(() => budgetApi.togglePaid(1, 2, 4, false))).body).toEqual({ paid: false })
   })
 
   it('FE-APISURF-025: tripsApi.archive/unarchive flip the stored is_archived flag', async () => {
@@ -510,9 +560,19 @@ describe('client > query parameters', () => {
     expect((await traceOne(() => filesApi.list(1, true))).url).toBe('/api/trips/1/files?trash=true')
   })
 
-  it('FE-APISURF-037: budgetApi.settlement adds the base currency only when given', async () => {
-    expect((await traceOne(() => budgetApi.settlement(1))).url).toBe('/api/trips/1/budget/settlement')
-    expect((await traceOne(() => budgetApi.settlement(1, 'EUR'))).url).toBe('/api/trips/1/budget/settlement?base=EUR')
+  it('FE-APISURF-037: budgetApi.settlement selects the FX base currency the param asked for', async () => {
+    // The axios version forwarded ?base= on the wire; the local adapter uses
+    // the same base to fetch live rates and convert — assert the selection,
+    // not the URL.
+    const mockRates = vi.mocked(fetchExchangeRates)
+    await db.trips.put(buildTrip({ id: 1, currency: 'EUR' }))
+    log = []
+    await budgetApi.settlement(1)
+    expect(mockRates).toHaveBeenCalledWith('EUR')
+    mockRates.mockClear()
+    await budgetApi.settlement(1, 'USD')
+    expect(mockRates).toHaveBeenCalledWith('USD')
+    expect(log).toHaveLength(0)
   })
 
   it('FE-APISURF-042: weatherApi forwards lat/lng plus the date or language to Open-Meteo', async () => {

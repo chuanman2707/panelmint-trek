@@ -21,11 +21,26 @@ export interface BudgetSlice {
   reorderBudgetCategories: (tripId: number | string, orderedCategories: string[]) => Promise<void>
 }
 
+// Monotonic per-load ticket: a `loadBudgetItems` that resolves after a newer one
+// was issued (unmounted panels, rapid trip switches, a post-save reload racing a
+// remount) must not clobber the fresher snapshot with its stale read.
+let budgetListSeq = 0
+
+/**
+ * Retire every `loadBudgetItems` currently in flight: anything issued before
+ * this call fails the freshness check when it resolves, so a list read against
+ * a world that no longer exists (post-reset, post-clear) can never land.
+ */
+export function invalidateBudgetListLoads(): void {
+  budgetListSeq++
+}
+
 export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => ({
   loadBudgetItems: async (tripId) => {
+    const seq = ++budgetListSeq
     try {
       const data = await budgetRepo.list(tripId)
-      set({ budgetItems: data.items })
+      if (seq === budgetListSeq) set({ budgetItems: data.items })
     } catch (err: unknown) {
       console.error('Failed to load budget items:', err)
     }
@@ -58,9 +73,13 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
 
   deleteBudgetItem: async (tripId, id) => {
     const prev = get().budgetItems
+    // The adapter takes the mirrored price off the linked reservation's
+    // metadata; the broadcast refresh the hosted app rode on is a reload here.
+    const hadReservation = prev.find(item => item.id === id)?.reservation_id != null
     set(state => ({ budgetItems: state.budgetItems.filter(item => item.id !== id) }))
     try {
       await budgetApi.delete(tripId, id)
+      if (hadReservation) get().loadReservations(tripId)
     } catch (err: unknown) {
       set({ budgetItems: prev })
       throw new Error(getApiErrorMessage(err, 'Error deleting budget item'))
