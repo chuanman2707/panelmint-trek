@@ -1,72 +1,62 @@
-import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { assignmentRepo } from './assignmentRepo'
-import { offlineDb, clearAll } from '../db/offlineDb'
 import { saveAssignmentEndDay } from '../api/assignmentEndDay'
-import { isEffectivelyOffline } from '../sync/networkMode'
 import { assignmentsApi } from '../api/client'
-import type { Assignment, Day } from '../types'
+import { applyLocalEffect } from '../store/localEffects'
+import type { Assignment } from '../types'
 
+// The repo no longer branches on connectivity — every write runs the local
+// adapter on panelmintDb, so the seam to pin is the adapter call itself plus
+// the reordered side-channel replay setTimes owes the store.
 vi.mock('../api/assignmentEndDay', () => ({ saveAssignmentEndDay: vi.fn() }))
-vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn(() => true) }))
 vi.mock('../api/client', () => ({ assignmentsApi: { updateTime: vi.fn() } }))
+vi.mock('../store/localEffects', () => ({ applyLocalEffect: vi.fn() }))
+
 const assignment = { id: 7, day_id: 1, place_id: 2, order_index: 0, assignment_time: '07:00', place: { id: 2, name: 'Berlin' } } as Assignment
 
-beforeEach(async () => {
-  await clearAll()
+beforeEach(() => {
   vi.clearAllMocks()
-  vi.mocked(isEffectivelyOffline).mockReturnValue(true)
-  await offlineDb.days.put({ id: 1, trip_id: 9, day_number: 1, assignments: [assignment] } as Day)
 })
 
 describe('assignment day-end persistence', () => {
-  it('stores the offline flag locally and preserves manual time', async () => {
-    await assignmentRepo.setEndDay(9, assignment, true)
-    expect((await offlineDb.days.get(1))?.assignments?.[0]).toMatchObject({ end_day: true, assignment_time: '07:00' })
-    // Local build: a write lands in Dexie and is done — nothing is queued for replay.
-    expect(saveAssignmentEndDay).not.toHaveBeenCalled()
-  })
-
-  it('saves and clears through the API when online', async () => {
-    vi.mocked(isEffectivelyOffline).mockReturnValue(false)
+  it('writes through the local end-day route and returns the saved row', async () => {
     vi.mocked(saveAssignmentEndDay).mockResolvedValue({ ...assignment, end_day: false })
-    await assignmentRepo.setEndDay(9, assignment, false)
+    const saved = await assignmentRepo.setEndDay(9, assignment, false)
     expect(saveAssignmentEndDay).toHaveBeenCalledWith(9, 7, { end_day: false })
-    expect((await offlineDb.days.get(1))?.assignments?.[0].end_day).toBe(false)
+    expect(saved.end_day).toBe(false)
   })
 
-  it('keeps the cached visit unchanged after a rejected save', async () => {
-    vi.mocked(isEffectivelyOffline).mockReturnValue(false)
+  it('propagates a refused save', async () => {
     vi.mocked(saveAssignmentEndDay).mockRejectedValue(new Error('Denied'))
     await expect(assignmentRepo.setEndDay(9, assignment, true)).rejects.toThrow('Denied')
-    expect((await offlineDb.days.get(1))?.assignments?.[0].end_day).toBeUndefined()
   })
 })
 
 describe('assignment time persistence', () => {
   const times = { place_time: '07:00', end_time: null }
 
-  it('stores the offline times locally', async () => {
-    await assignmentRepo.setTimes(9, { ...assignment, assignment_end_time: '14:00' }, times)
-    expect((await offlineDb.days.get(1))?.assignments?.[0]).toMatchObject({ assignment_time: '07:00', assignment_end_time: null })
-    expect(assignmentsApi.updateTime).not.toHaveBeenCalled()
-  })
-
-  it('saves through the time route online and caches what came back', async () => {
-    vi.mocked(isEffectivelyOffline).mockReturnValue(false)
+  it('writes through the local time route and returns the parsed row', async () => {
     vi.mocked(assignmentsApi.updateTime).mockResolvedValue({
       assignment: { ...assignment, assignment_end_time: null }, reordered: null, vias: null,
     })
     const saved = await assignmentRepo.setTimes(9, { ...assignment, assignment_end_time: '14:00' }, times)
     expect(assignmentsApi.updateTime).toHaveBeenCalledWith(9, 7, times)
     expect(saved.assignment_end_time).toBeNull()
-    expect((await offlineDb.days.get(1))?.assignments?.[0].assignment_end_time).toBeNull()
+    // A null reordered payload is still handed to the effect — it no-ops inside.
+    expect(applyLocalEffect).toHaveBeenCalledWith('assignment:reordered', null)
   })
 
-  it('keeps the cached visit unchanged after a refused save', async () => {
-    vi.mocked(isEffectivelyOffline).mockReturnValue(false)
+  it('replays the day re-sort the adapter answered with', async () => {
+    const reordered = { dayId: 1, orderedIds: [9, 7] }
+    vi.mocked(assignmentsApi.updateTime).mockResolvedValue({
+      assignment, reordered, vias: null,
+    })
+    await assignmentRepo.setTimes(9, assignment, times)
+    expect(applyLocalEffect).toHaveBeenCalledWith('assignment:reordered', reordered)
+  })
+
+  it('propagates a refused save', async () => {
     vi.mocked(assignmentsApi.updateTime).mockRejectedValue(new Error('Denied'))
     await expect(assignmentRepo.setTimes(9, assignment, times)).rejects.toThrow('Denied')
-    expect((await offlineDb.days.get(1))?.assignments?.[0]).toEqual(assignment)
   })
 })
