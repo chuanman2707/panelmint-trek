@@ -271,19 +271,6 @@ export async function upsertAccommodations(items: Accommodation[]): Promise<void
   await offlineDb.accommodations.bulkPut(items);
 }
 
-export async function upsertTripMembers(tripId: number, members: TripMember[]): Promise<void> {
-  const rows: CachedTripMember[] = members.map(m => ({ ...m, tripId }));
-  await offlineDb.tripMembers.bulkPut(rows);
-}
-
-export async function upsertTags(tags: Tag[]): Promise<void> {
-  await offlineDb.tags.bulkPut(tags);
-}
-
-export async function upsertCategories(categories: Category[]): Promise<void> {
-  await offlineDb.categories.bulkPut(categories);
-}
-
 export async function upsertSyncMeta(meta: SyncMeta): Promise<void> {
   await offlineDb.syncMeta.put(meta);
 }

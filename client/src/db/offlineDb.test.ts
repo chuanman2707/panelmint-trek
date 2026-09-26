@@ -15,20 +15,16 @@ import {
   upsertBudgetItems,
   upsertReservations,
   upsertAccommodations,
-  upsertTripMembers,
-  upsertTags,
-  upsertCategories,
   upsertSyncMeta,
 } from './offlineDb'
-import type { Accommodation, TripMember } from '../types'
+import type { CachedTripMember } from './offlineDb'
+import type { Accommodation } from '../types'
 import {
   buildTrip,
   buildDay,
   buildPlace,
   buildBudgetItem,
   buildReservation,
-  buildTag,
-  buildCategory,
 } from '../../tests/helpers/factories'
 
 beforeEach(async () => {
@@ -48,8 +44,6 @@ describe('offlineDb — bulk upsert helpers', () => {
     await upsertBudgetItems([buildBudgetItem({ id: 1, trip_id: 1 })])
     await upsertReservations([buildReservation({ id: 1, trip_id: 1 })])
     await upsertAccommodations([{ id: 1, trip_id: 1, start_day_id: 1, end_day_id: 2 } as Accommodation])
-    await upsertTags([buildTag({ id: 1 })])
-    await upsertCategories([buildCategory({ id: 1 })])
 
     expect(await offlineDb.trips.count()).toBe(1)
     expect(await offlineDb.days.count()).toBe(1)
@@ -57,21 +51,6 @@ describe('offlineDb — bulk upsert helpers', () => {
     expect(await offlineDb.budgetItems.count()).toBe(1)
     expect(await offlineDb.reservations.count()).toBe(1)
     expect(await offlineDb.accommodations.count()).toBe(1)
-    expect(await offlineDb.tags.count()).toBe(1)
-    expect(await offlineDb.categories.count()).toBe(1)
-  })
-
-  it('FE-DB-OFFLINE-002: upsertTripMembers stamps the tripId onto every member row', async () => {
-    const members = [
-      { id: 5, username: 'ana', role: 'owner' },
-      { id: 6, username: 'ben', role: 'member' },
-    ] as unknown as TripMember[]
-
-    await upsertTripMembers(42, members)
-
-    const rows = await offlineDb.tripMembers.where('tripId').equals(42).toArray()
-    expect(rows.map(r => r.username).sort()).toEqual(['ana', 'ben'])
-    expect(rows.every(r => r.tripId === 42)).toBe(true)
   })
 
   it('FE-DB-OFFLINE-003: upsertSyncMeta overwrites the previous row for the same trip', async () => {
@@ -93,7 +72,9 @@ describe('offlineDb — clearTripData', () => {
     await upsertBudgetItems([buildBudgetItem({ id: 1, trip_id: 1 })])
     await upsertReservations([buildReservation({ id: 1, trip_id: 1 })])
     await upsertAccommodations([{ id: 1, trip_id: 1, start_day_id: 1, end_day_id: 2 } as Accommodation])
-    await upsertTripMembers(1, [{ id: 9, username: 'ana', role: 'owner' } as unknown as TripMember])
+    // The roster link has no bulk writer anymore (members are a panelmintDb
+    // concern now) — seed the cache row directly to pin clearTripData's sweep.
+    await offlineDb.tripMembers.put({ tripId: 1, id: 9, username: 'ana', role: 'owner' } as CachedTripMember)
     await upsertSyncMeta({ tripId: 1, lastSyncedAt: 1, status: 'idle', tilesBbox: null })
 
     await clearTripData(1)

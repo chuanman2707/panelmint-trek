@@ -10,7 +10,6 @@ import { accommodationsApi, tripsApi, assignmentsApi, mapsApi } from '../../api/
 import { applyLocalEffect } from '../../store/localEffects'
 import { TRANSPORT_TYPES } from '../../utils/dayMerge'
 import { accommodationRepo } from '../../repo/accommodationRepo'
-import { offlineDb } from '../../db/offlineDb'
 import { isEffectivelyOffline } from '../../sync/networkMode'
 import { useAddonStore } from '../../store/addonStore'
 import { useResizablePanels } from '../../hooks/useResizablePanels'
@@ -93,14 +92,15 @@ export function useTripPlanner() {
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
 
   // Re-fetch the trip roster so consumers (Costs participants, …) pick up a
-  // just-added guest or member without a full page reload.
+  // just-added guest or member without a full page reload. The roster is a
+  // local adapter read — it resolves offline too, so there is no online gate.
   const refreshMembers = useCallback(() => {
-    if (!tripId || isEffectivelyOffline()) return
+    if (!tripId) return
     tripsApi.getMembers(tripId).then(d => {
       const all = [d.owner, ...(d.members || [])].filter(Boolean)
       setTripMembers(all)
-    }).catch(() => {})
-  }, [tripId])
+    }).catch(err => toast.error(err instanceof Error ? err.message : t('common.unknownError')))
+  }, [tripId, toast, t])
 
   const loadAccommodations = useCallback(() => {
     if (tripId) {
@@ -363,13 +363,7 @@ export function useTripPlanner() {
     if (tripId) {
       tripActions.loadTrip(tripId).catch(() => { toast.error(t('trip.toast.loadError')); navigate('/dashboard') })
       loadAccommodations()
-      if (isEffectivelyOffline()) {
-        offlineDb.tripMembers.where('tripId').equals(Number(tripId)).toArray()
-          .then(rows => setTripMembers(rows))
-          .catch(() => {})
-      } else {
-        refreshMembers()
-      }
+      refreshMembers()
     }
   }, [tripId])
 

@@ -1,4 +1,4 @@
-// FE-TSTORE-001 to FE-TSTORE-021 (trip-scoped root store: load, hydrate, refresh, mutate)
+// FE-TSTORE-001 to FE-TSTORE-022 (trip-scoped root store: load, hydrate, refresh, mutate)
 import 'fake-indexeddb/auto';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
@@ -215,22 +215,37 @@ describe('tripStore', () => {
       expect(state.error).toBeNull();
     });
 
-    it('FE-TSTORE-006: falls back to the cached tags and categories when their endpoints fail', async () => {
-      await offlineDb.tags.put(buildTag({ id: 31, name: 'Cached tag' }));
-      await offlineDb.categories.put(buildCategory({ id: 32, name: 'Cached category' }));
+    it('FE-TSTORE-006: a failing tags/categories read is non-fatal — the lists load empty', async () => {
       await db.trips.put(buildTrip({ id: 1 }));
 
-      // tagsApi reads db.tags now — its "endpoint failure" is a rejection at
-      // the adapter boundary, which is what triggers the offlineDb fallback.
+      // tagsApi/categoriesApi are panelmintDb reads — there is no offlineDb
+      // table standing behind them anymore, so an adapter rejection degrades
+      // to empty lists rather than a stale cache.
       vi.spyOn(tagsApi, 'list').mockRejectedValue(new LocalApiError(502, 'offline'));
-      // categoriesApi is local too — its "endpoint failure" is a rejection at
-      // the adapter boundary, which is what triggers the offlineDb fallback.
       vi.spyOn(categoriesApi, 'list').mockRejectedValue(new LocalApiError(502, 'offline'));
 
       await useTripStore.getState().loadTrip(1);
 
-      expect(useTripStore.getState().tags.map(t => t.name)).toEqual(['Cached tag']);
-      expect(useTripStore.getState().categories.map(c => c.name)).toEqual(['Cached category']);
+      const state = useTripStore.getState();
+      expect(state.trip?.id).toBe(1);
+      expect(state.tags).toEqual([]);
+      expect(state.categories).toEqual([]);
+      expect(state.error).toBeNull();
+    });
+
+    it('FE-TSTORE-022: tags and categories hydrate straight from the local adapter', async () => {
+      await db.trips.put(buildTrip({ id: 1 }));
+      await db.tags.put(buildTag({ id: 31, name: 'Local tag' }));
+      await db.categories.put(buildCategory({ id: 32, name: 'Local category' }));
+      vi.spyOn(tagsApi, 'list');
+      vi.spyOn(categoriesApi, 'list');
+
+      await useTripStore.getState().loadTrip(1);
+
+      expect(tagsApi.list).toHaveBeenCalledTimes(1);
+      expect(categoriesApi.list).toHaveBeenCalledTimes(1);
+      expect(useTripStore.getState().tags.map(t => t.name)).toEqual(['Local tag']);
+      expect(useTripStore.getState().categories.map(c => c.name)).toEqual(['Local category']);
     });
 
     it('FE-TSTORE-020: serves the whole trip from the offline cache when the app is forced offline', async () => {
@@ -245,8 +260,10 @@ describe('tripStore', () => {
       await db.todoItems.put(buildTodoItem({ id: 73, trip_id: 1 }));
       await db.budgetItems.put(buildBudgetItem({ id: 82, trip_id: 1 }));
       await db.reservations.put(buildReservation({ id: 93, trip_id: 1 }));
-      await offlineDb.tags.put(buildTag({ id: 41, name: 'Offline tag' }));
-      await offlineDb.categories.put(buildCategory({ id: 42, name: 'Offline category' }));
+      // Tags/categories read through the local adapters — forced offline must
+      // not gate them to a cache.
+      await db.tags.put(buildTag({ id: 41, name: 'Offline tag' }));
+      await db.categories.put(buildCategory({ id: 42, name: 'Offline category' }));
 
       // Any request reaching the network would mean the offline gate leaked.
       const leaked: string[] = [];

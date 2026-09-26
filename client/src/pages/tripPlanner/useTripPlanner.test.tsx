@@ -15,7 +15,8 @@ import {
   accommodationsApi, tripsApi, assignmentsApi, mapsApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
-import { offlineDb } from '../../db/offlineDb'
+import { db } from '../../db/panelmintDb'
+import type { LocalTripMember } from '../../db/panelmintDb'
 import type { Place, Reservation, Settings } from '../../types'
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -220,22 +221,26 @@ describe('useTripPlanner — bootstrap', () => {
     expect(accommodationRepo.list).not.toHaveBeenCalled()
   })
 
-  it('FE-TP-HOOK-004: offline reads the roster from the Dexie cache instead of the API', async () => {
+  it('FE-TP-HOOK-004: offline still loads the roster through the local adapter', async () => {
     env.forcedOffline = true
     seedTrip()
-    await offlineDb.tripMembers.bulkPut([
-      { tripId: 42, id: 9, user_id: 9, username: 'cached', role: 'member' } as never,
-    ])
+    // tripsApi.getMembers is a panelmintDb read — run the real adapter against
+    // a seeded trip + roster link instead of the mock.
+    vi.mocked(tripsApi.getMembers).mockRestore()
+    await db.trips.put(buildTrip({ id: 42, user_id: 1 }))
+    await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 })
+    await db.localUsers.put({ id: 9, name: 'Roadie', is_self: 0, email: 'guest-x@guests.invalid' })
+    await db.tripMembers.put({
+      tripId: 42, id: 9, username: 'Roadie', role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z', invited_by_username: null, is_guest: true,
+    } as LocalTripMember)
 
     const { result } = await renderPlanner()
 
-    await waitFor(() => expect(result.current.tripMembers).toHaveLength(1))
-    expect(result.current.tripMembers[0].username).toBe('cached')
-    expect(tripsApi.getMembers).not.toHaveBeenCalled()
-    await offlineDb.tripMembers.clear()
+    await waitFor(() => expect(result.current.tripMembers.map(m => m.username)).toEqual(['Me', 'Roadie']))
   })
 
-  it('FE-TP-HOOK-005: refreshMembers is a no-op while offline', async () => {
+  it('FE-TP-HOOK-005: refreshMembers re-fetches the roster while offline — the local adapter is the source of truth', async () => {
     seedTrip()
     const { result } = await renderPlanner()
     await waitFor(() => expect(tripsApi.getMembers).toHaveBeenCalledTimes(1))
@@ -243,7 +248,7 @@ describe('useTripPlanner — bootstrap', () => {
     env.forcedOffline = true
     act(() => { result.current.refreshMembers() })
 
-    expect(tripsApi.getMembers).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(tripsApi.getMembers).toHaveBeenCalledTimes(2))
   })
 
   it('FE-TP-HOOK-006: the static addon set reaches the returned state', async () => {
@@ -1658,13 +1663,13 @@ describe('useTripPlanner — misc state', () => {
     await waitFor(() => expect(result.current.tripMembers).toHaveLength(3))
   })
 
-  it('FE-TP-HOOK-103: a rejected roster fetch leaves the list untouched', async () => {
+  it('FE-TP-HOOK-103: a rejected roster fetch leaves the list untouched and toasts', async () => {
     vi.mocked(tripsApi.getMembers).mockRejectedValue(new Error('403'))
     seedTrip()
 
     const { result } = await renderPlanner()
 
-    await waitFor(() => expect(tripsApi.getMembers).toHaveBeenCalled())
+    await waitFor(() => expect(toasts.some(t => t.type === 'error' && t.message === '403')).toBe(true))
     expect(result.current.tripMembers).toEqual([])
   })
 })

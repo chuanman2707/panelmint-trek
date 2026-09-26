@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import type { StoreApi } from 'zustand'
 import { tripsApi, tagsApi, categoriesApi } from '../api/client'
-import { offlineDb } from '../db/offlineDb'
 import { tripRepo } from '../repo/tripRepo'
 import { dayRepo } from '../repo/dayRepo'
 import { placeRepo } from '../repo/placeRepo'
@@ -9,7 +8,6 @@ import { packingRepo } from '../repo/packingRepo'
 import { todoRepo } from '../repo/todoRepo'
 import { budgetRepo } from '../repo/budgetRepo'
 import { reservationRepo } from '../repo/reservationRepo'
-import { isEffectivelyOnline } from '../sync/networkMode'
 import { createPlacesSlice } from './slices/placesSlice'
 import { createAssignmentsSlice } from './slices/assignmentsSlice'
 import { createDaysSlice } from './slices/daysSlice'
@@ -145,12 +143,11 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         // in any of these must not blank the whole trip.
         budgetRepo.list(tripId).catch(() => ({ items: [] as BudgetItem[] })),
         reservationRepo.list(tripId).catch(() => ({ reservations: [] as Reservation[] })),
-        isEffectivelyOnline()
-          ? tagsApi.list().catch(() => offlineDb.tags.toArray().then(tags => ({ tags })))
-          : offlineDb.tags.toArray().then(tags => ({ tags })),
-        isEffectivelyOnline()
-          ? categoriesApi.list().catch(() => offlineDb.categories.toArray().then(categories => ({ categories })))
-          : offlineDb.categories.toArray().then(categories => ({ categories })),
+        // Tags and categories are local Dexie reads like the rest — no online
+        // gate, and a failure is non-fatal (the pickers they feed recover on
+        // the next loadTrip).
+        tagsApi.list().catch(() => ({ tags: [] as Tag[] })),
+        categoriesApi.list().catch(() => ({ categories: [] as Category[] })),
       ])
 
       const assignmentsMap: AssignmentsMap = {}
