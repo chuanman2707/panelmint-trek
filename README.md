@@ -53,6 +53,11 @@ npm run test       # shared then client vitest suites
 
 Per-workspace commands use `npm run <script> --workspace=client` (or `shared`).
 
+## Deploy
+
+Static PWA on Cloudflare Pages — build `npm run build`, output `client/dist`.
+Step-by-step: [DEPLOY.md](DEPLOY.md).
+
 ## License
 
 AGPL-3.0 — see [LICENSE](LICENSE). PanelMint is a fork of TREK; upstream
