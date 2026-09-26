@@ -10,9 +10,9 @@ import type { CSSProperties } from 'react'
  * so it sits next to the lucide `Compass` of the CoMaps button beside it
  * without one of the two shouting. The button's own label carries the brand.
  *
- * Same shape as the other hand-vendored marks in the client (`BrandIcon` in
- * SystemNoticeModal, `ImmichIcon`/`SynologyIcon` in AddonManager): 24×24 box,
- * `fill="currentColor"`, `aria-hidden` because the button is already labelled.
+ * Same shape as the other hand-vendored marks in the client (`TrekIcon` next to
+ * it): 24×24 box, `fill="currentColor"`, `aria-hidden` because the button is
+ * already labelled.
  */
 export default function GoogleMapsIcon({ size = 14, className, style }: {
   size?: number

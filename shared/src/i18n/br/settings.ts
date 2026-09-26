@@ -50,7 +50,7 @@ const settings: TranslationStrings = {
     'PanelMint é um planejador de viagens auto-hospedado que ajuda você a organizar suas viagens da primeira ideia à última lembrança. Planejamento diário, orçamento, listas de bagagem, fotos e muito mais — tudo em um só lugar, no seu próprio servidor.',
   'settings.about.madeWith': 'Feito com',
   'settings.about.madeBy': 'por Maurice e uma crescente comunidade open-source.',
-  'settings.about.multiTabNote': 'An embannadurioù graet en un ivinell merdeer all a zeu war-wel pa zeu an ivinell-mañ war-wel en-dro.',
+  'settings.about.multiTabNote': 'Edições feitas em outra aba do navegador aparecem quando esta aba volta ao foco.',
   'settings.toast.mapSaved': 'Configurações do mapa salvas',
   'settings.bookingLabels': 'Rótulos das rotas de reservas',
   'settings.bookingLabelsHint': 'Mostra nomes de estações / aeroportos no mapa. Desativado, apenas o ícone aparece.',
