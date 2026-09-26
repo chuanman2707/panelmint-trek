@@ -5,7 +5,7 @@ import { tripRepo } from '../../repo/tripRepo'
 import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../../components/shared/Toast'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 import { localIsoToday } from './dashboardModel'
 import type { TripCreateRequest } from '@trek/shared'
 import {
@@ -120,7 +120,7 @@ export function useDashboard() {
       toast.success(t('dashboard.toast.created'))
       return data
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, t('dashboard.toast.createError')))
+      throw new Error(getErrorMessage(err, t('dashboard.toast.createError')))
     }
   }
 
@@ -131,7 +131,7 @@ export function useDashboard() {
       setTrips(prev => sortTrips(prev.map(t => t.id === editingTrip.id ? data.trip : t)))
       toast.success(t('dashboard.toast.updated'))
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, t('dashboard.toast.updateError')))
+      throw new Error(getErrorMessage(err, t('dashboard.toast.updateError')))
     }
   }
 

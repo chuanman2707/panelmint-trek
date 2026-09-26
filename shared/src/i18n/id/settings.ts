@@ -50,6 +50,7 @@ const settings: TranslationStrings = {
     'PanelMint adalah perencana perjalanan self-hosted yang membantu kamu mengatur perjalanan dari ide pertama hingga kenangan terakhir. Perencanaan harian, anggaran, daftar bawaan, foto dan masih banyak lagi — semua di satu tempat, di servermu sendiri.',
   'settings.about.madeWith': 'Dibuat dengan',
   'settings.about.madeBy': 'oleh Maurice dan komunitas open-source yang terus berkembang.',
+  'settings.about.multiTabNote': 'Perubahan yang dibuat di tab browser lain muncul saat tab ini kembali difokuskan.',
   'settings.toast.mapSaved': 'Pengaturan peta tersimpan',
   'settings.bookingLabels': 'Label rute pemesanan',
   'settings.bookingLabelsHint': 'Menampilkan nama stasiun / bandara di peta. Jika mati, hanya ikon ditampilkan.',

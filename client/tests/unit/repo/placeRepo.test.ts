@@ -1,17 +1,15 @@
 /**
  * placeRepo unit tests.
  *
- * Online path:  calls the Dexie-backed `placesApi` adapter (seeded in
- *               `panelmintDb`), then mirrors the result into the legacy
- *               `offlineDb` cache.
- * Offline path: returns the `offlineDb` cache, skips the adapter.
+ * The repo is a pass-through over the Dexie-backed `placesApi` adapter (seeded
+ * in `panelmintDb`) — these tests pin the envelopes and that writes land in the
+ * real table.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { placeRepo } from '../../../src/repo/placeRepo';
 import { placesApi } from '../../../src/api/client';
 import { db } from '../../../src/db/panelmintDb';
 import type { LocalPlace } from '../../../src/db/panelmintDb';
-import { offlineDb, clearAll } from '../../../src/db/offlineDb';
 import { buildTrip, buildPlace } from '../../helpers/factories';
 import { LocalApiError } from '../../../src/api/local/helpers';
 
@@ -32,116 +30,96 @@ async function seedPlace(overrides: Partial<LocalPlace> = {}) {
   return place;
 }
 
-beforeEach(async () => {
-  await clearAll();
-  await resetMainDb();
-  Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
-});
+beforeEach(resetMainDb);
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe('placeRepo.list', () => {
-  it('online — reads through the local adapter and caches in offlineDb', async () => {
+  it('returns the trip places the adapter reads', async () => {
     await seedTrip(1);
     const place = await seedPlace({ trip_id: 1 });
-
-    const result = await placeRepo.list(1);
-    expect(result.places).toHaveLength(1);
-    expect(result.places[0].id).toBe(place.id);
-
-    // Give fire-and-forget a tick to flush
-    await new Promise(r => setTimeout(r, 0));
-    const cached = await offlineDb.places.where('trip_id').equals(1).toArray();
-    expect(cached).toHaveLength(1);
-    expect(cached[0].id).toBe(place.id);
-  });
-
-  it('offline — returns Dexie cache without touching the adapter', async () => {
-    Object.defineProperty(navigator, 'onLine', { value: false });
-
-    const place = buildPlace({ trip_id: 1 });
-    await offlineDb.places.put(place);
-
-    const listSpy = vi.spyOn(placesApi, 'list');
-
-    const result = await placeRepo.list(1);
-    expect(result.places).toHaveLength(1);
-    expect(result.places[0].id).toBe(place.id);
-    expect(listSpy).not.toHaveBeenCalled();
-  });
-
-  it('offline — returns empty array when nothing cached', async () => {
-    Object.defineProperty(navigator, 'onLine', { value: false });
-    const result = await placeRepo.list(99);
-    expect(result.places).toHaveLength(0);
-  });
-
-  it('online but request fails — falls back to Dexie cache (captive portal)', async () => {
-    // navigator.onLine lies "true" on a captive portal; the request throws at
-    // the network level (an axios-shaped error with no response).
-    const place = buildPlace({ trip_id: 1 });
-    await offlineDb.places.put(place);
-
-    const networkError = Object.assign(new Error('Network Error'), { isAxiosError: true });
-    vi.spyOn(placesApi, 'list').mockRejectedValue(networkError);
+    await seedPlace({ trip_id: 2 });
 
     const result = await placeRepo.list(1);
     expect(result.places).toHaveLength(1);
     expect(result.places[0].id).toBe(place.id);
   });
 
-  it('online with a real adapter error — does NOT fall back (server spoke)', async () => {
-    // A 404/500 carries a `response`, so it is not a network failure: the cache
-    // must not silently mask it.
-    const place = buildPlace({ trip_id: 1 });
-    await offlineDb.places.put(place);
+  it('a real adapter error rejects instead of being masked', async () => {
+    await seedTrip(1);
+    // A 404/500-shaped error is a real answer — the repo must surface it.
+    const place = await seedPlace({ trip_id: 1 });
+    expect(place.id).toBeGreaterThan(0);
 
+    vi.spyOn(placesApi, 'list').mockRejectedValue(new LocalApiError(500, 'boom'));
     await expect(placeRepo.list(1)).rejects.toBeInstanceOf(LocalApiError);
   });
 });
 
 describe('placeRepo.create', () => {
-  it('creates through the local adapter and caches in offlineDb', async () => {
+  it('creates through the adapter — the row lands in panelmintDb', async () => {
     await seedTrip(1);
 
     const result = await placeRepo.create(1, { name: 'Eiffel Tower' });
     expect(result.place.name).toBe('Eiffel Tower');
 
-    await new Promise(r => setTimeout(r, 0));
-    const cached = await offlineDb.places.get(result.place.id);
-    expect(cached).toBeDefined();
-    expect(cached!.name).toBe('Eiffel Tower');
+    const stored = await db.places.get(result.place.id);
+    expect(stored).toBeDefined();
+    expect(stored!.name).toBe('Eiffel Tower');
   });
 });
 
 describe('placeRepo.update', () => {
-  it('updates through the local adapter and refreshes the Dexie cache', async () => {
+  it('updates through the adapter — the stored row changes', async () => {
     await seedTrip(1);
     const original = await seedPlace({ trip_id: 1, name: 'Old Name' });
-    await offlineDb.places.put(original);
 
     const result = await placeRepo.update(1, original.id, { name: 'New Name' });
     expect(result.place.name).toBe('New Name');
 
-    await new Promise(r => setTimeout(r, 0));
-    const cached = await offlineDb.places.get(original.id);
-    expect(cached!.name).toBe('New Name');
+    const stored = await db.places.get(original.id);
+    expect(stored!.name).toBe('New Name');
   });
 });
 
 describe('placeRepo.delete', () => {
-  it('deletes through the local adapter and removes from Dexie', async () => {
+  it('deletes through the adapter — the stored row is gone', async () => {
     await seedTrip(1);
     const place = await seedPlace({ trip_id: 1 });
-    await offlineDb.places.put(place);
 
     await placeRepo.delete(1, place.id);
 
-    await new Promise(r => setTimeout(r, 0));
-    const cached = await offlineDb.places.get(place.id);
-    expect(cached).toBeUndefined();
     expect(await db.places.get(place.id)).toBeUndefined();
+  });
+});
+
+describe('placeRepo.deleteMany', () => {
+  it('bulk-deletes through the adapter — only owned rows go', async () => {
+    await seedTrip(1);
+    const a = await seedPlace({ trip_id: 1 });
+    const b = await seedPlace({ trip_id: 1 });
+    const foreign = await seedPlace({ trip_id: 2 });
+
+    const result = (await placeRepo.deleteMany(1, [a.id, b.id, foreign.id])) as {
+      deleted: number[];
+      count: number;
+    };
+    expect(result.deleted.sort()).toEqual([a.id, b.id].sort());
+    expect(await db.places.get(foreign.id)).toBeDefined();
+  });
+});
+
+describe('placeRepo.updateMany', () => {
+  it('bulk-updates through the adapter', async () => {
+    await seedTrip(1);
+    const a = await seedPlace({ trip_id: 1 });
+    const b = await seedPlace({ trip_id: 1 });
+
+    const result = await placeRepo.updateMany(1, [a.id, b.id], { category_id: 7 });
+    expect(result.updated.sort()).toEqual([a.id, b.id].sort());
+    expect((await db.places.get(a.id))!.category_id).toBe(7);
+    expect((await db.places.get(b.id))!.category_id).toBe(7);
   });
 });

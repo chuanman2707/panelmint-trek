@@ -4,18 +4,16 @@
  *
  * Two inputs combine here:
  *   - the real browser state (`navigator.onLine`)
- *   - a user-controlled "force offline" override (the Settings → Offline toggle)
+ *   - a persisted "force offline" override (`trek_forced_offline`). The Settings
+ *     toggle that wrote it is gone, but a device that set it keeps it — the
+ *     flag stays honored rather than silently ignored.
  *
- * The repo layer, the mutation queue and the sync triggers all gate on
- * `isEffectivelyOffline()` instead of reading `navigator.onLine` directly, so a
- * forced-offline session routes every read to the Dexie cache and every write to
- * the mutation queue exactly as a genuine disconnection would. The override is
- * persisted so it survives a reload (a user who forced offline before boarding a
- * plane stays offline after the PWA is relaunched).
- *
- * Forcing offline does NOT pretend the network is gone for everything: it is the
- * caller's job (Settings → Offline) to pre-download first and only then flip the
- * switch. See tripSyncManager.prepareForOffline().
+ * Local data reads and writes are Dexie adapter calls and never consult this
+ * flag. What gates on `isEffectivelyOffline()` are the genuinely networked
+ * callers — geocoding/search, map tiles, weather — plus the OfflineBanner that
+ * tells the user why those cannot work. Feature code must ask here, never
+ * `navigator.onLine` directly, so a forced-offline session behaves exactly as
+ * a genuine disconnection would.
  */
 
 const STORAGE_KEY = 'trek_forced_offline'

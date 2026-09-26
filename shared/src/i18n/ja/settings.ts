@@ -51,6 +51,7 @@ const settings: TranslationStrings = {
   'settings.about.description': 'PanelMintはセルフホスト型の旅行プランナーです。',
   'settings.about.madeWith': 'Made with',
   'settings.about.madeBy': 'by Maurice とオープンソースコミュニティ。',
+  'settings.about.multiTabNote': '別のブラウザータブで行った編集は、このタブにフォーカスが戻ったときに表示されます。',
   'settings.toast.mapSaved': '地図設定を保存しました',
   'settings.currency': '表示通貨',
   'settings.currencyHint': '費用の金額は表示のためだけにこの通貨に換算されます。元の金額は変更されません。',

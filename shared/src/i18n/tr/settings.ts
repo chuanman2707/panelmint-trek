@@ -53,6 +53,7 @@ const settings: TranslationStrings = {
     'PanelMint, seyahatlerinizi ilk fikirden son anıya kadar organize etmenize yardımcı olan, kendi kendine barındırılan bir seyahat planlayıcıdır. Gün planlaması, bütçe, paketleme listeleri, fotoğraflar ve çok daha fazlası; hepsi tek bir yerde, kendi sunucunuzda.',
   'settings.about.madeWith': 'İle yapıldı',
   'settings.about.madeBy': 'Maurice ve büyüyen bir açık kaynak topluluğu tarafından.',
+  'settings.about.multiTabNote': 'Başka bir tarayıcı sekmesinde yapılan düzenlemeler, bu sekme yeniden odaklandığında görünür.',
   'settings.toast.mapSaved': 'Harita ayarları kaydedildi',
   'settings.currency': 'Görüntüleme para birimi',
   'settings.currencyHint':

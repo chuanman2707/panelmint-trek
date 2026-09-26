@@ -150,7 +150,7 @@ describe('sumMoney / allocateDisplayCents', () => {
 
 describe.todo('settlement rows via real persistence (Dexie adapter)', () => {
   // listSettlements / insertSettlement / applySettlementUpdate / deleteSettlement
-  // need a running offlineDb adapter — the MemoryStore exercises the seam shape
-  // but IndexedDB behaviour (compound keys, transaction rollback) belongs to an
-  // integration test once repo/ wires the seam up.
+  // need the DexieStore over panelmintDb — the MemoryStore exercises the seam
+  // shape but IndexedDB behaviour (compound keys, transaction rollback) belongs
+  // to an integration test.
 });

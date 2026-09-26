@@ -52,6 +52,7 @@ const settings: TranslationStrings = {
     'PanelMint ist ein selbst gehosteter Reiseplaner, der dir hilft, deine Trips von der ersten Idee bis zur letzten Erinnerung zu organisieren. Tagesplanung, Budget, Packlisten, Fotos und vieles mehr — alles an einem Ort, auf deinem eigenen Server.',
   'settings.about.madeWith': 'Entwickelt mit',
   'settings.about.madeBy': 'von Maurice und einer wachsenden Open-Source-Community.',
+  'settings.about.multiTabNote': 'Änderungen, die in einem anderen Browser-Tab gemacht wurden, erscheinen, sobald dieser Tab wieder fokussiert wird.',
   'settings.toast.mapSaved': 'Karteneinstellungen gespeichert',
   'settings.currency': 'Anzeigewährung',
   'settings.currencyHint':

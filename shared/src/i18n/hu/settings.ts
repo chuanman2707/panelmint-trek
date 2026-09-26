@@ -51,6 +51,7 @@ const settings: TranslationStrings = {
     'A PanelMint egy saját szerveren üzemeltetett útitervező, amely segít az utazásaid megszervezésében az első ötlettől az utolsó emlékig. Napi tervezés, költségvetés, csomagolási listák, fotók és még sok más — minden egy helyen, a saját szervereden.',
   'settings.about.madeWith': 'Készítve',
   'settings.about.madeBy': 'Maurice és egy növekvő nyílt forráskódú közösség által.',
+  'settings.about.multiTabNote': 'A másik böngészőlapon végzett módosítások akkor jelennek meg, amikor ez a lap újra fókuszba kerül.',
   'settings.toast.mapSaved': 'Térképbeállítások mentve',
   'settings.bookingLabels': 'Útvonal-címkék a foglalásokhoz',
   'settings.bookingLabelsHint':

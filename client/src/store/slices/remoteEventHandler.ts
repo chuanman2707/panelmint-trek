@@ -514,11 +514,10 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
 
 /**
  * Applies an event to the local Zustand store + IndexedDB, keeping state in
- * sync. Two callers feed it the same `{ type, ...payload }` envelope:
- *  - the WebSocket listener (remote collaborators' changes), and
- *  - `applyLocalEffect` (store/localEffects.ts), which replays the side-channel
- *    fields a local api adapter returned — the effects the server used to
- *    broadcast for the caller's own writes.
+ * sync. The name is historical — the WebSocket listener that used to feed it
+ * is gone; the one caller now is `applyLocalEffect` (store/localEffects.ts),
+ * which replays the side-channel fields a local api adapter returned — the
+ * effects the server used to broadcast for the caller's own writes.
  * Each event type maps to an immutable state update (create/update/delete) for
  * the relevant entity; the matching Dexie writer then persists the result.
  */

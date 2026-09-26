@@ -18,7 +18,7 @@ import {
 /**
  * Tab 1 — Transporte. Real `planner.reservations` filtered to the transport
  * types, grouped Confirmed / Pending like the desktop
- * panel. The shell owns the header (Add transport / import / AirTrail / compact
+ * panel. The shell owns the header (Add transport / import / compact
  * toggle); this panel is the list. A row tap opens the existing transport
  * detail sheet; the status dot, edit and delete are gated on `day_edit` (the
  * convention MTransportSheet / MDaySheet already use for transports).

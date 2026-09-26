@@ -7,10 +7,9 @@
  * coordinates (a brand-new trip), leaving the caller to fall back to
  * DEFAULT_MAP_CENTER / DEFAULT_MAP_ZOOM.
  *
- * The bbox min/max here deliberately duplicates the few lines in sync/tilePrefetcher.ts
- * rather than importing them: that module pulls in Dexie at import time, which has no place
- * in a map's render path or in a pure-math unit test, and its padding + minimum-span rules
- * are tuned for enumerating tiles, not for framing a camera.
+ * The bbox padding + minimum-span rules here are tuned for framing a camera —
+ * keep them local and dependency-free so a map's render path (and a pure-math
+ * unit test) never pulls in a storage module.
  */
 
 /** Web Mercator diverges at the poles — projections clamp latitude to this. */

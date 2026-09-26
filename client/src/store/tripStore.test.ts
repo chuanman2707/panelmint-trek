@@ -16,7 +16,6 @@ import {
   buildTodoItem,
   buildTrip,
 } from '../../tests/helpers/factories';
-import { offlineDb } from '../db/offlineDb';
 import { db } from '../db/panelmintDb';
 import { tripsApi, daysApi, tagsApi, placesApi, categoriesApi } from '../api/client';
 import { budgetRepo } from '../repo/budgetRepo';
@@ -27,23 +26,10 @@ import type { DayRow } from '../api/local/dexieStore';
 import { setForcedOffline } from '../sync/networkMode';
 import { useTripStore } from './tripStore';
 
-/** Every cache table loadTrip reads from, so one test can never see another's writes. */
-async function clearCache(): Promise<void> {
-  await Promise.all([
-    offlineDb.trips.clear(),
-    offlineDb.days.clear(),
-    offlineDb.places.clear(),
-    offlineDb.reservations.clear(),
-    offlineDb.tags.clear(),
-    offlineDb.categories.clear(),
-  ]);
-}
-
 /**
- * tripsApi/daysApi/tagsApi are local adapters — tripRepo.get/dayRepo.list and
- * the tag fan-out read the `panelmint` Dexie db, not the network. Seed the
- * trip + day (+ tag) rows into it; every other resource (places/packing/todo/
- * budget/categories/…) is still HTTP and stays on msw.
+ * Every resource loadTrip fans out to is a local adapter reading the
+ * `panelmint` Dexie db — seed the trip + day rows into it (plus the places the
+ * embedded assignments join against).
  */
 async function seedLocalTrip(trip = buildTrip({ id: 1 }), days = serverDays()): Promise<void> {
   await db.trips.put(trip);
@@ -57,7 +43,6 @@ async function seedLocalTrip(trip = buildTrip({ id: 1 }), days = serverDays()): 
 beforeEach(async () => {
   resetAllStores();
   server.resetHandlers();
-  await clearCache();
   await db.transaction('rw', db.tables, async () => {
     for (const t of db.tables) await t.clear();
   });
@@ -248,14 +233,12 @@ describe('tripStore', () => {
       expect(useTripStore.getState().categories.map(c => c.name)).toEqual(['Local category']);
     });
 
-    it('FE-TSTORE-020: serves the whole trip from the offline cache when the app is forced offline', async () => {
-      await offlineDb.trips.put(buildTrip({ id: 1, title: 'Cached trip' }));
-      await offlineDb.days.bulkPut([buildDay({ id: 1, trip_id: 1, day_number: 1 })]);
-      await offlineDb.places.bulkPut([buildPlace({ id: 502, trip_id: 1 })]);
-      // Packing/todo/reservations/budget live in panelmintDb now — forced
-      // offline only gates the network, the local adapter reads the system of
-      // record either way.
-      await db.trips.put(buildTrip({ id: 1 }));
+    it('FE-TSTORE-020: serves the whole trip from the local database when the app is forced offline', async () => {
+      // Forced offline only gates the network — every resource is a local
+      // adapter reading panelmintDb, the system of record.
+      await db.trips.put(buildTrip({ id: 1, title: 'Stored trip' }));
+      await db.days.bulkPut([{ ...buildDay({ id: 1, trip_id: 1, day_number: 1 }), vias: [] } as DayRow]);
+      await db.places.put(buildPlace({ id: 502, trip_id: 1 }));
       await db.packingItems.put(buildPackingItem({ id: 62, trip_id: 1 }));
       await db.todoItems.put(buildTodoItem({ id: 73, trip_id: 1 }));
       await db.budgetItems.put(buildBudgetItem({ id: 82, trip_id: 1 }));
@@ -279,7 +262,7 @@ describe('tripStore', () => {
 
       expect(leaked).toEqual([]);
       const state = useTripStore.getState();
-      expect(state.trip?.title).toBe('Cached trip');
+      expect(state.trip?.title).toBe('Stored trip');
       expect(state.days.map(d => d.id)).toEqual([1]);
       expect(state.places.map(p => p.id)).toEqual([502]);
       expect(state.packingItems.map(i => i.id)).toEqual([62]);
@@ -291,11 +274,9 @@ describe('tripStore', () => {
       expect(state.isLoading).toBe(false);
     });
 
-    it('FE-TSTORE-021: reports a cache miss as an error when forced offline', async () => {
-      setForcedOffline(true);
-
+    it('FE-TSTORE-021: a missing trip reports the adapter 404 as the error state', async () => {
       await expect(useTripStore.getState().loadTrip(1)).rejects.toThrow();
-      expect(useTripStore.getState().error).toBe('No cached trip data available offline');
+      expect(useTripStore.getState().error).toBe('Trip not found');
       expect(useTripStore.getState().isLoading).toBe(false);
     });
 
@@ -454,7 +435,7 @@ describe('tripStore', () => {
     it('FE-TSTORE-016: throws the server message and keeps the list unchanged', async () => {
       seedStore(useTripStore, { tags: [buildTag({ id: 1 })] });
       // The create failing "server-side" is a rejection at the adapter boundary —
-      // getApiErrorMessage still surfaces the response.data.error string.
+      // getErrorMessage still surfaces the response.data.error string.
       vi.spyOn(tagsApi, 'create').mockRejectedValue(new LocalApiError(409, 'Tag exists'));
 
       await expect(useTripStore.getState().addTag({ name: 'Food' })).rejects.toThrow('Tag exists');

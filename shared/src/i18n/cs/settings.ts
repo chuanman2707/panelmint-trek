@@ -50,6 +50,7 @@ const settings: TranslationStrings = {
     'PanelMint je samohostovaný plánovač cest, který vám pomůže organizovat výlety od prvního nápadu po poslední vzpomínku. Denní plánování, rozpočet, balicí seznamy, fotky a mnoho dalšího — vše na jednom místě, na vašem vlastním serveru.',
   'settings.about.madeWith': 'Vytvořeno s',
   'settings.about.madeBy': 'Mauricem a rostoucí open-source komunitou.',
+  'settings.about.multiTabNote': 'Změny provedené na jiné kartě prohlížeče se zobrazí, když se tato karta vrátí do popředí.',
   'settings.toast.mapSaved': 'Nastavení map uloženo',
   'settings.bookingLabels': 'Popisky tras rezervací',
   'settings.bookingLabelsHint': 'Zobrazuje názvy stanic / letišť na mapě. Pokud je vypnuto, zobrazí se pouze ikona.',

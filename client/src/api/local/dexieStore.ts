@@ -25,7 +25,7 @@
  * Server-table ↔ local-row mapping: `day_assignments`, `day_notes` and
  * `roadtrip_vias` have no tables of their own — they embed on the `days` row
  * (`assignments`, `notes_items`, `vias`), which is the same shape remoteEvent-
- * Handler and upsertDays already write. `reservation_endpoints` and
+ * Handler already writes. `reservation_endpoints` and
  * `reservation_day_positions` embed on the `reservations` row (`endpoints`,
  * `day_positions`). Everything else maps 1:1 onto its Dexie table.
  *
@@ -207,8 +207,7 @@ type TableName =
   | 'todoCategoryAssignees'
   | 'categories'
   | 'tags'
-  | 'settings'
-  | 'syncMeta';
+  | 'settings';
 
 const TABLE_NAMES: TableName[] = [
   'trips',
@@ -232,7 +231,6 @@ const TABLE_NAMES: TableName[] = [
   'categories',
   'tags',
   'settings',
-  'syncMeta',
 ];
 
 type RowMap = Map<unknown, unknown>;
@@ -266,8 +264,6 @@ function dexieKey(name: TableName, row: unknown): unknown {
       return [r.bag_id, r.user_id];
     case 'settings':
       return r.key;
-    case 'syncMeta':
-      return r.tripId;
     default:
       return r.id;
   }
@@ -2327,7 +2323,6 @@ export class DexieStore
     for (const m of [...this.membersMap().values()]) {
       if (m.tripId === tripId) this.delete('tripMembers', [tripId, m.id]);
     }
-    this.delete('syncMeta', tripId);
     this.delete('trips', tripId);
   }
 

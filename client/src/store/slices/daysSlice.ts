@@ -2,7 +2,7 @@ import { daysApi } from '../../api/client'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Day } from '../../types'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -37,7 +37,7 @@ export const createDaysSlice = (set: SetState, get: GetState): DaysSlice => ({
       await get().loadReservations(tripId)
     } catch (err: unknown) {
       set({ days: prevDays })
-      throw new Error(getApiErrorMessage(err, 'Error reordering days'))
+      throw new Error(getErrorMessage(err, 'Error reordering days'))
     }
   },
 
@@ -50,7 +50,7 @@ export const createDaysSlice = (set: SetState, get: GetState): DaysSlice => ({
       await get().loadReservations(tripId)
       return result.day
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error adding day'))
+      throw new Error(getErrorMessage(err, 'Error adding day'))
     }
   },
 })

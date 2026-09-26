@@ -470,5 +470,5 @@ describe('staySeatDays — the [start, end) night rule', () => {
 describe.todo('night-seat against real Dexie persistence', () => {
   // Unique order_index contention under concurrent edits, the wire-shape reads
   // behind getStopForMirror/getPlaceForMirror, and transactional rollback all
-  // need the repo adapter over offlineDb.
+  // need the DexieStore over panelmintDb.
 });

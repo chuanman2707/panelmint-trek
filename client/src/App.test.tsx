@@ -7,7 +7,6 @@ import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { resetAllStores } from '../tests/helpers/store'
 import { buildUser, buildSettings, buildTrip } from '../tests/helpers/factories'
-import { offlineDb } from './db/offlineDb'
 import { db } from './db/panelmintDb'
 import { tripsApi } from './api/client'
 import { SETTINGS_WAIT_MS } from './utils/startDestination'
@@ -121,15 +120,15 @@ describe('RootRedirect — startup destination', () => {
       isLoaded: true,
       settings: buildSettings({ start_page: 'active_trip' }),
     })
-    // tripsApi.active() throwing drops tripRepo onto the offlineDb fallback,
-    // which is empty here — same dashboard outcome.
+    // tripsApi.active() throwing leaves the lookup without an answer — the
+    // startup redirect falls back to the dashboard.
     vi.spyOn(tripsApi, 'active').mockRejectedValue(new Error('lookup failed'))
 
     renderApp('/')
     await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
   })
 
-  it('FE-COMP-APP-028b: opens the cached active trip when the launch is offline', async () => {
+  it('FE-COMP-APP-028b: opens the stored active trip even when the browser reports offline', async () => {
     seedAuth()
     useSettingsStore.setState({
       isLoaded: true,
@@ -137,19 +136,20 @@ describe('RootRedirect — startup destination', () => {
     })
     const today = new Date()
     const iso = (d: Date) => d.toISOString().slice(0, 10)
-    await offlineDb.trips.put(buildTrip({ id: 42, title: 'Japan', start_date: iso(today), end_date: iso(today) }))
+    // The local active() lookup reads Dexie — `navigator.onLine` is irrelevant,
+    // which is the whole point of the migration: launch never waits on a network.
+    await db.trips.put(buildTrip({ id: 42, title: 'Japan', start_date: iso(today), end_date: iso(today) }))
     const onLine = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine')
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
 
-    // navigator and the Dexie table are shared with every other test in the
-    // file, so a failed assertion must not leave the rest of them offline.
+    // navigator is shared with every other test in the file, so a failed
+    // assertion must not leave the rest of them offline.
     try {
       renderApp('/')
       await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
     } finally {
       if (onLine) Object.defineProperty(Navigator.prototype, 'onLine', onLine)
       delete (navigator as unknown as { onLine?: boolean }).onLine
-      await offlineDb.trips.clear()
     }
   })
 

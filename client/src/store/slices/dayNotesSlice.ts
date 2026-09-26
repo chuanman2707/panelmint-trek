@@ -2,7 +2,7 @@ import { daysApi, dayNotesApi } from '../../api/client'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { DayNote } from '../../types'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -24,7 +24,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
         days: state.days.map(d => d.id === Number.parseInt(String(dayId)) ? { ...d, notes } : d)
       }))
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating notes'))
+      throw new Error(getErrorMessage(err, 'Error updating notes'))
     }
   },
 
@@ -35,7 +35,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
         days: state.days.map(d => d.id === Number.parseInt(String(dayId)) ? { ...d, title } : d)
       }))
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating day name'))
+      throw new Error(getErrorMessage(err, 'Error updating day name'))
     }
   },
 
@@ -64,7 +64,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
           [String(dayId)]: (state.dayNotes[String(dayId)] || []).filter(n => n.id !== tempId),
         }
       }))
-      throw new Error(getApiErrorMessage(err, 'Error adding note'))
+      throw new Error(getErrorMessage(err, 'Error adding note'))
     }
   },
 
@@ -79,7 +79,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
       }))
       return result.note
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating note'))
+      throw new Error(getErrorMessage(err, 'Error updating note'))
     }
   },
 
@@ -95,7 +95,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
       await dayNotesApi.delete(tripId, dayId, id)
     } catch (err: unknown) {
       set({ dayNotes: prev })
-      throw new Error(getApiErrorMessage(err, 'Error deleting note'))
+      throw new Error(getErrorMessage(err, 'Error deleting note'))
     }
   },
 
@@ -149,7 +149,7 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
           [String(fromDayId)]: [...(s.dayNotes[String(fromDayId)] || []), note],
         }
       }))
-      throw new Error(getApiErrorMessage(err, 'Error moving note'))
+      throw new Error(getErrorMessage(err, 'Error moving note'))
     }
   },
 })

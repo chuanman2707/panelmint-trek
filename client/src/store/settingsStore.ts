@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import type { Settings } from '../types'
-import { getApiErrorMessage } from '../types'
+import { getErrorMessage } from '../utils/apiError'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
 import { normalizeTileUrl, stripTileApiKey } from '../utils/tileUrl'
-import { clearTileCache } from '../sync/tilePrefetcher'
+import { clearTileCache } from '../sync/tileCache'
 import { rememberStartDestination } from '../utils/startDestination'
 import { db } from '../db/panelmintDb'
 import { DEFAULT_SETTINGS, SETTINGS_KEYS } from './settingsDefaults'
@@ -105,7 +105,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       await db.settings.put({ key, value: next })
     } catch (err: unknown) {
       console.error('Failed to save setting:', err)
-      throw new Error(getApiErrorMessage(err, 'Error saving setting'))
+      throw new Error(getErrorMessage(err, 'Error saving setting'))
     }
   },
 
@@ -139,7 +139,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       )
     } catch (err: unknown) {
       console.error('Failed to save settings:', err)
-      throw new Error(getApiErrorMessage(err, 'Error saving settings'))
+      throw new Error(getErrorMessage(err, 'Error saving settings'))
     }
   },
 }))

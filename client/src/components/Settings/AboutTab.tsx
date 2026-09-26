@@ -79,6 +79,9 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
         <Scale size={11} className="flex-shrink-0" />
         {t('settings.about.license')}
       </p>
+      {/* Spec §17 caveat: tabs share the Dexie db but not the store — edits made
+          elsewhere land here on refocus, not live. */}
+      <p className="mt-1.5 text-xs text-content-faint">{t('settings.about.multiTabNote')}</p>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <a

@@ -871,32 +871,29 @@ export function useTripPlanner() {
     if (n) {
       const existing = places.find(p => p.name?.trim().toLowerCase() === n)
         ?? places.find(p => p.name && (p.name.toLowerCase().includes(n) || n.includes(p.name.toLowerCase())))
-      // Only a server-side id may be linked. A negative id is an offline temp id
-      // (mutationQueue.nextTempId): the reservation write is online-only, the queue
-      // rewrites temp ids in a URL but never inside another entity's body, and
-      // day_accommodations.place_id carries a foreign key — so a temp id here is a
-      // rolled-back insert and a 500 instead of a saved booking.
+      // Every stored id is linkable — the negative temp ids the old mutation
+      // queue minted are gone with it; the > 0 check stays as a guard.
       if (existing && existing.id > 0) return existing.id
     }
-    // Offline the booking itself cannot be written (reservations are online-only),
-    // so minting a place here would only leave an orphan behind on the next flush
-    // — and its temp id could never be linked anyway. Link nothing, and skip the
-    // geocode round-trip too; the retry online matches this venue by name.
-    if (isEffectivelyOffline()) return null
     let lat: number | null = null
     let lng: number | null = null
     let address: string | null = venue.address ?? null
-    try {
-      const query = venue.address ? `${name} ${venue.address}`.trim() : name
-      if (query) {
-        const res = await mapsApi.search(query)
-        const hit = res?.places?.[0] as { lat?: number; lng?: number; address?: string } | undefined
-        if (hit && hit.lat != null && hit.lng != null) {
-          lat = hit.lat; lng = hit.lng
-          if (!address && hit.address) address = hit.address
+    // Only the geocode lookup is a network call — the place write itself is a
+    // local adapter that answers either way, so offline skips the round-trip
+    // and still creates the venue from the reviewed name and address.
+    if (!isEffectivelyOffline()) {
+      try {
+        const query = venue.address ? `${name} ${venue.address}`.trim() : name
+        if (query) {
+          const res = await mapsApi.search(query)
+          const hit = res?.places?.[0] as { lat?: number; lng?: number; address?: string } | undefined
+          if (hit && hit.lat != null && hit.lng != null) {
+            lat = hit.lat; lng = hit.lng
+            if (!address && hit.address) address = hit.address
+          }
         }
-      }
-    } catch { /* geocode failure is non-fatal — create the place without coords */ }
+      } catch { /* geocode failure is non-fatal — create the place without coords */ }
+    }
     try {
       // Through the store, not placesApi directly: the API answers { place },
       // and reading .id off that wrapper linked nothing — every save of the

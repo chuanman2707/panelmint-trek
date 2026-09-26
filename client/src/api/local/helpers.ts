@@ -1,8 +1,9 @@
 // Shared helpers for the `api/local/*` adapters — the pieces every domain
 // module needs so the conventions in ./README.md stay one import away.
 //
-// Error shape contract: callers render failures through `getApiErrorMessage`
-// (src/types.ts) and read `err.response?.status` the way they did with axios.
+// Error shape contract: callers render failures through `getErrorMessage` /
+// `getApiErrorMessage` (src/utils/apiError.ts) and read `err.response?.status`
+// the way they did with axios.
 // `LocalApiError` carries both surfaces — `message`, `.status` and
 // `.response.data.error` — so an error thrown here is indistinguishable
 // downstream from an HTTP error the server used to produce.
@@ -17,7 +18,7 @@ export function nowIso(): string {
 /**
  * An API error with no HTTP layer: an Error carrying the axios-compatible
  * `response.status` / `response.data.error` plus a bare `.status` for
- * consumers that read it directly. `getApiErrorMessage` finds `response` and
+ * consumers that read it directly. The apiError helpers find `response` and
  * returns `data.error` — the same string the server's error envelope sent —
  * and status checks like `err.response?.status === 404` keep working.
  */

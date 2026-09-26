@@ -1,6 +1,7 @@
 // FE-W4UTL-001 to FE-W4UTL-006
 import { describe, it, expect } from 'vitest'
-import { getApiErrorMessage } from './apiError'
+import { getApiErrorMessage, getErrorMessage } from './apiError'
+import { LocalApiError } from '../api/local/helpers'
 
 describe('getApiErrorMessage', () => {
   it('FE-W4UTL-001: returns the server-provided error string', () => {
@@ -31,5 +32,22 @@ describe('getApiErrorMessage', () => {
 
   it('FE-W4UTL-006: keeps surrounding whitespace of a real message', () => {
     expect(getApiErrorMessage({ response: { data: { error: ' boom ' } } }, 'fallback')).toBe(' boom ')
+  })
+})
+
+describe('getErrorMessage', () => {
+  it('FE-W4UTL-007: prefers the envelope error text over everything', () => {
+    const err = new LocalApiError(409, 'Tag exists')
+    expect(getErrorMessage(err, 'fallback')).toBe('Tag exists')
+  })
+
+  it('FE-W4UTL-008: surfaces a plain Error message — the local adapter/Dexie reason', () => {
+    expect(getErrorMessage(new Error('disk gone'), 'fallback')).toBe('disk gone')
+  })
+
+  it('FE-W4UTL-009: falls back for non-Error, non-envelope values', () => {
+    expect(getErrorMessage('boom', 'fallback')).toBe('fallback')
+    expect(getErrorMessage({ response: { data: {} } }, 'fallback')).toBe('fallback')
+    expect(getErrorMessage(null, 'fallback')).toBe('fallback')
   })
 })

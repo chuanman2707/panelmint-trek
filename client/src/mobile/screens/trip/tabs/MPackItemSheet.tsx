@@ -9,7 +9,7 @@ import { isPackingPlaceholder } from './listsModel'
 export interface MPackItemSheetProps {
   planner: TripPlanner
   open: boolean
-  /** The row re-derives the live item by id each render (WebSocket-safe), like MTransportSheet. */
+  /** The row re-derives the live item by id each render (store-update-safe), like MTransportSheet. */
   itemId: number | null
   bagTrackingEnabled: boolean
   onClose: () => void

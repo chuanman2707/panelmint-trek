@@ -2,9 +2,9 @@ import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DEFAULT_SETTINGS, useSettingsStore } from './settingsStore'
 import { db } from '../db/panelmintDb'
-import { clearTileCache } from '../sync/tilePrefetcher'
+import { clearTileCache } from '../sync/tileCache'
 
-vi.mock('../sync/tilePrefetcher', () => ({
+vi.mock('../sync/tileCache', () => ({
   clearTileCache: vi.fn().mockResolvedValue(undefined),
 }))
 

@@ -3,7 +3,7 @@ import { placesApi } from '../../api/client'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Place, Assignment } from '../../types'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -109,7 +109,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
       set(state => ({ places: [data.place, ...state.places] }))
       return data.place
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error adding place'))
+      throw new Error(getErrorMessage(err, 'Error adding place'))
     }
   },
 
@@ -119,7 +119,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
       applyUpdatedPlace(set, placeId, data.place)
       return data.place
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating place'))
+      throw new Error(getErrorMessage(err, 'Error updating place'))
     }
   },
 
@@ -131,7 +131,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
       applyUpdatedPlace(set, placeId, data.place)
       return data.place
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error rating place'))
+      throw new Error(getErrorMessage(err, 'Error rating place'))
     }
   },
 
@@ -155,7 +155,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
         }
       })
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error deleting place'))
+      throw new Error(getErrorMessage(err, 'Error deleting place'))
     }
   },
 
@@ -181,7 +181,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
         }
       })
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error deleting places'))
+      throw new Error(getErrorMessage(err, 'Error deleting places'))
     }
   },
 
@@ -210,7 +210,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
         }
       })
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating places'))
+      throw new Error(getErrorMessage(err, 'Error updating places'))
     }
   },
 })

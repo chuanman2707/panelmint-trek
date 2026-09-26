@@ -12,7 +12,7 @@ import { PRIORITY_COLOR, PRIORITY_LABEL, PRIORITY_LEVELS } from './listsModel'
 export interface MTaskSheetProps {
   planner: TripPlanner
   open: boolean
-  /** null = create a new task; a live id re-derives the row each render (WebSocket-safe). */
+  /** null = create a new task; a live id re-derives the row each render (store-update-safe). */
   itemId: number | null
   categories: string[]
   members: TripMember[]

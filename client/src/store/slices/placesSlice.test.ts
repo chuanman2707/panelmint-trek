@@ -17,7 +17,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** Rejection shaped like an axios error so getApiErrorMessage picks the server text. */
+/** Rejection shaped like an axios error so getErrorMessage picks the server text. */
 function apiError(message: string): unknown {
   return { response: { data: { error: message } } };
 }

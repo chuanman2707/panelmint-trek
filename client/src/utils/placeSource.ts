@@ -65,20 +65,6 @@ export function offersGoogleRetry(listSource: string, googleAnswers: boolean): b
 }
 
 /**
- * The line under the admin's "Search with Google only" switch.
- *
- * Two ways the switch can be a promise the search cannot keep, and they ask
- * different things of the admin: paste a key, or hand the keyed slot back to
- * Google. The subtitle that says what the switch does is only true of the
- * third state.
- */
-export function placesGoogleOnlyHint(hasMapsKey: boolean, placesProvider: string): string {
-  if (!hasMapsKey) return 'admin.placesGoogleOnly.missingKey'
-  if (!googleHoldsSlot(hasMapsKey, placesProvider)) return 'admin.placesGoogleOnly.otherProvider'
-  return 'admin.placesGoogleOnly.subtitle'
-}
-
-/**
  * The label for one row.
  *
  * A place carries its own source when the index that produced it says so, which

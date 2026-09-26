@@ -50,6 +50,7 @@ const settings: TranslationStrings = {
     'PanelMint 是一款自架旅遊規劃器，幫助您從最初構想到最後回憶，整理每次旅行。日程規劃、預算、行李清單、照片及更多功能——全部集中在您自己的伺服器上。',
   'settings.about.madeWith': '以',
   'settings.about.madeBy': '由 Maurice 及不斷成長的開源社群製作。',
+  'settings.about.multiTabNote': '在其他瀏覽器分頁中所做的修改，會在此分頁重新取得焦點時顯示。',
   'settings.toast.mapSaved': '地圖設定已儲存',
   'settings.bookingLabels': '預訂路線標籤',
   'settings.bookingLabelsHint': '在地圖上顯示車站 / 機場名稱。關閉時僅顯示圖示。',

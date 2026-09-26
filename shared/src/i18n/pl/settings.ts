@@ -50,6 +50,7 @@ const settings: TranslationStrings = {
     'PanelMint to samodzielnie hostowany planer podróży, który pomaga organizować wyprawy od pierwszego pomysłu po ostatnie wspomnienie. Planowanie dzienne, budżet, listy pakowania, zdjęcia i wiele więcej — wszystko w jednym miejscu, na własnym serwerze.',
   'settings.about.madeWith': 'Stworzone z',
   'settings.about.madeBy': "przez Maurice'a i rosnącą społeczność open-source.",
+  'settings.about.multiTabNote': 'Zmiany wprowadzone w innej karcie przeglądarki pojawią się, gdy ta karta odzyska fokus.',
   'settings.toast.mapSaved': 'Ustawienia mapy zostały zapisane',
   'settings.bookingLabels': 'Etykiety tras rezerwacji',
   'settings.bookingLabelsHint':

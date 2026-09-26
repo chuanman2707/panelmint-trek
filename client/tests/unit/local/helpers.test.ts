@@ -12,7 +12,7 @@ import {
   requireRow,
 } from '../../../src/api/local/helpers'
 import { db } from '../../../src/db/panelmintDb'
-import { getApiErrorMessage } from '../../../src/types'
+import { getErrorMessage } from '../../../src/utils/apiError'
 import { buildTrip } from '../../helpers/factories'
 
 describe('api/local helpers', () => {
@@ -38,13 +38,13 @@ describe('api/local helpers', () => {
     expect((await db.trips.get(5))?.title).toBe('Original')
   })
 
-  it('requireRow throws a 404 LocalApiError a getApiErrorMessage consumer renders', async () => {
+  it('requireRow throws a 404 LocalApiError a getErrorMessage consumer renders', async () => {
     const err = await requireRow(db.trips, 999, 'Trip').catch(e => e)
     expect(err).toBeInstanceOf(LocalApiError)
     expect(err.status).toBe(404)
     expect(err.response.status).toBe(404)
     expect(err.response.data.error).toBe('Trip not found')
-    expect(getApiErrorMessage(err, 'Something broke')).toBe('Trip not found')
+    expect(getErrorMessage(err, 'Something broke')).toBe('Trip not found')
   })
 
   it('requireRow turns a non-finite id into the same 404 — never a raw DataError', async () => {
@@ -52,7 +52,7 @@ describe('api/local helpers', () => {
     const err = await requireRow(db.trips, numId('abc'), 'Trip').catch(e => e)
     expect(err).toBeInstanceOf(LocalApiError)
     expect(err.response.status).toBe(404)
-    expect(getApiErrorMessage(err, 'Something broke')).toBe('Trip not found')
+    expect(getErrorMessage(err, 'Something broke')).toBe('Trip not found')
   })
 
   it('detached/detachedList return copies that cannot poison the store', () => {
@@ -73,12 +73,12 @@ describe('api/local helpers', () => {
   it('apiError/notFound/badRequest carry the axios-shaped surface', () => {
     const e404 = notFound('Day')
     expect(e404).toBeInstanceOf(Error)
-    expect(getApiErrorMessage(e404, 'fallback')).toBe('Day not found')
+    expect(getErrorMessage(e404, 'fallback')).toBe('Day not found')
 
     const e400 = badRequest('orderedIds must be a permutation of the trip day ids.')
     expect(e400.response.status).toBe(400)
     expect(e400.status).toBe(400)
-    expect(getApiErrorMessage(e400, 'fallback')).toBe(
+    expect(getErrorMessage(e400, 'fallback')).toBe(
       'orderedIds must be a permutation of the trip day ids.',
     )
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { googleHoldsSlot, offersGoogleRetry, placesGoogleOnlyHint, selectGoogleHoldsSlot, sourceLabelFor } from './placeSource'
+import { googleHoldsSlot, offersGoogleRetry, selectGoogleHoldsSlot, sourceLabelFor } from './placeSource'
 
 describe('offersGoogleRetry', () => {
   it('FE-PLACESOURCE-001: offers Google for a list the index or OpenStreetMap answered, only where Google answers', () => {
@@ -34,17 +34,6 @@ describe('googleHoldsSlot', () => {
     expect(selectGoogleHoldsSlot({ hasMapsKey: true, placesProvider: 'auto' })).toBe(true)
     expect(selectGoogleHoldsSlot({ hasMapsKey: true, placesProvider: 'openstreetmap' })).toBe(false)
     expect(selectGoogleHoldsSlot({ hasMapsKey: false, placesProvider: 'auto' })).toBe(false)
-  })
-})
-
-describe('placesGoogleOnlyHint', () => {
-  it('FE-PLACESOURCE-006: names what the admin has to do before the switch does anything', () => {
-    expect(placesGoogleOnlyHint(false, 'auto')).toBe('admin.placesGoogleOnly.missingKey')
-    expect(placesGoogleOnlyHint(false, 'openstreetmap')).toBe('admin.placesGoogleOnly.missingKey')
-    expect(placesGoogleOnlyHint(true, 'amap')).toBe('admin.placesGoogleOnly.otherProvider')
-    expect(placesGoogleOnlyHint(true, 'openstreetmap')).toBe('admin.placesGoogleOnly.otherProvider')
-    expect(placesGoogleOnlyHint(true, 'auto')).toBe('admin.placesGoogleOnly.subtitle')
-    expect(placesGoogleOnlyHint(true, 'google')).toBe('admin.placesGoogleOnly.subtitle')
   })
 })
 

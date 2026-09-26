@@ -8,8 +8,8 @@
  *   DELETE :id  → { success: true }
  *
  * There is no day_notes table locally — the rows embed on their day
- * (`days.notes_items`), the same shape remoteEventHandler and upsertDays
- * already write, and ids come from the shared `days.notes` allocator.
+ * (`days.notes_items`), the same shape remoteEventHandler already writes,
+ * and ids come from the shared `days.notes` allocator.
  *
  * Server parity notes:
  *  - Every route was trip-scoped; create additionally checked the day row

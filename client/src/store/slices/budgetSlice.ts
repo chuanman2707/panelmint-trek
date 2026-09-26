@@ -4,7 +4,7 @@ import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { BudgetItem, BudgetItemMember } from '../../types'
 import type { BudgetCreateItemRequest, BudgetUpdateItemRequest } from '@trek/shared'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 import { notify } from '../notify'
 
 type SetState = StoreApi<TripStoreState>['setState']
@@ -52,7 +52,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       set(state => ({ budgetItems: [...state.budgetItems, result.item] }))
       return result.item
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error adding budget item'))
+      throw new Error(getErrorMessage(err, 'Error adding budget item'))
     }
   },
 
@@ -67,7 +67,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       }
       return result.item
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating budget item'))
+      throw new Error(getErrorMessage(err, 'Error updating budget item'))
     }
   },
 
@@ -82,7 +82,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       if (hadReservation) get().loadReservations(tripId)
     } catch (err: unknown) {
       set({ budgetItems: prev })
-      throw new Error(getApiErrorMessage(err, 'Error deleting budget item'))
+      throw new Error(getErrorMessage(err, 'Error deleting budget item'))
     }
   },
 
@@ -134,7 +134,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
         const data = await budgetApi.list(tripId)
         set({ budgetItems: data.items })
       } catch { /* offline too — the next successful load restores the order */ }
-      notify(getApiErrorMessage(err, 'Error reordering budget items'), 'error')
+      notify(getErrorMessage(err, 'Error reordering budget items'), 'error')
     }
   },
 
@@ -167,7 +167,7 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
         const data = await budgetApi.list(tripId)
         set({ budgetItems: data.items })
       } catch { /* offline too — the next successful load restores the order */ }
-      notify(getApiErrorMessage(err, 'Error reordering budget items'), 'error')
+      notify(getErrorMessage(err, 'Error reordering budget items'), 'error')
     }
   },
 })

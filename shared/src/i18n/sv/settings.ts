@@ -56,6 +56,7 @@ const settings: TranslationStrings = {
     'PanelMint är en resplanerare som du själv kan driva och som hjälper dig att organisera dina resor från den första idén till det sista minnet. Dagsplanering, budget, packlistor, foton och mycket mer – allt på ett och samma ställe, på din egen server.',
   'settings.about.madeWith': 'Gjord med',
   'settings.about.madeBy': 'av Maurice och en växande open source-gemenskap.',
+  'settings.about.multiTabNote': 'Ändringar i en annan webbläsarflik visas när den här fliken får fokus igen.',
   'settings.toast.mapSaved': 'Kartinställningarna har sparats',
   'settings.currency': 'Visningsvaluta',
   'settings.currencyHint':

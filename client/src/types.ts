@@ -239,29 +239,6 @@ export interface WebSocketEvent {
   [key: string]: unknown
 }
 
-// API error shape from axios
-export interface ApiError {
-  response?: {
-    data?: {
-      error?: string
-    }
-    status?: number
-  }
-  message: string
-}
-
-/** Safely extract an error message from an unknown catch value */
-export function getApiErrorMessage(err: unknown, fallback: string): string {
-  if (typeof err === 'object' && err !== null && 'response' in err) {
-    const apiErr = err as ApiError
-    // Axios' own message ("Request failed with status code 500") is untranslated
-    // boilerplate, so only the server's error text beats the localized fallback.
-    return apiErr.response?.data?.error || fallback
-  }
-  if (err instanceof Error) return err.message
-  return fallback
-}
-
 // MergedItem used in day notes hook
 export interface MergedItem {
   type: 'assignment' | 'note' | 'place' | 'transport'

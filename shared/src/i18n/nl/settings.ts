@@ -50,6 +50,7 @@ const settings: TranslationStrings = {
     "PanelMint is een zelf-gehoste reisplanner die je helpt je reizen te organiseren van het eerste idee tot de laatste herinnering. Dagplanning, budget, paklijsten, foto's en nog veel meer — alles op één plek, op je eigen server.",
   'settings.about.madeWith': 'Gemaakt met',
   'settings.about.madeBy': 'door Maurice en een groeiende open-source community.',
+  'settings.about.multiTabNote': 'Bewerkingen in een ander browsertabblad verschijnen zodra dit tabblad weer focus krijgt.',
   'settings.toast.mapSaved': 'Kaartinstellingen opgeslagen',
   'settings.bookingLabels': 'Routelabels voor boekingen',
   'settings.bookingLabelsHint': 'Toon station- / luchthavennamen op de kaart. Indien uit, alleen het icoon.',

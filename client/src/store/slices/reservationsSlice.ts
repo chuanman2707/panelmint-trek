@@ -5,7 +5,7 @@ import { applyStayStops } from '../stayStops'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Reservation } from '../../types'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -65,7 +65,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
       replayReservationWrite(get, result, 'reservation:created')
       return result.reservation
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error creating reservation'))
+      throw new Error(getErrorMessage(err, 'Error creating reservation'))
     }
   },
 
@@ -75,7 +75,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
       replayReservationWrite(get, result, 'reservation:updated')
       return result.reservation
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating reservation'))
+      throw new Error(getErrorMessage(err, 'Error updating reservation'))
     }
   },
 
@@ -97,7 +97,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
       // Roll back the optimistic toggle and surface the failure so the caller's
       // catch can notify the user — without it the status silently snaps back.
       set({ reservations: prev })
-      throw new Error(getApiErrorMessage(err, 'Error updating reservation'))
+      throw new Error(getErrorMessage(err, 'Error updating reservation'))
     }
   },
 
@@ -106,7 +106,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
       const result = await reservationsApi.delete(tripId, id)
       replayReservationDelete(get, id, result)
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error deleting reservation'))
+      throw new Error(getErrorMessage(err, 'Error deleting reservation'))
     }
   },
 
@@ -115,7 +115,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
       const result = await reservationsApi.setTravelers(tripId, id, userIds)
       get().applyLocalEffect('reservation:travelers-updated', { reservationId: id, travelers: result.travelers })
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating travelers'))
+      throw new Error(getErrorMessage(err, 'Error updating travelers'))
     }
   },
 })

@@ -53,6 +53,7 @@ const settings: TranslationStrings = {
     'PanelMint은 첫 아이디어부터 마지막 추억까지 여행을 체계적으로 관리하는 자체 호스팅 여행 플래너입니다. 일별 계획, 예산, 짐 목록, 사진 등 모든 것이 하나의 서버에 담겨 있습니다.',
   'settings.about.madeWith': '으로 만들어졌습니다',
   'settings.about.madeBy': 'Maurice와 성장하는 오픈 소스 커뮤니티가 함께',
+  'settings.about.multiTabNote': '다른 브라우저 탭에서 한 수정 사항은 이 탭이 다시 포커스를 얻을 때 표시됩니다.',
   'settings.toast.mapSaved': '지도 설정이 저장되었습니다',
   'settings.currency': '표시 통화',
   'settings.currencyHint': '비용의 금액은 표시 목적으로만 이 통화로 환산되어 표시되며, 원래 금액은 변경되지 않습니다.',

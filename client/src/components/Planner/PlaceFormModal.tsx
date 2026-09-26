@@ -258,14 +258,14 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   }, [place, prefillCoords, isOpen, assignmentId])
 
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => {
-        const modal = searchInputRef.current?.closest('[role="dialog"]') ?? document.body
-        if (!modal.contains(document.activeElement) || document.activeElement === document.body) {
-          searchInputRef.current?.focus()
-        }
-      }, 50)
-    }
+    if (!isOpen) return
+    const timer = setTimeout(() => {
+      const modal = searchInputRef.current?.closest('[role="dialog"]') ?? document.body
+      if (!modal.contains(document.activeElement) || document.activeElement === document.body) {
+        searchInputRef.current?.focus()
+      }
+    }, 50)
+    return () => clearTimeout(timer)
   }, [isOpen])
 
   const places = useTripStore((s) => s.places)

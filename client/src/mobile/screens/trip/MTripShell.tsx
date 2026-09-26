@@ -20,7 +20,7 @@ import type { Day } from '../../../types'
  * trip view — glass top controls (per-tab centre variants), the day-chip rail,
  * the bottom dock — plus the view/mode machine on top of the planner state.
  * All data and mutations come from useTripPlanner() (same hook the desktop
- * page wires), so WebSocket sync, offline persistence, undo and the
+ * page wires), so the local store effects, undo and the
  * ?create=/sessionStorage contracts are inherited unchanged.
  *
  * The actual content areas (plan timeline, map, places browser, tab panels,

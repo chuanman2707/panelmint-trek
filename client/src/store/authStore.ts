@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { User } from '../types'
-import { bootstrapLocalData, getSelf, SELF_ID } from '../db/bootstrap'
-import { reopenForUser } from '../db/offlineDb'
+import { bootstrapLocalData, getSelf } from '../db/bootstrap'
+import { installFocusRefresh } from './focusRefresh'
 
 /**
  * Local-only stub of what used to be the session store.
@@ -76,11 +76,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
   placesEnrichEnabled: true,
 
   bootLocal: async () => {
-    // The legacy offline cache is per-user (`trek-offline-u<id>`); point it at
-    // the self id BEFORE bootstrap runs — bootstrap deletes the anonymous
-    // `trek-offline` database the proxy would otherwise open by default.
-    await reopenForUser(SELF_ID)
     await bootstrapLocalData()
+    // The one boot path, so this is where the multi-tab focus refresh hooks in
+    // (idempotent — boot can re-run under HMR or a test re-run).
+    installFocusRefresh()
     const self = await getSelf()
     set({
       user: {

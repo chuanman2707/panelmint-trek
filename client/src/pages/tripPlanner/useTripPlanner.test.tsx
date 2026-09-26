@@ -1396,8 +1396,9 @@ describe('useTripPlanner — bookings and transports', () => {
     expect(second.create_accommodation.place_id).toBe(901)
   })
 
-  it('FE-TP-HOOK-081d: offline, no place is minted for a booking that cannot be written', async () => {
+  it('FE-TP-HOOK-081d: offline, the venue is still minted locally — only geocoding is skipped', async () => {
     env.forcedOffline = true
+    actions.addPlace.mockResolvedValue(buildPlace({ id: 903, name: 'Ryokan Sakura' }))
     seedTrip()
 
     const { result } = await renderPlanner()
@@ -1408,12 +1409,12 @@ describe('useTripPlanner — bookings and transports', () => {
       } as never)
     })
 
-    // A place created offline gets a negative temp id, and the reservation write
-    // is online-only — linking one is a foreign-key failure on the server.
-    expect(actions.addPlace).not.toHaveBeenCalled()
+    // Writes are local now, so the venue gets a real id and the reservation
+    // links it; only the geocoder (a networked call) stands down offline.
+    expect(actions.addPlace).toHaveBeenCalledTimes(1)
     expect(mapsApi.search).not.toHaveBeenCalled()
     const payload = actions.addReservation.mock.calls[0][1] as { create_accommodation: { place_id?: number } }
-    expect(payload.create_accommodation.place_id).toBeUndefined()
+    expect(payload.create_accommodation.place_id).toBe(903)
   })
 
   it('FE-TP-HOOK-081e: a place still holding an offline temp id is not linked as the accommodation', async () => {

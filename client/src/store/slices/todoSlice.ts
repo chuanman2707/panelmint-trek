@@ -3,7 +3,7 @@ import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { TodoItem } from '../../types'
 import type { TodoCreateItemRequest, TodoUpdateItemRequest } from '@trek/shared'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 import { notify } from '../notify'
 
 type SetState = StoreApi<TripStoreState>['setState']
@@ -24,7 +24,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
       set(state => ({ todoItems: [...state.todoItems, result.item] }))
       return result.item
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error adding todo'))
+      throw new Error(getErrorMessage(err, 'Error adding todo'))
     }
   },
 
@@ -36,7 +36,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
       }))
       return result.item
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating todo'))
+      throw new Error(getErrorMessage(err, 'Error updating todo'))
     }
   },
 
@@ -47,7 +47,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
       await todoRepo.delete(tripId, id)
     } catch (err: unknown) {
       set({ todoItems: prev })
-      throw new Error(getApiErrorMessage(err, 'Error deleting todo'))
+      throw new Error(getErrorMessage(err, 'Error deleting todo'))
     }
   },
 
@@ -67,7 +67,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
           item.id === id ? { ...item, checked: checked ? 0 : 1 } : item
         )
       }))
-      notify(getApiErrorMessage(err, 'Error updating todo'), 'error')
+      notify(getErrorMessage(err, 'Error updating todo'), 'error')
     }
   },
 
@@ -88,7 +88,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
       await todoRepo.reorder(tripId, orderedIds)
     } catch (err: unknown) {
       set({ todoItems: prev })
-      notify(getApiErrorMessage(err, 'Error reordering todos'), 'error')
+      notify(getErrorMessage(err, 'Error reordering todos'), 'error')
     }
   },
 })

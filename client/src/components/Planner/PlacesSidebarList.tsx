@@ -1,20 +1,9 @@
-import { Fragment, type ReactNode } from 'react'
+import { Fragment } from 'react'
 import EmptyState from '../shared/EmptyState'
 import { MemoPlaceRow } from './PlacesSidebarRow'
 import type { SidebarState } from './usePlacesSidebar'
 
-export function PlacesList({ header, ...S }: SidebarState & {
-  /**
-   * A block that sits above the places and scrolls WITH them.
-   *
-   * The Dawarich panel lives here rather than in a band of its own above the list. As its
-   * own band it could not grow: the list is the flex child that scrolls, so a panel with
-   * ten stays in it squeezed the list to nothing and took the rail's scrolling with it,
-   * and capping the panel left half its stays below a fold with no way to reach them.
-   * Inside the scroller it simply opens to its full height and the rail scrolls past it.
-   */
-  header?: ReactNode
-}) {
+export function PlacesList(S: SidebarState) {
   const {
     filtered, scrollContainerRef, onScrollTopChange, filter, t, canEditPlaces, onAddPlace,
     categories, selectedPlaceId, plannedIds, inDaySet, selectedIds, selectMode, selectedDayId,
@@ -22,7 +11,6 @@ export function PlacesList({ header, ...S }: SidebarState & {
   } = S
   return (
     <div className="trek-stagger" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
-      {header}
       {filtered.length === 0 ? (
         /* The mascot and one line, the shape every other empty state in TREK has.
            The add link stays as the state's action: an empty list of places is

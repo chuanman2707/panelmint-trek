@@ -22,7 +22,7 @@
  * paths and inline `data:` blobs — are nulled on the way out: a shared trip can
  * never fetch them, and an inline cover would balloon the payload. The
  * trip-scoped tables with no envelope slot (`tripMembers`, the category
- * assignee tables, `budgetCategoryOrder`, `syncMeta`, `settings`, `tags`) are
+ * assignee tables, `budgetCategoryOrder`, `settings`, `tags`) are
  * deliberately not exported.
  */
 import {

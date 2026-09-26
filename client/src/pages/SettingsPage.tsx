@@ -18,7 +18,7 @@ export default function SettingsPage(): React.ReactElement {
 
 function SettingsPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
-  // Page = wiring container: addon/version loading + active-tab state in the hook.
+  // Page = wiring container: version + active-tab state live in the hook.
   const { appVersion, activeTab, setActiveTab } = useSettings()
 
   const tabs: PageSidebarTab[] = [

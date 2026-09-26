@@ -497,7 +497,6 @@ describe('share codec', () => {
     await db.budgetCategoryOrder.put({ id: 1, trip_id: 1, category: 'food', sort_order: 0 });
     await db.tags.put(buildTag({ id: 9 }));
     await db.settings.put({ key: 'language', value: 'vi' });
-    await db.syncMeta.put({ tripId: 1, lastSyncedAt: null, status: 'idle', tilesBbox: null });
 
     const bundle = await buildBundle(1);
     expect(Object.keys(bundle).sort()).toEqual(

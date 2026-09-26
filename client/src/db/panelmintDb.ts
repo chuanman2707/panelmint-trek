@@ -1,11 +1,10 @@
 // The `panelmint` Dexie database — the system of record for the client-only app.
 //
-// offlineDb.ts is a per-user *cache* of server state: scoped database names, a
-// mutation queue, eviction. This database is the opposite — one fixed name, one
-// local roster, no sync machinery. With no server left, these rows ARE the
-// data, so the schema mirrors the server tables the ported `api/local` code
-// was written against (server/src/db/schema.ts, migrations.ts): junction
-// tables keep their snake_case columns and UNIQUE constraints.
+// One fixed name, one local roster, no sync machinery. With no server left,
+// these rows ARE the data, so the schema mirrors the server tables the ported
+// `api/local` code was written against (server/src/db/schema.ts,
+// migrations.ts): junction tables keep their snake_case columns and UNIQUE
+// constraints.
 import Dexie, { type Table } from 'dexie'
 import type {
   Accommodation,
@@ -28,18 +27,11 @@ import type {
   Trip,
   TripMember,
 } from '../types'
-import type { SyncMeta } from './offlineDb'
-
-// Tile/file prefetch state for a trip — the same shape offlineDb's syncMeta
-// carried (tripId, lastSyncedAt, tilesBbox, filesCachedCount, areaPlacesKey).
-// Re-exported so the prefetchers rewire to this database against one
-// definition instead of a drifting copy.
-export type { SyncMeta }
 
 /**
  * tripMembers links a trip to localUsers roster entries. `tripId` is the
- * Dexie-side scope key — camelCase deliberately, matching the CachedTripMember
- * convention from offlineDb so repo code ports unchanged.
+ * Dexie-side scope key — camelCase deliberately, the convention the offline
+ * cache established so repo code ports unchanged.
  */
 export interface LocalTripMember extends TripMember {
   tripId: number
@@ -95,14 +87,12 @@ export class PanelmintDb extends Dexie {
   todoCategoryAssignees!: Table<TodoCategoryAssigneeRow, number>
   reservationTravelers!: Table<ReservationTravelerRow, number>
   assignmentParticipants!: Table<AssignmentParticipantRow, number>
-  syncMeta!: Table<SyncMeta, number>
 
   constructor() {
     super('panelmint')
 
     // Index notes:
-    // - `trip_id` on every trip-scoped table — the dominant filter, same rule
-    //   offlineDb followed.
+    // - `trip_id` on every trip-scoped table — the dominant filter.
     // - `days` mirrors UNIQUE(trip_id, day_number) — the ported day-ops
     //   two-phase renumber exists precisely because that constraint holds.
     // - Junction tables mirror their server counterparts: packing_bag_members
@@ -111,7 +101,7 @@ export class PanelmintDb extends Dexie {
     //   grouping as a unique compound index, so the ported
     //   delete-then-INSERT-OR-IGNORE sequences keep their semantics.
     // - No `mapTiles` table: raster tiles live in the Service Worker's Cache
-    //   Storage; `syncMeta` carries the prefetch bookkeeping that survives.
+    //   Storage.
     this.version(1).stores({
       trips: 'id',
       days: 'id, trip_id, &[trip_id+day_number]',
@@ -144,6 +134,12 @@ export class PanelmintDb extends Dexie {
     this.version(2).stores({
       budgetCategoryOrder: 'id, trip_id, &[trip_id+category]',
     })
+
+    // v3: syncMeta was the tile/file prefetch bookkeeping — the prefetcher is
+    // gone (there is no per-trip "prepare for offline" surface), and no reader
+    // or writer remains. Dropping the table leaves any rows it held orphaned;
+    // the stores() null clears them with it.
+    this.version(3).stores({ syncMeta: null })
   }
 }
 

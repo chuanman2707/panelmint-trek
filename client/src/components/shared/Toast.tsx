@@ -152,7 +152,9 @@ export function ToastContainer() {
 
 export const useToast = () => {
   const show = useCallback((message: string, type: ToastType, duration?: number) => {
-    if (window.__addToast) {
+    // Async callers can land a toast after teardown (or from a non-DOM context)
+    // — with no host to render it, it is simply dropped.
+    if (typeof window !== 'undefined' && window.__addToast) {
       window.__addToast(message, type, duration)
     }
   }, [])

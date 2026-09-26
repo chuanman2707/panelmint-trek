@@ -23,7 +23,7 @@ import type {
   Tag, Category, BudgetItem, Reservation,
   AssignmentsMap, DayNotesMap, WebSocketEvent,
 } from '../types'
-import { getApiErrorMessage } from '../types'
+import { getErrorMessage } from '../utils/apiError'
 import type { PlacesSlice } from './slices/placesSlice'
 import type { AssignmentsSlice } from './slices/assignmentsSlice'
 import type { DaysSlice } from './slices/daysSlice'
@@ -228,7 +228,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       await get().loadReservations(tripId)
       return result.trip
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating trip'))
+      throw new Error(getErrorMessage(err, 'Error updating trip'))
     }
   },
 
@@ -238,7 +238,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       set((state) => ({ tags: [...state.tags, result.tag] }))
       return result.tag
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error creating tag'))
+      throw new Error(getErrorMessage(err, 'Error creating tag'))
     }
   },
 

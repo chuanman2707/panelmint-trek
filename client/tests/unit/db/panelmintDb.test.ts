@@ -23,7 +23,6 @@ const EXPECTED_TABLES = [
   'todoCategoryAssignees',
   'reservationTravelers',
   'assignmentParticipants',
-  'syncMeta',
 ]
 
 describe('panelmintDb', () => {
@@ -52,17 +51,10 @@ describe('panelmintDb', () => {
     await db.days.put({ id: 10, trip_id: 1, day_number: 1 } as never)
     await db.assignmentParticipants.put({ id: 100, assignment_id: 5, user_id: 1 })
     await db.packingBagMembers.put({ bag_id: 7, user_id: 1 })
-    await db.syncMeta.put({
-      tripId: 1,
-      lastSyncedAt: null,
-      status: 'idle',
-      tilesBbox: null,
-    })
 
     expect(await db.days.where('trip_id').equals(1).count()).toBe(1)
     expect(await db.assignmentParticipants.where('assignment_id').equals(5).count()).toBe(1)
     expect(await db.packingBagMembers.get([7, 1])).toEqual({ bag_id: 7, user_id: 1 })
-    expect((await db.syncMeta.get(1))?.status).toBe('idle')
   })
 
   it('enforces the category-assignee uniqueness constraint', async () => {

@@ -416,7 +416,7 @@ describe('budget sync helpers', () => {
 });
 
 describe.todo('reservation cascade under real Dexie persistence', () => {
-  // Transaction rollback across the multi-table write, the getReservation
-  // read-model join shape, and the websocket→store-event dispatch all need the
-  // repo adapter over offlineDb.
+  // Transaction rollback across the multi-table write and the getReservation
+  // read-model join shape belong to an integration test over the DexieStore —
+  // the MemoryStore exercises the seam shape only.
 });

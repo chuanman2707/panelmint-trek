@@ -4,11 +4,6 @@ import { useTripStore } from './tripStore'
 import { applyStayStops } from './stayStops'
 import type { Assignment, Place } from '../types'
 
-vi.mock('../db/offlineDb', () => ({
-  offlineDb: { days: { get: vi.fn(), put: vi.fn() }, places: { put: vi.fn(), delete: vi.fn() } },
-  upsertAccommodations: vi.fn(),
-}))
-
 const stop = (id: number, dayId: number): Assignment =>
   ({ id, day_id: dayId, place_id: 7, order_index: 0, notes: null, place: { id: 7, name: 'Hotel Adlon' } }) as unknown as Assignment
 

@@ -60,6 +60,10 @@ export default function MSettingsAbout({ appVersion }: { appVersion: string }) {
         <Scale size={11} className="mt-[1px] flex-none" />
         {t('settings.about.license')}
       </p>
+      {/* Spec §17 caveat: edits in another tab land on refocus, not live. */}
+      <p className="mt-[6px] font-geist text-[0.625rem] leading-relaxed text-m-faint">
+        {t('settings.about.multiTabNote')}
+      </p>
     </MSetCard>
   )
 }

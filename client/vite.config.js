@@ -63,10 +63,11 @@ export default defineConfig(({ mode }) => ({
         // evicting this origin's whole bucket, precached shell included, and this
         // comment is the only record of what the install actually costs. Anything
         // matching the globs below is fetched at service-worker install by every
-        // user, whether or not they ever reach the code. `json` covers the
-        // bundled trip templates under public/templates/ — Settings ▸ Data's
-        // sample trip must open offline too.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf,json}'],
+        // user, whether or not they ever reach the code. `templates/*.json` covers
+        // the bundled trip templates under public/templates/ — Settings ▸ Data's
+        // sample trip must open offline too — without sweeping in whatever other
+        // JSON ever lands in dist/.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}', 'templates/*.json'],
         // build:analyze drops a treemap next to the app; it must never end up in a
         // precache manifest if someone ships that build by accident.
         globIgnores: ['**/stats.html'],
@@ -74,8 +75,6 @@ export default defineConfig(({ mode }) => ({
         runtimeCaching: [
           {
             // Carto map tiles (default provider)
-            // maxEntries MUST stay >= MAX_TILES in src/sync/tilePrefetcher.ts
-            // (both are 12288) so prefetched tiles aren't evicted on arrival.
             // The apex host counts too: a template without {s} points straight at
             // basemaps.cartocdn.com, and matching only the shards left those tiles
             // uncached, so the map went blank offline.
@@ -90,7 +89,7 @@ export default defineConfig(({ mode }) => ({
           {
             // OpenStreetMap tiles (fallback / alternative)
             // Shares the 'map-tiles' cache; keep maxEntries equal to the Carto
-            // rule above and MAX_TILES in src/sync/tilePrefetcher.ts (12288).
+            // rule above (12288) — the shared LRU budget.
             // Both spellings have to stay in the pattern: templates are rewritten
             // onto the apex host (src/utils/tileUrl.ts), but caches filled before
             // that still hold a/b/c URLs and must keep serving offline.
@@ -103,9 +102,8 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // OpenStreetMap DE — a shipped preset that matched no rule at all, so
-            // "Store map tiles offline" fetched thousands of tiles and stored none
-            // of them (#2180). Same cache, same limits as the rules above.
+            // OpenStreetMap DE — a shipped preset that would otherwise match no
+            // rule at all (#2180). Same cache, same limits as the rules above.
             urlPattern: /^https:\/\/tile\.openstreetmap\.de\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -201,9 +199,6 @@ export default defineConfig(({ mode }) => ({
               // node_modules themselves, so they are caught here. @trek/shared is
               // not: it resolves to shared/dist without a node_modules segment,
               // and its contract code changes with every release anyway.
-              // axios is deliberately absent: it only serves the interim hosted
-              // API surfaces, and eager-loading it on every boot is wasted bytes
-              // for the offline-first path.
               tags: ['$initial'],
               test: /[\\/]node_modules[\\/](zustand|dexie|zod|dompurify|isomorphic-dompurify)[\\/]/,
             },

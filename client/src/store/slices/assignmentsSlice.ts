@@ -2,7 +2,7 @@ import { assignmentsApi } from '../../api/client'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Assignment, AssignmentsMap } from '../../types'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 import { assignmentRepo, type AssignmentTimes } from '../../repo/assignmentRepo'
 import { mergeAssignmentPlace } from './placesSlice'
 
@@ -135,7 +135,7 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
           [String(dayId)]: state.assignments[String(dayId)].filter(a => a.id !== tempId),
         }
       }))
-      throw new Error(getApiErrorMessage(err, 'Error assigning place'))
+      throw new Error(getErrorMessage(err, 'Error assigning place'))
     }
   },
 
@@ -153,7 +153,7 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
       await assignmentsApi.delete(tripId, dayId, assignmentId)
     } catch (err: unknown) {
       set({ assignments: prevAssignments })
-      throw new Error(getApiErrorMessage(err, 'Error removing assignment'))
+      throw new Error(getErrorMessage(err, 'Error removing assignment'))
     }
   },
 
@@ -176,7 +176,7 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
       await assignmentsApi.reorder(tripId, dayId, orderedIds)
     } catch (err: unknown) {
       set({ assignments: prevAssignments })
-      throw new Error(getApiErrorMessage(err, 'Error reordering'))
+      throw new Error(getErrorMessage(err, 'Error reordering'))
     }
   },
 
@@ -212,7 +212,7 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
       }
     } catch (err: unknown) {
       set({ assignments: prevAssignments })
-      throw new Error(getApiErrorMessage(err, 'Error moving assignment'))
+      throw new Error(getErrorMessage(err, 'Error moving assignment'))
     }
   },
 

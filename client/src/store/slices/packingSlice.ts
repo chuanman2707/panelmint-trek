@@ -2,7 +2,7 @@ import { packingRepo } from '../../repo/packingRepo'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { PackingItem } from '../../types'
-import { getApiErrorMessage } from '../../types'
+import { getErrorMessage } from '../../utils/apiError'
 import { notify } from '../notify'
 
 type SetState = StoreApi<TripStoreState>['setState']
@@ -24,7 +24,7 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
       set(state => ({ packingItems: [...state.packingItems, result.item] }))
       return result.item
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error adding item'))
+      throw new Error(getErrorMessage(err, 'Error adding item'))
     }
   },
 
@@ -36,7 +36,7 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
       }))
       return result.item
     } catch (err: unknown) {
-      throw new Error(getApiErrorMessage(err, 'Error updating item'))
+      throw new Error(getErrorMessage(err, 'Error updating item'))
     }
   },
 
@@ -47,7 +47,7 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
       await packingRepo.delete(tripId, id)
     } catch (err: unknown) {
       set({ packingItems: prev })
-      throw new Error(getApiErrorMessage(err, 'Error deleting item'))
+      throw new Error(getErrorMessage(err, 'Error deleting item'))
     }
   },
 
@@ -67,7 +67,7 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
           item.id === id ? { ...item, checked: checked ? 0 : 1 } : item
         )
       }))
-      notify(getApiErrorMessage(err, 'Error updating item'), 'error')
+      notify(getErrorMessage(err, 'Error updating item'), 'error')
     }
   },
 
@@ -90,7 +90,7 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
       await packingRepo.reorder(tripId, orderedIds)
     } catch (err: unknown) {
       set({ packingItems: prev })
-      notify(getApiErrorMessage(err, 'Error reordering items'), 'error')
+      notify(getErrorMessage(err, 'Error reordering items'), 'error')
     }
   },
 
@@ -99,7 +99,7 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
       const result = await packingRepo.clone(tripId, id)
       set(state => (state.packingItems.some(i => i.id === result.item.id) ? {} : { packingItems: [...state.packingItems, result.item] }))
     } catch (err: unknown) {
-      notify(getApiErrorMessage(err, 'Error copying item'), 'error')
+      notify(getErrorMessage(err, 'Error copying item'), 'error')
     }
   },
 })

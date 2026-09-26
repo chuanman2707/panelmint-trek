@@ -1,92 +1,28 @@
 import { placesApi } from '../api/client'
-import { offlineDb, upsertPlaces, nextTempId } from '../db/offlineDb'
-import { isEffectivelyOffline } from '../sync/networkMode'
-import { onlineThenCache } from './withOfflineFallback'
 import type { Place } from '../types'
 
 export const placeRepo = {
   async list(tripId: number | string, params?: Record<string, unknown>): Promise<{ places: Place[] }> {
-    return onlineThenCache(
-      async () => {
-        const result = await placesApi.list(tripId, params)
-        upsertPlaces(result.places)
-        return result
-      },
-      async () => ({
-        places: await offlineDb.places
-          .where('trip_id').equals(Number(tripId)).toArray(),
-      }),
-    )
+    return placesApi.list(tripId, params)
   },
 
   async create(tripId: number | string, data: Record<string, unknown> & { name: string }): Promise<{ place: Place }> {
-    if (isEffectivelyOffline()) {
-      const tempId = nextTempId()
-      const tempPlace: Place = {
-        ...(data as Partial<Place>),
-        id: tempId,
-        trip_id: Number(tripId),
-        name: (data.name as string) ?? 'New place',
-      } as Place
-      await offlineDb.places.put(tempPlace)
-      return { place: tempPlace }
-    }
-    const result = await placesApi.create(tripId, data)
-    offlineDb.places.put(result.place)
-    return result
+    return placesApi.create(tripId, data)
   },
 
   async update(tripId: number | string, id: number | string, data: Record<string, unknown>): Promise<{ place: Place }> {
-    if (isEffectivelyOffline()) {
-      const existing = await offlineDb.places.get(Number(id))
-      // trip_id has to be there even when nothing was cached: every read goes
-      // through places.where('trip_id'), and clearTripData() evicts by it too —
-      // a row without it is invisible and never cleaned up.
-      const optimistic: Place = {
-        ...(existing ?? {} as Place),
-        ...(data as Partial<Place>),
-        id: Number(id),
-        trip_id: Number(tripId),
-      }
-      await offlineDb.places.put(optimistic)
-      return { place: optimistic }
-    }
-    const result = await placesApi.update(tripId, id, data)
-    offlineDb.places.put(result.place)
-    return result
+    return placesApi.update(tripId, id, data)
   },
 
   async delete(tripId: number | string, id: number | string): Promise<unknown> {
-    if (isEffectivelyOffline()) {
-      await offlineDb.places.delete(Number(id))
-      return { success: true }
-    }
-    const result = await placesApi.delete(tripId, id)
-    offlineDb.places.delete(Number(id))
-    return result
+    return placesApi.delete(tripId, id)
   },
 
   async deleteMany(tripId: number | string, ids: number[]): Promise<unknown> {
-    if (isEffectivelyOffline()) {
-      await offlineDb.places.bulkDelete(ids)
-      return { deleted: ids, count: ids.length }
-    }
-    const result = await placesApi.bulkDelete(tripId, ids)
-    await offlineDb.places.bulkDelete(ids)
-    return result
+    return placesApi.bulkDelete(tripId, ids)
   },
 
   async updateMany(tripId: number | string, ids: number[], data: Record<string, unknown>): Promise<{ updated: number[]; count: number }> {
-    if (isEffectivelyOffline()) {
-      for (const id of ids) {
-        const existing = await offlineDb.places.get(id)
-        if (existing) await offlineDb.places.put({ ...existing, ...(data as Partial<Place>) })
-      }
-      return { updated: ids, count: ids.length }
-    }
-    const result = await placesApi.bulkUpdate(tripId, ids, data as Parameters<typeof placesApi.bulkUpdate>[2])
-    const cached = await offlineDb.places.bulkGet(ids)
-    await offlineDb.places.bulkPut(cached.filter(Boolean).map(p => ({ ...(p as Place), ...(data as Partial<Place>) })))
-    return result
+    return placesApi.bulkUpdate(tripId, ids, data as Parameters<typeof placesApi.bulkUpdate>[2])
   },
 }
