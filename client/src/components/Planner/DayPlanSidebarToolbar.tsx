@@ -5,19 +5,14 @@ import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 import { TripExportModal } from './TripExportModal'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
-import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
+import type { Day, Reservation } from '../../types'
 
 interface DayPlanSidebarToolbarProps {
   tripId: number
-  trip: Trip
   days: Day[]
-  places: Place[]
-  categories: Category[]
-  assignments: AssignmentsMap
   reservations: Reservation[]
   allConnectionsShown?: boolean
   onToggleAllConnections?: () => void
-  dayNotes: Record<string, DayNote[]>
   t: (key: string, params?: Record<string, any>) => string
   locale: string
   toast: ReturnType<typeof useToast>
@@ -34,7 +29,7 @@ interface DayPlanSidebarToolbarProps {
 }
 
 export function DayPlanSidebarToolbar({
-  tripId, trip, days, places, categories, assignments, reservations, dayNotes,
+  tripId, days, reservations,
   allConnectionsShown = false, onToggleAllConnections,
   t, locale, toast,
   expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
@@ -69,16 +64,7 @@ export function DayPlanSidebarToolbar({
         <TripExportModal
           isOpen={exportOpen}
           onClose={() => setExportOpen(false)}
-          tripId={tripId}
-          trip={trip}
-          days={days}
-          places={places}
-          categories={categories}
-          assignments={assignments}
-          reservations={reservations}
-          dayNotes={dayNotes}
           t={t}
-          locale={locale}
           toast={toast}
         />
         {(() => {

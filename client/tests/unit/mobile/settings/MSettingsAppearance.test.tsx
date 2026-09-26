@@ -5,8 +5,6 @@ import { fireEvent, render, screen, waitFor } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildSettings } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
-import { useAddonStore } from '../../../../src/store/addonStore';
-import { usePluginStore } from '../../../../src/store/pluginStore';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
 import { DEFAULT_APPEARANCE, type AppearanceConfig } from '@trek/shared';
 import type { Settings } from '../../../../src/types';
@@ -55,7 +53,6 @@ function lastAppearance(mock: UpdateSettingMock): AppearanceConfig {
 describe('MSettingsAppearance', () => {
   beforeEach(() => {
     resetAllStores();
-    usePluginStore.setState({ plugins: [], loaded: true });
     seedAppearance(undefined);
   });
 
@@ -310,15 +307,9 @@ describe('MSettingsAppearance', () => {
     expect(screen.getByText('Bottom of page')).toBeInTheDocument();
   });
 
-  it('FE-MOB-SETAPP-022: the mobile card carries the nav customizer and the dashboard order', () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'vacay', name: 'Vacay', type: 'global', icon: 'calendar', enabled: true }],
-      loaded: true,
-    });
+  it('FE-MOB-SETAPP-022: the mobile card carries the dashboard order', () => {
     renderAppearance();
 
-    expect(screen.getByText('Bottom navbar')).toBeInTheDocument();
-    expect(screen.getByText('Pinned')).toBeInTheDocument();
     expect(screen.getByText('Dashboard order')).toBeInTheDocument();
     expect(screen.getByText('Trips')).toBeInTheDocument();
   });
@@ -333,28 +324,9 @@ describe('MSettingsAppearance', () => {
       expect(lastAppearance(updateSetting).dashboard.mobileOrder).toEqual([
         'currency',
         'trips',
-        'collections',
         'timezones',
         'upcomingReservations',
       ]),
-    );
-  });
-
-  it('FE-MOB-SETAPP-024: editing the bottom navbar persists the new split', async () => {
-    const user = userEvent.setup();
-    seedStore(useAddonStore, {
-      addons: [
-        { id: 'vacay', name: 'Vacay', type: 'global', icon: 'calendar', enabled: true },
-        { id: 'atlas', name: 'Atlas', type: 'global', icon: 'map', enabled: true },
-      ],
-      loaded: true,
-    });
-    const updateSetting = seedAppearance(undefined);
-    renderAppearance();
-
-    await user.click(screen.getAllByLabelText('Move under “More”')[0]);
-    await waitFor(() =>
-      expect(lastAppearance(updateSetting).mobileNav).toEqual({ bar: ['atlas'], more: ['vacay'] }),
     );
   });
 

@@ -35,18 +35,6 @@ export const ALLOWED = [
       'settings.about.descriptionManaged instead, so neither reader is told the ' +
       'wrong thing and self-hosters lose nothing.',
   },
-  {
-    key: 'system_notice.release_notes.feature_dawarich_body',
-    because:
-      'it calls Dawarich self-hosted, not TREK, which is what Dawarich is, and the ' +
-      'release notice carrying it is shown only where the managed condition is false',
-  },
-  {
-    key: 'system_notice.v3_thankyou.body',
-    because:
-      'a dated message from the author about the project, pinned to one release, ' +
-      'and shown only where the managed condition is false',
-  },
 ];
 
 /**

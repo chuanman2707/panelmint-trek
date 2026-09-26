@@ -15,11 +15,9 @@ import type {
   TodoItem,
   BudgetItem,
   Reservation,
-  TripFile,
   Tag,
   Category,
   Settings,
-  AppConfig,
 } from '../../src/types';
 
 // ── Counters ──────────────────────────────────────────────────────────────────
@@ -221,20 +219,6 @@ export function buildReservation(overrides: Partial<Reservation> = {}): Reservat
   };
 }
 
-export function buildTripFile(overrides: Partial<TripFile> = {}): TripFile {
-  const id = next();
-  return {
-    id,
-    trip_id: 1,
-    filename: 'test.pdf',
-    original_name: 'test.pdf',
-    mime_type: 'application/pdf',
-    url: `/api/trips/1/files/${id}/download`,
-    created_at: '2025-01-01T00:00:00.000Z',
-    ...overrides,
-  };
-}
-
 export function buildTag(overrides: Partial<Tag> = {}): Tag {
   const id = next();
   return {
@@ -281,22 +265,6 @@ export function buildInAppNotification(overrides: Partial<InAppNotification> = {
     read: false,
     created_at: '2025-01-01T00:00:00.000Z',
     trip_id: null,
-    ...overrides,
-  };
-}
-
-export function buildAppConfig(overrides: Partial<AppConfig> = {}): AppConfig {
-  return {
-    has_users: true,
-    allow_registration: true,
-    demo_mode: false,
-    oidc_configured: false,
-    oidc_only_mode: false,
-    password_login: true,
-    password_registration: true,
-    oidc_login: true,
-    oidc_registration: true,
-    env_override_oidc_only: false,
     ...overrides,
   };
 }

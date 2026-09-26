@@ -13,7 +13,6 @@ import type { BookingExpenseRequest } from '../../../../components/Planner/Booki
 import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
 import PlCategoryPicker from './PlCategoryPicker'
 import PlTimeFields from './PlTimeFields'
-import PlFileAttach from './PlFileAttach'
 import type { Assignment, AssignmentsMap, Place } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { useLocationBias } from '../../../../hooks/useLocationBias'
@@ -68,12 +67,11 @@ function findVisit(stored: AssignmentsMap, assignmentId: number | null): Assignm
  * the planner's own editor flags (showPlaceForm / editingPlace / prefillCoords /
  * editingAssignmentId) so every entry point (timeline edit, browser context
  * menu, map long-press, ?create=place) opens it unchanged. Saving goes through
- * planner.handleSavePlace, which owns the assignment-time split, pending-file
- * upload and undo.
+ * planner.handleSavePlace, which owns the assignment-time split and undo.
  */
 export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSheetProps) {
   const {
-    t, toast, places, assignments, storedAssignments, canUploadFiles,
+    t, toast, places, assignments, storedAssignments,
     showPlaceForm, setShowPlaceForm,
     editingPlace, setEditingPlace,
     prefillCoords, setPrefillCoords,
@@ -84,7 +82,6 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
   const [form, setForm] = useState<PlaceFormData>(DEFAULT_FORM)
   // Which fields the last picked search result wrote. See mergeResult.
   const autoFilledRef = useRef<Set<ResultField>>(new Set())
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [resolvingPick, setResolvingPick] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
@@ -165,7 +162,6 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
           )
         : [],
     )
-    setPendingFiles([])
     setDuplicateWarning(null)
     setDeleteArmed(false)
     // storedAssignments is a fresh map each load, so it is read at open time only.
@@ -211,19 +207,6 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     }
   }
 
-  // Clipboard images/PDFs from any focused field become pending attachments.
-  const handlePaste = (e: ClipboardEvent) => {
-    if (!canUploadFiles) return
-    for (const item of Array.from(e.clipboardData?.items || [])) {
-      if (item.type.startsWith('image/') || item.type === 'application/pdf') {
-        e.preventDefault()
-        const file = item.getAsFile()
-        if (file) setPendingFiles(prev => [...prev, file])
-        return
-      }
-    }
-  }
-
   // End before start blocks the save — tied to the values, not to which entry
   // point opened the sheet.
   const hasTimeError = Boolean(
@@ -256,7 +239,6 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
         lat: form.lat ? Number.parseFloat(form.lat) : null,
         lng: form.lng ? Number.parseFloat(form.lng) : null,
         category_id: form.category_id || null,
-        _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
       }
       // #2163: the per-assignment note only travels when an assignment is in
       // context AND the value actually changed — same dirty-check as the
@@ -307,7 +289,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
         closeLabel={t('common.close')}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]" onPaste={handlePaste}>
+      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]">
         <PlPlaceSearch planner={planner} locationBias={locationBias} onPick={applyPick} onResolvingChange={setResolvingPick} />
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formName')} *</Eyebrow>
@@ -401,15 +383,6 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
           placeholder="https://"
           className={FIELD_CLS}
         />
-
-        {canUploadFiles && (
-          <PlFileAttach
-            planner={planner}
-            files={pendingFiles}
-            onAdd={files => setPendingFiles(prev => [...prev, ...files])}
-            onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
-          />
-        )}
 
         {/* COSTS — same block, same flow as the booking sheet (#1298) */}
         {isBudgetEnabled && (

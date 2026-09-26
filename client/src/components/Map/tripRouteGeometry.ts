@@ -1,7 +1,7 @@
 import { calculateRouteWithLegs, RoutingRefusedError, type RouteProfileKey } from './RouteCalculator'
 import { buildDayRouteRuns, type DayRouteInputs, type DayRoutePoint } from './dayRoutePlan'
 import { resolveLegMode } from '../Planner/legMode'
-import { dayColor } from '../Roadtrip/dayColors'
+import { dayColor } from './dayColors'
 import type { Day, RouteSegment } from '../../types'
 
 /** One travel day of the overview: the roads it covers, in its own colour. */

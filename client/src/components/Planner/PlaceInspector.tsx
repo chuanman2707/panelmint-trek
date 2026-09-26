@@ -1,26 +1,21 @@
-import ChargingInfo from '../Roadtrip/ChargingInfo'
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import { safeHttpUrl } from '../../utils/safeUrl'
-import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
-import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Map as MapIcon, Users, Mountain, TrendingUp, Route, StickyNote } from 'lucide-react'
+import { X, Clock, MapPin, ExternalLink, Phone, Banknote, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, Star, Navigation, Users, Mountain, TrendingUp, Route, StickyNote } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import PlaceRating from '../shared/StarRating'
 import TrackColorPicker from '../shared/TrackColorPicker'
 import { resolveTrackColor, inheritedTrackColor } from '../Map/trackColors'
-import { filesForPlace } from '../../utils/placeFiles'
 import GuestBadge from '../shared/GuestBadge'
 import { mapsApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { getCategoryIcon } from '../shared/categoryIcons'
-import { Tooltip } from '../shared/Tooltip'
-import { useToast } from '../shared/Toast'
-import { useTranslation, translateApiError } from '../../i18n'
-import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
+import { useTranslation } from '../../i18n'
+import type { Place, Category, Day, Assignment, Reservation, AssignmentsMap } from '../../types'
 import { splitReservationDateTime, formatTime, formatMoney } from '../../utils/formatters'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -30,8 +25,6 @@ import { TRANSPORT_TYPES, getAssignmentReservations } from '../../utils/dayMerge
 import { NavigationMenu } from '../shared/NavigationMenu'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine } from './placeHoursFormat'
-import type { EndDayControlProps } from '../Roadtrip/EndDayControl'
-import VisitControls, { type RoadtripStayControl } from '../Roadtrip/VisitControls'
 
 const detailsCache = new Map()
 
@@ -71,13 +64,6 @@ function getWeekdayIndex(dateStr, timeZone) {
   return jsDay === 0 ? 6 : jsDay - 1
 }
 
-function formatFileSize(bytes) {
-  if (!bytes) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-}
-
 interface TripMember {
   id: number
   username: string
@@ -87,9 +73,6 @@ interface TripMember {
 }
 
 interface PlaceInspectorProps {
-  roadtripActive?: boolean
-  roadtripEndDay?: EndDayControlProps
-  roadtripStay?: RoadtripStayControl
   place: Place | null
   categories: Category[]
   // ── Optional props ──
@@ -108,8 +91,6 @@ interface PlaceInspectorProps {
   onDelete?: () => void
   onAssignToDay?: (placeId: number, dayId?: number) => void
   onRemoveAssignment?: (dayId: number, assignmentId: number) => void
-  files?: TripFile[]
-  onFileUpload?: (fd: FormData) => Promise<unknown>
   tripMembers?: TripMember[]
   onSetParticipants?: (assignmentId: number, dayId: number, participantIds: number[]) => void
   onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
@@ -123,9 +104,8 @@ export default function PlaceInspector({
   place, categories, days = [], selectedDayId = null, selectedAssignmentId = null,
   assignments = {}, reservations = [], onEditTransport, onEditReservation,
   onClose, onEdit: editPlace, onDelete: deletePlace, onAssignToDay, onRemoveAssignment,
-  files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onRate,
+  tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onRate,
   leftWidth = 0, rightWidth = 0,
-  roadtripEndDay, roadtripStay, roadtripActive,
 }: PlaceInspectorProps) {
   // Editing the place is a place right. The planner hands the handlers over
   // regardless, and a member without the right saw Edit, Delete and the inline
@@ -147,42 +127,13 @@ export default function PlaceInspector({
   // the hotel of a booked night looked unassigned and could be put on the day a
   // second time, which is the duplicate that check exists to prevent.
   const storedDayAssignments = useTripStore(s => (selectedDayId ? s.assignments[String(selectedDayId)] : undefined))
-  const toast = useToast()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit) || 'metric'
   const [hoursExpanded, setHoursExpanded] = useState(false)
-  const [filesExpanded, setFilesExpanded] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
   const nameInputRef = useRef(null)
-  const fileInputRef = useRef(null)
   const googleDetails = usePlaceDetails(place?.google_place_id, place?.osm_id, language)
-
-  // Sits above the `if (!place)` bail-out below: a hook after an early return is
-  // only reached while a place is selected, so deselecting one mid-session
-  // changes the hook count and React tears the tree down.
-  const placeId = place?.id
-  const handleFileUpload = useCallback(async (e) => {
-    const selectedFiles = Array.from((e.target as HTMLInputElement).files || [])
-    if (!selectedFiles.length || !onFileUpload || !placeId) return
-    setIsUploading(true)
-    try {
-      for (const file of selectedFiles) {
-        const fd = new FormData()
-        fd.append('file', file)
-        fd.append('place_id', String(placeId))
-        await onFileUpload(fd)
-      }
-      setFilesExpanded(true)
-    } catch (err: unknown) {
-      console.error('Upload failed', err)
-      toast.error(translateApiError(t, err, 'files.uploadError'))
-    } finally {
-      setIsUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }, [onFileUpload, placeId, toast, t])
 
   const startNameEdit = () => {
     if (!onUpdatePlace) return
@@ -240,9 +191,6 @@ export default function PlaceInspector({
   )
   const selectedDay = days?.find(d => d.id === selectedDayId)
   const weekdayIndex = getWeekdayIndex(selectedDay?.date, placeTimeZone)
-
-  // Its own files plus the ones on the bookings that hang on it (#2217).
-  const placeFiles = filesForPlace(files, place.id, reservations, selectedAssignmentId != null ? [selectedAssignmentId] : [])
 
   return (
     <div
@@ -319,8 +267,6 @@ export default function PlaceInspector({
           )}
 
           {/* Description / Summary */}
-          {roadtripActive && place.stop_type === 'charging' && <ChargingInfo placeId={place.id} />}
-          {(roadtripEndDay || roadtripStay) && <VisitControls endDay={roadtripEndDay} stay={roadtripStay} />}
           {(place.description || googleDetails?.summary) && (
             <div className="collab-note-md bg-surface-hover text-content-muted" style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, fontSize: 'calc(12px * var(--fs-scale-body, 1))', lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.description || googleDetails?.summary || ''}</Markdown>
@@ -356,11 +302,9 @@ export default function PlaceInspector({
               onEditTransport={onEditTransport} onEditReservation={onEditReservation} />
           )}
 
-          {/* Opening hours + Files — side by side on desktop only if both exist */}
+          {/* Opening hours + track stats — side by side on desktop only if both exist */}
           <PlaceExtras openingHours={openingHours} weekdayIndex={weekdayIndex} hoursExpanded={hoursExpanded}
-            setHoursExpanded={setHoursExpanded} timeFormat={timeFormat} t={t} place={place} placeFiles={placeFiles}
-            onFileUpload={onFileUpload} filesExpanded={filesExpanded} setFilesExpanded={setFilesExpanded}
-            fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isUploading={isUploading}
+            setHoursExpanded={setHoursExpanded} timeFormat={timeFormat} t={t} place={place}
             distanceUnit={distanceUnit} onUpdatePlace={onUpdatePlace} />
 
         </div>
@@ -856,8 +800,7 @@ function TrackColorRow({ place, trackColor, onUpdatePlace, t }: any) {
 }
 
 function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpanded, timeFormat, t, place,
-  placeFiles, onFileUpload, filesExpanded, setFilesExpanded, fileInputRef, handleFileUpload, isUploading, distanceUnit,
-  onUpdatePlace }: any) {
+  distanceUnit, onUpdatePlace }: any) {
   const trackColor = resolveTrackColor(place)
   return (
           <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
@@ -990,44 +933,6 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
             } catch { return null }
           })()}
 
-          {/* Files section */}
-          {(placeFiles.length > 0 || onFileUpload) && (
-            <div className="bg-surface-hover" style={{ borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 6 }}>
-                <button type="button"
-                  onClick={() => setFilesExpanded(f => !f)}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textAlign: 'left' }}
-                >
-                  <FileText size={13} color="#9ca3af" />
-                  <span className="text-content-secondary" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
-                    {placeFiles.length > 0 ? t('inspector.filesCount', { count: placeFiles.length }) : t('inspector.files')}
-                  </span>
-                  {filesExpanded ? <ChevronUp size={12} color="#9ca3af" /> : <ChevronDown size={12} color="#9ca3af" />}
-                </button>
-                {onFileUpload && (
-                  <label className="text-content-muted bg-surface-tertiary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', padding: '2px 6px', borderRadius: 6 }}>
-                    <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
-                    {isUploading ? (
-                      <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>…</span>
-                    ) : (
-                      <><Upload size={11} strokeWidth={2} /> {t('common.upload')}</>
-                    )}
-                  </label>
-                )}
-              </div>
-              {filesExpanded && placeFiles.length > 0 && (
-                <div style={{ padding: '0 12px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {placeFiles.map(f => (
-                    <button type="button" key={f.id} onClick={() => openFile(f.url).catch(() => {})} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left' }}>
-                      {(f.mime_type || '').startsWith('image/') ? <FileImage size={12} color="#6b7280" /> : <File size={12} color="#6b7280" />}
-                      <span className="text-content-secondary" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                      {f.file_size && <span className="text-content-faint" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', flexShrink: 0 }}>{formatFileSize(f.file_size)}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
           </div>
   )
 }

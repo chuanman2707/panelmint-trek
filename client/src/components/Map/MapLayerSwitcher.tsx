@@ -6,21 +6,19 @@ import { MAP_CONTROL_SHADOW } from './mapControlShadow'
 export type BaseLayer = 'default' | 'satellite'
 
 // Where the switcher sits and how much room it takes, so a control placed beside it
-// (the phone's compass) is positioned off the same numbers instead of guessing them.
-// Both map engines place the switcher with the inset, so they cannot drift apart either.
+// is positioned off the same numbers instead of guessing them.
 
 /** Distance from the map's left edge (plus any side panel) to the switcher. */
 export const MAP_LAYER_SWITCHER_INSET = 20
 /**
- * Outer size of the round shell: a 34px button in 4px of padding, the same shell as
- * MapCompassPill. The markup below keeps its literals, and FE-COMP-MAPLAYER-006 holds
+ * Outer size of the round shell: a 34px button in 4px of padding.
+ * The markup below keeps its literals, and FE-COMP-MAPLAYER-006 holds
  * them to this number.
  */
 export const MAP_ROUND_CONTROL_SIZE = 42
 
-// Round base-layer switcher for both planner maps, Leaflet and GL (default street
-// tiles ↔ satellite). Same frosted shell as MapCompassPill so it lines up with the
-// other map controls; the icon shows the layer it switches to.
+// Round base-layer switcher for the Leaflet planner map (default street
+// tiles ↔ satellite); the icon shows the layer it switches to.
 export function MapLayerSwitcher({ active, onToggle }: { active: BaseLayer; onToggle: () => void }) {
   const { t } = useTranslation()
   const isSatellite = active === 'satellite'

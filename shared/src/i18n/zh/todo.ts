@@ -6,14 +6,11 @@ const todo: TranslationStrings = {
   'todo.subtab.todo': '待办事项',
   'todo.completed': '已完成',
   'todo.filter.all': '全部',
-  'todo.filter.open': '进行中',
   'todo.filter.done': '已完成',
-  'todo.uncategorized': '无清单',
   'todo.namePlaceholder': '任务名称',
   'todo.descriptionPlaceholder': '描述（可选）',
   'todo.unassigned': '未分配',
   'todo.noCategory': '无清单',
-  'todo.hasDescription': '有描述',
   'todo.addItem': '新建任务',
   'todo.sidebar.sortBy': '排序方式',
   'todo.priority': '优先级',
@@ -36,6 +33,5 @@ const todo: TranslationStrings = {
   'todo.detail.create': '创建任务',
   'todo.detail.priority': '优先级',
   'todo.detail.noPriority': '无',
-  'todo.sortByPrio': '优先级',
 };
 export default todo;

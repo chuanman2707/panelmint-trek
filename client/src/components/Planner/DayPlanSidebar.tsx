@@ -1,13 +1,12 @@
-import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
-import { isServiceStopType } from '../Roadtrip/roadtripModel'
+
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end'; /** A corridor hit on its way onto the drive (#1797) — not a place yet. */ poiOsmId?: string }
+interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end' }
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { avatarSrc } from '../../utils/avatarSrc'
 import { safeHttpUrl } from '../../utils/safeUrl'
-import { ChevronDown, ChevronRight, ChevronUp, Compass, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, Bookmark, StickyNote, Zap } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Compass, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Footprints, Route as RouteIcon, Bookmark, StickyNote } from 'lucide-react'
 import { assignmentsApi, reservationsApi, daysApi } from '../../api/client'
 import { applyLocalEffect } from '../../store/localEffects'
 import { calculateRouteWithLegs, optimizeRoute, generateGoogleMapsUrl, generateCoMapsUrl, type NamedWaypoint } from '../Map/RouteCalculator'
@@ -24,7 +23,7 @@ import { getCategoryIcon } from '../shared/categoryIcons'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useAddonStore } from '../../store/addonStore'
+
 import { useTranslation } from '../../i18n'
 import { Tooltip } from '../shared/Tooltip'
 import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type CarrierEdge } from '../../utils/dayOrder'
@@ -49,7 +48,6 @@ import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import { DayPlanSidebarNoteModal } from './DayPlanSidebarNoteModal'
 import { DayPlanSidebarTimeConfirmModal } from './DayPlanSidebarTimeConfirmModal'
 import { DayPlanSidebarTransportDetailModal } from './DayPlanSidebarTransportDetailModal'
-import { TransitTitle, TransitLegChips, TransitItineraryInline } from './transitDisplay'
 import { DayPlanSidebarFooter } from './DayPlanSidebarFooter'
 import type { Trip, Day, Place, Category, Assignment, Accommodation, Reservation, AssignmentsMap, RouteResult, RouteSegment, DayNote } from '../../types'
 import { getNavigationTargets, openNavigationTarget } from './placeNavigation'
@@ -164,7 +162,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const { t, language, locale } = useTranslation()
   const ctxMenu = useContextMenu()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
-  const mirrorServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false)
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
   const canEditDays = can('day_edit', trip)
@@ -204,8 +201,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const [lockHoverId, setLockHoverId] = useState(null)
   const [undoHover, setUndoHover] = useState(false)
   const [hoveredAssignmentId, setHoveredAssignmentId] = useState<number | null>(null)
-  // Transit rows fold their itinerary out inline (#1065).
-  const [expandedTransitIds, setExpandedTransitIds] = useState<Set<number>>(new Set())
   const [dropTargetKey, _setDropTargetKey] = useState(null)
   const dropTargetRef = useRef(null)
   const setDropTargetKey = (key) => { dropTargetRef.current = key; _setDropTargetKey(key) }
@@ -393,19 +388,12 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     })
   }
 
-  // Two reasons a stop can be road-trip-only, and they are not the same reason.
-  //
-  // The switch is the traveller's: it keeps the petrol stations and rest areas they
-  // added along the drive out of a day list they want to read as a plan.
-  //
-  // A stop a lodging booking put there is out whatever the switch says. The day
-  // already carries that booking as its own overnight block in the header, so the
-  // row would be the same hotel a second time. Road trip mode wants it, which is
-  // why it is a stop at all: the drive has to end somewhere, and that somewhere is
-  // where you sleep.
+  // A stop a lodging booking put there is out: the day already carries that
+  // booking as its own overnight block in the header, so the row would be the
+  // same hotel a second time.
   const getDayAssignments = (dayId) =>
     (assignments[String(dayId)] || [])
-      .filter(a => a.accommodation_id == null && (mirrorServiceStops || !isServiceStopType(a.place?.stop_type)))
+      .filter(a => a.accommodation_id == null)
       .slice().sort((a, b) => a.order_index - b.order_index)
 
   // Compute initial day_plan_position for a transport based on time
@@ -502,7 +490,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     return map
   // getMergedItems is redefined each render but captures assignments/dayNotes/reservations/days via closure
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, assignments, dayNotes, reservations, transportPosVersion, mirrorServiceStops])
+  }, [days, assignments, dayNotes, reservations, transportPosVersion])
 
   // Days whose inline route legs should be computed & shown. Desktop: the selected
   // day while the Route toggle is on. Mobile: each expanded day the user tapped
@@ -627,8 +615,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       const legsByDay: Record<number, Record<number, RouteSegment>> = {}
       const hotelByDay: Record<number, { top?: { seg: RouteSegment; name: string; targetId?: number }; bottom?: { seg: RouteSegment; name: string; targetId?: number } }> = {}
 
-      // One cached OSRM/plugin call per waypoint pair; shares RouteCalculator's cache.
-      // tripId/dayId ride along for plugin route profiles (the server access-checks them).
+      // One cached routing call per waypoint pair; shares RouteCalculator's cache.
       // Resolve a leg's mode (#1281): an explicit per-segment override wins, then
       // the day's saved default, then the live picker value. Sticky by design — the
       // day default never touches a leg that carries its own mode.
@@ -654,7 +641,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
         legsByDay[dayId] = dayLegs
         for (const run of runs) {
           // One routing call per LEG, each with its own resolved mode, so a day can
-          // mix walking/driving/plugin legs. RouteCalculator's cache is keyed per
+          // mix walking/driving legs. RouteCalculator's cache is keyed per
           // profile+coords, so per-leg calls stay cheap (a single-mode day reuses
           // the same entries) and each leg is tagged with the mode it was drawn in.
           for (let i = 0; i < run.length - 1; i++) {
@@ -1109,8 +1096,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     onRouteRefresh,
     onAddTransport,
     onEditTransport,
-    expandedTransitIds,
-    setExpandedTransitIds,
     onEditReservation,
     onAddBookingToAssignment,
     initialScrollTop,
@@ -1241,8 +1226,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   // Needed by the route-tools visibility gate in the render below (#1330); the hook
   // keeps its own copy, so read it reactively here in the component scope too.
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
-  // Route-profile picker entries: the two built-ins. (Plugin routeProviders are
-  // gone with the hosted runtime.)
+  // Route-profile picker entries: the two built-ins.
   const routeProfileOptions = useMemo(() => [
     { key: 'driving', label: 'Driving' },
     { key: 'walking', label: 'Walking' },
@@ -1291,8 +1275,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     onRouteRefresh,
     onAddTransport,
     onEditTransport,
-    expandedTransitIds,
-    setExpandedTransitIds,
     onEditReservation,
     onAddBookingToAssignment,
     initialScrollTop,
@@ -1386,9 +1368,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   } = S
 
   // ── Per-segment / per-day travel mode (#1281) ──────────────────────────────
-  // Icon per mode, matching the route picker (driving→Car, walking→Footprints,
-  // any plugin profile→Zap).
-  const modeIcon = (key: string) => (key === 'walking' ? Footprints : key.startsWith('plugin:') ? Zap : Car)
+  // Icon per mode, matching the route picker (driving→Car, walking→Footprints).
+  const modeIcon = (key: string) => (key === 'walking' ? Footprints : Car)
 
   // Set the mode of the leg LEAVING this stop. Optimistic (the connector + map
   // recompute from the store), then persisted; null clears the override so the leg
@@ -1476,15 +1457,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
       {/* Toolbar */}
       <DayPlanSidebarToolbar
         tripId={tripId}
-        trip={trip}
         days={days}
-        places={places}
-        categories={categories}
-        assignments={assignments}
         reservations={reservations}
         allConnectionsShown={allConnectionsShown}
         onToggleAllConnections={onToggleAllConnections}
-        dayNotes={dayNotes}
         t={t}
         locale={locale}
         toast={toast}
@@ -1587,7 +1563,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
           return (
             // The card wrapper stays untinted — its three regions (badge, header,
-            // activity list) paint themselves, so a plugin controls them separately.
+            // activity list) paint themselves separately.
             <div key={day.id} ref={el => { if (el) dayRefs.current.set(day.id, el); else dayRefs.current.delete(day.id) }}
               style={{ borderBottom: '1px solid var(--border-faint)' }}>
               {/* Tages-Header — akzeptiert Drops aus der PlacesSidebar */}
@@ -2330,11 +2306,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           subtitle = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : '', meta.seat ? `Sitz ${meta.seat}` : ''].filter(Boolean).join(' · ')
                         }
 
-                        // A transit journey (#1065) renders its itinerary inline —
-                        // line badges in their colors instead of a plain subtitle,
-                        // so the connection is recognisable at a glance.
-                        const transitMeta = res.type === 'transit' && meta.transit && Array.isArray(meta.transit.legs) ? meta.transit : null
-
                         // Multi-day span phase (single-leg / non-flight only — a
                         // multi-leg flight is shown as one row per leg, see below).
                         const spanLabel = res.__leg ? null : getSpanLabel(res, spanPhase)
@@ -2343,11 +2314,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
 
                         const openTransportRow = () => {
                           const target = reservations.find(x => x.id === res.id) ?? res
-                          // A stored transit journey opens its booking detail — the
-                          // dedicated journey view went away with the hosted transit
-                          // planner (#1065), and the detail modal still offers the
-                          // edit form when editing is allowed. Viewers can look too.
-                          if (transitMeta) { setTransportDetail(target); return }
                           if (!canEditDays) return
                           if (TRANSPORT_TYPES.has(res.type)) onEditTransport?.(target)
                           else onEditReservation?.(target)
@@ -2450,7 +2416,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   </span>
                                 )}
                                 <span style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                                  {transitMeta ? <TransitTitle title={res.title} iconSize={11} /> : res.title}
+                                  {res.title}
                                 </span>
                                 {(() => {
                                   const { time: dispTime } = splitReservationDateTime(displayTime)
@@ -2467,43 +2433,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   )
                                 })()}
                               </div>
-                              {transitMeta ? (
-                                <div style={{ display: 'flex', alignItems: 'center', marginTop: 3 }}>
-                                  <TransitLegChips legs={transitMeta.legs} size="sm" t={t} />
-                                </div>
-                              ) : subtitle && (
+                              {subtitle && (
                                 <div style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {subtitle}
                                 </div>
                               )}
                             </div>
-                            {transitMeta && (() => {
-                              const expanded = expandedTransitIds.has(res.id)
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={e => {
-                                    e.stopPropagation()
-                                    setExpandedTransitIds(prev => {
-                                      const next = new Set(prev)
-                                      if (next.has(res.id)) next.delete(res.id); else next.add(res.id)
-                                      return next
-                                    })
-                                  }}
-                                  aria-label={t(expanded ? 'common.collapse' : 'common.expand')}
-                                  style={{
-                                    flexShrink: 0, appearance: 'none', width: 26, height: 26, borderRadius: 6,
-                                    display: 'grid', placeItems: 'center', cursor: 'pointer', border: 'none',
-                                    background: 'transparent', color: 'var(--text-faint)',
-                                  }}
-                                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
-                                >
-                                  {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                </button>
-                              )
-                            })()}
-                            {!transitMeta && onToggleConnection && (!res.__leg || res.__leg.index === 0) && (res.endpoints || []).length >= 2 && (() => {
+                            {onToggleConnection && (!res.__leg || res.__leg.index === 0) && (res.endpoints || []).length >= 2 && (() => {
                               const active = visibleConnectionIds.includes(res.id)
                               return (
                                 <Tooltip label={t(active ? 'map.hideConnections' : 'map.showConnections')} placement="top">
@@ -2528,11 +2464,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               )
                             })()}
                           </div>
-                          {transitMeta && expandedTransitIds.has(res.id) && (
-                            <div style={{ margin: '2px 8px 4px', padding: '9px 10px 9px 12px', borderRadius: 6, border: `1px solid ${color}26`, background: `${color}05` }}>
-                              <TransitItineraryInline legs={transitMeta.legs} t={t} />
-                            </div>
-                          )}
                           {routeLegs[day.id]?.[res.id] && (() => {
                             const nextPlaceId = merged.slice(idx + 1).find(i => i.type === 'place' && i.data.place?.lat && i.data.place?.lng)?.data.id
                             const connector = <RouteConnector seg={routeLegs[day.id]![res.id]} profile={routeProfile} />
@@ -2812,7 +2743,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         </Tooltip>
                         <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-faint)', flexShrink: 0 }}>
                           {routeProfileOptions.map(p => {
-                            const ModeIcon = p.key === 'driving' ? Car : p.key === 'walking' ? Footprints : Zap
+                            const ModeIcon = p.key === 'walking' ? Footprints : Car
                             const active = (day.default_transport_mode ?? routeProfile) === p.key
                             return (
                               <Tooltip label={p.label} placement="top">

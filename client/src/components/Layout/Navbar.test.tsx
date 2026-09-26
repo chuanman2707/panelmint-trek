@@ -1,22 +1,14 @@
 // FE-COMP-NAVBAR-001 to FE-COMP-NAVBAR-028
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
 import { buildSettings, buildUser } from '../../../tests/helpers/factories';
-import { server } from '../../../tests/helpers/msw/server';
 import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { useAddonStore } from '../../store/addonStore';
 import { useAuthStore } from '../../store/authStore';
-import { usePluginStore } from '../../store/pluginStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import Navbar from './Navbar';
 
 beforeEach(() => {
   resetAllStores();
-  server.use(
-    http.get('/api/auth/app-config', () => HttpResponse.json({ version: '2.9.10' })),
-    http.get('/api/addons', () => HttpResponse.json({ addons: [] }))
-  );
   seedStore(useAuthStore, {
     user: buildUser({ username: 'testuser', role: 'user' }),
     isAuthenticated: true,
@@ -167,29 +159,6 @@ describe('Navbar', () => {
     expect(updateSetting).toHaveBeenCalledWith('dark_mode', 'dark');
   });
 
-  it('FE-COMP-NAVBAR-024: global addon nav links appear when addons enabled', () => {
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({
-          addons: [{ id: 'vacay', name: 'Vacay', icon: 'CalendarDays', type: 'global', enabled: true }],
-        })
-      )
-    );
-    seedStore(useAddonStore, {
-      addons: [{ id: 'vacay', name: 'Vacay', icon: 'CalendarDays', type: 'global', enabled: true }],
-    });
-    render(<Navbar />);
-    expect(screen.getByRole('link', { name: /vacay/i })).toBeInTheDocument();
-  });
-
-  it('FE-COMP-NAVBAR-025: global addon links hidden when in trip view (tripTitle set)', () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'vacay', name: 'Vacay', icon: 'CalendarDays', type: 'global', enabled: true }],
-    });
-    render(<Navbar tripTitle="Japan 2025" />);
-    expect(screen.queryByRole('link', { name: /vacay/i })).not.toBeInTheDocument();
-  });
-
   it('FE-COMP-NAVBAR-027: user avatar image shown when avatar_url set', () => {
     seedStore(useAuthStore, {
       user: buildUser({ username: 'testuser', avatar_url: 'https://example.com/av.jpg' }),
@@ -252,28 +221,11 @@ describe('Navbar', () => {
     await user.click(screen.getByText('testuser'));
     expect(screen.getByText('testuser@example.com')).toBeInTheDocument();
   });
-
-  it('FE-COMP-NAVBAR-034: page plugin renders the icon its manifest declares', () => {
-    seedStore(usePluginStore, {
-      plugins: [{ id: 'trip-doctor', name: 'Trip Doctor', type: 'page', icon: 'Stethoscope' }],
-    });
-    const { container } = render(<Navbar />);
-    expect(screen.getByRole('link', { name: /trip doctor/i })).toBeInTheDocument();
-    expect(container.querySelector('.lucide-stethoscope')).not.toBeNull();
-  });
-
-  it('FE-COMP-NAVBAR-035: page plugin with an unknown icon falls back to Blocks', () => {
-    seedStore(usePluginStore, {
-      plugins: [{ id: 'bogus', name: 'Bogus', type: 'page', icon: 'NotAnIcon' }],
-    });
-    const { container } = render(<Navbar />);
-    expect(container.querySelector('.lucide-blocks')).not.toBeNull();
-  });
 });
 
-// FE-W5NAV-001 to FE-W5NAV-012 — scroll/dark styling, the addon-name fallback,
-// the prerelease badge, the theme-transition timer and the hover styling that
-// the behavioural tests above leave untouched.
+// FE-W5NAV-001 to FE-W5NAV-012 — scroll/dark styling, the prerelease badge, the
+// theme-transition timer and the hover styling that the behavioural tests above
+// leave untouched.
 describe('Navbar styling and menu details', () => {
   const nav = () => document.querySelector('nav') as HTMLElement;
 
@@ -314,64 +266,17 @@ describe('Navbar styling and menu details', () => {
     Object.defineProperty(document.body, 'scrollTop', { value: 0, configurable: true });
   });
 
-  it('FE-W5NAV-004: no addons are loaded while nobody is signed in', () => {
-    const loadAddons = vi.fn(async () => {});
+  it('FE-W5NAV-004: the user menu is absent while nobody is signed in', () => {
     seedStore(useAuthStore, { user: null, isAuthenticated: false });
-    seedStore(useAddonStore, { loadAddons });
     render(<Navbar />);
 
-    expect(loadAddons).not.toHaveBeenCalled();
     expect(screen.queryByText('testuser')).not.toBeInTheDocument();
   });
 
-  it('FE-W5NAV-005: a catalogued addon uses its translated name, an unknown one its own', () => {
-    seedStore(useAddonStore, {
-      addons: [
-        // 'roadtrip' catalogues to 'Road trip' — and unlike budget/packing it does
-        // not collide with a static row, so the seed survives loadAddons().
-        { id: 'roadtrip', name: 'Roadtrip X', icon: 'Briefcase', type: 'global', enabled: true },
-        { id: 'trip-doctor', name: 'Trip Doctor', icon: 'NoSuchIcon', type: 'global', enabled: true },
-        { id: 'weather', name: 'Weather', icon: 'Globe', type: 'integration', enabled: true },
-        { id: 'atlas', name: 'Atlas', icon: 'Globe', type: 'global', enabled: false },
-      ],
-    });
-    render(<Navbar />);
-
-    expect(screen.getByRole('link', { name: /^Road trip$/ })).toHaveAttribute('href', '/roadtrip');
-    expect(screen.getByRole('link', { name: /^Trip Doctor$/ })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^Weather$/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^Atlas$/ })).not.toBeInTheDocument();
-  });
-
-  it('FE-W5NAV-006: the active tab keeps its colour on hover, inactive tabs brighten', () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'vacay', name: 'Vacay', icon: 'CalendarDays', type: 'global', enabled: true }],
-    });
-    render(<Navbar />, { initialEntries: ['/dashboard'] });
-
-    const active = screen.getByRole('link', { name: /my trips/i });
-    const inactive = screen.getByRole('link', { name: /vacay/i });
-    expect(active.style.background).toBe('var(--bg-card)');
-    expect(inactive.style.background).toBe('transparent');
-
-    fireEvent.mouseEnter(active);
-    fireEvent.mouseLeave(active);
-    expect(active.style.color).toBe('var(--text-primary)');
-
-    fireEvent.mouseEnter(inactive);
-    expect(inactive.style.color).toBe('var(--text-primary)');
-    fireEvent.mouseLeave(inactive);
-    expect(inactive.style.color).toBe('var(--text-muted)');
-  });
-
-  it('FE-W5NAV-007: trip pages swap the tab pill for the centre notice slot', () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'vacay', name: 'Vacay', icon: 'CalendarDays', type: 'global', enabled: true }],
-    });
+  it('FE-W5NAV-007: trip pages mount the centre notice slot', () => {
     render(<Navbar tripTitle="Japan 2027" />);
 
     expect(document.getElementById('trek-nav-center-slot')).not.toBeNull();
-    expect(document.querySelector('.trek-nav-pill')).toBeNull();
   });
 
   it('FE-W5NAV-008: the prerelease badge only shows with a version and the flag set', () => {
@@ -512,69 +417,5 @@ describe('Navbar styling and menu details', () => {
 
     await waitFor(() => expect(updateSetting).toHaveBeenCalledWith('dark_mode', 'dark'));
     document.documentElement.classList.remove('trek-theme-transitioning');
-  });
-});
-
-/**
- * The bar's three columns (#1983).
- *
- * The tab pill was absolutely positioned on the centre of the bar, so it had no
- * relationship to what sat beside it. Its width grows with every enabled addon
- * and every page plugin, and once it outgrew the free space in the middle it
- * ran underneath the logo on one side and the user menu on the other. The only
- * adaptation was a fixed 1024px breakpoint that drops the labels, tuned when
- * two or three addons was the whole story and blind to plugins entirely.
- *
- * These check the shape rather than pixels, because that is where the defect
- * was: three columns in the flow cannot overlap, whatever ends up in them, and
- * no measurement has to be right for that to hold. jsdom reports every width as
- * zero, so an assertion on how wide anything is would pass for the wrong reason.
- */
-describe('Navbar layout (#1983)', () => {
-  const withAddons = (n: number) => {
-    const addons = Array.from({ length: n }, (_, i) => ({
-      id: `addon${i}`,
-      name: `Addon ${i}`,
-      icon: 'CalendarDays',
-      type: 'global' as const,
-      enabled: true,
-    }));
-    server.use(http.get('/api/addons', () => HttpResponse.json({ addons })));
-    seedStore(useAddonStore, { addons });
-  };
-
-  it('keeps the tab pill in the flow rather than floating over its neighbours', () => {
-    withAddons(4);
-    const { container } = render(<Navbar />);
-    const pill = container.querySelector('.trek-nav-pill') as HTMLElement;
-    expect(pill).toBeTruthy();
-    // The assertion that would have caught the overlap.
-    expect(pill.style.position).not.toBe('absolute');
-  });
-
-  it('gives the columns either side of it equal weight, so it stays centred', () => {
-    withAddons(4);
-    const { container } = render(<Navbar />);
-    const nav = container.querySelector('nav') as HTMLElement;
-    const columns = Array.from(nav.children).filter((c) => c.classList.contains('flex-1'));
-    // Left brand column and right action cluster, both flex-1 basis-0.
-    expect(columns).toHaveLength(2);
-    for (const c of columns) expect(c.classList.contains('basis-0')).toBe(true);
-  });
-
-  it('lets the pill shrink instead of pushing the actions off the bar', () => {
-    withAddons(8);
-    const { container } = render(<Navbar />);
-    const pill = container.querySelector('.trek-nav-pill') as HTMLElement;
-    expect(pill.classList.contains('min-w-0')).toBe(true);
-    expect(pill.style.overflowX).toBe('auto');
-  });
-
-  it('still renders every addon as a reachable link, however many there are', () => {
-    withAddons(8);
-    render(<Navbar />);
-    for (let i = 0; i < 8; i++) {
-      expect(screen.getByRole('link', { name: new RegExp(`Addon ${i}`, 'i') })).toBeInTheDocument();
-    }
   });
 });

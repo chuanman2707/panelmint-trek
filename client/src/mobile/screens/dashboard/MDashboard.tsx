@@ -10,7 +10,6 @@ import {
   type DashboardTrip, MS_PER_DAY, daysUntil, getTripStatus,
 } from '../../../pages/dashboard/dashboardModel'
 import { useAuthStore } from '../../../store/authStore'
-import DemoBanner from '../../../components/Layout/DemoBanner'
 import { entityGradient } from '../../../utils/gradients'
 import MGlassBar from '../../components/MGlassBar'
 import MSegmented from '../../components/MSegmented'
@@ -47,11 +46,11 @@ interface CardAction {
  */
 export default function MDashboard(): React.ReactElement {
   const {
-    demoMode, locale, t, navigate,
+    locale, t, navigate,
     spotlight, upcoming, gridTrips, isLoading, loadError, retryLoad,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
-    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
+    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
   } = useDashboard()
 
@@ -225,8 +224,6 @@ export default function MDashboard(): React.ReactElement {
 
       <MUserMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      {demoMode && <DemoBanner />}
-
       <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+32px)] pt-[calc(var(--m-safe-top,12px)+82px)]">
         {loadError && (
           <div role="alert" className="mb-3 flex items-center gap-3 rounded-[20px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[14px]">
@@ -262,7 +259,6 @@ export default function MDashboard(): React.ReactElement {
         trip={editingTrip}
         onClose={() => { setShowForm(false); setEditingTrip(null) }}
         onSave={editingTrip ? handleUpdate : handleCreate}
-        onCoverUpdate={applyCoverUpdate}
         onArchive={editingTrip
           ? () => (editingTrip.is_archived ? handleUnarchive(editingTrip.id) : handleArchive(editingTrip.id))
           : undefined}

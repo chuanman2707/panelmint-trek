@@ -2,20 +2,19 @@ import { useRef, useState, type MouseEvent } from 'react'
 import {
   ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut,
   MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2,
-  Car, Footprints, Zap, RotateCcw,
+  Car, Footprints, RotateCcw,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
 import MarkdownText from '../../../../components/shared/MarkdownText'
-import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
-import { formatTime } from '../../../../utils/formatters'
+import { fmtDuration, formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
 import { cityPillsForDay, weatherIconFor } from './planTimelineModel'
 import type { HotelChip, PlanRow } from './planTimelineModel'
 import { useMPlanDragReorder } from './useMPlanDragReorder'
 import { useTouchDragBridge } from '../../../../hooks/useTouchDragBridge'
 import { useIsTouch } from '../../../../hooks/useIsTouch'
-import { ConnRow, HotelConnRow, NoteRow, PlaceRow, ReorderStack, TransitRow, TransportRow } from './MPlanTimelineRows'
+import { ConnRow, HotelConnRow, NoteRow, PlaceRow, ReorderStack, TransportRow } from './MPlanTimelineRows'
 import type { RowDrag } from './MPlanTimelineRows'
 import { Fragment } from 'react'
 import MDancingTrek from '../../../components/MDancingTrek'
@@ -44,7 +43,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   const canEditPlaces = can('place_edit', trip)
   // Per-segment travel mode (#1281): tap a connector → pick the leg's mode.
   const legMenu = useContextMenu()
-  const modeIcon = (key: string) => (key === 'walking' ? Footprints : key.startsWith('plugin:') ? Zap : Car)
+  const modeIcon = (key: string) => (key === 'walking' ? Footprints : Car)
   const openLegMenu = (e: MouseEvent, assignmentId: number) => {
     legMenu.open(e, [
       ...tl.routeModeOptions.map(o => ({ label: o.label, icon: modeIcon(o.key), onClick: () => tl.setLegMode(assignmentId, o.key) })),
@@ -209,22 +208,6 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                   />
                 </Fragment>
               )
-            case 'transit':
-              return (
-                <Fragment key={row.key}>
-                  <TransitRow
-                    res={row.res}
-                    transit={row.transit}
-                    dayId={day.id}
-                    open={tl.openTransitKeys.has(row.key)}
-                    chrome={chrome}
-                    reorder={reorderFor(row.item)}
-                    drag={dragFor(row)}
-                    onToggle={() => tl.toggleTransit(row.key)}
-                    onOpenJourney={() => tl.editTransport(row.res)}
-                  />
-                </Fragment>
-              )
             case 'note':
               return (
                 <NoteRow
@@ -296,7 +279,7 @@ function UpNextCard({ tl, t, onOpen }: {
         </span>
         {upNext.minutesUntil != null && (
           <span className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] text-[0.6875rem] font-semibold">
-            {t('mobileTrip.inCountdown', { time: fmtTransitDuration(upNext.minutesUntil * 60, t) })}
+            {t('mobileTrip.inCountdown', { time: fmtDuration(upNext.minutesUntil * 60, t) })}
           </span>
         )}
       </div>

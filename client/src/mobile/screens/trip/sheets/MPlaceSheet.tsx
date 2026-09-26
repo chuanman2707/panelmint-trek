@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import {
-ChevronRight, ExternalLink, Map as MapIcon, Navigation, Paperclip,
-  Pencil, Phone, Plus, Route, Trash2, Upload, X,
+ChevronRight, ExternalLink, Map as MapIcon, Navigation,
+  Pencil, Phone, Plus, Route, Trash2, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -15,8 +15,6 @@ import TrackColorPicker from '../../../../components/shared/TrackColorPicker'
 import { resolveTrackColor, inheritedTrackColor } from '../../../../components/Map/trackColors'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import { safeHttpUrl } from '../../../../utils/safeUrl'
-import { openFile } from '../../../../utils/fileDownload'
-import { filesForPlace } from '../../../../utils/placeFiles'
 import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
 import { getAssignmentReservations } from '../../../../utils/dayMerge'
@@ -27,8 +25,8 @@ import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi'
  * Place inspector sheet (glass card), opened by the current place selection —
  * timeline taps, map markers and the browse "View details" action all funnel
  * through planner.handlePlaceClick/handleMarkerClick. Shows photo + category,
- * contact/description/notes, day assignments, per-assignment participants and
- * attached files, plus the inspector action row.
+ * contact/description/notes, day assignments and per-assignment participants,
+ * plus the inspector action row.
  */
 export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const { t } = useTranslation()
@@ -38,18 +36,14 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const canEditPlaces = planner.can('place_edit', planner.trip)
   const canEditDays = planner.can('day_edit', planner.trip)
 
-  const [filesExpanded, setFilesExpanded] = useState(false)
   const [dayPickerOpen, setDayPickerOpen] = useState(false)
   const [participantPickerOpen, setParticipantPickerOpen] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const navBtnRef = useRef<HTMLButtonElement>(null)
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const close = () => {
     planner.setSelectedPlaceId(null)
-    setFilesExpanded(false)
     setDayPickerOpen(false)
     setParticipantPickerOpen(false)
     setColorPickerOpen(false)
@@ -144,40 +138,12 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     setParticipantPickerOpen(false)
   }
 
-  // Its own files plus the ones on the bookings that hang on it (#2217).
-  const placeFiles = filesForPlace(
-    planner.files,
-    place?.id,
-    planner.reservations,
-    assignmentInDay ? [assignmentInDay.id] : [],
-  )
-
   const handleTrackColor = async (color: string | null) => {
     if (!place) return
     try {
       await planner.tripActions.updatePlace(planner.tripId, place.id, { route_color: color })
     } catch (err: unknown) {
       planner.toast.error(translateApiError(t, err, 'common.unknownError'))
-    }
-  }
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || [])
-    if (!selected.length || !place) return
-    setUploading(true)
-    try {
-      for (const file of selected) {
-        const fd = new FormData()
-        fd.append('file', file)
-        fd.append('place_id', String(place.id))
-        await planner.tripActions.addFile(planner.tripId, fd)
-      }
-      setFilesExpanded(true)
-    } catch (err: unknown) {
-      planner.toast.error(translateApiError(t, err, 'files.uploadError'))
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -474,52 +440,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 )}
               </>
             )}
-
-            {/* ── Files ── */}
-            <div className={`mt-3 rounded-[13px] px-3 py-[9px] ${INNER_CLS}`}>
-              <div
-                // Stays a div: the row carries the upload button, which may not
-                // nest inside another button.
-                role="button"
-                tabIndex={0}
-                aria-expanded={filesExpanded}
-                className="flex items-center gap-2"
-                onClick={() => { if (placeFiles.length > 0) setFilesExpanded(v => !v) }}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (placeFiles.length > 0) setFilesExpanded(v => !v) } }}
-              >
-                <Paperclip size={14} strokeWidth={2} className="flex-none text-m-muted" />
-                <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">
-                  {placeFiles.length > 0 ? t('inspector.filesCount', { count: placeFiles.length }) : t('inspector.files')}
-                </span>
-                {planner.canUploadFiles && (
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); fileInputRef.current?.click() }}
-                    disabled={uploading}
-                    className="flex flex-none items-center gap-[5px] rounded-full bg-m-act px-[11px] py-[5px] text-[0.6875rem] font-semibold text-m-actfg disabled:opacity-40"
-                  >
-                    <Upload size={12} strokeWidth={2.2} />
-                    {t('common.upload')}
-                  </button>
-                )}
-              </div>
-              {filesExpanded && placeFiles.length > 0 && (
-                <div className="mt-2 flex flex-col gap-1">
-                  {placeFiles.map(f => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => openFile(f.url, f.original_name)}
-                      className="flex w-full items-center gap-2 rounded-[10px] bg-[color:var(--m-ic)] px-[10px] py-[7px] text-left"
-                    >
-                      <span className="min-w-0 flex-1 truncate text-[0.75rem] font-medium">{f.original_name}</span>
-                      <ExternalLink size={11} strokeWidth={2} className="flex-none text-m-faint" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
 
             {/* ── Action row ── */}
             <div className="mt-[14px] flex items-center gap-[7px]">

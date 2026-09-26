@@ -46,8 +46,6 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
    above the list and therefore outside its scroll box, so a visible scrollbar
    would take width from the day cards alone and leave the two stacks a few
    pixels out of line — the one thing a column of nested cards cannot hide. */
-.roadtrip-rail-scroll { scrollbar-width: none; -ms-overflow-style: none; }
-.roadtrip-rail-scroll::-webkit-scrollbar { display: none; }
 
 /* Leaflet Popups — Enter-Animation vom Anchor-Tip */
 .leaflet-popup {

@@ -12,13 +12,7 @@ const undo: TranslationStrings = {
   'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Lugar movido a otro día',
   'undo.lock': 'Bloqueo de lugar activado/desactivado',
-  'undo.importGpx': 'Importación GPX',
-  'undo.importKeyholeMarkup': 'Importación KMZ/KML',
-  'undo.importFiles': 'Importación de archivos',
-  'undo.importGoogleList': 'Importación de Google Maps',
-  'undo.importNaverList': 'Importación de Naver Maps',
   'undo.addPlace': 'Lugar agregado',
   'undo.done': 'Deshecho: {action}',
-  'undo.importBooking': 'Importar confirmación de reserva',
 };
 export default undo;

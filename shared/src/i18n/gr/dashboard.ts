@@ -2,44 +2,23 @@ import type { TranslationStrings } from '../types';
 
 const dashboard: TranslationStrings = {
   'dashboard.title': 'Τα Ταξίδια μου',
-  'dashboard.subtitle.loading': 'Φόρτωση των ταξιδιών...',
   'dashboard.subtitle.trips': '{count} ταξίδια ({archived} αρχειοθετημένα)',
-  'dashboard.subtitle.empty': 'Ξεκινήστε το πρώτο σας ταξίδι',
-  'dashboard.subtitle.activeOne': '{count} ενεργό ταξίδι',
-  'dashboard.subtitle.activeMany': '{count} ενεργά ταξίδια',
-  'dashboard.subtitle.archivedSuffix': ' · {count} αρχειοθετημένα',
   'dashboard.newTrip': 'Νέο Ταξίδι',
-  'dashboard.gridView': 'Προβολή στοιχείων',
-  'dashboard.listView': 'Προβολή λίστας',
   'dashboard.currency': 'Συνάλλαγμα',
   'dashboard.timezone': 'Ζώνες ώρας',
-  'dashboard.localTime': 'Τοπική',
-  'dashboard.timezoneCustomTitle': 'Προσαρμοσμένη Ζώνη ώρας',
-  'dashboard.timezoneCustomLabelPlaceholder': 'Επιθετικό (προαιρετικό)',
-  'dashboard.timezoneCustomTzPlaceholder': 'π.χ. Αμερική/Νέα Υόρκη',
-  'dashboard.timezoneCustomAdd': 'Προσθήκη',
-  'dashboard.timezoneCustomErrorEmpty': 'Εισάγετε μια ζώνη ώρας',
-  'dashboard.timezoneCustomErrorInvalid': 'Μη έγκυρη ζώνη ώρας. Χρησιμοποιήστε την μορφή π.χ. Europe/Berlin',
-  'dashboard.timezoneCustomErrorDuplicate': 'Έχει προστεθεί ήδη',
   'dashboard.emptyTitle': 'Δεν υπάρχουν ταξίδια ακόμη',
   'dashboard.emptyText': 'Δημιουργήστε το πρώτο σας ταξίδι και ξεκινήστε τα σχέδια!',
   'dashboard.emptyButton': 'Δημιουργία Πρώτου Ταξίδιου',
-  'dashboard.nextTrip': 'Επόμενο Ταξίδι',
-  'dashboard.shared': 'Κοινοποιημένο',
-  'dashboard.sharedBy': 'Κοινοποιήθηκε από {name}',
   'dashboard.days': 'Ημέρες',
   'dashboard.places': 'Τόποι',
   'dashboard.members': 'Μέλη',
   'dashboard.archive': 'Αρχειοθήκευση',
-  'dashboard.copyTrip': 'Αντιγραφή',
   'dashboard.copySuffix': 'αντιγραφή',
   'dashboard.restore': 'Επαναφορά',
   'dashboard.archived': 'Αρχειοθετημένο',
   'dashboard.status.ongoing': 'Τρέχων',
   'dashboard.status.today': 'Σήμερα',
   'dashboard.status.tomorrow': 'Αύριο',
-  'dashboard.status.past': 'Παρελθόν',
-  'dashboard.status.daysLeft': '{count} μέρες έμειναν',
   'dashboard.toast.loadError': 'Αποτυχία φόρτωσης ταξιδιών',
   'dashboard.loadErrorBanner':
     'Δεν ήταν δυνατή η σύνδεση με τον διακομιστή. Τα ταξίδια σας είναι ασφαλή — δοκιμάστε ξανά.',
@@ -83,20 +62,8 @@ const dashboard: TranslationStrings = {
   'dashboard.dayCountHint': 'Πόσες ημέρες να σχεδιαστούν όταν δεν έχουν οριστεί ημερομηνίες ταξιδιού.',
   'dashboard.noDateHint':
     'Δεν έχει οριστεί ημερομηνία — θα δημιουργηθούν 7 προεπιλεγμένες ημέρες. Μπορείτε να το αλλάξετε οποτεδήποτε.',
-  'dashboard.coverImage': 'Εικόνα Εξωφύλλου',
-  'dashboard.addCoverImage': 'Προσθήκη εικόνας εξωφύλλου (ή σύρετε & αποθέστε)',
   'dashboard.addMembers': 'Συνταξιδιώτες',
   'dashboard.addMember': 'Προσθήκη μέλους',
-  'dashboard.coverSaved': 'Η εικόνα εξωφύλλου αποθηκεύτηκε',
-  'dashboard.coverUploadError': 'Αποτυχία μεταφόρτωσης',
-  'dashboard.coverSaveError': 'Αποτυχία αποθήκευσης εικόνας εξωφύλλου',
-  'dashboard.coverRemoveError': 'Αποτυχία αφαίρεσης',
-  'dashboard.searchUnsplash': 'Αναζήτηση στο Unsplash',
-  'dashboard.unsplashSearchPlaceholder': 'Αναζήτηση φωτογραφιών προορισμού',
-  'dashboard.unsplashQueryRequired': 'Πληκτρολογήστε όρο αναζήτησης',
-  'dashboard.unsplashNoResults': 'Δεν βρέθηκαν εικόνες',
-  'dashboard.coverSearchError': 'Αποτυχία αναζήτησης στο Unsplash',
-  'dashboard.useUnsplashPhoto': 'Χρήση φωτογραφίας Unsplash από {photographer}',
   'dashboard.titleRequired': 'Ο τίτλος είναι υποχρεωτικός',
   'dashboard.endDateError': 'Η ημερομηνία λήξης πρέπει να είναι μετά την ημερομηνία έναρξης',
   'dashboard.tripTooLong': 'Ένα ταξίδι μπορεί να διαρκεί το πολύ {days} ημέρες',
@@ -111,39 +78,15 @@ const dashboard: TranslationStrings = {
     'Ολόκληρο το δρομολόγιο μετακινείται με τις νέες ημερομηνίες, συμπεριλαμβανομένων των κρατήσεων και των καταλυμάτων.',
   'dashboard.dateShiftHint':
     'Συμβουλή: για να μετατοπίσετε μόνο ένα μέρος του δρομολογίου σας, χρησιμοποιήστε την επιλογή "Προσθήκη ημέρας" στο ημερήσιο πλάνο.',
-  'dashboard.greeting.morning': 'Καλημέρα,',
-  'dashboard.greeting.afternoon': 'Καλό απόγευμα,',
-  'dashboard.greeting.evening': 'Καλησπέρα,',
   'dashboard.mobile.liveNow': 'Ζωντανά Τώρα',
-  'dashboard.mobile.tripProgress': 'Πρόοδος ταξιδιού',
-  'dashboard.mobile.daysLeft': '{count} ημέρες ακόμα',
-  'dashboard.mobile.places': 'Τοποθεσίες',
-  'dashboard.mobile.buddies': 'Συνταξιδιώτες',
-  'dashboard.mobile.newTrip': 'Νέο Ταξίδι',
-  'dashboard.mobile.addCoverImage': 'Προσθήκη εικόνας εξωφύλλου',
-  'dashboard.mobile.currency': 'Νόμισμα',
-  'dashboard.mobile.timezone': 'Ζώνη ώρας',
-  'dashboard.mobile.upcomingTrips': 'Επερχόμενα Ταξίδια',
-  'dashboard.mobile.yourTrips': 'Τα Ταξίδια σας',
-  'dashboard.mobile.trips': 'ταξίδια',
-  'dashboard.mobile.starts': 'Ξεκινά',
-  'dashboard.mobile.duration': 'Διάρκεια',
-  'dashboard.mobile.day': 'ημέρα',
-  'dashboard.mobile.days': 'ημέρες',
-  'dashboard.mobile.ongoing': 'Σε εξέλιξη',
-  'dashboard.mobile.startsToday': 'Ξεκινά σήμερα',
-  'dashboard.mobile.tomorrow': 'Αύριο',
   'dashboard.mobile.inDays': 'Σε {count} ημέρες',
   'dashboard.mobile.inMonths': 'Σε {count} μήνες',
   'dashboard.mobile.spotlightDayOf': 'Ημέρα {day} από {total}',
   'dashboard.mobile.spotlightDayOne': '{count} ημέρα',
   'dashboard.mobile.spotlightDaysMany': '{count} ημέρες',
   'dashboard.mobile.completed': 'Ολοκληρώθηκε',
-  'dashboard.mobile.currencyConverter': 'Μετατροπέας Νομισμάτων',
   'dashboard.newTripSub': 'Plan a new trip from scratch', // en-fallback
   'dashboard.subscribeAllTrips': 'Εγγραφή σε όλα τα ταξίδια',
-  'dashboard.subscribeAllTripsDesc':
-    'Μία ροή ημερολογίου για όλα τα ενεργά σας ταξίδια, η οποία διατηρείται αυτόματα συγχρονισμένη. Εξαιρούνται τα αρχειοθετημένα ταξίδια και τα ταξίδια που ολοκληρώθηκαν πριν από περισσότερες από 90 ημέρες.',
   'dashboard.filter.planned': 'Planned', // en-fallback
   'dashboard.hero.badgeLive': 'LIVE NOW', // en-fallback
   'dashboard.hero.badgeToday': 'STARTS TODAY', // en-fallback
@@ -161,7 +104,6 @@ const dashboard: TranslationStrings = {
   'dashboard.hero.dayLeft': 'Day left', // en-fallback
   'dashboard.hero.daysLeft': 'Days left', // en-fallback
   'dashboard.hero.lastDay': 'Last day', // en-fallback
-  'dashboard.hero.untilStart': 'Until start', // en-fallback
   'dashboard.hero.startsIn': 'Trip starts in', // en-fallback
   'dashboard.atlas.countriesVisited': 'Atlas · Countries visited', // en-fallback
   'dashboard.atlas.ofTotal': 'of {total}', // en-fallback
@@ -171,7 +113,6 @@ const dashboard: TranslationStrings = {
   'dashboard.atlas.daysUnit': 'days', // en-fallback
   'dashboard.atlas.acrossAllTrips': 'across all trips', // en-fallback
   'dashboard.atlas.distanceFlown': 'Distance flown', // en-fallback
-  'dashboard.atlas.kmUnit': 'km', // en-fallback
   'dashboard.atlas.aroundEquator': '≈ {count}× around the equator', // en-fallback
   'dashboard.card.idea': 'Idea', // en-fallback
   'dashboard.card.buddyOne': 'Buddy', // en-fallback
@@ -183,7 +124,6 @@ const dashboard: TranslationStrings = {
   'dashboard.upcoming.title': 'Upcoming reservations', // en-fallback
   'dashboard.upcoming.empty': 'Nothing booked yet.', // en-fallback
   'dashboard.aria.toggleView': 'Toggle view', // en-fallback
-  'dashboard.aria.filter': 'Filter', // en-fallback
   'dashboard.aria.duplicate': 'Duplicate', // en-fallback
   'dashboard.aria.refreshRates': 'Refresh rates', // en-fallback
   'dashboard.aria.swapCurrencies': 'Swap currencies', // en-fallback

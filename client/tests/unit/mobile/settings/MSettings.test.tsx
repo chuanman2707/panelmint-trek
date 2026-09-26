@@ -5,14 +5,12 @@ import { render, screen } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildSettings } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
-import { usePluginStore } from '../../../../src/store/pluginStore';
 import MSettings from '../../../../src/mobile/screens/settings/MSettings';
 
 describe('MSettings', () => {
   beforeEach(() => {
     resetAllStores();
     seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }) });
-    usePluginStore.setState({ plugins: [], loaded: true });
   });
 
   it('FE-MOB-SET-NAV-001: opens on General with the section switcher pill', () => {

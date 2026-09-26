@@ -11,12 +11,8 @@
  *  - `provider: 'google'` on search is accepted and ignored — there is no
  *    keyed slot. The autocomplete `sessionToken` (a Google billing concept)
  *    likewise.
- *  - `placePhoto` is gone for real: no photo proxy exists to answer it, and
- *    the callers that fetched bytes through it were stripped with the service.
- *    The stub returns the honest empty answer so a stale caller degrades to
- *    "no photo" instead of a network error.
- *  - `placePhotoCredit` reads the credit map `ext/wikimedia` fills while it
- *    builds a strip — the same lookup the server's photo-cache table provided.
+ *  - `placePhoto`/`placePhotoCredit` are gone for real: no photo proxy exists
+ *    to answer them and the photo UI they served was stripped with the service.
  *  - `area` had no consumers even server-backed (it dumped the place index for
  *    the offline cache); the stub says so instead of pretending.
  *  - `resolveUrl` never fetches the pasted URL — see `ext/places.ts`.
@@ -26,13 +22,12 @@ import type {
   MapsPlaceDetailsResult,
   MapsPlaceEnrichmentRequest,
   MapsPlaceEnrichmentResult,
-  MapsPlacePhotoResult,
   MapsResolveUrlResult,
   MapsReverseResult,
   MapsSearchResult,
 } from '@trek/shared';
 import * as extPlaces from '../ext/places';
-import { enrich, photoCredit } from '../ext/wikimedia';
+import { enrich } from '../ext/wikimedia';
 import { searchOverpassPois, type PoiSearchResult } from '../ext/overpass';
 
 export const mapsApi = {
@@ -63,22 +58,6 @@ export const mapsApi = {
     signal?: AbortSignal,
   ): Promise<MapsPlaceEnrichmentResult> =>
     enrich(body as MapsPlaceEnrichmentRequest, signal),
-
-  /**
-   * The credit the strip recorded for a candidate key. Local read over the map
-   * `ext/wikimedia` fills as it ranks — a miss (a key minted before the map was
-   * populated, or in a previous session) answers null, exactly as the server's
-   * swept photo-cache row did.
-   */
-  placePhotoCredit: async (key: string): Promise<{ credit: string | null }> => photoCredit(key),
-
-  /** No photo proxy exists in the client-only build — the honest empty answer. */
-  placePhoto: async (
-    _placeId: string,
-    _lat?: number,
-    _lng?: number,
-    _name?: string,
-  ): Promise<MapsPlacePhotoResult> => ({ photoUrl: null, attribution: null }),
 
   reverse: (lat: number, lng: number, lang?: string): Promise<MapsReverseResult> =>
     extPlaces.reverse(lat, lng, lang),

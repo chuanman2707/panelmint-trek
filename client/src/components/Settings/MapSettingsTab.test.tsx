@@ -172,13 +172,6 @@ describe('MapSettingsTab – CARTO key', () => {
     expect(screen.getByText('CARTO API key')).toBeInTheDocument();
   });
 
-  it('FE-COMP-MAP-032: a managed instance brings its own key, so the field is hidden', () => {
-    seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true, managed: true });
-    render(<MapSettingsTab />);
-
-    expect(screen.queryByText('CARTO API key')).not.toBeInTheDocument();
-  });
-
   it('FE-COMP-MAP-033: the typed key is part of the save patch', async () => {
     const user = userEvent.setup();
     const updateSettings = vi.fn().mockResolvedValue(undefined);

@@ -122,7 +122,7 @@ input must fail the same way.
 
 Local impls must match these method lists name-for-name:
 
-- `tripsApi`: `list, create, get, active, update, delete, uploadCover, searchCoverImages, archive, unarchive, getMembers, addMember, removeMember, transferOwnership, copy, bundle` — the guest trio moved to `usersApi` (the roster is a users-domain concern)
+- `tripsApi`: `list, create, get, active, update, delete, archive, unarchive, getMembers, addMember, removeMember, transferOwnership, copy, bundle` — the guest trio moved to `usersApi` (the roster is a users-domain concern)
 - `daysApi`: `list, create, update, updateTransport, delete, reorder`
 - `placesApi`: `list, create, get, update, delete, rate, bulkDelete, bulkUpdate` — `searchImage`, `uploadImage`, `importGpx`, `importMapFile`, `importGoogleList` and `importNaverList` were server-only and are gone; the local adapter does not stub them
 - `assignmentsApi`: `list, create, delete, reorder, move, update, getParticipants, setParticipants, updateTime, updateNotes, updateTransport` + `setEndDay` (the route `api/assignmentEndDay.ts` used to PUT itself; `updateTime` also answers the socket's `reordered`/`vias` side channels in-band)

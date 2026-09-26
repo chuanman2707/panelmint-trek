@@ -6,14 +6,11 @@ const todo: TranslationStrings = {
   'todo.subtab.todo': 'À faire',
   'todo.completed': 'terminé(s)',
   'todo.filter.all': 'Tout',
-  'todo.filter.open': 'En cours',
   'todo.filter.done': 'Terminé',
-  'todo.uncategorized': 'Aucune liste',
   'todo.namePlaceholder': 'Nom de la tâche',
   'todo.descriptionPlaceholder': 'Description (facultative)',
   'todo.unassigned': 'Non assigné',
   'todo.noCategory': 'Aucune liste',
-  'todo.hasDescription': 'Avec description',
   'todo.addItem': 'Nouvelle tâche',
   'todo.sidebar.sortBy': 'Trier par',
   'todo.priority': 'Priorité',
@@ -36,6 +33,5 @@ const todo: TranslationStrings = {
   'todo.detail.create': 'Créer la tâche',
   'todo.detail.priority': 'Priorité',
   'todo.detail.noPriority': 'Aucune',
-  'todo.sortByPrio': 'Priorité',
 };
 export default todo;

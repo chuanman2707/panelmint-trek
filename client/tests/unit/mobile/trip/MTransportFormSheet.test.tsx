@@ -72,16 +72,6 @@ vi.mock('../../../../src/components/Planner/LocationSelect', () => ({
   ),
 }))
 
-vi.mock('../../../../src/mobile/screens/trip/sheets/PlFileAttach', () => ({
-  default: ({ files, onAdd, onRemove }: { files: File[]; onAdd: (f: File[]) => void; onRemove: (i: number) => void }) => (
-    <div>
-      <button type="button" onClick={() => onAdd([new File(['x'], 'extra.pdf')])}>attach-file</button>
-      {files.map((f, i) => (
-        <button key={`${f.name}-${i}`} type="button" onClick={() => onRemove(i)}>{`drop-${f.name}`}</button>
-      ))}
-    </div>
-  ),
-}))
 
 const DAYS = [
   { id: 11, trip_id: 1, day_number: 1, date: '2026-05-01', title: null },
@@ -670,7 +660,10 @@ describe('MTransportFormSheet', () => {
     expect(screen.getByRole('button', { name: 'reservations.type.flight' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('FE-MOB-TRFRM-026: keeps a transit itinerary and its stops while the endpoints stay put', async () => {
+  it('FE-MOB-TRFRM-026: re-saving a stored transit booking drops the itinerary and the dead AirTrail linkage', async () => {
+    // The sheet neither shows nor edits automated-transit itineraries, so the
+    // stored metadata.transit blob and transfer-stop endpoints are not written
+    // back; the airtrail_ids linkage is dead data the form also drops.
     const handleSaveTransport = makeSave()
     const editingTransport = {
       id: 47, trip_id: 1, type: 'transit', title: 'U4 to Prater', status: 'pending', day_id: 12,
@@ -688,14 +681,10 @@ describe('MTransportFormSheet', () => {
     await submit('common.update')
 
     const payload = handleSaveTransport.mock.calls[0][0]
-    expect(payload.metadata).toEqual({
-      transit: { legs: [{ mode: 'SUBWAY', line: 'U4' }] },
-      airtrail_ids: [7, 8],
-    })
+    expect(payload.metadata).toBeNull()
     expect(payload.endpoints).toEqual([
       expect.objectContaining({ role: 'from', sequence: 0, name: 'Osaka Station' }),
-      expect.objectContaining({ role: 'stop', sequence: 1, name: 'Change', local_time: '09:15' }),
-      expect.objectContaining({ role: 'to', sequence: 2, name: 'Kyoto Station' }),
+      expect.objectContaining({ role: 'to', sequence: 1, name: 'Kyoto Station' }),
     ])
   })
 
@@ -736,25 +725,6 @@ describe('MTransportFormSheet', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.delete' })) })
     expect(planner.handleDeleteReservation).toHaveBeenCalledWith(49)
     expect(planner.setShowTransportModal).toHaveBeenCalledWith(false)
-  })
-
-  it('FE-MOB-TRFRM-031: attaching and dropping files only uploads what is left', async () => {
-    const handleSaveTransport = makeSave()
-    const addFile = vi.fn(async (_tripId: number, _form: FormData) => undefined)
-    renderSheet(makePlanner({ handleSaveTransport, tripActions: { addFile } }))
-    typeTitle('Flight with docs')
-    fireEvent.click(screen.getByRole('button', { name: 'attach-file' }))
-    fireEvent.click(screen.getByRole('button', { name: 'attach-file' }))
-    expect(screen.getAllByRole('button', { name: 'drop-extra.pdf' })).toHaveLength(2)
-    fireEvent.click(screen.getAllByRole('button', { name: 'drop-extra.pdf' })[0])
-
-    await submit()
-    expect(addFile).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-MOB-TRFRM-032: hides the file row without upload permission', () => {
-    renderSheet(makePlanner({ canUploadFiles: false }))
-    expect(screen.queryByRole('button', { name: 'attach-file' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-TRFRM-033: assigns travelers and persists them once the booking has an id', async () => {

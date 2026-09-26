@@ -152,22 +152,7 @@ describe('PlTimeFields', () => {
     expect(screen.queryByText(/places.timeCollision/)).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-PLTIME-014: opened from the road trip tab, End says the drive leaves at it', () => {
-    render(
-      <PlTimeFields
-        planner={buildPlanner({ activeTab: 'roadtrip' } as never)}
-        startTime="10:00"
-        endTime="14:00"
-        onChange={vi.fn()}
-        assignmentId={1}
-        dayAssignments={[SELF]}
-        hasTimeError={false}
-      />,
-    )
-    expect(screen.getByText('roadtrip.stop.endIsLeave')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PLTIME-015: from the plan tab End stays a plain label', () => {
+  it('FE-MOB-PLTIME-015: End stays a plain label', () => {
     setup()
     expect(screen.queryByText('roadtrip.stop.endIsLeave')).not.toBeInTheDocument()
   })

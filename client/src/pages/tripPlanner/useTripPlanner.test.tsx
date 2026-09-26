@@ -70,14 +70,12 @@ interface PlannerActions {
   loadTrip: ReturnType<typeof vi.fn>
   loadReservations: ReturnType<typeof vi.fn>
   loadBudgetItems: ReturnType<typeof vi.fn>
-  loadFiles: ReturnType<typeof vi.fn>
   refreshDays: ReturnType<typeof vi.fn>
   addPlace: ReturnType<typeof vi.fn>
   updatePlace: ReturnType<typeof vi.fn>
   deletePlace: ReturnType<typeof vi.fn>
   deletePlacesMany: ReturnType<typeof vi.fn>
   updatePlacesMany: ReturnType<typeof vi.fn>
-  addFile: ReturnType<typeof vi.fn>
   assignPlaceToDay: ReturnType<typeof vi.fn>
   removeAssignment: ReturnType<typeof vi.fn>
   reorderAssignments: ReturnType<typeof vi.fn>
@@ -97,14 +95,12 @@ function makeActions(): PlannerActions {
     loadTrip: vi.fn(async () => undefined),
     loadReservations: vi.fn(async () => undefined),
     loadBudgetItems: vi.fn(async () => undefined),
-    loadFiles: vi.fn(async () => undefined),
     refreshDays: vi.fn(async () => undefined),
     addPlace: vi.fn(async () => ({ id: 900, name: 'New' })),
     updatePlace: vi.fn(async () => undefined),
     deletePlace: vi.fn(async () => undefined),
     deletePlacesMany: vi.fn(async () => undefined),
     updatePlacesMany: vi.fn(async () => undefined),
-    addFile: vi.fn(async () => undefined),
     assignPlaceToDay: vi.fn(async () => ({ id: 555 })),
     removeAssignment: vi.fn(async () => undefined),
     reorderAssignments: vi.fn(async () => undefined),
@@ -164,7 +160,7 @@ beforeEach(() => {
     toasts.push({ message, type })
     return 1
   }) as unknown as typeof window.__addToast
-  seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true, placesPhotosEnabled: false })
+  seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true })
 
   vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [], current_user_id: 1 })
   vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
@@ -257,7 +253,6 @@ describe('useTripPlanner — bootstrap', () => {
 
     await waitFor(() => expect(result.current.enabledAddons.packing).toBe(true))
     expect(result.current.enabledAddons.budget).toBe(true)
-    expect(result.current.enabledAddons.roadtrip).toBe(false)
   })
 
   it('FE-TP-HOOK-011: the accommodations:refresh event reloads the accommodation list', async () => {
@@ -313,7 +308,7 @@ describe('useTripPlanner — bootstrap', () => {
 
     const { result } = await renderPlanner()
 
-    act(() => { result.current.setActiveTab('plugin:ghost') })
+    act(() => { result.current.setActiveTab('ghost') })
 
     await waitFor(() => expect(result.current.activeTab).toBe('plan'))
     expect(sessionStorage.getItem('trip-tab-42')).toBe('plan')
@@ -546,30 +541,6 @@ describe('useTripPlanner — map derivations', () => {
     expect(result.current.dayPlaces).toEqual([])
   })
 
-  it('FE-TP-HOOK-031c: a service stop on the selected day takes no number on the map', async () => {
-    const hamburg = geo(1)
-    const pump = geo(2, { stop_type: 'fuel' })
-    const berlin = geo(3)
-    seedTrip({
-      places: [hamburg, pump, berlin],
-      selectedDayId: 7,
-      assignments: {
-        '7': [
-          buildAssignment({ id: 10, day_id: 7, place: hamburg, order_index: 0 }),
-          buildAssignment({ id: 11, day_id: 7, place: pump, order_index: 1 }),
-          buildAssignment({ id: 12, day_id: 7, place: berlin, order_index: 2 }),
-        ],
-      },
-    })
-
-    const { result } = await renderPlanner()
-
-    // The pump is drawn without a badge and the rail gives it no number, so the stop
-    // after it is the second, not the third. The pin and the rail have to agree.
-    expect(result.current.dayOrderMap).toEqual({ 1: [1], 3: [2] })
-    // Still on the map: what is skipped is the number, not the stop.
-    expect(result.current.dayPlaces).toHaveLength(3)
-  })
 
   it('FE-TP-HOOK-032: without a selected day both day derivations stay empty', async () => {
     seedTrip({ places: [geo(1)] })
@@ -642,28 +613,13 @@ describe('useTripPlanner — connection visibility', () => {
     expect(result.current.visibleConnections).toEqual([1])
   })
 
-  it('FE-TP-HOOK-115: a persisted route toggle keeps transit routes off the map until a day is selected (#2019)', async () => {
+  it('FE-TP-HOOK-115: a persisted route toggle rehydrates on trip re-entry', async () => {
     localStorage.setItem('trek:day-route:42', 'true')
-    // The fixture action is a no-op; the derivation reads the store, so this
-    // one has to write the selection like the real slice does.
-    actions.setSelectedDay.mockImplementation(dayId => {
-      useTripStore.setState({ selectedDayId: dayId as number | null })
-    })
     seedTrip()
 
     const { result } = await renderPlanner()
 
-    // Trip re-entry: the toggle rehydrated but nothing selected a day yet.
     expect(result.current.routeShown).toBe(true)
-    expect(result.current.transitRoutesShown).toBe(false)
-
-    act(() => { result.current.handleSelectDay(7) })
-    expect(result.current.transitRoutesShown).toBe(true)
-
-    // Clicking the selected day's header again deselects it — the whole trip's
-    // automated transports must not flood back.
-    act(() => { result.current.handleSelectDay(null) })
-    expect(result.current.transitRoutesShown).toBe(false)
 
     localStorage.removeItem('trek:day-route:42')
   })
@@ -839,10 +795,6 @@ describe('useTripPlanner — add place entry points', () => {
 
     expect(result.current.prefillCoords).toEqual({
       lat: 1, lng: 2, name: 'Cafe', address: '', website: undefined, phone: undefined, osm_id: 'node/1',
-      // A marker with no category behind it is an ordinary place, and the form is told so
-      // rather than left to guess: `stop_type` is write-once on the server, so an absent
-      // field and an explicit "not a service stop" are different answers.
-      stop_type: null, duration_minutes: undefined,
     })
     expect(result.current.showPlaceForm).toBe(true)
     expect(mapsApi.reverse).not.toHaveBeenCalled()
@@ -864,36 +816,20 @@ describe('useTripPlanner — add place entry points', () => {
 })
 
 describe('useTripPlanner — place CRUD', () => {
-  it('FE-TP-HOOK-051: adding a place uploads its pending files and registers an undo', async () => {
+  it('FE-TP-HOOK-051: adding a place registers an undo', async () => {
     seedTrip()
 
     const { result } = await renderPlanner()
-    const file = new File(['x'], 'ticket.pdf')
 
     await act(async () => {
-      await result.current.handleSavePlace({ name: 'Nara', _pendingFiles: [file] })
+      await result.current.handleSavePlace({ name: 'Nara' })
     })
 
     expect(actions.addPlace).toHaveBeenCalledWith(42, { name: 'Nara' })
-    expect(actions.addFile).toHaveBeenCalledTimes(1)
     expect(result.current.canUndo).toBe(true)
 
     await act(async () => { await result.current.undo() })
     expect(actions.deletePlace).toHaveBeenCalledWith(42, 900)
-  })
-
-  it('FE-TP-HOOK-052: a failing attachment upload only toasts, the place still saves', async () => {
-    seedTrip()
-    actions.addFile.mockRejectedValue(new Error('too large'))
-
-    const { result } = await renderPlanner()
-
-    await act(async () => {
-      await result.current.handleSavePlace({ name: 'Nara', _pendingFiles: [new File(['x'], 'a.pdf')] })
-    })
-
-    expect(toasts.some(t => t.type === 'error')).toBe(true)
-    expect(toasts.some(t => t.type === 'success')).toBe(true)
   })
 
   it('FE-TP-HOOK-053: editing from a day strips the times off the place and writes them per assignment', async () => {
@@ -965,28 +901,10 @@ describe('useTripPlanner — place CRUD', () => {
     act(() => { result.current.openPlaceEditor(place) })
 
     await act(async () => {
-      await result.current.handleSavePlace({ name: 'Nara', _pendingFiles: [new File(['x'], 'a.pdf')] })
+      await result.current.handleSavePlace({ name: 'Nara' })
     })
 
     expect(assignmentsApi.updateTime).not.toHaveBeenCalled()
-    expect(actions.addFile).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-TP-HOOK-054b: an attachment that fails on the edit path toasts but keeps the update', async () => {
-    const place = buildPlace({ id: 1, lat: 1, lng: 2 })
-    seedTrip({ places: [place] })
-    actions.addFile.mockRejectedValue(new Error('unsupported type'))
-
-    const { result } = await renderPlanner()
-    act(() => { result.current.openPlaceEditor(place) })
-
-    await act(async () => {
-      await result.current.handleSavePlace({ name: 'Nara', _pendingFiles: [new File(['x'], 'a.exe')] })
-    })
-
-    expect(actions.updatePlace).toHaveBeenCalledWith(42, 1, { name: 'Nara' })
-    expect(toasts.some(t => t.type === 'error')).toBe(true)
-    expect(toasts.some(t => t.type === 'success')).toBe(true)
   })
 
   it('FE-TP-HOOK-055: confirming a delete removes the place and can restore it with its days', async () => {
@@ -1692,17 +1610,6 @@ describe('useTripPlanner — misc state', () => {
     expect(result.current.mapTransportDetail).toBeNull()
   })
 
-  it('FE-TP-HOOK-100: a member without upload rights gets no upload handler', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
-    usePermissionsStore.setState({ permissions: { file_upload: 'trip_owner' } })
-    seedTrip()
-
-    const { result } = await renderPlanner()
-
-    expect(result.current.canUploadFiles).toBe(false)
-    expect(result.current.can('place_edit', result.current.trip)).toBe(true)
-  })
-
   it('FE-TP-HOOK-101: without place_edit rights neither add-place entry point opens the form', async () => {
     seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
     usePermissionsStore.setState({ permissions: { place_edit: 'admin' } })
@@ -1762,98 +1669,4 @@ describe('useTripPlanner — misc state', () => {
   })
 })
 
-describe('useTripPlanner — road trip stops', () => {
-  /** A day whose stops the rail would show, plus one the rail hides for want of coordinates. */
-  const seedDrive = () => {
-    const places = [
-      buildPlace({ id: 10, name: 'Hamburg', lat: 53.55, lng: 9.99 }),
-      buildPlace({ id: 20, name: 'Lueneburg', lat: 53.25, lng: 10.41 }),
-      buildPlace({ id: 30, name: 'Berlin', lat: 52.52, lng: 13.40 }),
-      // No coordinates, so it never appears in the rail — and must survive a reorder.
-      buildPlace({ id: 40, name: 'Idee ohne Ort', lat: null, lng: null }),
-    ]
-    return seedTrip({
-      days: [buildDay({ id: 7, day_number: 1 })],
-      places,
-      assignments: {
-        '7': [
-          buildAssignment({ id: 1, day_id: 7, place_id: 10, order_index: 0, place: places[0] }),
-          buildAssignment({ id: 2, day_id: 7, place_id: 20, order_index: 1, place: places[1] }),
-          buildAssignment({ id: 3, day_id: 7, place_id: 30, order_index: 2, place: places[2] }),
-          buildAssignment({ id: 4, day_id: 7, place_id: 40, order_index: 3, place: places[3] }),
-        ],
-      },
-    } as unknown as Partial<TripStoreState>)
-  }
 
-  it('FE-TP-HOOK-111: reordering the rail sends the day’s WHOLE order, hidden stops included', async () => {
-    seedDrive()
-    const { result } = await renderPlanner()
-
-    // The rail lists three stops; the fourth has no coordinates and is not on show.
-    await act(async () => { await result.current.reorderRoadtripStop(7, 3, 0) })
-
-    // Both the slice and the WebSocket handler rebuild the day purely from these ids, so
-    // leaving the invisible one out would delete it from every session's store.
-    expect(actions.reorderAssignments).toHaveBeenCalledWith(42, 7, [3, 1, 2, 4])
-  })
-
-  it('FE-TP-HOOK-112: moving a stop onto itself asks the server for nothing', async () => {
-    seedDrive()
-    const { result } = await renderPlanner()
-
-    await act(async () => { await result.current.reorderRoadtripStop(7, 2, 1) })
-
-    expect(actions.reorderAssignments).not.toHaveBeenCalled()
-  })
-
-  it('FE-TP-HOOK-113: an index past the end of the chain lands on the last stop', async () => {
-    seedDrive()
-    const { result } = await renderPlanner()
-
-    await act(async () => { await result.current.reorderRoadtripStop(7, 1, 99) })
-
-    // Clamped to the last VISIBLE stop, which is Berlin — not past the hidden fourth row.
-    expect(actions.reorderAssignments).toHaveBeenCalledWith(42, 7, [2, 3, 1, 4])
-  })
-
-  it('FE-TP-HOOK-114: a failed reorder says so rather than leaving a phantom order', async () => {
-    seedDrive()
-    actions.reorderAssignments.mockRejectedValueOnce(new Error('nope'))
-    const { result } = await renderPlanner()
-
-    await act(async () => { await result.current.reorderRoadtripStop(7, 3, 0) })
-
-    expect(toasts.some(t => t.type === 'error')).toBe(true)
-  })
-
-  it('FE-TP-HOOK-115: an unknown assignment is not reordered into existence', async () => {
-    seedDrive()
-    const { result } = await renderPlanner()
-
-    await act(async () => { await result.current.reorderRoadtripStop(7, 999, 0) })
-
-    expect(actions.reorderAssignments).not.toHaveBeenCalled()
-  })
-})
-
-describe('useTripPlanner — dropping a hit on the drive', () => {
-  it('FE-TP-HOOK-116: a drop far from the route is ignored rather than guessed at', async () => {
-    seedTrip()
-    const { result } = await renderPlanner()
-
-    // No corridor results and no day: nothing to match, so nothing may open.
-    act(() => { result.current.dropPoiOnRoute('node:9', 0, 0) })
-
-    expect(result.current.stopDraft).toBeNull()
-  })
-
-  it('FE-TP-HOOK-117: a drop for an unknown hit opens nothing', async () => {
-    seedTrip()
-    const { result } = await renderPlanner()
-
-    act(() => { result.current.dropPoiOnRoute('node:does-not-exist', 53.5, 9.9) })
-
-    expect(result.current.stopDraft).toBeNull()
-  })
-})

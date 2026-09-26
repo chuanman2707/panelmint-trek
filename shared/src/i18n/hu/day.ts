@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': 'Csapadékvalószínűség',
-  'day.precipitation': 'Csapadék',
-  'day.wind': 'Szél',
-  'day.sunrise': 'Napkelte',
-  'day.sunset': 'Napnyugta',
-  'day.hourlyForecast': 'Óránkénti előrejelzés',
   'day.climateHint': 'Történelmi átlagok — valós előrejelzés a dátum előtti 16 napon belül érhető el.',
   'day.noWeather': 'Nem állnak rendelkezésre időjárási adatok. Adj hozzá egy helyet koordinátákkal.',
   'day.weatherFor': 'Előrejelzés: {name}',

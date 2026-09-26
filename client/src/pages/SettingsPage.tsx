@@ -18,17 +18,13 @@ export default function SettingsPage(): React.ReactElement {
 function SettingsPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: addon/version loading + active-tab state in the hook.
-  const { appVersion, activeTab, setActiveTab, managed } = useSettings()
+  const { appVersion, activeTab, setActiveTab } = useSettings()
 
   const tabs: PageSidebarTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
     { id: 'appearance', label: t('settings.tabs.appearance'), icon: Paintbrush },
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
-    // About is where the project lives: what TREK is, where to report a bug,
-    // where to support it. A customer of a hosted instance is the audience for
-    // none of that, so the tab goes and the sidebar footer below carries the one
-    // thing that has to stay — the link to the source (AGPL §13).
-    ...(appVersion && !managed
+    ...(appVersion
       ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }]
       : []),
   ]
@@ -53,22 +49,7 @@ function SettingsPageDesktop(): React.ReactElement {
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            footer={
-              appVersion
-                ? managed
-                  // No About tab here, so this is the prominent source offer
-                  // AGPL §13 asks for when people use it over a network.
-                  ? <a
-                      href="https://github.com/chuanman2707/panelmint-trek"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="no-underline text-content-faint hover:text-content-secondary"
-                    >
-                      v{appVersion}
-                    </a>
-                  : `v${appVersion}`
-                : ''
-            }
+            footer={appVersion ? `v${appVersion}` : ''}
           >
             {activeTab === 'display' && <DisplaySettingsTab />}
             {activeTab === 'appearance' && <AppearanceSettingsTab />}

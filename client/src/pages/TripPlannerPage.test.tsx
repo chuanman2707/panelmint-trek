@@ -7,11 +7,8 @@ import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useTripStore } from '../store/tripStore';
-import { useAddonStore } from '../store/addonStore';
 import { useSettingsStore } from '../store/settingsStore';
 import TripPlannerPage from './TripPlannerPage';
-import { server } from '../../tests/helpers/msw/server';
-import { http, HttpResponse } from 'msw';
 import { db } from '../db/panelmintDb';
 
 // Mock Leaflet-dependent components
@@ -149,25 +146,6 @@ vi.mock('../components/Trips/TripFormModal', () => ({
   },
 }));
 
-const capturedTripMembersModalProps: { current: Record<string, any> } = { current: {} };
-vi.mock('../components/Trips/TripMembersModal', () => ({
-  default: (props: Record<string, any>) => {
-    capturedTripMembersModalProps.current = props;
-    return null;
-  },
-}));
-
-// The road-trip rail and the booking dialog it brings along (#2428). Both capture their
-// props so a case can drive the rail's handlers and read what the page did with them.
-type RoadtripSidebarStubProps = { onOpenBooking?: (reservationId: number) => void; canEditBookings?: boolean };
-const capturedRoadtripSidebarProps: { current: RoadtripSidebarStubProps } = { current: {} };
-vi.mock('../components/Roadtrip/RoadtripSidebar', () => ({
-  default: (props: RoadtripSidebarStubProps) => {
-    capturedRoadtripSidebarProps.current = props;
-    return React.createElement('div', { 'data-testid': 'roadtrip-sidebar' });
-  },
-}));
-
 type TransportDetailStubProps = { transportDetail?: { id: number } | null };
 const capturedTransportDetailModalProps: { current: TransportDetailStubProps } = { current: {} };
 vi.mock('../components/Planner/DayPlanSidebarTransportDetailModal', () => ({
@@ -175,14 +153,6 @@ vi.mock('../components/Planner/DayPlanSidebarTransportDetailModal', () => ({
     capturedTransportDetailModalProps.current = props;
     return null;
   },
-}));
-
-vi.mock('../components/Roadtrip/RoadtripCorridorPanel', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'roadtrip-corridor-panel' }),
-}));
-
-vi.mock('../components/Roadtrip/RoadtripLimitsCard', () => ({
-  default: () => null,
 }));
 
 // Configurable usePlaceSelection mock — lets tests set a specific selected place
@@ -210,7 +180,6 @@ function seedTripStore(overrides: { id?: number; tripName?: string; withMocks?: 
   const day = buildDay({ trip_id: id });
 
   const mockLoadTrip = withMocks ? vi.fn().mockResolvedValue(undefined) : undefined;
-  const mockLoadFiles = withMocks ? vi.fn().mockResolvedValue(undefined) : undefined;
   const mockLoadReservations = withMocks ? vi.fn().mockResolvedValue(undefined) : undefined;
 
   seedStore(useTripStore, {
@@ -224,15 +193,13 @@ function seedTripStore(overrides: { id?: number; tripName?: string; withMocks?: 
     categories: [],
     reservations: [],
     budgetItems: [],
-    files: [],
     ...(withMocks && {
       loadTrip: mockLoadTrip,
-      loadFiles: mockLoadFiles,
       loadReservations: mockLoadReservations,
     }),
   } as any);
 
-  return { trip, day, mockLoadTrip, mockLoadFiles, mockLoadReservations };
+  return { trip, day, mockLoadTrip, mockLoadReservations };
 }
 
 // Helper to render TripPlannerPage with route params
@@ -268,9 +235,7 @@ beforeEach(async () => {
   capturedConfirmDialogProps.current = {};
   capturedDayDetailPanelProps.current = {};
   capturedTripFormModalProps.current = {};
-  capturedTripMembersModalProps.current = {};
   capturedPlaceInspectorProps.current = {};
-  capturedRoadtripSidebarProps.current = {};
   capturedTransportDetailModalProps.current = {};
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
 });
@@ -301,7 +266,6 @@ describe('TripPlannerPage', () => {
         places: [],
         assignments: {},
         loadTrip: vi.fn().mockReturnValue(new Promise(() => {})),
-        loadFiles: vi.fn().mockResolvedValue(undefined),
         loadReservations: vi.fn().mockResolvedValue(undefined),
       } as any);
 
@@ -315,7 +279,6 @@ describe('TripPlannerPage', () => {
   describe('FE-PAGE-PLANNER-003: Error state shown if loadTrip fails', () => {
     it('calls loadTrip and the action is called (even if it rejects)', async () => {
       const mockLoadTrip = vi.fn().mockRejectedValue(new Error('Not found'));
-      const mockLoadFiles = vi.fn().mockResolvedValue(undefined);
       const mockLoadReservations = vi.fn().mockResolvedValue(undefined);
 
       seedStore(useTripStore, {
@@ -325,8 +288,7 @@ describe('TripPlannerPage', () => {
         places: [],
         assignments: {},
         loadTrip: mockLoadTrip,
-        loadFiles: mockLoadFiles,
-        loadReservations: mockLoadReservations,
+          loadReservations: mockLoadReservations,
       } as any);
 
       renderPlannerPage(999);
@@ -433,11 +395,6 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-011: Packing tab renders PackingListPanel', () => {
     it('shows PackingListPanel after clicking the Lists tab with packing addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })
-        )
-      );
 
       vi.useFakeTimers();
 
@@ -460,11 +417,6 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-012: Costs tab renders CostsPanel', () => {
     it('shows CostsPanel after clicking the Costs tab with budget addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'budget', type: 'budget' }] })
-        )
-      );
 
       vi.useFakeTimers();
 
@@ -542,7 +494,6 @@ describe('TripPlannerPage', () => {
         places: [],
         assignments: {},
         loadTrip: vi.fn().mockRejectedValue(new Error('Not found')),
-        loadFiles: vi.fn().mockResolvedValue(undefined),
         loadReservations: vi.fn().mockResolvedValue(undefined),
       } as any);
 
@@ -564,11 +515,6 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-019: Todo subtab in ListsContainer', () => {
     it('shows TodoListPanel after switching to the Todo subtab inside Lists', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })
-        )
-      );
 
       vi.useFakeTimers();
 
@@ -1178,7 +1124,7 @@ describe('TripPlannerPage', () => {
   });
 
   describe('FE-PAGE-PLANNER-041: handleSaveReservation edit path covers update reservation', () => {
-    it('does not force a day_id on edit so the server keeps/derives it (#1237)', async () => {
+    it('does not force a day_id on edit so the store keeps/derives it (#1237)', async () => {
       vi.useFakeTimers();
 
       seedTripStore({ id: 42 });
@@ -1215,32 +1161,9 @@ describe('TripPlannerPage', () => {
       });
 
       // The client must NOT send a day_id (no forcing to the selected day, no
-      // stale value) — the server keeps/derives it from the booking's date.
+      // stale value) — the store keeps/derives it from the booking's date.
       expect(updateReservationSpy).toHaveBeenCalled();
       expect(updateReservationSpy.mock.calls[0][2]).not.toHaveProperty('day_id');
-    });
-  });
-
-  describe('FE-PAGE-PLANNER-042: TripMembersModal onClose covers modal close lambda', () => {
-    it('calls TripMembersModal onClose to cover the inline lambda', async () => {
-      vi.useFakeTimers();
-
-      seedTripStore({ id: 42 });
-
-      renderPlannerPage(42);
-
-      act(() => { vi.runAllTimers(); });
-
-      vi.useRealTimers();
-
-      await waitFor(() => {
-        expect(screen.getByTestId('map-view')).toBeInTheDocument();
-      });
-
-      // Covers TripMembersModal onClose lambda: () => setShowMembersModal(false)
-      await act(async () => {
-        capturedTripMembersModalProps.current.onClose?.();
-      });
     });
   });
 
@@ -1541,64 +1464,4 @@ describe('TripPlannerPage', () => {
     });
   });
 
-  describe('FE-PAGE-PLANNER-052: Road trip mode opens a booking the way the day plan does (#2428)', () => {
-    // The rail is mounted only with the addon on and the mode on for this trip; the
-    // road-trip hooks then read their own endpoints, answered empty here.
-    const enterRoadtrip = () => {
-      // The addon feed is gone — the roadtrip row is seeded straight into the
-      // store. The roadtrip endpoints still ride MSW.
-      seedStore(useAddonStore, {
-        addons: [{ id: 'roadtrip', name: 'Road trip', type: 'trip', icon: '', enabled: true }],
-        loaded: true,
-      } as never);
-      server.use(
-        http.get('/api/trips/42/roadtrip/vias', () => HttpResponse.json({ vias: [], tracks: [] })),
-        http.get('/api/trips/42/roadtrip/preferences', () => HttpResponse.json({ tripId: 42, preferences: {} })),
-      );
-      sessionStorage.setItem('trip-roadtrip-42', '1');
-    };
-
-    it('a flight opens the transport detail view the rail brings along, a table opens its editor', async () => {
-      enterRoadtrip();
-      vi.useFakeTimers();
-      seedTripStore({ id: 42 });
-      const flight = buildReservation({ id: 70, trip_id: 42, type: 'flight', title: 'LH 2020' });
-      const table = buildReservation({ id: 11, trip_id: 42, type: 'restaurant', title: 'Tisch Bullerei' });
-      seedStore(useTripStore, { reservations: [flight, table] });
-
-      renderPlannerPage(42);
-
-      act(() => { vi.runAllTimers(); });
-
-      vi.useRealTimers();
-
-      await waitFor(() => {
-        expect(screen.getByTestId('roadtrip-sidebar')).toBeInTheDocument();
-      });
-      expect(screen.queryByTestId('day-plan-sidebar')).not.toBeInTheDocument();
-
-      // Without this the rail cannot tell a chip that opens from one that does not, and
-      // every table and ticket becomes a button that no-ops.
-      expect(capturedRoadtripSidebarProps.current.canEditBookings).toBe(true);
-
-      // A terminal row, a ride pill and a map endpoint all set the booking to show, and
-      // under Days the day panel owns the dialog that shows it. Here it has to be the
-      // rail's own copy, or nothing shows.
-      act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(70); });
-      await waitFor(() => {
-        expect(capturedTransportDetailModalProps.current.transportDetail).toMatchObject({ id: 70 });
-      });
-      expect(capturedReservationModalProps.current.isOpen).toBe(false);
-
-      act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(11); });
-      await waitFor(() => {
-        expect(capturedReservationModalProps.current.isOpen).toBe(true);
-      });
-      expect(capturedReservationModalProps.current.reservation).toMatchObject({ id: 11 });
-
-      // A booking the trip does not hold opens nothing.
-      act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(999); });
-      expect(capturedTransportDetailModalProps.current.transportDetail).toMatchObject({ id: 70 });
-    });
-  });
 });

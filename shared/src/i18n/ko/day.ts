@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': '강수 확률',
-  'day.precipitation': '강수량',
-  'day.wind': '바람',
-  'day.sunrise': '일출',
-  'day.sunset': '일몰',
-  'day.hourlyForecast': '시간별 예보',
   'day.climateHint': '역사적 평균값 — 이 날짜로부터 16일 이내의 실제 예보를 사용할 수 있습니다.',
   'day.noWeather': '날씨 데이터가 없습니다. 좌표가 있는 장소를 추가하세요.',
   'day.weatherFor': '{name} 예보',

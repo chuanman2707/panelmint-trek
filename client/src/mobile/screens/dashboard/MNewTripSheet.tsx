@@ -1,12 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Archive, ArchiveRestore, Camera, Search, X } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { Archive, ArchiveRestore, X } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { tripsApi } from '../../../api/client'
 import { useCanDo } from '../../../store/permissionsStore'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useToast } from '../../../components/shared/Toast'
-import { normalizeImageFile } from '../../../utils/convertHeic'
-import { getApiErrorMessage } from '../../../types'
 import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import CustomSelect from '../../../components/shared/CustomSelect'
 import { currenciesWith, SYMBOLS } from '../../../components/Budget/BudgetPanel.constants'
@@ -16,21 +14,12 @@ import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MListRow from '../../components/MListRow'
 
-interface CoverSearchPhoto {
-  id: string
-  url: string
-  thumb: string
-  description?: string | null
-  photographer?: string | null
-}
-
 interface MNewTripSheetProps {
   open: boolean
   /** null = create, otherwise edit */
   trip: DashboardTrip | null
   onClose: () => void
   onSave: (data: TripCreateRequest) => Promise<{ trip?: Trip } | void> | void
-  onCoverUpdate?: (tripId: number, coverUrl: string | null) => void
   /** Edit mode only: archives (or restores) the trip — the grid cards have no archive button. */
   onArchive?: () => void
 }
@@ -43,19 +32,16 @@ function FieldLabel({ children }: { children: React.ReactNode }): React.ReactEle
 
 /**
  * Create/edit trip sheet — the mobile counterpart of TripFormModal's core flow:
- * title, date range and Unsplash cover search (plus device upload). Archiving
- * lives here in edit mode, as decided for the grid cards.
+ * title and date range. Archiving lives here in edit mode, as decided for the
+ * grid cards.
  */
-export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpdate, onArchive }: MNewTripSheetProps): React.ReactElement {
+export default function MNewTripSheet({ open, trip, onClose, onSave, onArchive }: MNewTripSheetProps): React.ReactElement {
   const isEditing = !!trip
   const { t } = useTranslation()
   const toast = useToast()
   const can = useCanDo()
   const defaultCurrency = useSettingsStore(s => s.settings.default_currency) || 'EUR'
-  const fileRef = useRef<HTMLInputElement>(null)
-  const coverSearchSeq = useRef(0)
   const canEditTrip = !isEditing || can('trip_edit', trip)
-  const canUploadCover = !isEditing || can('trip_cover_upload', trip)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -64,14 +50,6 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
   const [currency, setCurrency] = useState('EUR')
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [coverPreview, setCoverPreview] = useState<string | null>(null)
-  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null)
-  const [pendingUnsplashUrl, setPendingUnsplashUrl] = useState<string | null>(null)
-  const [uploadingCover, setUploadingCover] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<CoverSearchPhoto[]>([])
-  const [searchError, setSearchError] = useState('')
-  const [searching, setSearching] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -80,21 +58,8 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
     setStartDate(trip?.start_date || '')
     setEndDate(trip?.end_date || '')
     setCurrency(trip?.currency || defaultCurrency)
-    setCoverPreview(trip?.cover_image || null)
-    setPendingCoverFile(null)
-    setPendingUnsplashUrl(null)
-    setSearchQuery('')
-    setSearchResults([])
-    setSearchError('')
     setError('')
   }, [trip, open])
-
-  // The local file preview is a blob url; release it once a new cover replaces it
-  // or the sheet goes away. Server and Unsplash urls are left alone.
-  useEffect(() => {
-    if (!coverPreview?.startsWith('blob:')) return
-    return () => { URL.revokeObjectURL(coverPreview) }
-  }, [coverPreview])
 
   // Moving the start keeps the trip length (same rule as TripFormModal).
   const changeStart = (value: string) => {
@@ -128,113 +93,11 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
         currency,
         ...(!startDate && !endDate && !isEditing ? { day_count: 7 } : {}),
       })
-      const created = result ? result.trip : undefined
-      if (pendingCoverFile && created?.id) {
-        try {
-          const fd = new FormData()
-          fd.append('cover', pendingCoverFile)
-          const data = await tripsApi.uploadCover(created.id, fd)
-          onCoverUpdate?.(created.id, data.cover_image)
-        } catch {
-          toast.error(t('dashboard.coverUploadError'))
-        }
-      } else if (pendingUnsplashUrl && created?.id) {
-        try {
-          await tripsApi.update(created.id, { cover_image: pendingUnsplashUrl })
-          onCoverUpdate?.(created.id, pendingUnsplashUrl)
-        } catch {
-          toast.error(t('dashboard.coverSaveError'))
-        }
-      }
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('places.saveError'))
     } finally {
       setIsSaving(false)
-    }
-  }
-
-  const handleCoverFile = async (file: File | undefined | null) => {
-    if (!file) return
-    const normalized = await normalizeImageFile(file)
-    setPendingUnsplashUrl(null)
-    if (isEditing && trip?.id) {
-      setUploadingCover(true)
-      try {
-        const fd = new FormData()
-        fd.append('cover', normalized)
-        const data = await tripsApi.uploadCover(trip.id, fd)
-        setCoverPreview(data.cover_image)
-        onCoverUpdate?.(trip.id, data.cover_image)
-        toast.success(t('dashboard.coverSaved'))
-      } catch {
-        toast.error(t('dashboard.coverUploadError'))
-      } finally {
-        setUploadingCover(false)
-      }
-    } else {
-      setPendingCoverFile(normalized)
-      setCoverPreview(URL.createObjectURL(normalized))
-    }
-  }
-
-  const handleSearch = async () => {
-    const query = searchQuery.trim() || title.trim()
-    if (!query) { setSearchError(t('dashboard.unsplashQueryRequired')); return }
-    // Only the latest search may apply its results (out-of-order guard).
-    const seq = ++coverSearchSeq.current
-    setSearching(true)
-    setSearchError('')
-    try {
-      const data = await tripsApi.searchCoverImages(query)
-      if (seq !== coverSearchSeq.current) return
-      const photos: CoverSearchPhoto[] = data.photos || []
-      setSearchResults(photos)
-      if (photos.length === 0) setSearchError(t('dashboard.unsplashNoResults'))
-    } catch (err: unknown) {
-      if (seq !== coverSearchSeq.current) return
-      setSearchError(getApiErrorMessage(err, t('dashboard.coverSearchError')))
-    } finally {
-      if (seq === coverSearchSeq.current) setSearching(false)
-    }
-  }
-
-  const selectUnsplash = async (photo: CoverSearchPhoto) => {
-    if (!photo.url) return
-    setPendingCoverFile(null)
-    if (isEditing && trip?.id) {
-      setUploadingCover(true)
-      try {
-        await tripsApi.update(trip.id, { cover_image: photo.url })
-        setCoverPreview(photo.url)
-        onCoverUpdate?.(trip.id, photo.url)
-        toast.success(t('dashboard.coverSaved'))
-      } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, t('dashboard.coverSaveError')))
-      } finally {
-        setUploadingCover(false)
-      }
-    } else {
-      setPendingUnsplashUrl(photo.url)
-      setCoverPreview(photo.url)
-    }
-  }
-
-  const removeCover = async () => {
-    if (pendingCoverFile || pendingUnsplashUrl) {
-      setPendingCoverFile(null)
-      setPendingUnsplashUrl(null)
-      setCoverPreview(null)
-      return
-    }
-    // Anything else is a cover stored on the trip, so this is the edit sheet.
-    const id = trip!.id
-    try {
-      await tripsApi.update(id, { cover_image: null })
-      setCoverPreview(null)
-      onCoverUpdate?.(id, null)
-    } catch {
-      toast.error(t('dashboard.coverRemoveError'))
     }
   }
 
@@ -320,96 +183,6 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
             style={{ width: '100%', marginTop: 5 }}
           />
         </div>
-
-        {canUploadCover && (
-          <div className="mt-2">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => { handleCoverFile(e.target.files?.[0]); e.target.value = '' }}
-            />
-            {coverPreview ? (
-              <div className="relative h-[130px] overflow-hidden rounded-[16px]">
-                <img src={coverPreview} alt="" className="h-full w-full object-cover" />
-                <div className="absolute bottom-2 right-2 flex gap-[6px]">
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploadingCover}
-                    className="flex h-[34px] items-center gap-1 rounded-full border border-white/30 bg-white/[.22] px-3 text-[0.6875rem] font-semibold text-white backdrop-blur-[8px]"
-                  >
-                    <Camera size={13} strokeWidth={2.1} />
-                    {uploadingCover ? t('common.uploading') : t('common.change')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={removeCover}
-                    aria-label={t('common.delete')}
-                    className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-white/30 bg-white/[.22] text-white backdrop-blur-[8px]"
-                  >
-                    <X size={14} strokeWidth={2.1} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploadingCover}
-                className="flex w-full items-center justify-center gap-[6px] rounded-[14px] border border-dashed border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[18px] text-[0.8125rem] font-medium text-m-muted"
-              >
-                <Camera size={15} strokeWidth={2} />
-                {uploadingCover ? t('common.uploading') : t('dashboard.mobile.addCoverImage')}
-              </button>
-            )}
-
-            <div className="mt-2 flex gap-2">
-              <div className={`${boxCls} min-w-0 flex-1 py-[9px]`}>
-                <input
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch() } }}
-                  placeholder={t('dashboard.unsplashSearchPlaceholder')}
-                  className={`${inputCls} pt-0 text-[0.8125rem] font-medium`}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleSearch}
-                disabled={searching || (!searchQuery.trim() && !title.trim())}
-                aria-label={t('dashboard.searchUnsplash')}
-                className="flex h-auto w-[42px] flex-none items-center justify-center rounded-[14px] bg-m-act text-m-actfg disabled:opacity-50"
-              >
-                <Search size={15} strokeWidth={2.2} />
-              </button>
-            </div>
-            {searchError && <p className="mt-[6px] px-1 text-[0.6875rem] font-medium text-[color:var(--m-st-danger)]">{searchError}</p>}
-            {searchResults.length > 0 && (
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {searchResults.map(photo => (
-                  <button
-                    key={photo.id}
-                    type="button"
-                    onClick={() => selectUnsplash(photo)}
-                    aria-label={t('dashboard.useUnsplashPhoto', { photographer: photo.photographer || 'Unsplash' })}
-                    className={`relative h-20 overflow-hidden rounded-[12px] border ${
-                      coverPreview === photo.url ? 'border-[color:var(--m-act)]' : 'border-[color:var(--m-rowbr)]'
-                    }`}
-                  >
-                    <img src={photo.thumb} alt={photo.description || ''} loading="lazy" className="h-full w-full object-cover" />
-                    {photo.photographer && (
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-[6px] py-1 text-left font-geist text-[0.625rem] text-white">
-                        {photo.photographer}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {isEditing && onArchive && (
           <div className="mt-2 rounded-[14px] bg-[color:var(--m-ic)]">

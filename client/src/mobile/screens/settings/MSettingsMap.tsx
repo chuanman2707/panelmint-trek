@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, Map, Save } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
-import { useAuthStore } from '../../../store/authStore'
 import { useToast } from '../../../components/shared/Toast'
 import { MapView } from '../../../components/Map/MapView'
 import type { Place } from '../../../types'
@@ -46,7 +45,6 @@ export default function MSettingsMap() {
   const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
-  const managed = useAuthStore((s) => s.managed)
   const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
   const [presetOpen, setPresetOpen] = useState(false)
 
@@ -116,29 +114,24 @@ export default function MSettingsMap() {
       />
       <MSetHint>{t('settings.mapDefaultHint')}</MSetHint>
 
-      {/* A managed install brings its own key. */}
-      {!managed && (
-        <>
-          <MSetEyebrow className="mb-[5px] mt-[14px]">{t('settings.mapCartoKey')}</MSetEyebrow>
-          <MSetInput
-            mono
-            value={cartoKey}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCartoKey(e.target.value)}
-            spellCheck={false}
-            autoComplete="off"
-          />
-          <MSetHint>
-            {t('settings.mapCartoKeyHint')}{' '}
-            <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noreferrer" className="underline">
-              {t('settings.mapCartoKeyLink')}
-            </a>
-          </MSetHint>
-          {cartoNeedsKey && (
-            <p className="mt-[6px] font-geist text-[0.625rem] leading-relaxed text-[color:var(--m-st-pending)]">
-              {t('settings.mapCartoKeyMissing')}
-            </p>
-          )}
-        </>
+      <MSetEyebrow className="mb-[5px] mt-[14px]">{t('settings.mapCartoKey')}</MSetEyebrow>
+      <MSetInput
+        mono
+        value={cartoKey}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCartoKey(e.target.value)}
+        spellCheck={false}
+        autoComplete="off"
+      />
+      <MSetHint>
+        {t('settings.mapCartoKeyHint')}{' '}
+        <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noreferrer" className="underline">
+          {t('settings.mapCartoKeyLink')}
+        </a>
+      </MSetHint>
+      {cartoNeedsKey && (
+        <p className="mt-[6px] font-geist text-[0.625rem] leading-relaxed text-[color:var(--m-st-pending)]">
+          {t('settings.mapCartoKeyMissing')}
+        </p>
       )}
 
       <div className="relative mt-3 h-[200px] w-full overflow-hidden rounded-xl">
@@ -147,7 +140,6 @@ export default function MSettingsMap() {
           places: previewPlaces,
           dayPlaces: [],
           route: null,
-          routeSegments: null,
           selectedPlaceId: null,
           onMarkerClick: null,
           onMapClick: null,

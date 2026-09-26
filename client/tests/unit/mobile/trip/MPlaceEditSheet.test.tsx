@@ -145,7 +145,7 @@ describe('MPlaceEditSheet', () => {
 
     await waitFor(() => expect(planner.handleSavePlace).toHaveBeenCalledTimes(1))
     expect(planner.handleSavePlace).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Nakamise', lat: 35.71, lng: 139.79, category_id: '3', _pendingFiles: undefined,
+      name: 'Nakamise', lat: 35.71, lng: 139.79, category_id: '3',
     }))
     expect(planner.setShowPlaceForm).toHaveBeenCalledWith(false)
     expect(planner.setEditingPlace).toHaveBeenCalledWith(null)
@@ -309,61 +309,6 @@ describe('MPlaceEditSheet', () => {
     expect(start).toHaveValue('08:00')
     expect(screen.getByText('places.endTimeBeforeStart')).toBeInTheDocument()
     expect(submit()).toBeDisabled()
-  })
-
-  it('FE-MOB-PLEDIT-025: attaches pasted images and sends them with the save', async () => {
-    const { planner } = setup()
-    const file = new File(['x'], 'ticket.png', { type: 'image/png' })
-    fireEvent.paste(screen.getByPlaceholderText('places.formAddressPlaceholder'), {
-      clipboardData: { items: [{ type: 'text/plain', getAsFile: () => null }, { type: 'image/png', getAsFile: () => file }] },
-    })
-    expect(await screen.findByText('ticket.png')).toBeInTheDocument()
-
-    fireEvent.change(nameField(), { target: { value: 'Nakamise' } })
-    fireEvent.click(submit())
-    await waitFor(() => expect(planner.handleSavePlace).toHaveBeenCalledTimes(1))
-    expect(planner.handleSavePlace).toHaveBeenCalledWith(expect.objectContaining({ _pendingFiles: [file] }))
-  })
-
-  it('FE-MOB-PLEDIT-025b: attaches files chosen through the picker', async () => {
-    const { planner } = setup()
-    const file = new File(['x'], 'map.pdf', { type: 'application/pdf' })
-    const picker = document.querySelector('input[type="file"]') as HTMLInputElement
-    fireEvent.change(picker, { target: { files: [file] } })
-    expect(await screen.findByText('map.pdf')).toBeInTheDocument()
-
-    fireEvent.change(nameField(), { target: { value: 'Nakamise' } })
-    fireEvent.click(submit())
-    await waitFor(() => expect(planner.handleSavePlace).toHaveBeenCalledWith(expect.objectContaining({ _pendingFiles: [file] })))
-  })
-
-  it('FE-MOB-PLEDIT-026: a clipboard item without a file is ignored', () => {
-    setup()
-    fireEvent.paste(screen.getByPlaceholderText('places.formAddressPlaceholder'), {
-      clipboardData: { items: [{ type: 'application/pdf', getAsFile: () => null }] },
-    })
-    expect(screen.queryByRole('button', { name: 'common.delete' })).not.toBeInTheDocument()
-  })
-
-  it('FE-MOB-PLEDIT-027: drops a pending attachment again', async () => {
-    setup()
-    const file = new File(['x'], 'voucher.pdf', { type: 'application/pdf' })
-    fireEvent.paste(screen.getByPlaceholderText('places.formAddressPlaceholder'), {
-      clipboardData: { items: [{ type: 'application/pdf', getAsFile: () => file }] },
-    })
-    expect(await screen.findByText('voucher.pdf')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
-    expect(screen.queryByText('voucher.pdf')).not.toBeInTheDocument()
-  })
-
-  it('FE-MOB-PLEDIT-028: hides the file row and ignores pastes without the upload permission', () => {
-    setup({ canUploadFiles: false })
-    expect(screen.queryByText('files.title')).not.toBeInTheDocument()
-    const file = new File(['x'], 'ticket.png', { type: 'image/png' })
-    fireEvent.paste(screen.getByPlaceholderText('places.formAddressPlaceholder'), {
-      clipboardData: { items: [{ type: 'image/png', getAsFile: () => file }] },
-    })
-    expect(screen.queryByText('ticket.png')).not.toBeInTheDocument()
   })
 
   /**

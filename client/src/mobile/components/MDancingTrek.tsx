@@ -20,20 +20,12 @@ import { useState } from 'react'
  */
 export type TrekScene =
   | 'idle'
-  | 'chat'
   | 'transport'
   | 'bookings'
   | 'guide'
   | 'packing'
-  | 'files'
-  | 'notes'
-  | 'links'
-  | 'polls'
-  | 'journey'
-  | 'collections'
+  | 'pin'
   | 'dashboard'
-  | 'atlas'
-  | 'notifications'
   | 'costs'
   | 'search'
   | 'tasks'
@@ -44,7 +36,6 @@ const MARK =
   'M 855.636719 699.203125 L 222.246094 699.203125 C 197.679688 699.203125 179.90625 675.75 186.539062 652.101562 L 360.429688 32.390625 C 364.921875 16.386719 379.511719 5.328125 396.132812 5.328125 L 1029.527344 5.328125 C 1054.089844 5.328125 1071.867188 28.777344 1065.230469 52.429688 L 891.339844 672.136719 C 886.851562 688.140625 872.257812 699.203125 855.636719 699.203125 Z M 444.238281 1166.980469 L 533.773438 847.898438 C 540.410156 824.246094 522.632812 800.796875 498.070312 800.796875 L 172.472656 800.796875 C 155.851562 800.796875 141.261719 811.855469 136.769531 827.859375 L 47.234375 1146.941406 C 40.597656 1170.59375 58.375 1194.042969 82.9375 1194.042969 L 408.535156 1194.042969 C 425.15625 1194.042969 439.75 1182.984375 444.238281 1166.980469 Z M 609.003906 827.859375 L 435.113281 1447.570312 C 428.476562 1471.21875 446.253906 1494.671875 470.816406 1494.671875 L 1104.210938 1494.671875 C 1120.832031 1494.671875 1135.421875 1483.609375 1139.914062 1467.605469 L 1313.804688 847.898438 C 1320.441406 824.246094 1302.664062 800.796875 1278.101562 800.796875 L 644.707031 800.796875 C 628.085938 800.796875 613.492188 811.855469 609.003906 827.859375 Z M 1056.105469 333.019531 L 966.570312 652.101562 C 959.933594 675.75 977.710938 699.203125 1002.273438 699.203125 L 1327.871094 699.203125 C 1344.492188 699.203125 1359.085938 688.140625 1363.574219 672.136719 L 1453.109375 353.054688 C 1459.746094 329.40625 1441.96875 305.953125 1417.40625 305.953125 L 1091.808594 305.953125 C 1075.1875 305.953125 1060.597656 317.015625 1056.105469 333.019531 Z'
 
 const SCENE_MOOD: Partial<Record<TrekScene, TrekMood>> = {
-  notifications: 'sleepy',
   search: 'confused',
 }
 
@@ -213,45 +204,12 @@ function SceneBack({ scene }: { scene: TrekScene }) {
           </g>
         </g>
       )
-    case 'links':
-      // two chain links clicking into each other beside the body. The lower one
-      // carries a surface-coloured under-stroke so it reads as passing through
-      // the upper one rather than lying flat on top of it.
-      return (
-        <g className="trek-chain">
-          <g transform="rotate(-36 73 56)">
-            <rect x="58" y="49" width="20" height="13" rx="6.5" fill="none" stroke="currentColor" strokeWidth="3" />
-            <g className="trek-link">
-              <rect x="68" y="49" width="20" height="13" rx="6.5" fill="none" stroke="var(--m-bg)" strokeWidth="5.6" />
-              <rect x="68" y="49" width="20" height="13" rx="6.5" fill="none" stroke="currentColor" strokeWidth="3" />
-            </g>
-          </g>
-        </g>
-      )
-    case 'polls':
-      // vote bars gently rising and settling like live tallies
-      return (
-        <g className="trek-polls">
-          <rect className="trek-bar" x="66" y="60" width="5" height="12" rx="1.5" fill="currentColor" />
-          <rect className="trek-bar trek-d2" x="73" y="52" width="5" height="20" rx="1.5" fill="currentColor" />
-          <rect className="trek-bar trek-d3" x="80" y="56" width="5" height="16" rx="1.5" fill="currentColor" />
-        </g>
-      )
-    case 'collections':
+    case 'pin':
       // a map pin dropping in and bouncing beside the body
       return (
         <g className="trek-pin">
           <path d="M73 48 C 78 48 81.5 51.6 81.5 56.4 C 81.5 61.6 76 66 73 70 C 70 66 64.5 61.6 64.5 56.4 C 64.5 51.6 68 48 73 48 Z" fill="currentColor" />
           <circle cx="73" cy="56.2" r="2.9" fill="var(--m-bg)" />
-        </g>
-      )
-    case 'atlas':
-      // a globe beside the body, meridians drifting
-      return (
-        <g className="trek-globe-wrap">
-          <circle cx="73" cy="60" r="11" fill="currentColor" />
-          <path d="M63 57 H83 M64.5 64.5 H81.5" stroke="var(--m-bg)" strokeWidth="1.2" strokeLinecap="round" />
-          <ellipse className="trek-globe" cx="73" cy="60" rx="4.6" ry="11" fill="none" stroke="var(--m-bg)" strokeWidth="1.2" />
         </g>
       )
     case 'costs':
@@ -267,17 +225,6 @@ function SceneBack({ scene }: { scene: TrekScene }) {
           </g>
         </g>
       )
-    case 'chat':
-      // a speech bubble beside the body with three typing dots pulsing in turn
-      return (
-        <g className="trek-chat">
-          <rect x="60" y="44" width="26" height="15" rx="5.5" fill="currentColor" />
-          <path d="M67 58 L63.5 64 L72 58.5 Z" fill="currentColor" />
-          <circle className="trek-dot" cx="67" cy="51.5" r="1.9" fill="var(--m-bg)" />
-          <circle className="trek-dot trek-d2" cx="73" cy="51.5" r="1.9" fill="var(--m-bg)" />
-          <circle className="trek-dot trek-d3" cx="79" cy="51.5" r="1.9" fill="var(--m-bg)" />
-        </g>
-      )
     default:
       return null
   }
@@ -285,9 +232,8 @@ function SceneBack({ scene }: { scene: TrekScene }) {
 
 function SceneFront({ scene }: { scene: TrekScene }) {
   switch (scene) {
-    // Files reuse the booking ticket per design — a card getting written on.
     case 'bookings':
-    case 'files':
+      // a booking ticket — a card getting written on
       return (
         <g className="trek-ticket">
           <g transform="rotate(7 70 54)">
@@ -300,57 +246,12 @@ function SceneFront({ scene }: { scene: TrekScene }) {
           </g>
         </g>
       )
-    case 'notes':
-      // a paper note (surface colour) with ink lines being written and a
-      // scribbling pencil — pencil is ink (light in dark theme, dark in light)
-      return (
-        <g className="trek-note">
-          <g transform="rotate(5 70 55)">
-            <rect x="60" y="44" width="20" height="24" rx="2.5" fill="var(--m-bg)" stroke="currentColor" strokeWidth="1.4" />
-            <rect className="trek-write" x="63.5" y="50" width="13" height="1.7" rx="0.85" fill="currentColor" />
-            <rect className="trek-write trek-d2" x="63.5" y="54.5" width="13" height="1.7" rx="0.85" fill="currentColor" />
-            <rect className="trek-write trek-d3" x="63.5" y="59" width="8" height="1.7" rx="0.85" fill="currentColor" />
-          </g>
-          <g className="trek-pencil">
-            {/* body + tip modelled vertically as one piece, then leaned together
-                so the point always stays attached to the shaft */}
-            <g transform="rotate(34 74.5 52)">
-              <rect x="73" y="40" width="3" height="16" rx="1.3" fill="currentColor" />
-              <path d="M73 56 L76 56 L74.5 60.5 Z" fill="currentColor" />
-            </g>
-          </g>
-        </g>
-      )
-    case 'journey':
-      // an open book with a fluttering page and a ribbon bookmark
-      return (
-        <g className="trek-journal">
-          <path d="M58 53 Q71 49.5 71 52 L71 69 Q71 66.5 58 70 Z" fill="currentColor" />
-          <path d="M84 53 Q71 49.5 71 52 L71 69 Q71 66.5 84 70 Z" fill="currentColor" />
-          <path d="M60.5 56 Q66 54 70 55.5 M60.5 60 Q66 58 70 59.5 M60.5 64 Q66 62 70 63.5" stroke="var(--m-bg)" strokeWidth="1" fill="none" strokeLinecap="round" />
-          <path d="M76 55.4 Q80 54 83 55.6 M76 59.4 Q80 58 83 59.6" stroke="var(--m-bg)" strokeWidth="1" fill="none" strokeLinecap="round" />
-          <g className="trek-page">
-            <path d="M71 52 Q78 50.5 82 52 L82 68.5 Q78 67 71 68.5 Z" fill="currentColor" />
-            <path d="M74 55.4 Q78 54.2 81 55.6 M74 59.4 Q78 58.2 81 59.6" stroke="var(--m-bg)" strokeWidth="1" fill="none" strokeLinecap="round" />
-          </g>
-          <rect x="70" y="49.5" width="2.2" height="9" fill="var(--m-bg)" />
-        </g>
-      )
     case 'dashboard':
       // a little paper plane looping around, ready for a first trip
       return (
         <g className="trek-plane">
           <path d="M64 53 L87 58 L70 68 L71 60 Z" fill="currentColor" />
           <path d="M87 58 L71 60 L70 68" stroke="var(--m-bg)" strokeWidth="0.9" fill="none" strokeLinejoin="round" />
-        </g>
-      )
-    case 'notifications':
-      // all caught up — a stack of Zzz drifting up while the mascot dozes
-      return (
-        <g className="trek-zzz" fill="currentColor">
-          <path className="trek-z trek-z1" d="M63 50 h5 l-5 6 h5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
-          <path className="trek-z trek-z2" d="M69 42 h6 l-6 7 h6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-          <path className="trek-z trek-z3" d="M76 32 h7 l-7 8 h7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
         </g>
       )
     case 'search':

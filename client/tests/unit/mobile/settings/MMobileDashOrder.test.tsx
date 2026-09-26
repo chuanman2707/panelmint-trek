@@ -2,8 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from '../../../helpers/render';
-import { resetAllStores, seedStore } from '../../../helpers/store';
-import { useAddonStore } from '../../../../src/store/addonStore';
+import { resetAllStores } from '../../../helpers/store';
 import { DEFAULT_APPEARANCE, type AppearanceConfig, type MobileDashToken } from '@trek/shared';
 import MMobileDashOrder from '../../../../src/mobile/screens/settings/MMobileDashOrder';
 
@@ -12,13 +11,6 @@ function buildCfg(over: Partial<AppearanceConfig['dashboard']> = {}): Appearance
     ...DEFAULT_APPEARANCE,
     dashboard: { ...DEFAULT_APPEARANCE.dashboard, ...over },
   };
-}
-
-function enableCollections() {
-  seedStore(useAddonStore, {
-    addons: [{ id: 'collections', name: 'Collections', type: 'global', icon: '', enabled: true }],
-    loaded: true,
-  });
 }
 
 /** The label + badge wrapper of one block row. */
@@ -37,19 +29,24 @@ function rowLabels(): string[] {
 describe('MMobileDashOrder', () => {
   beforeEach(() => {
     resetAllStores();
-    enableCollections();
   });
 
   it('FE-MOB-SETDORD-001: renders the built-in order when nothing is stored', () => {
     render(<MMobileDashOrder cfg={buildCfg()} onChange={vi.fn()} />);
 
-    expect(rowLabels()).toEqual(['Trips', 'Currency', 'Collections', 'Timezones', 'Upcoming reservations']);
+    expect(rowLabels()).toEqual(['Trips', 'Currency', 'Timezones', 'Upcoming reservations']);
   });
 
   it('FE-MOB-SETDORD-002: a stored order wins and missing tokens are appended', () => {
     render(<MMobileDashOrder cfg={buildCfg({ mobileOrder: ['timezones', 'trips'] })} onChange={vi.fn()} />);
 
-    expect(rowLabels()).toEqual(['Timezones', 'Trips', 'Currency', 'Collections', 'Upcoming reservations']);
+    expect(rowLabels()).toEqual(['Timezones', 'Trips', 'Currency', 'Upcoming reservations']);
+  });
+
+  it('FE-MOB-SETDORD-002b: a stored retired token (collections) never renders', () => {
+    render(<MMobileDashOrder cfg={buildCfg({ mobileOrder: ['trips', 'collections', 'timezones'] })} onChange={vi.fn()} />);
+
+    expect(rowLabels()).toEqual(['Trips', 'Timezones', 'Currency', 'Upcoming reservations']);
   });
 
   it('FE-MOB-SETDORD-003: moving a block down emits the reordered token list', async () => {
@@ -58,7 +55,7 @@ describe('MMobileDashOrder', () => {
     render(<MMobileDashOrder cfg={buildCfg()} onChange={onChange} />);
 
     await user.click(screen.getAllByLabelText('Move down')[0]);
-    expect(onChange).toHaveBeenCalledWith(['currency', 'trips', 'collections', 'timezones', 'upcomingReservations']);
+    expect(onChange).toHaveBeenCalledWith(['currency', 'trips', 'timezones', 'upcomingReservations']);
   });
 
   it('FE-MOB-SETDORD-004: moving a block up swaps it with its predecessor', async () => {
@@ -67,7 +64,7 @@ describe('MMobileDashOrder', () => {
     render(<MMobileDashOrder cfg={buildCfg()} onChange={onChange} />);
 
     await user.click(screen.getAllByLabelText('Move up')[2]);
-    expect(onChange).toHaveBeenCalledWith(['trips', 'collections', 'currency', 'timezones', 'upcomingReservations']);
+    expect(onChange).toHaveBeenCalledWith(['trips', 'timezones', 'currency', 'upcomingReservations']);
   });
 
   it('FE-MOB-SETDORD-005: the first row cannot move up and the last cannot move down', () => {
@@ -90,15 +87,6 @@ describe('MMobileDashOrder', () => {
     expect(screen.getAllByText('Hidden')).toHaveLength(2);
     const tripsRow = blockRow('Trips');
     expect(tripsRow.textContent).not.toContain('Hidden');
-  });
-
-  it('FE-MOB-SETDORD-007: collections counts as hidden while the addon is off', () => {
-    seedStore(useAddonStore, { addons: [], loaded: true });
-    render(<MMobileDashOrder cfg={buildCfg()} onChange={vi.fn()} />);
-
-    const collectionsRow = blockRow('Collections');
-    expect(collectionsRow.textContent).toContain('Hidden');
-    expect(screen.getAllByText('Hidden')).toHaveLength(1);
   });
 
   it('FE-MOB-SETDORD-008: upcoming reservations follows its own mobile flag', () => {

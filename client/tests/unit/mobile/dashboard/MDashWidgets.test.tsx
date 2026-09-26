@@ -10,7 +10,6 @@ import {
   resolveMobileDashOrder, useMobileDashOrder, useMobileDashVisibility, MobileDashWidget,
 } from '../../../../src/mobile/screens/dashboard/MDashWidgets';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
-import { useAddonStore } from '../../../../src/store/addonStore';
 import { clearExchangeRateCache } from '../../../../src/api/ext/fx';
 import type { UpcomingReservation } from '../../../../src/pages/dashboard/dashboardModel';
 
@@ -23,13 +22,6 @@ const RATES = [
 
 function fxHandler(body: unknown = RATES) {
   server.use(http.get('https://api.frankfurter.dev/v2/rates', () => HttpResponse.json(body)));
-}
-
-function enableCollectionsAddon(enabled: boolean) {
-  useAddonStore.setState({
-    addons: [{ id: 'collections', name: 'Collections', type: 'global', icon: 'bookmark', enabled }],
-    loaded: true,
-  } as never);
 }
 
 beforeEach(() => {
@@ -47,19 +39,20 @@ afterEach(() => {
 describe('resolveMobileDashOrder', () => {
   it('FE-MOB-DWID-001: falls back to the built-in order without a stored one', () => {
     expect(resolveMobileDashOrder(undefined)).toEqual([
-      'trips', 'currency', 'collections', 'timezones', 'upcomingReservations',
+      'trips', 'currency', 'timezones', 'upcomingReservations',
     ]);
   });
 
   it('FE-MOB-DWID-002: keeps the stored order and appends the missing blocks', () => {
     expect(resolveMobileDashOrder(['timezones', 'trips'])).toEqual([
-      'timezones', 'trips', 'currency', 'collections', 'upcomingReservations',
+      'timezones', 'trips', 'currency', 'upcomingReservations',
     ]);
   });
 
-  it('FE-MOB-DWID-003: drops unknown and duplicated tokens', () => {
-    expect(resolveMobileDashOrder(['currency', 'nope', 'currency', 'trips'])).toEqual([
-      'currency', 'trips', 'collections', 'timezones', 'upcomingReservations',
+  it('FE-MOB-DWID-003: drops unknown, duplicated and retired tokens', () => {
+    // 'collections' survives in stored blobs but its widget is gone.
+    expect(resolveMobileDashOrder(['currency', 'nope', 'collections', 'currency', 'trips'])).toEqual([
+      'currency', 'trips', 'timezones', 'upcomingReservations',
     ]);
   });
 });
@@ -79,7 +72,6 @@ describe('mobile dashboard order + visibility hooks', () => {
   });
 
   it('FE-MOB-DWID-005: trips is always visible, widgets follow their flags', () => {
-    enableCollectionsAddon(true);
     seedStore(useSettingsStore, {
       settings: buildSettings({
         appearance: { dashboard: { mobile: { currency: false, collections: true, timezones: true, upcomingReservations: false } } },
@@ -91,15 +83,14 @@ describe('mobile dashboard order + visibility hooks', () => {
     expect(result.current).toEqual({
       trips: true,
       currency: false,
-      collections: true,
+      // The collections widget is gone; its stored flag no longer matters.
+      collections: false,
       timezones: true,
       upcomingReservations: false,
     });
   });
 
-  it('FE-MOB-DWID-006: collections stays hidden while the addon is off', () => {
-    enableCollectionsAddon(false);
-
+  it('FE-MOB-DWID-006: the retired collections token always resolves hidden', () => {
     const { result } = renderHook(() => useMobileDashVisibility());
 
     expect(result.current.collections).toBe(false);

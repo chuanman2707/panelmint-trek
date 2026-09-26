@@ -34,11 +34,6 @@ vi.mock('../../../../src/mobile/screens/trip/sheets/MTransportSheet', () => ({ d
 vi.mock('../../../../src/mobile/screens/trip/sheets/MBrowseActionsSheet', () => ({ default: selfRouted('stub-bract') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MMehrSheet', () => ({ default: selfRouted('stub-mehr') }))
 vi.mock('../../../../src/mobile/screens/trip/sheets/MExportSheet', () => ({ default: selfRouted('stub-export') }))
-vi.mock('../../../../src/mobile/screens/trip/roadtrip/MRtCorridorSheet', () => ({ default: selfRouted('stub-rtsearch') }))
-vi.mock('../../../../src/mobile/screens/trip/roadtrip/MRtDraftSheet', () => ({
-  default: ({ planner }: { planner: TripPlanner }) => <div data-testid="stub-rtdraft" data-trip={planner.tripId} />,
-}))
-
 vi.mock('../../../../src/mobile/screens/trip/sheets/MNoteSheet', () => ({
   default: ({ open, payload, onClose }: { open: boolean; payload?: { dayId?: number }; onClose: () => void }) => (
     <div data-testid="stub-note" data-open={String(open)} data-day={payload?.dayId ?? 'none'}>
@@ -106,15 +101,13 @@ vi.mock('../../../../src/mobile/screens/settings/MConfirmSheet', () => ({
 }))
 
 vi.mock('../../../../src/components/Trips/TripFormModal', () => ({
-  default: ({ isOpen, onClose, onSave, trip, onCoverUpdate }: {
+  default: ({ isOpen, onClose, onSave, trip }: {
     isOpen: boolean; onClose: () => void
     onSave: (data: Record<string, unknown>) => Promise<void>
     trip?: Trip | null
-    onCoverUpdate: (id: number, coverUrl: string) => void
   }) => (
     <div data-testid="stub-tripform" data-open={String(isOpen)} data-title={trip?.title ?? 'none'}>
       <button type="button" onClick={() => void onSave({ title: 'Japan 2027' })}>save trip</button>
-      <button type="button" onClick={() => onCoverUpdate(1, '/uploads/covers/new.jpg')}>update cover</button>
       <button type="button" onClick={onClose}>close trip form</button>
     </div>
   ),
@@ -193,19 +186,7 @@ describe('MTripSheets', () => {
     expect(planner.toast.success).toHaveBeenCalledWith('trip.toast.tripUpdated')
   })
 
-  it('FE-MOB-SHOST-008: a new cover is patched straight into the trip store', () => {
-    seedStore(useTripStore, { trip: { id: 1, title: 'Japan 2026', cover_image: '/uploads/covers/old.jpg' } })
-    renderHost({}, { sheet: { id: 'tripedit' } })
-    fireEvent.click(screen.getByText('update cover'))
-    expect(useTripStore.getState().trip?.cover_image).toBe('/uploads/covers/new.jpg')
-  })
 
-  it('FE-MOB-SHOST-009: a cover update without a loaded trip leaves the store alone', () => {
-    seedStore(useTripStore, { trip: null })
-    renderHost({}, { sheet: { id: 'tripedit' } })
-    fireEvent.click(screen.getByText('update cover'))
-    expect(useTripStore.getState().trip).toBeNull()
-  })
 
   it('FE-MOB-SHOST-010: the trip form closes through the shell', () => {
     const { shell } = renderHost({}, { sheet: { id: 'tripedit' } })
@@ -305,18 +286,6 @@ describe('MTripSheets', () => {
   it('FE-MOB-SHOST-027: the place edit sheet owns the confirm while its own form is open', () => {
     renderHost({ deletePlaceId: 101, showPlaceForm: true })
     expect(screen.queryByTestId('stub-confirm')).not.toBeInTheDocument()
-  })
-
-  it('FE-MOB-SHOST-028: the search sheet is mounted before the draft it opens', () => {
-    renderHost({}, { sheet: null })
-
-    const order = [...document.querySelectorAll('[data-testid]')]
-      .map(el => el.getAttribute('data-testid'))
-      .filter(id => id === 'stub-rtsearch' || id === 'stub-rtdraft')
-
-    // Both sit at the same z. Portal order is what decides which paints on top, and
-    // taking a hit onto the trip has to open the draft OVER the search it came from.
-    expect(order).toEqual(['stub-rtsearch', 'stub-rtdraft'])
   })
 
 })

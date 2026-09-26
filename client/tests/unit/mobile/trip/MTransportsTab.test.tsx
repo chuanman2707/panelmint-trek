@@ -1,28 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import MTransportsTab from '../../../../src/mobile/screens/trip/tabs/MTransportsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
-import { openFile } from '../../../../src/utils/fileDownload'
-import type { Day, Reservation, TripFile } from '../../../../src/types'
-import { usePluginStore } from '../../../../src/store/pluginStore'
+import type { Day, Reservation } from '../../../../src/types'
 import { buildSettings } from '../../../helpers/factories'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
-import { seedStore } from '../../../helpers/store'
 
 // FE-MOB-TRTAB-001 to FE-MOB-TRTAB-028
-
-vi.mock('../../../../src/utils/fileDownload', async importOriginal => ({
-  ...(await importOriginal<typeof import('../../../../src/utils/fileDownload')>()),
-  openFile: vi.fn(),
-}))
-
-vi.mock('../../../../src/components/Plugins/PluginFrame', () => ({
-  default: ({ pluginId, tripId, reservationId, surface }: { pluginId: string; tripId: string | null; reservationId?: string | null; surface?: string }) => (
-    <div data-testid="plugin-frame" data-plugin={pluginId} data-trip={String(tripId)} data-reservation={String(reservationId)} data-surface={surface} />
-  ),
-}))
-
-const FLIGHT_TRACKER = { id: 'flight-tracker', name: 'Flight Tracker', type: 'widget', icon: null, slot: 'reservation-detail' } as const
 
 const DAYS = [
   { id: 1, trip_id: 7, day_number: 1, date: '2026-05-01', title: null },
@@ -75,12 +59,6 @@ const DINNER = {
   id: 106, trip_id: 7, type: 'restaurant', status: 'confirmed', title: 'Sushi Saito',
 } as unknown as Reservation
 
-const FILES = [
-  { id: 201, trip_id: 7, reservation_id: 101, original_name: 'boarding-pass.pdf', url: '/uploads/f/201' },
-  { id: 202, trip_id: 7, linked_reservation_ids: [101], original_name: 'seat-map.pdf', url: '/uploads/f/202' },
-  { id: 203, trip_id: 7, reservation_id: 101, original_name: 'stale.pdf', url: '/uploads/f/203', deleted_at: '2026-01-01' },
-] as unknown as TripFile[]
-
 const ALL = [FLIGHT, TRAIN, BUS, TRANSIT, CAR, DINNER]
 
 function planner(overrides: Partial<TripPlanner> = {}) {
@@ -88,7 +66,6 @@ function planner(overrides: Partial<TripPlanner> = {}) {
     tripId: 7,
     days: DAYS,
     reservations: ALL,
-    files: FILES,
     tripMembers: MEMBERS as unknown as TripPlanner['tripMembers'],
     settings: buildSettings({ time_format: '24h' }),
     ...overrides,
@@ -109,16 +86,15 @@ function cardOf(title: string): HTMLElement {
 }
 
 describe('MTransportsTab', () => {
-  beforeEach(() => {
-    vi.mocked(openFile).mockClear()
-    seedStore(usePluginStore, { plugins: [] })
-  })
 
   it('FE-MOB-TRTAB-001: groups the transport reservations and leaves bookings out', () => {
     renderTab()
-    expect(screen.getByRole('button', { name: 'reservations.confirmed2' })).toBeInTheDocument()
+    // A stored transit booking groups by status like every other transport —
+    // the automated-transit section is gone.
+    expect(screen.getByRole('button', { name: 'reservations.confirmed3' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'reservations.pending2' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'reservations.type.transit1' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'reservations.type.transit1' })).not.toBeInTheDocument()
+    expect(screen.getByText('Metro to hotel')).toBeInTheDocument()
     expect(screen.queryByText('Sushi Saito')).not.toBeInTheDocument()
   })
 
@@ -131,7 +107,7 @@ describe('MTransportsTab', () => {
 
   it('FE-MOB-TRTAB-003: collapses a section and keeps the others open', () => {
     renderTab()
-    const header = screen.getByRole('button', { name: 'reservations.confirmed2' })
+    const header = screen.getByRole('button', { name: 'reservations.confirmed3' })
     fireEvent.click(header)
     expect(header).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByText('HND to ITM')).not.toBeInTheDocument()
@@ -203,16 +179,6 @@ describe('MTransportsTab', () => {
     renderTab()
     expect(within(cardOf('Metro to hotel')).getByText('Shibuya')).toBeInTheDocument()
     expect(within(cardOf('Rental pickup')).getByText('Nagoya')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-TRTAB-013: lists the linked, non-deleted files and opens one on tap', () => {
-    renderTab()
-    const card = cardOf('HND to ITM')
-    expect(within(card).getByText('boarding-pass.pdf')).toBeInTheDocument()
-    expect(within(card).getByText('seat-map.pdf')).toBeInTheDocument()
-    expect(within(card).queryByText('stale.pdf')).not.toBeInTheDocument()
-    fireEvent.click(within(card).getByText('boarding-pass.pdf'))
-    expect(openFile).toHaveBeenCalledWith('/uploads/f/201', 'boarding-pass.pdf')
   })
 
   it('FE-MOB-TRTAB-014: reveals a blurred confirmation code through a real button', () => {
@@ -321,7 +287,6 @@ describe('MTransportsTab', () => {
     } as unknown as Reservation
     renderTab(planner({
       reservations: [HELI],
-      files: undefined as unknown as TripPlanner['files'],
       settings: { ...buildSettings(), time_format: '' },
       TRANSPORT_TYPES: new Set(['helicopter']) as unknown as TripPlanner['TRANSPORT_TYPES'],
     }))
@@ -335,10 +300,8 @@ describe('MTransportsTab', () => {
   })
 
 
-  it('FE-MOB-TRTAB-028: compact mode drops the plugin frames with the rest of the body', () => {
-    seedStore(usePluginStore, { plugins: [FLIGHT_TRACKER] })
+  it('FE-MOB-TRTAB-028: compact mode collapses the card bodies', () => {
     renderTab(planner(), buildShell({ transportsCompact: true }))
     expect(screen.getByText('HND to ITM')).toBeInTheDocument()
-    expect(screen.queryByTestId('plugin-frame')).not.toBeInTheDocument()
   })
 })

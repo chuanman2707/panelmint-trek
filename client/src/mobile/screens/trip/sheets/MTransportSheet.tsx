@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Footprints, Paperclip, Pencil, Route as RouteIcon, Trash2 } from 'lucide-react'
+import { Pencil, Route as RouteIcon, Trash2 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
@@ -7,24 +7,11 @@ import { useSettingsStore } from '../../../../store/settingsStore'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime } from '../../../../utils/formatters'
 import { getFlightLegs, getTrainLegs } from '../../../../utils/flightLegs'
-import { openFile } from '../../../../utils/fileDownload'
 import type { Reservation } from '../../../../types'
 import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
 
 interface TransportSheetPayload {
   reservationId?: number
-}
-
-interface TransitLeg {
-  mode?: string
-  line?: string | null
-  line_color?: string | null
-  line_text_color?: string | null
-  headsign?: string | null
-  duration?: number
-  stops?: number
-  from?: { name?: string; time?: string | null }
-  to?: { name?: string; time?: string | null }
 }
 
 interface TransportMeta {
@@ -33,7 +20,6 @@ interface TransportMeta {
   train_number?: string
   seat?: string
   platform?: string
-  transit?: { legs?: TransitLeg[] }
 }
 
 function parseMetadata(res: Reservation): TransportMeta {
@@ -46,8 +32,8 @@ function parseMetadata(res: Reservation): TransportMeta {
 
 /**
  * Transport detail sheet ('transport', payload { reservationId }): endpoints +
- * times, per-type meta (seat/platform/flight number), transit itinerary legs,
- * status + booking code (blurrable), notes, attached files and the
+ * times, per-type meta (seat/platform/flight number),
+ * status + booking code (blurrable), notes and the
  * on-map/edit/delete actions.
  */
 export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
@@ -94,16 +80,11 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
 
   const seat = meta.seat
   const platform = meta.platform
-  const transitLegs: TransitLeg[] = Array.isArray(meta.transit?.legs) ? meta.transit.legs : []
 
   // Per-segment booking codes (#1943), only on a real stopover booking: the
   // single-leg fallback would just echo the booking's own code shown below.
   const routeLegs = res.type === 'flight' ? getFlightLegs(res) : res.type === 'train' ? getTrainLegs(res) : []
   const legCodes = routeLegs.length > 1 ? routeLegs.filter(l => l.confirmation_number) : []
-
-  const resFiles = (planner.files || []).filter(f =>
-    !f.deleted_at && (f.reservation_id === res.id || (f.linked_reservation_ids || []).includes(res.id)),
-  )
 
   const confirmed = res.status === 'confirmed'
   const codeBlurred = blurCodes && !codeRevealed
@@ -158,53 +139,6 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             )}
             {platform && <StatBox value={platform} label={t('reservations.meta.platform')} />}
             {seat && <StatBox value={seat} label={t('reservations.meta.seat')} />}
-          </div>
-        )}
-
-        {/* ── Transit itinerary (#1065): one row per leg ── */}
-        {transitLegs.length > 0 && (
-          <div className={`mt-3 flex flex-col gap-2 rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
-            {transitLegs.map((leg, i) => {
-              const isWalk = leg.mode === 'WALK'
-              const mins = leg.duration ? Math.round(leg.duration / 60) : null
-              return (
-                <div key={i} className="flex items-start gap-2">
-                  {isWalk ? (
-                    <Footprints size={12} strokeWidth={2} className="mt-[2px] flex-none text-m-faint" />
-                  ) : (
-                    <span
-                      className="flex-none rounded-[5px] px-[6px] py-px text-[0.625rem] font-bold"
-                      style={{
-                        background: leg.line_color || 'var(--m-ic)',
-                        color: leg.line_color ? (leg.line_text_color || '#fff') : 'var(--m-ink)',
-                      }}
-                    >
-                      {leg.line || leg.mode}
-                    </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1 text-[0.71875rem] font-medium">
-                      {isWalk ? (
-                        <span className="text-m-muted">{t('transit.walkTo', { name: leg.to?.name || '' })}</span>
-                      ) : (
-                        <>
-                          <span className="truncate">{leg.from?.name}</span>
-                          <ArrowRight size={10} strokeWidth={2} className="flex-none text-m-faint" />
-                          <span className="truncate">{leg.to?.name}</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="mt-px font-geist text-[0.625rem] text-m-faint">
-                      {[
-                        leg.from?.time && !isWalk ? `${leg.from.time}${leg.to?.time ? ` – ${leg.to.time}` : ''}` : null,
-                        mins ? t('transit.min', { count: mins }) : null,
-                        !isWalk && leg.stops ? t('transit.stops', { count: leg.stops }) : null,
-                      ].filter(Boolean).join(' · ')}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
           </div>
         )}
 
@@ -271,17 +205,6 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             <RouteIcon size={13} strokeWidth={2} />
             {t('mobileTrip.onMap')}
           </button>
-          {resFiles.map(f => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => openFile(f.url, f.original_name)}
-              className={`flex max-w-[150px] items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold ${INNER_CLS}`}
-            >
-              <Paperclip size={13} strokeWidth={2} className="flex-none" />
-              <span className="truncate">{f.original_name}</span>
-            </button>
-          ))}
           {canEditDays && (
             <button
               type="button"

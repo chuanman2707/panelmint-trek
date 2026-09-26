@@ -15,11 +15,11 @@ import { buildTrip } from './factories';
 /** Mirrors useTripStore's action surface as spies. */
 export function buildTripActions(): Record<string, ReturnType<typeof vi.fn>> {
   const names = [
-    'addCategory', 'addDayNote', 'addFile', 'addPackingItem',
+    'addCategory', 'addDayNote', 'addPackingItem',
     'addPlace', 'addReservation', 'addTodoItem', 'assignPlaceToDay', 'clonePackingItem',
-    'deleteBudgetItem', 'deleteDayNote', 'deleteFile', 'deletePackingItem', 'deletePlace',
+    'deleteBudgetItem', 'deleteDayNote', 'deletePackingItem', 'deletePlace',
     'deletePlacesMany', 'deleteReservation', 'deleteTodoItem', 'insertDay', 'loadBudgetItems',
-    'loadFiles', 'loadReservations', 'loadTrip', 'moveAssignment', 'moveDayNote', 'ratePlace',
+    'loadReservations', 'loadTrip', 'moveAssignment', 'moveDayNote', 'ratePlace',
     'refreshDays', 'removeAssignment', 'reorderAssignments',
     'reorderDays', 'setAssignments', 'setSelectedDay',
     'toggleBudgetMemberPaid', 'togglePackingItem', 'toggleReservationStatus', 'toggleTodoItem',
@@ -52,7 +52,6 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     t: echoT,
     language: 'en',
     settings: { time_format: '24h', date_format: 'DD.MM.YYYY', default_currency: 'EUR', distance_unit: 'km' },
-    placesPhotosEnabled: false,
 
     trip,
     days: [],
@@ -66,13 +65,11 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     categories: [],
     reservations: [],
     budgetItems: [],
-    files: [],
 
     selectedDayId: null,
     isLoading: false,
     tripActions: buildTripActions(),
     can: vi.fn(() => true),
-    canUploadFiles: true,
 
     pushUndo: vi.fn(),
     undo: vi.fn(),
@@ -80,11 +77,13 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     lastActionLabel: null,
     handleUndo: vi.fn(),
 
-    enabledAddons: { packing: true, budget: true, documents: true, collab: true, vacay: true, atlas: true },
-    collabFeatures: { chat: true, notes: true, polls: true },
+    enabledAddons: { packing: true, budget: true },
     tripAccommodations: [],
     setTripAccommodations: vi.fn(),
-    allowedFileTypes: ['image/jpeg', 'image/png', 'application/pdf'],
+    overviewShown: false,
+    toggleOverview: vi.fn(),
+    overviewActive: false,
+    tripOverview: { days: [], lines: [], lineColors: [], focusPoints: [], loading: false },
     tripMembers: [],
     setTripMembers: vi.fn(),
     refreshMembers: vi.fn(),
@@ -102,6 +101,11 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     rightCollapsed: false,
     setLeftCollapsed: vi.fn(),
     setRightCollapsed: vi.fn(),
+    leftHidden: false,
+    rightHidden: false,
+    toggleLeft: vi.fn(),
+    toggleRight: vi.fn(),
+    narrowPanels: false,
     startResizeLeft: vi.fn(),
     startResizeRight: vi.fn(),
 
@@ -143,18 +147,12 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     setEditingTransport: vi.fn(),
     transportModalDayId: null,
     setTransportModalDayId: vi.fn(),
-    reservationPrefill: null,
-    transportPrefill: null,
 
     routeShown: false,
     setRouteShown: vi.fn(),
     autoShowRoute: vi.fn(),
     routeProfile: 'driving',
     setRouteProfile: vi.fn(),
-    routeVias: [],
-    // Whether the day ends at a stop, from the flag and from a manual boundary alike. The
-    // helper answers from the flag; a case about boundaries overrides it.
-    roadtripEndsDayAt: (stop: { endDay?: boolean } | null | undefined) => !!stop?.endDay,
     fitKey: 0,
     setFitKey: vi.fn(),
 
@@ -167,10 +165,11 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     setDeletePlaceId: vi.fn(),
     deletePlaceIds: null,
     setDeletePlaceIds: vi.fn(),
+    deletePlaceNote: null,
+    deletePlacesNote: null,
 
     // resolveVisibleConnectionIds returns an array, and consumers call .includes().
     visibleConnections: [] as number[],
-    roadtripConnections: [] as number[],
     toggleConnection: vi.fn(),
     allConnectionsShown: false,
     toggleAllConnections: vi.fn(),
@@ -183,62 +182,6 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     expandedDayIds: new Set<number>(),
     setExpandedDayIds: vi.fn(),
     mapPlaces: [],
-    // The recorded-route overlay (#2279): off and empty. MMapArea reads
-    // `dawarichTrail.track` unconditionally, so the shape has to be here even
-    // when the addon is not in play.
-    dawarichEnabled: false,
-    dawarichTrailShown: false,
-    toggleDawarichTrail: vi.fn(),
-    dawarichTrail: { track: null, status: 'idle', reload: vi.fn() },
-
-    // The road trip addon's routing round. The shell reads days/totalDistance for
-    // its stage header on every render, addon on or off, so the empty-but-valid
-    // shape belongs in the base rather than in the overrides of one suite.
-    roadtripRoutes: {
-      days: [], quietDays: [], lines: [], lineDays: [], accessLines: [], vias: [], segments: [],
-      totalDistance: 0, totalDuration: 0, totalStops: 0, loading: false,
-    },
-
-    // The corridor search, idle. Both the search bar over the stage and the search
-    // sheet read it on every render of the road trip tab, addon on or off, so the
-    // empty-but-valid shape belongs here rather than in one suite's overrides.
-    roadtripCorridor: {
-      dayId: '', setDayId: vi.fn(), day: undefined,
-      categories: ['fuel'], toggleCategory: vi.fn(),
-      widthKm: 5, setWidthKm: vi.fn(),
-      search: {
-        results: [], progress: { done: 0, total: 0 }, loading: false, capped: false,
-        failedSources: [], failedAreas: 0, truncatedAreas: 0, error: false, spine: [],
-        search: vi.fn(), clear: vi.fn(),
-      },
-      nameFilter: '', setNameFilter: vi.fn(), anchors: [],
-      section: null, setSection: vi.fn(), sectionKm: 50, setSectionKm: vi.fn(),
-      socketFilter: '', setSocketFilter: vi.fn(), minKw: 0, setMinKw: vi.fn(),
-      visible: [], insertIndexFor: vi.fn(() => 0), stopsAlongKm: [], clear: vi.fn(),
-    },
-    // The fuel search, idle: the dry band in the chain reads it per leg.
-    refuel: {
-      openFor: null, loading: false, outcome: null, results: [], offered: [],
-      ask: vi.fn(), close: vi.fn(),
-    },
-    askRefuel: vi.fn(),
-    acceptRefuel: vi.fn(),
-    // Other ways of driving a leg, with no picker open. The road trip tab and the map area
-    // read the picker on every render, so the closed shape belongs in the base.
-    routeAlternatives: { open: null, ask: vi.fn(), close: vi.fn() },
-    askRouteAlternatives: vi.fn(),
-    chooseRouteAlternative: vi.fn(async () => undefined),
-    alternativeOverlays: [],
-    alternativeFocusPoints: [],
-    highlightedAlternative: null,
-    setHighlightedAlternative: vi.fn(),
-    // The drive's vias, online and empty. `editable` is what the leg buttons read.
-    roadtripVias: {
-      byDay: {}, trackByDay: {}, stale: false, editable: true,
-      add: vi.fn(), addMany: vi.fn(), move: vi.fn(), remove: vi.fn(), reanchor: vi.fn(),
-    },
-    mapFocusPoints: [],
-    focusRoadtripPoint: vi.fn(),
     handlePoiClick: vi.fn(),
 
     route: null,
@@ -285,11 +228,7 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
 export function buildShell(overrides: Partial<MTripShellApi> = {}): MTripShellApi {
   const base: MTripShellApi = {
     view: 'plan',
-    rtView: 'list',
     mapFront: false,
-    toggleRtView: vi.fn(),
-    rtReach: 'ahead',
-    setRtReach: vi.fn(),
     mode: 'go',
     trTab: 'plan',
     setTrTab: vi.fn(),
@@ -305,8 +244,6 @@ export function buildShell(overrides: Partial<MTripShellApi> = {}): MTripShellAp
     bookingsCompact: false,
     addExpenseSignal: 0,
     exportCostsCsvSignal: 0,
-    uploadFilesSignal: 0,
-    openFilesTrashSignal: 0,
   };
   return { ...base, ...overrides };
 }

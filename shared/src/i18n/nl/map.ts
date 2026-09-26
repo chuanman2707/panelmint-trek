@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Verbindingen',
   'map.showConnections': 'Boekingsroutes tonen',
   'map.hideConnections': 'Boekingsroutes verbergen',
   'poi.searchThisArea': 'Dit gebied doorzoeken',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Activiteiten',
   'map.showAllConnections': 'Alle boekingsroutes tonen',
   'map.hideAllConnections': 'Alle boekingsroutes verbergen',
-  'map.baseLayer.default': 'Kaart',
-  'map.baseLayer.satellite': 'Satelliet',
   'map.baseLayer.switchToSatellite': 'Overschakelen naar satellietweergave',
   'map.baseLayer.switchToDefault': 'Overschakelen naar kaartweergave',
   'map.location.denied': 'Locatietoegang is geblokkeerd. Controleer de apparaatinstellingen; een geïnstalleerde app heeft een eigen locatiemachtiging, los van de browser.',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': 'Hele reis tonen',
   'map.overview.hide': 'Hele reis verbergen',
   'map.overview.total': 'Totale afstand',
-  'map.attribution': 'Kaartvermeldingen',
   'map.overview.unrouted': '{count} etappe(s) konden niet worden berekend, de afstanden zijn onvolledig.',
   'map.overview.dayUnrouted': '{count} etappe(s) van deze dag konden niet worden berekend',
 };

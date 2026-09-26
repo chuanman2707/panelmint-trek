@@ -9,7 +9,6 @@ import { packingRepo } from '../repo/packingRepo'
 import { todoRepo } from '../repo/todoRepo'
 import { budgetRepo } from '../repo/budgetRepo'
 import { reservationRepo } from '../repo/reservationRepo'
-import { fileRepo } from '../repo/fileRepo'
 import { isEffectivelyOnline } from '../sync/networkMode'
 import { createPlacesSlice } from './slices/placesSlice'
 import { createAssignmentsSlice } from './slices/assignmentsSlice'
@@ -19,12 +18,11 @@ import { createPackingSlice } from './slices/packingSlice'
 import { createTodoSlice } from './slices/todoSlice'
 import { createBudgetSlice } from './slices/budgetSlice'
 import { createReservationsSlice } from './slices/reservationsSlice'
-import { createFilesSlice } from './slices/filesSlice'
 import { handleRemoteEvent } from './slices/remoteEventHandler'
 import type { TrekWsTripEventName } from '@trek/shared'
 import type {
   Trip, Day, Place, Assignment, DayNote, PackingItem, TodoItem,
-  Tag, Category, BudgetItem, TripFile, Reservation,
+  Tag, Category, BudgetItem, Reservation,
   AssignmentsMap, DayNotesMap, WebSocketEvent,
 } from '../types'
 import { getApiErrorMessage } from '../types'
@@ -36,7 +34,6 @@ import type { PackingSlice } from './slices/packingSlice'
 import type { TodoSlice } from './slices/todoSlice'
 import type { BudgetSlice } from './slices/budgetSlice'
 import type { ReservationsSlice } from './slices/reservationsSlice'
-import type { FilesSlice } from './slices/filesSlice'
 
 export interface TripStoreState
   extends PlacesSlice,
@@ -46,8 +43,7 @@ export interface TripStoreState
     PackingSlice,
     TodoSlice,
     BudgetSlice,
-    ReservationsSlice,
-    FilesSlice {
+    ReservationsSlice {
   trip: Trip | null
   days: Day[]
   places: Place[]
@@ -58,7 +54,6 @@ export interface TripStoreState
   tags: Tag[]
   categories: Category[]
   budgetItems: BudgetItem[]
-  files: TripFile[]
   reservations: Reservation[]
   selectedDayId: number | null
   // Places filter (list + map markers). Lives here, not in the sidebar, so the
@@ -101,7 +96,6 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   tags: [],
   categories: [],
   budgetItems: [],
-  files: [],
   reservations: [],
   selectedDayId: null,
   placesFilter: 'all',
@@ -129,7 +123,6 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     packingItems: [],
     todoItems: [],
     budgetItems: [],
-    files: [],
     reservations: [],
     selectedDayId: null,
     placesFilter: 'all',
@@ -141,18 +134,17 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     get().resetTrip()
     set({ isLoading: true, error: null })
     try {
-      const [tripData, daysData, placesData, packingData, todoData, budgetData, reservationsData, filesData, tagsData, categoriesData] = await Promise.all([
+      const [tripData, daysData, placesData, packingData, todoData, budgetData, reservationsData, tagsData, categoriesData] = await Promise.all([
         tripRepo.get(tripId),
         dayRepo.list(tripId),
         placeRepo.list(tripId),
         packingRepo.list(tripId),
         todoRepo.list(tripId),
-        // Budget / reservations / files are hydrated here too so the offline
+        // Budget / reservations are hydrated here too so the offline
         // path is uniform (no separate tab-gated effects). Non-fatal: a failure
         // in any of these must not blank the whole trip.
         budgetRepo.list(tripId).catch(() => ({ items: [] as BudgetItem[] })),
         reservationRepo.list(tripId).catch(() => ({ reservations: [] as Reservation[] })),
-        fileRepo.list(tripId).catch(() => ({ files: [] as TripFile[] })),
         isEffectivelyOnline()
           ? tagsApi.list().catch(() => offlineDb.tags.toArray().then(tags => ({ tags })))
           : offlineDb.tags.toArray().then(tags => ({ tags })),
@@ -178,7 +170,6 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         todoItems: todoData.items,
         budgetItems: budgetData.items,
         reservations: reservationsData.reservations,
-        files: filesData.files,
         tags: tagsData.tags,
         categories: categoriesData.categories,
         isLoading: false,
@@ -202,7 +193,6 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       todoRepo.list(tripId).then(d => set({ todoItems: d.items })).catch(() => {}),
       get().loadBudgetItems(tripId),
       get().loadReservations(tripId),
-      get().loadFiles(tripId),
     ])
     // Accommodations live in planner-local state, not this store — nudge the
     // planner to reload them too (e.g. a trip date change made while offline).
@@ -263,5 +253,4 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   ...createTodoSlice(set, get),
   ...createBudgetSlice(set, get),
   ...createReservationsSlice(set, get),
-  ...createFilesSlice(set, get),
 }))

@@ -3,9 +3,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useTripStore } from '../../../src/store/tripStore';
 import { applyLocalEffect, applyLocalEffects } from '../../../src/store/localEffects';
 import { db } from '../../../src/db/panelmintDb';
-import { offlineDb } from '../../../src/db/offlineDb';
 import { resetAllStores } from '../../helpers/store';
-import { buildPlace, buildTodoItem, buildAssignment, buildDay, buildTripFile } from '../../helpers/factories';
+import { buildPlace, buildTodoItem, buildAssignment, buildDay } from '../../helpers/factories';
 
 /**
  * applyLocalEffect replays the side-channel a local adapter returned through
@@ -80,15 +79,5 @@ describe('applyLocalEffect', () => {
     // makes the replay a no-op rather than a caller-side `if`.
     expect(() => applyLocalEffect('assignment:reordered', null)).not.toThrow();
     expect(useTripStore.getState().assignments).toEqual({});
-  });
-
-  it('file:* effects still write to the legacy offlineDb cache (panelmintDb has no files table)', async () => {
-    const file = buildTripFile({ id: 33, original_name: 'ticket.pdf' });
-    applyLocalEffect('file:created', { file });
-
-    expect(useTripStore.getState().files[0].id).toBe(33);
-    await vi.waitFor(async () => {
-      expect((await offlineDb.tripFiles.get(33))?.original_name).toBe('ticket.pdf');
-    });
   });
 });

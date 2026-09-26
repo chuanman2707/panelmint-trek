@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Συνδέσεις',
   'map.showConnections': 'Εμφάνιση διαδρομών κρατήσεων',
   'map.hideConnections': 'Απόκρυψη διαδρομών κρατήσεων',
   'poi.searchThisArea': 'Αναζήτηση σε αυτήν την περιοχή',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Δραστηριότητες',
   'map.showAllConnections': 'Εμφάνιση όλων των διαδρομών κρατήσεων',
   'map.hideAllConnections': 'Απόκρυψη όλων των διαδρομών κρατήσεων',
-  'map.baseLayer.default': 'Χάρτης',
-  'map.baseLayer.satellite': 'Δορυφόρος',
   'map.baseLayer.switchToSatellite': 'Εναλλαγή σε δορυφορική προβολή',
   'map.baseLayer.switchToDefault': 'Εναλλαγή σε προβολή χάρτη',
   'map.location.denied': 'Η πρόσβαση στην τοποθεσία είναι αποκλεισμένη. Ελέγξτε τις ρυθμίσεις της συσκευής. Μια εγκατεστημένη εφαρμογή έχει δική της άδεια τοποθεσίας, ξεχωριστή από το πρόγραμμα περιήγησης.',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': 'Εμφάνιση όλου του ταξιδιού',
   'map.overview.hide': 'Απόκρυψη όλου του ταξιδιού',
   'map.overview.total': 'Συνολική απόσταση',
-  'map.attribution': 'Πηγές χάρτη',
   'map.overview.unrouted': '{count} σκέλος/η δεν μπόρεσαν να υπολογιστούν, οι αποστάσεις είναι ελλιπείς.',
   'map.overview.dayUnrouted': '{count} σκέλος/η αυτής της ημέρας δεν μπόρεσαν να υπολογιστούν',
 };

@@ -118,17 +118,6 @@ export function useMPlanTimeline(planner: TripPlanner) {
     return () => { cancelled = true }
   }, [day?.date, weatherAnchor, language])
 
-  // ── Expanded auto-transit rows ──
-  const [openTransitKeys, setOpenTransitKeys] = useState<Set<string>>(new Set())
-  const toggleTransit = useCallback((key: string) => {
-    setOpenTransitKeys(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }, [])
-
   // ── Reorder via buttons (#1432) — port of the desktop applyMergedOrder ──
   const applyMergedOrder = useCallback(async (dayId: number, newOrder: MergedItem[]) => {
     const prevAssignmentIds = dayAssignments.map(a => a.id)
@@ -368,7 +357,6 @@ export function useMPlanTimeline(planner: TripPlanner) {
     day, rows, hotelLegs, merged, hotelChips, weather, weatherTemp, upNext,
     weatherPlaceName: weatherAnchor?.name ?? null,
     language, timeFormat: settings.time_format,
-    openTransitKeys, toggleTransit,
     moveRow, removeAssignment, editAssignment, editTransport,
     moveRowTo,
     addPlace, addBooking, addTransport,

@@ -1,17 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useLocation } from 'react-router'
+import { Link } from 'react-router'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useAddonStore } from '../../store/addonStore'
-import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
-import { Settings, ChevronDown, ArrowLeft, Users, Moon, Sun, CalendarDays, Briefcase, Globe, Compass, Bookmark } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { resolvePluginIcon } from '../shared/PluginIcon'
-import { visibleManagedNavItems } from '../../managed'
-
-const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass, Bookmark }
+import { Settings, ChevronDown, ArrowLeft, Users, Moon, Sun } from 'lucide-react'
 
 interface NavbarProps {
   tripTitle?: string
@@ -20,20 +13,10 @@ interface NavbarProps {
   onShare?: () => void
 }
 
-interface Addon {
-  id: string
-  name: string
-  icon: string
-  type: string
-  enabled: boolean
-}
-
 export default function Navbar({ tripTitle, onBack, showBack, onShare }: NavbarProps): React.ReactElement {
   const { user, isPrerelease, appVersion } = useAuthStore()
   const { settings, updateSetting } = useSettingsStore()
-  const { addons: allAddons, loadAddons } = useAddonStore()
-  const { t, locale } = useTranslation()
-  const location = useLocation()
+  const { t } = useTranslation()
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false)
   const [scrolled, setScrolled] = useState<boolean>(false)
   const darkMode = settings.dark_mode
@@ -49,14 +32,6 @@ export default function Navbar({ tripTitle, onBack, showBack, onShare }: NavbarP
       document.body.removeEventListener('scroll', onScroll)
     }
   }, [])
-
-  // Only show 'global' type addons in the navbar — 'integration' addons have no dedicated page
-  const globalAddons = allAddons.filter((a: Addon) => a.type === 'global' && a.enabled)
-  const pagePlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'page')
-
-  useEffect(() => {
-    if (user) loadAddons()
-  }, [user, location.pathname])
 
   // Keep track of the pending theme-transition cleanup so we can cancel it
   // on unmount. Without this the timer fires after jsdom teardown in unit
@@ -78,12 +53,6 @@ export default function Navbar({ tripTitle, onBack, showBack, onShare }: NavbarP
       document.documentElement.classList.remove('trek-theme-transitioning')
       themeTransitionTimer.current = null
     }, 360)
-  }
-
-  const getAddonName = (addon: Addon): string => {
-    const key = `admin.addons.catalog.${addon.id}.name`
-    const translated = t(key)
-    return translated !== key ? translated : addon.name
   }
 
   return (
@@ -131,63 +100,9 @@ export default function Navbar({ tripTitle, onBack, showBack, onShare }: NavbarP
         )}
       </div>
 
-      {/* Centred liquid-glass tab menu (design handoff).
-          
-          In the flow, between two equally weighted flex columns, rather than
-          absolutely positioned on the centre of the bar. Out of the flow it had
-          no relationship to its neighbours at all: its width grows with every
-          enabled addon and every page plugin, and once it outgrew the free
-          space in the middle it simply ran underneath the logo on one side and
-          the user menu on the other (#1983). The only adaptation was a fixed
-          1024px breakpoint that drops the labels, which was tuned for two or
-          three addons and cannot know about plugins.
-          
-          Now the three columns share the bar, so overlap is not something that
-          can happen: the pill takes the width it needs and the columns beside
-          it give way. min-w-0 lets it shrink past its content and scroll rather
-          than push the actions off the bar. */}
-      {(globalAddons.length > 0 || pagePlugins.length > 0) && !tripTitle && (
-        <div
-          className="trek-nav-pill min-w-0"
-          style={{
-            display: 'flex', gap: 4, padding: 4, borderRadius: 14, flexShrink: 1,
-            overflowX: 'auto', scrollbarWidth: 'none',
-            background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-            backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
-          }}
-        >
-          {[{ id: '__trips', path: '/dashboard', label: t('nav.myTrips'), Icon: Briefcase },
-            ...globalAddons.map(a => ({ id: a.id, path: `/${a.id}`, label: getAddonName(a), Icon: ADDON_ICONS[a.icon] || CalendarDays })),
-            ...pagePlugins.map(p => ({ id: `plugin:${p.id}`, path: `/plugins/${p.id}`, label: p.name, Icon: resolvePluginIcon(p.icon) })),
-            // Empty in this repository — see client/src/managed.
-            ...visibleManagedNavItems(user?.role === 'admin').map(m => ({ id: `managed:${m.id}`, path: m.path, label: m.label, Icon: m.Icon }))
-          ].map(tab => {
-            const isActive = location.pathname === tab.path
-            return (
-              <Link key={tab.id} to={tab.path}
-                title={tab.label} aria-label={tab.label}
-                className="flex items-center gap-1.5 transition-colors"
-                style={{
-                  padding: '5px 16px', borderRadius: 9, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500,
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-                  background: isActive ? 'var(--bg-card)' : 'transparent',
-                  boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.05)' : 'none',
-                }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-muted)' }}>
-                <tab.Icon className="w-4 h-4" />
-                <span className="hidden lg:inline">{tab.label}</span>
-              </Link>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Centre slot for page-scoped notices (plugin trip warnings portal into it).
-          Only mounted on trip pages, where the tab pill above is absent, so the two
-          never fight over the centre. Zero-size while empty; pointer events stay off
-          on the wrapper so an empty slot can't swallow clicks. */}
+      {/* Centre slot for page-scoped notices, kept for trip pages that portal
+          a warning into it. Zero-size while empty; pointer events stay off on
+          the wrapper so an empty slot can't swallow clicks. */}
       {tripTitle && (
         <div
           id="trek-nav-center-slot"

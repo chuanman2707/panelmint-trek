@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': 'Ймовірність опадів',
-  'day.precipitation': 'Опади',
-  'day.wind': 'Вітер',
-  'day.sunrise': 'Схід',
-  'day.sunset': 'Захід',
-  'day.hourlyForecast': 'Погодний прогноз по годинах',
   'day.climateHint': 'Історичні середні — реальний прогноз доступний за 16 днів до цієї дати.',
   'day.noWeather': 'Дані про погоду недоступні. Додайте місце з координатами.',
   'day.weatherFor': 'Прогноз для {name}',

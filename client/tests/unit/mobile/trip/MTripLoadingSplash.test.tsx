@@ -78,7 +78,7 @@ describe('MTripLoadingSplash', () => {
 
     tick(STEP_MS)
     expect(screen.getByText('Almost there...')).toBeInTheDocument()
-    expect(container.querySelector('.trek--collections')).toBeTruthy()
+    expect(container.querySelector('.trek--pin')).toBeTruthy()
   })
 
   it('FE-MOB-SPLASH-004: wraps back to the first beat after the last one', () => {

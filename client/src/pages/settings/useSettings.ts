@@ -13,7 +13,6 @@ import { useAuthStore } from '../../store/authStore'
 export function useSettings() {
   const [searchParams] = useSearchParams()
   const { loadAddons } = useAddonStore()
-  const managed = useAuthStore(s => s.managed)
 
   // The build version is baked into the auth store — no app-config request left.
   const appVersion = useAuthStore(s => s.appVersion) || null
@@ -30,5 +29,5 @@ export function useSettings() {
     if (tab) setActiveTab(tab)
   }, [searchParams])
 
-  return { appVersion, activeTab, setActiveTab, managed }
+  return { appVersion, activeTab, setActiveTab }
 }

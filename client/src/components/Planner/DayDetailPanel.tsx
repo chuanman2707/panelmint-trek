@@ -52,7 +52,7 @@ interface DayDetailPanelProps {
   collapsed?: boolean
   onToggleCollapse?: () => void
   mobile?: boolean
-  /** Rename the day from here — the sidebar pencil moved to the transit search (#1065). */
+  /** Rename the day from here — inline, next to the day title. */
   onUpdateDayTitle?: (dayId: number, title: string) => void
   /** Name of the place the day's weather is anchored to — captioned above the forecast (#2167). */
   weatherPlaceName?: string | null
@@ -75,8 +75,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
   const collapsed = collapsedProp
   const toggleCollapse = () => onToggleCollapse?.()
 
-  // Inline day rename (#1065) — took over from the sidebar's pencil, which the
-  // transit search button replaced.
+  // Inline day rename — took over from the sidebar's pencil.
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
   const titleInputRef = useRef<HTMLInputElement | null>(null)

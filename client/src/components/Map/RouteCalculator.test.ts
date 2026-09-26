@@ -557,9 +557,9 @@ describe('generateCoMapsUrl', () => {
   it('FE-COMP-ROUTECALCULATOR-018: TREK profiles map onto CoMaps travel modes', () => {
     expect(generateCoMapsUrl([eiffel, louvre], 'driving')).toContain('type=vehicle')
     expect(generateCoMapsUrl([eiffel, louvre], 'cycling')).toContain('type=bicycle')
-    // A plugin router has no CoMaps equivalent, so it falls back rather than
+    // An unknown profile has no CoMaps equivalent, so it falls back rather than
     // sending a mode CoMaps would reject.
-    expect(generateCoMapsUrl([eiffel, louvre], 'plugin:ev/fast')).toContain('type=vehicle')
+    expect(generateCoMapsUrl([eiffel, louvre], 'unicycle')).toContain('type=vehicle')
   })
 
   it('FE-COMP-ROUTECALCULATOR-019: three stops go as pins, because a route link would drop the middle', () => {

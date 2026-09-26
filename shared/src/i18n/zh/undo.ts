@@ -12,13 +12,7 @@ const undo: TranslationStrings = {
   'undo.changeCategory': '分类已更改',
   'undo.moveDay': '地点已移至另一天',
   'undo.lock': '地点锁定已切换',
-  'undo.importGpx': 'GPX 导入',
-  'undo.importKeyholeMarkup': 'KMZ/KML 导入',
-  'undo.importFiles': '文件导入',
-  'undo.importGoogleList': 'Google 地图导入',
-  'undo.importNaverList': 'Naver 地图导入',
   'undo.addPlace': '地点已添加',
   'undo.done': '已撤销：{action}',
-  'undo.importBooking': '导入预订确认',
 };
 export default undo;

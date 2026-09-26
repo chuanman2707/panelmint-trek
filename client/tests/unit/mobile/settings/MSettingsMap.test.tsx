@@ -5,7 +5,6 @@ import { render, screen, waitFor } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildSettings } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
-import { useAuthStore } from '../../../../src/store/authStore';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
 import type { Settings } from '../../../../src/types';
 import MSettingsMap from '../../../../src/mobile/screens/settings/MSettingsMap';
@@ -137,13 +136,6 @@ describe('MSettingsMap', () => {
     renderMap();
 
     expect(screen.getByText('CARTO API key')).toBeInTheDocument();
-  });
-
-  it('FE-MOB-SETMAP-021: a managed instance brings its own key and hides the field', () => {
-    seedStore(useAuthStore, { managed: true });
-    renderMap();
-
-    expect(screen.queryByText('CARTO API key')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-SETMAP-023: the typed CARTO key reaches the save payload', async () => {

@@ -1,42 +1,12 @@
 import { useEffect, useRef, useState, useMemo, useCallback, createElement, memo } from 'react'
-import DOM from 'react-dom'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
+import { makeMarkerDraggable } from './markerDrag'
 import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupLike } from './markerCluster'
-import RoadtripViaMarkers from './RoadtripViaMarkers'
-import HazardLayers from './HazardLayers'
-import { useRoadtripHazards } from './useRoadtripHazards'
-import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
-import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
-import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays'
-
-/**
- * The drive-time pill for one offered route.
- *
- * A divIcon rather than a tooltip: it has to be clickable and it has to sit exactly on
- * the road.
- */
-function alternativeLabelIcon(label: string, note: string, background: string, active: boolean) {
-  const outline = active ? 'outline:2px solid #fff;outline-offset:1px;' : ''
-  const second = note
-    ? `<span style="font-size:11.5px;font-weight:500;opacity:.85;line-height:1.2">${escapeHtml(note)}</span>`
-    : ''
-  return L.divIcon({
-    className: '',
-    // `font-family` spelled out: a divIcon sits inside `.leaflet-container`, whose own
-    // stylesheet sets Helvetica/Arial on everything in it. Without this the label is the
-    // one piece of TREK chrome on the map that is not in the app's typeface.
-    html: `<span style="display:inline-flex;flex-direction:column;align-items:flex-start;white-space:nowrap;background:${background};color:${ALT_LABEL_TEXT};border-radius:11px;padding:6px 11px;font-family:var(--font-system);font-size:13px;font-weight:600;line-height:1.25;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer;transition:none;${outline}"><span>${escapeHtml(label)}</span>${second}</span>`,
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
-  })
-}
 import L from 'leaflet'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { mapsApi } from '../../api/client'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import PlaceHoverCard from './PlaceHoverCard'
 import { ratingBadgeHtml } from './ratingBadge'
@@ -44,14 +14,8 @@ import ReservationOverlay from './ReservationOverlay'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
-import { escapeHtml } from '@trek/shared'
-import type { Day, Reservation, RouteVia } from '../../types'
+import type { Day, Reservation } from '../../types'
 import type { MapHoverInfo } from './mapHover'
-import { nightPauseMarker, NIGHT_PAUSE_MIN_ZOOM } from './nightPauseMarker'
-import NightPauseTooltip from './NightPauseTooltip'
-import ClusteredPois from './ClusteredPois'
-import { NightPauseDrag } from './NightPauseDrag'
-import type { DayBoundaryControls } from './dayBoundaryDrag'
 import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
 import { RASTER_FALLBACK_TILE_URL, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_MAX_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_MAXZOOM, AMAP_SATELLITE, attributionForTile } from '../../constants/mapDefaults'
@@ -59,7 +23,7 @@ import { crsForBasemap } from './gcj02Crs'
 import { isGcj02Basemap, resolveBasemap } from '../../utils/tileUrl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MapLayerSwitcher, MAP_LAYER_SWITCHER_INSET } from './MapLayerSwitcher'
-import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
+import { computeMapViewport, TILE_SIZE_RASTER, type GeoPointish, type ViewportPadding } from '../../utils/mapViewport'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -80,72 +44,15 @@ L.Icon.Default.mergeOptions({
 
 const iconCache = new Map<string, L.DivIcon>()
 
-// Tone dot for a plugin route's via points (charging stops, rest areas) — smaller
-// than the plugin markers so the day route's own stops stay visually dominant.
-const VIA_TONE_COLORS: Record<string, string> = {
-  default: '#4F46E5', success: '#10b981', warn: '#f59e0b', danger: '#ef4444',
-}
-const viaIconCache = new Map<string, L.DivIcon>()
-function routeViaIcon(tone: string): L.DivIcon {
-  const cached = viaIconCache.get(tone)
-  if (cached) return cached
-  const color = VIA_TONE_COLORS[tone] ?? VIA_TONE_COLORS.default
-  const icon = L.divIcon({
-    className: 'route-via-marker',
-    html: `<span style="display:block;width:13px;height:13px;border-radius:50%;background:#fff;border:3.5px solid ${color};box-shadow:0 1px 4px rgba(0,0,0,0.35);box-sizing:border-box"></span>`,
-    iconSize: [13, 13],
-    iconAnchor: [6.5, 6.5],
-  })
-  viaIconCache.set(tone, icon)
-  return icon
-}
-
-function formatViaDwell(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.round((seconds % 3600) / 60)
-  return h > 0 ? `${h} h ${m} min` : `${m} min`
-}
-
-function nightPauseIcon(via: RouteVia): L.DivIcon {
-  const key = `night:${via.nightPause!.day}:${via.nightPause!.atPlace}`
-  const cached = viaIconCache.get(key)
-  if (cached) return cached
-  const icon = L.divIcon({ className: 'night-pause-marker', html: nightPauseMarker(via), iconSize: [0, 0], iconAnchor: [0, 0] })
-  viaIconCache.set(key, icon)
-  return icon
-}
-
-function RouteViaMarker({ via, controls, eventHandlers, children }: {
-  via: RouteVia; controls?: DayBoundaryControls; eventHandlers?: L.LeafletEventHandlerFnMap; children?: React.ReactNode
-}) {
-  const [marker, setMarker] = useState<L.Marker | null>(null)
-  return <Marker ref={setMarker} position={[via.lat, via.lng]} icon={via.nightPause ? nightPauseIcon(via) : routeViaIcon(via.tone)}
-    alt={via.nightPause ? via.label : undefined} zIndexOffset={800} eventHandlers={eventHandlers}>
-    {children}
-    {via.nightPause && <NightPauseDrag marker={marker} via={via} controls={controls} />}
-  </Marker>
-}
-
 /**
  * Create a round photo-circle marker.
  * Shows image_url if available, otherwise category icon in colored circle.
  */
 function createPlaceIcon(place, orderNumbers, isSelected) {
-  const cacheKey = `${place.id}:${isSelected}:${place.image_url || ''}:${place.category_color || ''}:${place.category_icon || ''}:${place.stop_type || ''}:${orderNumbers?.join(',') || ''}:${(place as { rating_avg?: number | null }).rating_avg ?? ''}`
+  const cacheKey = `${place.id}:${isSelected}:${place.image_url || ''}:${place.category_color || ''}:${place.category_icon || ''}:${orderNumbers?.join(',') || ''}:${(place as { rating_avg?: number | null }).rating_avg ?? ''}`
   const cached = iconCache.get(cacheKey)
   if (cached) return cached
 
-  // A stop that interrupts the drive is drawn as its own small disc, before the photo
-  // branch below ever gets a look at it — the brand logo a fuel search comes back with
-  // is exactly what this replaces. No number badge either, for the same reason the rail
-  // gives it none: it is part of the drive, not one of the day's stops.
-  const service = serviceMarkerHtml(place.stop_type, isSelected)
-  if (service) {
-    const outer = serviceMarkerOuter(isSelected)
-    const icon = L.divIcon({ className: '', html: service, iconSize: [outer, outer], iconAnchor: [outer / 2, outer / 2] })
-    iconCache.set(cacheKey, icon)
-    return icon
-  }
   const size = isSelected ? 44 : 36
   // Allow-listed, not escaped: the value lands in style="…" of a divIcon, where
   // escaping stops the attribute breakout but still permits a CSS url().
@@ -225,15 +132,14 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
   return fallbackIcon
 }
 
-// Small coloured pin for an OSM "explore" POI — distinct from the photo-circle
-// markers of planned places; the colour matches its pill category.
+// Small coloured pin for an OSM "explore" POI — the colour matches its pill category.
 const poiIconCache = new Map<string, L.DivIcon>()
 function createPoiIcon(category: string, brandWikidata?: string | null) {
   // One flat disc in the category's colour with its icon, and never the chain's logo.
-  // The brands turned a corridor full of petrol stations into a row of advertisements,
-  // they were unreadable at pin size, and a brand with no logo on file fell back to a
-  // different picture entirely — so no two pins looked alike. `brandWikidata` is kept in
-  // the signature because the callers still have it; it simply no longer changes anything.
+  // Brand logos were unreadable at pin size, and a brand with no logo on file fell
+  // back to a different picture entirely — so no two pins looked alike.
+  // `brandWikidata` is kept in the signature because the callers still have it; it
+  // simply no longer changes anything.
   void brandWikidata
   const cached = poiIconCache.get(category)
   if (cached) return cached
@@ -256,51 +162,15 @@ function createPoiIcon(category: string, brandWikidata?: string | null) {
 // away under a stationary cursor, so the browser never fires mouseout — and
 // mouseover/mousemove during the pan animation would immediately re-set the
 // tooltip we just cleared (#1404).
-function CameraHoverGuard({ movingRef, onMoveStart, onZoom }: { movingRef: { current: boolean }; onMoveStart: () => void; onZoom: (zoom: number) => void }) {
+function CameraHoverGuard({ movingRef, onMoveStart }: { movingRef: { current: boolean }; onMoveStart: () => void }) {
   const map = useMap()
   useEffect(() => {
     const start = () => { movingRef.current = true; onMoveStart() }
-    const end = () => { movingRef.current = false; onZoom(map.getZoom()) }
-    onZoom(map.getZoom())
+    const end = () => { movingRef.current = false }
     map.on('movestart zoomstart', start)
     map.on('moveend zoomend', end)
     return () => { map.off('movestart zoomstart', start); map.off('moveend zoomend', end) }
-  }, [map, movingRef, onMoveStart, onZoom])
-  return null
-}
-
-/**
- * Takes a corridor hit dropped anywhere on the map and reports where it landed.
- *
- * The container rather than the drawn route: a polyline is a thin target, and the drop
- * coordinate answers "where on the drive" just as well once the caller projects it onto
- * the routed geometry.
- */
-function PoiDropTarget({ onPoiDropOnRoute }: { onPoiDropOnRoute?: (osmId: string, lat: number, lng: number) => void }) {
-  const map = useMap()
-  useEffect(() => {
-    if (!onPoiDropOnRoute) return
-    const container = map.getContainer()
-    const onDragOver = (e: DragEvent) => {
-      if (!draggedPoiId(e)) return
-      e.preventDefault()
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
-    }
-    const onDrop = (e: DragEvent) => {
-      const osmId = draggedPoiId(e)
-      if (!osmId) return
-      e.preventDefault()
-      const rect = container.getBoundingClientRect()
-      const at = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top])
-      onPoiDropOnRoute(osmId, at.lat, at.lng)
-    }
-    container.addEventListener('dragover', onDragOver)
-    container.addEventListener('drop', onDrop)
-    return () => {
-      container.removeEventListener('dragover', onDragOver)
-      container.removeEventListener('drop', onDrop)
-    }
-  }, [map, onPoiDropOnRoute])
+  }, [map, movingRef, onMoveStart])
   return null
 }
 
@@ -325,11 +195,10 @@ function ViewportController({ onViewportChange }: { onViewportChange?: (b: { sou
 interface SelectionControllerProps {
   places: Place[]
   selectedPlaceId: number | null
-  dayPlaces: Place[]
   paddingOpts: L.FitBoundsOptions
 }
 
-function SelectionController({ places, selectedPlaceId, dayPlaces, paddingOpts }: SelectionControllerProps) {
+function SelectionController({ places, selectedPlaceId, paddingOpts }: SelectionControllerProps) {
   const map = useMap()
   const prev = useRef(null)
 
@@ -382,7 +251,7 @@ function MapController({ center, zoom }: MapControllerProps) {
 // finished computing asynchronously — re-fit once more to include the full route
 // polyline, so a route that bulges past its stops stays in view (#1128).
 interface BoundsControllerProps {
-  places: Place[]
+  places: GeoPointish[]
   routeCoords: [number, number][]
   fitKey: number
   paddingOpts: L.FitBoundsOptions
@@ -660,14 +529,51 @@ const MemoMarker = memo(function MemoMarker({
   )
 })
 
+interface MapViewProps {
+  places?: Place[]
+  /** The selected day's stops — assignment projections (no trip_id), only their
+   *  coordinates are read (viewport fitting). */
+  dayPlaces?: GeoPointish[]
+  route?: [number, number][][] | null
+  /** One colour pair per entry of `route`, or absent for the blue the route has
+   *  always been. The trip-route overview passes these while colouring by day is on. */
+  routeColors?: { casing: string; line: string }[] | null
+  selectedPlaceId?: number | null
+  hoverDisabled?: boolean
+  onMarkerClick?: (id: number) => void
+  onMapClick?: () => void
+  onMapContextMenu?: ((e: L.LeafletMouseEvent) => void) | null
+  center?: [number, number]
+  zoom?: number
+  /** Callers hand down a URL that already carries the CARTO key; this is only
+   *  the shape a caller without one gets. */
+  tileUrl?: string
+  fitKey?: number
+  dayOrderMap?: Record<number, number[]>
+  leftWidth?: number
+  rightWidth?: number
+  hasInspector?: boolean
+  hasDayDetail?: boolean
+  reservations?: Reservation[]
+  showReservationStats?: boolean
+  visibleConnectionIds?: number[]
+  days?: Day[]
+  selectedDayId?: number | null
+  onReservationClick?: (reservationId: number) => void
+  pois?: Poi[]
+  onPoiClick?: (poi: Poi) => void
+  onViewportChange?: (b: { south: number; west: number; north: number; east: number }) => void
+  /** An explicit stretch of map to frame (see BoundsController.focusPoints). */
+  focusPoints?: [number, number][]
+  /** Chrome padding applied only while `focusPoints` is framed. */
+  fitPadding?: ViewportPadding
+}
+
 export const MapView = memo(function MapView({
   places = [],
   dayPlaces = [],
   route = null,
-  // One colour pair per entry of `route`, or absent for the blue the route has always
-  // been. Only the road trip passes these, and only while colouring by day is on.
   routeColors = null,
-  routeSegments = [],
   selectedPlaceId = null,
   hoverDisabled = false,
   onMarkerClick,
@@ -675,8 +581,6 @@ export const MapView = memo(function MapView({
   onMapContextMenu = null,
   center = DEFAULT_MAP_CENTER,
   zoom = DEFAULT_MAP_ZOOM,
-  // Callers hand down a URL that already carries the CARTO key; this is only
-  // the shape a caller without one gets.
   tileUrl = RASTER_FALLBACK_TILE_URL,
   fitKey = 0,
   dayOrderMap = {},
@@ -687,36 +591,15 @@ export const MapView = memo(function MapView({
   reservations = [] as Reservation[],
   showReservationStats = false,
   visibleConnectionIds = [] as number[],
-  showTransitRoutes = true,
   days = [] as Day[],
   selectedDayId = null,
   onReservationClick,
   pois = [] as Poi[],
   onPoiClick,
   onViewportChange,
-  tripId,
-  routeVias = [],
-  dayBoundaryControls,
-  hazards,
-  accessLines = [],
-  onPoiDropOnRoute,
-  onRouteClick,
-  roadtripVias,
-  onMoveVia,
-  onRemoveVia,
-  alternativeRoutes,
   focusPoints,
   fitPadding,
-  clusterLoosely = false,
-  activeAlternative,
-  onChooseAlternative,
-  onHighlightAlternative,
-}: any) {
-  // Road-trip hazard warnings are fetched here rather than injected — the
-  // MapViewAuto seam that used to do it is gone. An explicit `hazards` prop
-  // still wins, so a caller holding a feed of its own keeps what it passed.
-  const hazardsFeed = useRoadtripHazards(tripId, clusterLoosely)
-  const shownHazards = hazards ?? hazardsFeed.feed?.hazards
+}: MapViewProps) {
   // The caller hands over whatever the user configured. PanelMint is raster-only —
   // a stored vector style (a pre-conversion setting) resolves as 'vector' here and
   // is drawn as the OSM fallback rather than leaving the map blank.
@@ -748,16 +631,15 @@ export const MapView = memo(function MapView({
           // Native clicks avoid Leaflet suppressing a click after an earlier map drag.
           el.setAttribute('aria-label', poi.name)
           el.onclick = event => { event.stopPropagation(); poiClickRef.current?.(poi) }
-          if (onPoiDropOnRoute) makePoiDraggable(el, poi.osm_id)
         },
       }}
     >
       <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip">{poi.name}</Tooltip>
     </Marker>
-  )), [pois, onPoiClick, onPoiDropOnRoute])
+  )), [pois, onPoiClick])
   const visibleReservations = useMemo(() => (
-    visibleRouteReservations(reservations, { visibleConnectionIds, showTransitRoutes, selectedDayId, days })
-  ), [reservations, visibleConnectionIds, showTransitRoutes, selectedDayId, days])
+    visibleRouteReservations(reservations, { visibleConnectionIds })
+  ), [reservations, visibleConnectionIds])
   // Real road geometry for car/bus/taxi/bicycle bookings (straight line until it loads/if it fails).
   const transportRoutes = useTransportRoutes(visibleReservations)
   // Dynamic padding: account for sidebars + bottom inspector + day detail panel
@@ -792,7 +674,6 @@ export const MapView = memo(function MapView({
   // Hover state for the single tooltip overlay (replaces per-marker <Tooltip>)
   const [hoveredPlace, setHoveredPlace] = useState<MapHoverInfo | null>(null)
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
-  const [mapZoom, setMapZoom] = useState(0)
   const mapMovingRef = useRef(false)
 
   const handleMarkerHover = useCallback((place: MapHoverInfo, x: number, y: number) => {
@@ -956,7 +837,6 @@ export const MapView = memo(function MapView({
   ), [gpxTracks, hasCasingPane])
 
   const TooltipOverlay = !hoverDisabled && hoveredPlace && tooltipPos && !isTouchDevice
-    && (!hoveredPlace.routeVia || routeVias.includes(hoveredPlace.routeVia))
 
   const { position: userPosition, mode: trackingMode, error: trackingError, errorCode: trackingErrorCode, cycleMode: cycleTrackingMode } = useGeolocation()
   // Desktop browsers only get IP-based geolocation (city-level accuracy),
@@ -1051,35 +931,24 @@ export const MapView = memo(function MapView({
 
       <MapController center={center} zoom={zoom} />
       <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} routeCoords={dayPlaces.length > 0 ? routeCoords : []} fitKey={fitKey} paddingOpts={paddingOpts} framedOnMount={initialView.framed} focusPoints={focusPoints} fitPadding={fitPadding} />
-      <SelectionController places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} paddingOpts={paddingOpts} />
+      <SelectionController places={places} selectedPlaceId={selectedPlaceId} paddingOpts={paddingOpts} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
-      <CameraHoverGuard movingRef={mapMovingRef} onMoveStart={clearHover} onZoom={setMapZoom} />
+      <CameraHoverGuard movingRef={mapMovingRef} onMoveStart={clearHover} />
       <ViewportController onViewportChange={onViewportChange} />
-      <PoiDropTarget onPoiDropOnRoute={onPoiDropOnRoute} />
       <LeafletLocationLayer position={userPosition} mode={trackingMode} />
 
       <MarkerClusterGroup ref={registerClusterGroup} {...CLUSTER_OPTIONS} iconCreateFunction={createClusterIcon}>
         {markers}
       </MarkerClusterGroup>
 
-      {/* Apple-Maps style: darker-blue casing under a bright-blue core, rounded.
-          The casing carries the click when the route can be reshaped: it is the wider of
-          the two, so it is the one a pointer actually lands on. */}
+      {/* Apple-Maps style: darker-blue casing under a bright-blue core, rounded. */}
       {route && route.length > 0 && route.flatMap((seg, i) => seg.length > 1 ? [
         <Polyline
           key={`${i}-casing`}
           positions={seg}
           pathOptions={{ color: routeColors?.[i]?.casing ?? '#0a5cc2', weight: 8, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
-          interactive={!!onRouteClick}
-          eventHandlers={onRouteClick ? {
-            click: (e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => {
-              // Stops the map's own click, which would otherwise open the add-place menu
-              // underneath the new via.
-              e.originalEvent.stopPropagation()
-              onRouteClick(e.latlng.lat, e.latlng.lng)
-            },
-          } : undefined}
+          interactive={false}
         />,
         <Polyline
           key={`${i}-core`}
@@ -1088,70 +957,6 @@ export const MapView = memo(function MapView({
           interactive={false}
         />,
       ] : [])}
-
-      {/* The last bit to a place the road does not reach.
-          Dashed and thin, over the route rather than under it, because it is the one
-          piece of the line that is not driving: the router snapped the stop to the
-          nearest road and the drive really ends there. Same blue as the route, so it
-          reads as the end of that route and not as a second one. */}
-      {(accessLines ?? []).map((spur, i) => (
-        <Polyline
-          key={`access-${i}`}
-          positions={spur.line}
-          pathOptions={{ color: '#0a84ff', weight: 3, opacity: 0.85, dashArray: '2 7', lineCap: 'round' }}
-          interactive={false}
-        />
-      ))}
-
-      {/* The offered ways of driving one leg, over the route they replace. Clicking one
-          takes it, which is the same choice the bar above the map offers. */}
-      {/* Every option in blue over a white casing, after Apple Maps: they are all real
-          roads, so the difference is emphasis, not category. Grey was the first attempt
-          and it disappeared on Positron, which is almost entirely greys. */}
-      {(alternativeRoutes ?? []).flatMap((alt: AlternativeOverlay) => {
-        const active = activeAlternative === alt.index
-        return [
-          <Polyline
-            key={`alt-${alt.index}-casing`}
-            positions={alt.coordinates}
-            pathOptions={{ color: ALT_CASING, weight: active ? 9 : 8, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
-            interactive={false}
-          />,
-          <Polyline
-            key={`alt-${alt.index}`}
-            positions={alt.coordinates}
-            pathOptions={{
-              color: alt.color,
-              weight: active ? 6 : 4,
-              opacity: active ? 1 : 0.9,
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
-            eventHandlers={onChooseAlternative ? {
-              click: (e: { originalEvent: MouseEvent }) => { e.originalEvent.stopPropagation(); onChooseAlternative(alt.index) },
-              mouseover: () => onHighlightAlternative?.(alt.index),
-              mouseout: () => onHighlightAlternative?.(null),
-            } : undefined}
-          />,
-          // The drive time on the road itself, the way Apple labels them.
-          <Marker
-            key={`alt-${alt.index}-label`}
-            position={[alt.at.lat, alt.at.lng]}
-            zIndexOffset={600}
-            icon={alternativeLabelIcon(alt.label, alt.note, alt.labelBg, active)}
-            eventHandlers={onChooseAlternative ? {
-              click: () => onChooseAlternative(alt.index),
-              mouseover: () => onHighlightAlternative?.(alt.index),
-              mouseout: () => onHighlightAlternative?.(null),
-            } : undefined}
-          />,
-        ]
-      })}
-
-      {/* The handles that shape the drive. After the route so they sit on top of it. */}
-      {roadtripVias ? (
-        <RoadtripViaMarkers viasByDay={roadtripVias} onMoveVia={onMoveVia} onRemoveVia={onRemoveVia} />
-      ) : null}
 
       {/* GPX imported route geometries */}
       <TrackCasingPane onReady={setHasCasingPane} />
@@ -1165,28 +970,7 @@ export const MapView = memo(function MapView({
         roadRoutes={transportRoutes}
       />
 
-      {shownHazards?.length > 0 && <HazardLayers hazards={shownHazards} />}
-
-      <ClusteredPois pois={pois} enabled={clusterLoosely} onPoiClick={onPoiClick}>{poiMarkers}</ClusteredPois>
-      {/* Charging stops / rest areas a plugin route places on the drawn day route.
-          Host-vetted data (server-normalized), rendered as plain tone dots. */}
-      {(routeVias as RouteVia[]).filter(v => !v.nightPause || mapZoom >= NIGHT_PAUSE_MIN_ZOOM).map((v, i) => (
-        <RouteViaMarker key={v.nightPause ? `night-${v.nightPause.day}` : `route-via-${i}`} via={v} controls={dayBoundaryControls}
-          eventHandlers={v.hoverCard ? {
-            mouseover: e => handleMarkerHover({ name: v.label, routeVia: v }, e.originalEvent.clientX, e.originalEvent.clientY),
-            mousemove: e => handleMarkerHover({ name: v.label, routeVia: v }, e.originalEvent.clientX, e.originalEvent.clientY),
-            mouseout: handleMarkerHoverOut,
-          } : undefined}
-        >
-          {(!v.hoverCard || isTouchDevice) && (v.label || v.dwellSeconds != null) && (
-            <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
-              {v.label}
-              {v.label && v.dwellSeconds != null ? ' · ' : ''}
-              {v.dwellSeconds != null ? formatViaDwell(v.dwellSeconds) : ''}
-            </Tooltip>
-          )}
-        </RouteViaMarker>
-      ))}
+      {poiMarkers}
     </MapContainer>
     {isMobile && <LocationButton
       mode={trackingMode}
@@ -1207,10 +991,7 @@ export const MapView = memo(function MapView({
     </div>
     </div>
 
-    {TooltipOverlay && hoveredPlace.routeVia?.nightPause && (
-      <NightPauseTooltip label={hoveredPlace.name ?? ''} x={tooltipPos.x} y={tooltipPos.y} />
-    )}
-    {TooltipOverlay && !hoveredPlace.routeVia?.nightPause && (
+    {TooltipOverlay && (
       <PlaceHoverCard
         x={tooltipPos.x}
         y={tooltipPos.y}

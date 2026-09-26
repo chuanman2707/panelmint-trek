@@ -78,11 +78,6 @@ export * from './geo/gcj02';
 // i18n registry (language list + pure helpers — no locale data)
 export * from './i18n/languages';
 
-// Plugin permission list, generated from the host's protocol/envelope.ts
-// (server/scripts/gen-plugin-facts.ts). The admin consent screens render from it.
-export * from './plugin-permissions';
-// Plugin settings contracts: the settings-field descriptor + admin instance-config wire shapes.
-export * from './plugins/plugins.schema';
 export * from './roadtrip/preferences.schema';
 export * from './roadtrip/hazards.schema';
 export * from './roadtrip/planning.schema';

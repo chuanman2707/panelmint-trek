@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Conexiones',
   'map.showConnections': 'Mostrar rutas de reservas',
   'map.hideConnections': 'Ocultar rutas de reservas',
   'poi.searchThisArea': 'Buscar en esta zona',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Actividades',
   'map.showAllConnections': 'Mostrar todas las rutas de reservas',
   'map.hideAllConnections': 'Ocultar todas las rutas de reservas',
-  'map.baseLayer.default': 'Mapa',
-  'map.baseLayer.satellite': 'Satélite',
   'map.baseLayer.switchToSatellite': 'Cambiar a vista de satélite',
   'map.baseLayer.switchToDefault': 'Cambiar a vista de mapa',
   'map.location.denied': 'El acceso a la ubicación está bloqueado. Revisa los ajustes del dispositivo; una app instalada tiene su propio permiso de ubicación, independiente del navegador.',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': 'Mostrar todo el viaje',
   'map.overview.hide': 'Ocultar todo el viaje',
   'map.overview.total': 'Distancia total',
-  'map.attribution': 'Créditos del mapa',
   'map.overview.unrouted': 'No se pudieron calcular {count} tramo(s), así que las distancias están incompletas.',
   'map.overview.dayUnrouted': 'No se pudieron calcular {count} tramo(s) de este día',
 };

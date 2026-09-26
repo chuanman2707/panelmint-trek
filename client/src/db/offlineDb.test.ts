@@ -14,18 +14,12 @@ import {
   upsertPlaces,
   upsertBudgetItems,
   upsertReservations,
-  upsertTripFiles,
   upsertAccommodations,
   upsertTripMembers,
   upsertTags,
   upsertCategories,
   upsertSyncMeta,
-  getCachedBlob,
-  enforceBlobBudget,
-  BLOB_CACHE_MAX_ENTRIES,
-  BLOB_CACHE_MAX_BYTES,
 } from './offlineDb'
-import type { BlobCacheEntry, QueuedMutation } from './offlineDb'
 import type { Accommodation, TripMember } from '../types'
 import {
   buildTrip,
@@ -33,18 +27,9 @@ import {
   buildPlace,
   buildBudgetItem,
   buildReservation,
-  buildTripFile,
   buildTag,
   buildCategory,
 } from '../../tests/helpers/factories'
-
-function blobEntry(url: string, cachedAt: number, bytes: number, tripId = 1): BlobCacheEntry {
-  return { url, tripId, blob: new Blob(['x'.repeat(bytes)]), bytes, mime: 'application/pdf', cachedAt }
-}
-
-function queued(id: string, tripId: number, status: QueuedMutation['status']): QueuedMutation {
-  return { id, tripId, method: 'PUT', url: `/trips/${tripId}/places/1`, body: {}, createdAt: 1, status, attempts: 0, lastError: null }
-}
 
 beforeEach(async () => {
   await clearAll()
@@ -62,7 +47,6 @@ describe('offlineDb — bulk upsert helpers', () => {
     await upsertPlaces([buildPlace({ id: 1, trip_id: 1 })])
     await upsertBudgetItems([buildBudgetItem({ id: 1, trip_id: 1 })])
     await upsertReservations([buildReservation({ id: 1, trip_id: 1 })])
-    await upsertTripFiles([buildTripFile({ id: 1, trip_id: 1 })])
     await upsertAccommodations([{ id: 1, trip_id: 1, start_day_id: 1, end_day_id: 2 } as Accommodation])
     await upsertTags([buildTag({ id: 1 })])
     await upsertCategories([buildCategory({ id: 1 })])
@@ -72,7 +56,6 @@ describe('offlineDb — bulk upsert helpers', () => {
     expect(await offlineDb.places.count()).toBe(1)
     expect(await offlineDb.budgetItems.count()).toBe(1)
     expect(await offlineDb.reservations.count()).toBe(1)
-    expect(await offlineDb.tripFiles.count()).toBe(1)
     expect(await offlineDb.accommodations.count()).toBe(1)
     expect(await offlineDb.tags.count()).toBe(1)
     expect(await offlineDb.categories.count()).toBe(1)
@@ -92,81 +75,12 @@ describe('offlineDb — bulk upsert helpers', () => {
   })
 
   it('FE-DB-OFFLINE-003: upsertSyncMeta overwrites the previous row for the same trip', async () => {
-    await upsertSyncMeta({ tripId: 1, lastSyncedAt: 100, status: 'idle', tilesBbox: null, filesCachedCount: 0 })
-    await upsertSyncMeta({ tripId: 1, lastSyncedAt: 200, status: 'error', tilesBbox: [0, 0, 1, 1], filesCachedCount: 3 })
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: 100, status: 'idle', tilesBbox: null })
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: 200, status: 'error', tilesBbox: [0, 0, 1, 1] })
 
     const meta = await offlineDb.syncMeta.get(1)
-    expect(meta).toMatchObject({ lastSyncedAt: 200, status: 'error', filesCachedCount: 3 })
+    expect(meta).toMatchObject({ lastSyncedAt: 200, status: 'error' })
     expect(await offlineDb.syncMeta.count()).toBe(1)
-  })
-})
-
-describe('offlineDb — getCachedBlob', () => {
-  it('FE-DB-OFFLINE-004: returns null when the url was never cached', async () => {
-    expect(await getCachedBlob('/api/files/1/download')).toBeNull()
-  })
-
-  it('FE-DB-OFFLINE-005: reapplies the stored MIME when the persisted Blob lost its type', async () => {
-    await offlineDb.blobCache.put({
-      url: '/a.csv', tripId: 1, blob: new Blob(['a,b']), bytes: 3, mime: 'text/csv', cachedAt: 1,
-    })
-
-    const blob = await getCachedBlob('/a.csv')
-    expect(blob).toBeInstanceOf(Blob)
-    expect(blob!.type).toBe('text/csv')
-  })
-
-  it('FE-DB-OFFLINE-006: falls back to octet-stream when neither the Blob nor the row has a type', async () => {
-    await offlineDb.blobCache.put({
-      url: '/a.bin', tripId: 1, blob: new Blob(['a']), bytes: 1, mime: '', cachedAt: 1,
-    })
-
-    expect((await getCachedBlob('/a.bin'))!.type).toBe('application/octet-stream')
-  })
-
-  it('FE-DB-OFFLINE-007: a read error degrades to null instead of throwing', async () => {
-    vi.spyOn(offlineDb.blobCache, 'get').mockRejectedValue(new Error('db closed'))
-    expect(await getCachedBlob('/a.pdf')).toBeNull()
-  })
-})
-
-describe('offlineDb — blob cache budget', () => {
-  it('FE-DB-OFFLINE-013: exposes conservative defaults', () => {
-    expect(BLOB_CACHE_MAX_ENTRIES).toBe(200)
-    expect(BLOB_CACHE_MAX_BYTES).toBe(100 * 1024 * 1024)
-  })
-
-  it('FE-DB-OFFLINE-014: a cache within both budgets is left untouched', async () => {
-    await offlineDb.blobCache.bulkPut([blobEntry('/1', 1, 10), blobEntry('/2', 2, 10)])
-    await enforceBlobBudget(5, 1000)
-    expect(await offlineDb.blobCache.count()).toBe(2)
-  })
-
-  it('FE-DB-OFFLINE-015: evicts oldest-first until the entry count fits', async () => {
-    await offlineDb.blobCache.bulkPut([blobEntry('/1', 1, 10), blobEntry('/2', 2, 10), blobEntry('/3', 3, 10)])
-
-    await enforceBlobBudget(1, 1000)
-
-    expect((await offlineDb.blobCache.toArray()).map(e => e.url)).toEqual(['/3'])
-  })
-
-  it('FE-DB-OFFLINE-016: evicts oldest-first until the byte budget fits', async () => {
-    await offlineDb.blobCache.bulkPut([blobEntry('/1', 1, 100), blobEntry('/2', 2, 100), blobEntry('/3', 3, 100)])
-
-    await enforceBlobBudget(100, 150)
-
-    expect((await offlineDb.blobCache.toArray()).map(e => e.url)).toEqual(['/3'])
-  })
-
-  it('FE-DB-OFFLINE-017: rows written before the bytes column are counted as zero', async () => {
-    await offlineDb.blobCache.bulkPut([
-      { url: '/legacy', tripId: -1, blob: new Blob(['x']), mime: '', cachedAt: 1 } as unknown as BlobCacheEntry,
-      blobEntry('/2', 2, 100),
-    ])
-
-    await enforceBlobBudget(100, 100)
-
-    expect(await offlineDb.blobCache.count()).toBe(2)
   })
 })
 
@@ -178,12 +92,9 @@ describe('offlineDb — clearTripData', () => {
     await upsertPlaces([buildPlace({ id: 1, trip_id: 1 }), buildPlace({ id: 2, trip_id: 2 })])
     await upsertBudgetItems([buildBudgetItem({ id: 1, trip_id: 1 })])
     await upsertReservations([buildReservation({ id: 1, trip_id: 1 })])
-    await upsertTripFiles([buildTripFile({ id: 1, trip_id: 1 })])
     await upsertAccommodations([{ id: 1, trip_id: 1, start_day_id: 1, end_day_id: 2 } as Accommodation])
     await upsertTripMembers(1, [{ id: 9, username: 'ana', role: 'owner' } as unknown as TripMember])
-    await upsertSyncMeta({ tripId: 1, lastSyncedAt: 1, status: 'idle', tilesBbox: null, filesCachedCount: 0 })
-    await offlineDb.blobCache.put(blobEntry('/f1', 1, 10, 1))
-    await offlineDb.blobCache.put(blobEntry('/f2', 2, 10, 2))
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: 1, status: 'idle', tilesBbox: null })
 
     await clearTripData(1)
 
@@ -192,29 +103,12 @@ describe('offlineDb — clearTripData', () => {
     expect(await offlineDb.places.where('trip_id').equals(1).count()).toBe(0)
     expect(await offlineDb.budgetItems.count()).toBe(0)
     expect(await offlineDb.reservations.count()).toBe(0)
-    expect(await offlineDb.tripFiles.count()).toBe(0)
     expect(await offlineDb.accommodations.count()).toBe(0)
     expect(await offlineDb.tripMembers.count()).toBe(0)
     expect(await offlineDb.syncMeta.get(1)).toBeUndefined()
 
     expect(await offlineDb.trips.get(2)).toBeDefined()
     expect(await offlineDb.days.where('trip_id').equals(2).count()).toBe(1)
-    expect((await offlineDb.blobCache.toArray()).map(e => e.url)).toEqual(['/f2'])
-  })
-
-  it('FE-DB-OFFLINE-019: keeps unsynced work and only purges dead failed mutations', async () => {
-    await offlineDb.mutationQueue.bulkPut([
-      queued('m-pending', 1, 'pending'),
-      queued('m-syncing', 1, 'syncing'),
-      queued('m-conflict', 1, 'conflict'),
-      queued('m-failed', 1, 'failed'),
-      queued('m-other-trip', 2, 'failed'),
-    ])
-
-    await clearTripData(1)
-
-    const left = (await offlineDb.mutationQueue.toArray()).map(m => m.id).sort()
-    expect(left).toEqual(['m-conflict', 'm-other-trip', 'm-pending', 'm-syncing'])
   })
 })
 
@@ -277,7 +171,7 @@ describe('offlineDb — connection proxy', () => {
     expect((offlineDb as unknown as Record<string, unknown>).__marker).toBeUndefined()
   })
 
-  it('FE-DB-OFFLINE-029: upgrading a pre-v3 cache backfills tripId and bytes on blob rows', async () => {
+  it('FE-DB-OFFLINE-029: upgrading a pre-v11 cache drops the cut tables', async () => {
     const legacy = new Dexie('trek-offline-u55')
     legacy.version(1).stores({
       trips: 'id',
@@ -299,14 +193,17 @@ describe('offlineDb — connection proxy', () => {
       categories: 'id',
     })
     await legacy.open()
+    await legacy.table('tripFiles').put({ id: 1, trip_id: 1 })
     await legacy.table('blobCache').put({ url: '/legacy.pdf', blob: new Blob(['abc']), mime: 'application/pdf', cachedAt: 1 })
     legacy.close()
 
     await reopenForUser(55)
 
-    const row = await offlineDb.blobCache.get('/legacy.pdf')
-    expect(row!.tripId).toBe(-1)
-    expect(typeof row!.bytes).toBe('number')
+    // v11 dropped tripFiles/blobCache/mutationQueue/roadtripPreferences — the
+    // tables are gone, not just emptied.
+    expect(offlineDb.tables.map(t => t.name)).not.toContain('tripFiles')
+    expect(offlineDb.tables.map(t => t.name)).not.toContain('blobCache')
+    expect(offlineDb.tables.map(t => t.name)).not.toContain('mutationQueue')
   })
 })
 

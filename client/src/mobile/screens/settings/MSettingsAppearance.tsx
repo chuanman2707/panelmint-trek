@@ -14,7 +14,6 @@ import {
 } from '@trek/shared'
 import MToggle from '../../components/MToggle'
 import { MSetCard, MSetEyebrow, MSetSegments, MSetRow } from './MSettingsUi'
-import MMobileNavCustomizer from './MMobileNavCustomizer'
 import MMobileDashOrder from './MMobileDashOrder'
 
 // ── WCAG contrast helpers (custom-accent legibility hint) ────────────────────
@@ -40,13 +39,15 @@ const isHex = (v: string) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)
 type DesktopWidgetKey = keyof AppearanceConfig['dashboard']['desktop']
 type MobileWidgetKey = keyof AppearanceConfig['dashboard']['mobile']
 
+// The `collections` widget key survives in the stored schema, but the widget
+// itself is gone — no toggle for it.
 const DESKTOP_GROUPS: { id: string; master?: DesktopWidgetKey; keys: DesktopWidgetKey[] }[] = [
   { id: 'belowHero', keys: ['atlas', 'tripsTotal', 'daysTraveled', 'distanceFlown'] },
-  { id: 'rightSidebar', master: 'sidebar', keys: ['currency', 'collections', 'timezones', 'upcomingReservations'] },
+  { id: 'rightSidebar', master: 'sidebar', keys: ['currency', 'timezones', 'upcomingReservations'] },
 ]
 const MOBILE_GROUPS: { id: string; keys: MobileWidgetKey[] }[] = [
   { id: 'belowHero', keys: ['tripsTotal', 'daysTraveled'] },
-  { id: 'bottomOfPage', keys: ['currency', 'collections', 'timezones', 'upcomingReservations'] },
+  { id: 'bottomOfPage', keys: ['currency', 'timezones', 'upcomingReservations'] },
 ]
 
 function SliderRow({ label, sub, value, onChange }: { label: string; sub?: string; value: number; onChange: (v: number) => void }) {
@@ -256,10 +257,7 @@ export default function MSettingsAppearance() {
       </MSetCard>
 
       <MSetCard title={t('settings.appearance.mobile')} icon={Smartphone} className="mt-3">
-        <MSetEyebrow className="mb-[6px]">{t('settings.appearance.mobileNav')}</MSetEyebrow>
-        <MMobileNavCustomizer value={cfg.mobileNav} onChange={(mn) => update({ mobileNav: mn })} />
-
-        <MSetEyebrow className="mb-[6px] mt-[14px]">{t('settings.appearance.dashOrder')}</MSetEyebrow>
+        <MSetEyebrow className="mb-[6px]">{t('settings.appearance.dashOrder')}</MSetEyebrow>
         <p className="-mt-[2px] mb-2 font-geist text-[0.625rem] leading-relaxed text-m-muted">{t('settings.appearance.dashOrder.hint')}</p>
         <MMobileDashOrder cfg={cfg} onChange={(order) => update({ dashboard: { ...cfg.dashboard, mobileOrder: order } })} />
       </MSetCard>

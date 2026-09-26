@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { isChunkLoadError, reloadOnceForChunk } from './chunkReload'
 
 /**
@@ -6,17 +5,10 @@ import { isChunkLoadError, reloadOnceForChunk } from './chunkReload'
  * rejected promises nobody caught.
  *
  * Deliberately quiet. It logs, and it heals one specific case — a dynamic import
- * that failed because the chunk is gone after a deploy. It does not toast and it
- * does not redirect: the axios interceptor already redirects on 401/403 and
- * rewrites 429 (api/client.ts), and there are 600+ `toast.error` call sites that
- * report their own failures. Reacting again here would mean double toasts and, in
- * the redirect cases, redirect loops.
+ * that failed because the chunk is gone after a deploy. It does not toast: the
+ * hundreds of `toast.error` call sites report their own failures, and reacting
+ * again here would mean double toasts.
  */
-
-/** Axios rejects onward from its interceptor, so every caller without a catch lands here. */
-function isHandledNetworkError(reason: unknown): boolean {
-  return axios.isAxiosError(reason)
-}
 
 function onUnhandledRejection(event: PromiseRejectionEvent): void {
   const reason = event.reason
@@ -27,8 +19,6 @@ function onUnhandledRejection(event: PromiseRejectionEvent): void {
     reloadOnceForChunk()
     return
   }
-
-  if (isHandledNetworkError(reason)) return
 
   console.error('[unhandledrejection]', reason)
 }

@@ -1,30 +1,18 @@
 /**
- * Place enrichment from the free sources — the browser port of the server's
- * `place-enrichment.service.ts`. The photo ladder, the description ladder and
- * the facts/hours/rating collectors are kept one-for-one; what changed is the
- * tail of the pipeline:
+ * Place enrichment from the free sources — a description, facts, hours and a
+ * rating for a place the user is looking at. The photo ladder is gone
+ * one-for-one with the photo UI: there is no byte proxy and nowhere to show
+ * candidates, so `photos` is answered empty rather than fetched.
  *
- *  - No byte proxying. The server downloaded every candidate through its photo
- *    cache and handed out `/api/maps/place-photo/<key>/bytes` URLs so provider
- *    hosts never saw a user's IP and Google URLs could not expire. A client-only
- *    build has nowhere to put that cache — the `url` a candidate carries is the
- *    Commons `thumburl` itself, fetched by the `<img>` tag when it renders.
- *    Attribution fields are unchanged: author, licence and the file's
- *    description page travel with every candidate exactly as before.
  *  - No instance cache. The server's week-long `place_details_cache` row served
  *    every user of an install; the equivalent here is a module-level Map with
  *    the same TTL split (a week for an answer, ten minutes for none) that lives
  *    as long as the tab does. The "don't cache what came off the caller's own
  *    details" rule is kept even so — it costs nothing and keeps the semantics
  *    identical if a shared cache ever returns.
- *  - No Google rungs and no index description — there is no key and no TREK
- *    Places API to ask. The free ladder is the whole ladder: Wikidata claims →
- *    wiki lead image → Commons category → anything photographed nearby, the
- *    last gated by `nearbyWouldMislead` exactly as before.
- *
- * The pieces that make a picture trustworthy (page-id dedup, burst-series
- * collapse, the author cap, the not-a-photo rejections) live in
- * `rankCommonsCandidates` in `./geoHelpers.ts`.
+ *  - No index description — there is no TREK Places API to ask. Wikivoyage and
+ *    Wikipedia extracts, then the brand's article for a chain, are the whole
+ *    description ladder.
  */
 
 import {
@@ -35,83 +23,33 @@ import {
   type PlaceDescription,
   type PlaceFact,
   type PlaceHours,
-  type PlacePhotoCandidate,
   type PlaceRating,
 } from '@trek/shared'
 import {
   buildOsmDetails,
-  claimValue,
-  normalizeCategoryName,
-  normalizeFileTitle,
   parseWikipediaTag,
-  rankCommonsCandidates,
   readBrandIdentity,
   readWikiIdentity,
-  stripWikiMarkup,
   toWikiLang,
-  wikidataImageClaims,
-  type WikidataClaims,
   type WikiIdentity,
 } from './geoHelpers'
 import { details as fetchPlaceDetails, resolveOsmIdentity } from './places'
 
 const WIKI_TIMEOUT_MS = 6000
 const IDENTITY_TIMEOUT_MS = 2500
-const COMMONS_CAP = 5
-
 /** The cache keeps its TTL split even in memory: a bad provider minute is not a week-long blank. */
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const EMPTY_CACHE_TTL_MS = 10 * 60 * 1000
 const enrichCache = new Map<string, { at: number; value: CachedEnrichment }>()
 
-/**
- * Credit lines, keyed by candidate key. The proxy URL carried the credit lookup
- * on the server; here the strip already shows author and licence, and this map
- * is what the `placePhotoCredit` facade answers from for a `key` that outlives
- * the strip (a picked `image_url` no longer encodes the key, so misses are
- * common and benign).
- */
-const creditByKey = new Map<string, string>()
-const CREDIT_MAP_MAX = 400
-
-export interface CommonsCandidate {
-  photoUrl: string
-  attribution: string | null
-  license: string | null
-  licenseUrl: string | null
-  sourceUrl: string | null
-  pageId: number | null
-  title: string | null
-  width: number | null
-  height: number | null
-  descriptors: string | null
-}
-
-interface WikiCommonsPage {
-  pageid?: number
-  title?: string
-  imageinfo?: {
-    url?: string
-    thumburl?: string
-    descriptionurl?: string
-    mime?: string
-    width?: number
-    height?: number
-    extmetadata?: Record<string, { value?: string }>
-  }[]
-}
-
 /** What the free sources need to know about a place. */
 interface PlaceIdentity extends WikiIdentity {
   osmTags: Record<string, string> | null
-  /** The chain this place belongs to — a description may fall back to it; the picture ladder never reads it. */
+  /** The chain this place belongs to — a description may fall back to it. */
   brand: { wikidata: string | null; wikipedia: string | null }
 }
 
-type CommonsPick = CommonsCandidate & { rung: 'wikidata' | 'wikipedia' | 'category' | 'nearby' }
-
 interface CachedEnrichment {
-  photos: PlacePhotoCandidate[]
   description: PlaceDescription | null
   facts: PlaceFact[]
   hours: PlaceHours | null
@@ -119,75 +57,7 @@ interface CachedEnrichment {
 }
 
 function hasAnything(value: CachedEnrichment): boolean {
-  return !!(value.photos.length || value.description || value.facts.length || value.hours || value.rating)
-}
-
-function push(pool: CommonsPick[], candidates: CommonsCandidate[], rung: CommonsPick['rung']): void {
-  for (const candidate of candidates) pool.push({ ...candidate, rung })
-}
-
-/**
- * The credit line stored for a candidate — author and licence in one string,
- * the only record of who made a picture once the dialog is gone.
- */
-export function creditLine(attribution: string | null, license: string | null): string | null {
-  if (attribution && license) return `${attribution} · ${license}`
-  return attribution || license || null
-}
-
-/** What `mapsApi.placePhotoCredit(key)` answers with. */
-export function photoCredit(key: string): { credit: string | null } {
-  return { credit: creditByKey.get(key) ?? null }
-}
-
-/**
- * Cache key for one candidate picture — keyed by which picture it is, not by
- * where it sat in the strip. The ladder returns different counts depending on
- * which providers answered, so a positional key would credit the wrong person.
- * FNV-1a rather than the server's sha1: `crypto.subtle` is async and this key
- * is computed synchronously mid-render; 32 bits is plenty for ≤5 candidates.
- */
-export function candidateKey(placeId: string, identity: string): string {
-  let h = 0x811c9dc5
-  for (let i = 0; i < identity.length; i++) {
-    h ^= identity.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return `${placeId}~p${(h >>> 0).toString(16).padStart(8, '0')}`
-}
-
-/**
- * Categories where a picture taken nearby is almost certainly of something
- * else, so the bottom rung of the ladder is skipped for them entirely.
- *
- * Measured across 600 places in six cities: 2 percent of ordinary businesses
- * have a picture on Wikimedia, against 70 percent of churches. So for a cafe
- * the curated rungs practically never fire and the fallback practically always
- * does, which is how the town hall ends up over the doner shop. A missing
- * picture is honest; a confident picture of the building opposite is not.
- */
-const NEARBY_MISLEADS = [
-  'restaurant', 'cafe', 'coffee', 'bar', 'pub', 'bakery', 'fast_food', 'food',
-  'eatery', 'biergarten', 'ice_cream', 'shop', 'store', 'supermarket', 'retail',
-  'pharmacy', 'hairdresser', 'kiosk', 'convenience', 'butcher', 'greengrocer',
-  'clothing', 'florist', 'bank', 'atm', 'nightclub',
-]
-
-/**
- * True when a nearby picture would more likely mislead than inform. Fails OPEN
- * on an unknown category: silently dropping pictures for everything unlabelled
- * would take them away from the places where the fallback actually works.
- */
-export function nearbyWouldMislead(details: Record<string, unknown> | null): boolean {
-  if (!details) return false
-  const haystack = [
-    details.category, details.category_path, details.amenity, details.shop, details.cuisine,
-  ]
-    .filter((v): v is string => typeof v === 'string')
-    .join(' ')
-    .toLowerCase()
-  if (!haystack) return false
-  return NEARBY_MISLEADS.some((word) => haystack.includes(word))
+  return !!(value.description || value.facts.length || value.hours || value.rating)
 }
 
 /** OSM yes/no tags; anything else (limited, only, designated) is shown verbatim. */
@@ -278,253 +148,6 @@ async function wikiFetch(url: string, signal: AbortSignal): Promise<unknown | nu
 }
 
 /** Shared shaping for every Commons query (coordinate, category, Wikidata, batch). */
-function toCommonsCandidates(
-  pages: Record<string, WikiCommonsPage> | undefined,
-  limit: number,
-): CommonsCandidate[] {
-  if (!pages) return []
-  const out: CommonsCandidate[] = []
-  // entries(), not values(): the map key is the page id, and for the queries
-  // that reach a file by title it is the only place the id appears.
-  for (const [key, page] of Object.entries(pages)) {
-    const info = page.imageinfo?.[0]
-    // Only use actual photos (JPEG/PNG), skip SVGs and PDFs.
-    const mime = info?.mime || ''
-    if (!info?.url || !(mime.startsWith('image/jpeg') || mime.startsWith('image/png'))) continue
-    const meta = info.extmetadata
-    const pageId = page.pageid ?? (Number.isInteger(Number(key)) ? Number(key) : null)
-    out.push({
-      // iiurlwidth=400 makes Commons also return a scaled thumburl. Prefer it —
-      // info.url is the full-resolution original (multi-megapixel exports).
-      photoUrl: info.thumburl ?? info.url,
-      attribution: stripWikiMarkup(meta?.Artist?.value),
-      license: stripWikiMarkup(meta?.LicenseShortName?.value) ?? stripWikiMarkup(meta?.UsageTerms?.value),
-      licenseUrl: meta?.LicenseUrl?.value?.trim() || null,
-      sourceUrl: info.descriptionurl || null,
-      pageId: pageId && pageId > 0 ? pageId : null,
-      title: page.title ?? null,
-      width: info.width ?? null,
-      height: info.height ?? null,
-      descriptors:
-        [
-          stripWikiMarkup(meta?.ObjectName?.value),
-          stripWikiMarkup(meta?.ImageDescription?.value),
-          stripWikiMarkup(meta?.Categories?.value),
-        ]
-          .filter(Boolean)
-          .join(' | ') || null,
-    })
-    if (out.length >= limit) break
-  }
-  return out
-}
-
-/**
- * Anything photographed near a coordinate — the bottom rung of the picture
- * ladder, and the only one with no claim on the subject at all. 60 metres is
- * roughly "the same building and its neighbours"; the 300 it used to be is a
- * whole city block, which is how the wrong answer came back confident.
- */
-export async function fetchCommonsCandidates(
-  lat: number,
-  lng: number,
-  limit = 5,
-  signal?: AbortSignal,
-): Promise<CommonsCandidate[]> {
-  const params = new URLSearchParams({
-    action: 'query',
-    format: 'json',
-    generator: 'geosearch',
-    ggsprimary: 'all',
-    ggsnamespace: '6',
-    ggsradius: '60',
-    ggscoord: `${lat}|${lng}`,
-    // Deliberately more than the caller asked for: the ranker needs a pool to
-    // reject from, and geosearch charges the same for one result as for twenty.
-    ggslimit: String(Math.max(1, Math.min(Math.max(limit * 4, 8), 20))),
-    prop: 'imageinfo',
-    iiprop: 'url|extmetadata|mime|size',
-    iiurlwidth: '400',
-  })
-  const data = (await wikiFetch(
-    `https://commons.wikimedia.org/w/api.php?${params}`,
-    signal ?? AbortSignal.timeout(WIKI_TIMEOUT_MS),
-  )) as { query?: { pages?: Record<string, WikiCommonsPage> } } | null
-  return toCommonsCandidates(data?.query?.pages, Number(params.get('ggslimit')))
-}
-
-/** Commons images from a category — the set of pictures OF a place. */
-export async function fetchCommonsCategoryCandidates(
-  category: string,
-  limit = 5,
-  signal?: AbortSignal,
-): Promise<CommonsCandidate[]> {
-  const name = normalizeCategoryName(category)
-  if (!name) return []
-  // Overfetch: the ranker throws away survey imagery, diagrams and repeats, and
-  // it can only do that from a pool bigger than the strip.
-  const poolSize = String(Math.max(1, Math.min(limit * 3, 20)))
-
-  // `generator=search` first. `categorymembers` orders alphabetically by file
-  // name, which is not a quality signal in any direction: "Category:Brandenburg
-  // Gate" opens with an .ogg pronunciation, a marathon photo and six
-  // near-identical press shots.
-  const search = new URLSearchParams({
-    action: 'query',
-    format: 'json',
-    generator: 'search',
-    gsrsearch: `incategory:"${name}" filetype:bitmap`,
-    gsrnamespace: '6',
-    gsrlimit: poolSize,
-    prop: 'imageinfo',
-    iiprop: 'url|extmetadata|mime|size',
-    iiurlwidth: '400',
-  })
-  const members = new URLSearchParams({
-    action: 'query',
-    format: 'json',
-    generator: 'categorymembers',
-    gcmtitle: `Category:${name}`,
-    gcmtype: 'file',
-    gcmlimit: poolSize,
-    prop: 'imageinfo',
-    iiprop: 'url|extmetadata|mime|size',
-    iiurlwidth: '400',
-  })
-
-  for (const params of [search, members]) {
-    const data = (await wikiFetch(
-      `https://commons.wikimedia.org/w/api.php?${params}`,
-      signal ?? AbortSignal.timeout(WIKI_TIMEOUT_MS),
-    )) as { query?: { pages?: Record<string, WikiCommonsPage> } } | null
-    const hits = toCommonsCandidates(data?.query?.pages, Number(poolSize))
-    if (hits.length) return hits
-  }
-  return []
-}
-
-/**
- * Metadata for a list of Commons files, in one request. `redirects=1` matters
- * more than it looks: a claim often names a file that has since been renamed,
- * and without it the API answers with a `missing` page and the picture
- * disappears silently.
- */
-export async function fetchCommonsFilesByName(
-  fileNames: string[],
-  signal?: AbortSignal,
-): Promise<Map<string, CommonsCandidate>> {
-  const out = new Map<string, CommonsCandidate>()
-  const titles = fileNames.map((name) => (/^File:/i.test(name) ? name : `File:${name}`))
-  if (!titles.length) return out
-
-  const params = new URLSearchParams({
-    action: 'query',
-    format: 'json',
-    titles: titles.join('|'),
-    redirects: '1',
-    prop: 'imageinfo',
-    iiprop: 'url|extmetadata|mime|size',
-    iiurlwidth: '400',
-  })
-  const data = (await wikiFetch(
-    `https://commons.wikimedia.org/w/api.php?${params}`,
-    signal ?? AbortSignal.timeout(WIKI_TIMEOUT_MS),
-  )) as
-    | {
-        query?: {
-          pages?: Record<string, WikiCommonsPage>
-          normalized?: { from: string; to: string }[]
-          redirects?: { from: string; to: string }[]
-        }
-      }
-    | null
-  if (!data) return out
-
-  // The API renames titles twice on the way in (normalisation, then redirects),
-  // so walk the chain back to what the caller asked for.
-  const aliases = new Map<string, string>()
-  for (const hop of [...(data.query?.normalized ?? []), ...(data.query?.redirects ?? [])]) {
-    aliases.set(normalizeFileTitle(hop.to), normalizeFileTitle(hop.from))
-  }
-  const resolveOriginal = (title: string): string => {
-    let key = normalizeFileTitle(title)
-    for (let hop = 0; hop < 4; hop++) {
-      const previous = aliases.get(key)
-      if (!previous || previous === key) break
-      key = previous
-    }
-    return key
-  }
-
-  for (const candidate of toCommonsCandidates(data.query?.pages, titles.length)) {
-    if (!candidate.title) continue
-    out.set(resolveOriginal(candidate.title), candidate)
-    out.set(normalizeFileTitle(candidate.title), candidate)
-  }
-  return out
-}
-
-/** The pictures Wikidata records for a place, best first. */
-export async function fetchWikidataCandidates(
-  wikidataId: string,
-  limit = 5,
-  signal?: AbortSignal,
-): Promise<{ candidates: CommonsCandidate[]; commonsCategory: string | null }> {
-  const empty = { candidates: [] as CommonsCandidate[], commonsCategory: null }
-  const qid = wikidataId.trim()
-  if (!/^Q\d+$/.test(qid)) return empty
-  const data = (await wikiFetch(
-    `https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims&ids=${qid}&format=json`,
-    signal ?? AbortSignal.timeout(WIKI_TIMEOUT_MS),
-  )) as { entities?: Record<string, { claims?: WikidataClaims }> } | null
-  const claims = data?.entities?.[qid]?.claims
-  if (!claims) return empty
-
-  const fileNames = wikidataImageClaims(claims, limit)
-  const commonsCategory = claimValue(claims.P373) ?? null
-  if (!fileNames.length) return { candidates: [], commonsCategory }
-
-  const byTitle = await fetchCommonsFilesByName(fileNames, signal)
-  // Back into the order Wikidata implied, which the batch response loses.
-  const candidates = fileNames
-    .map((name) => byTitle.get(normalizeFileTitle(name)))
-    .filter((c): c is CommonsCandidate => !!c)
-  return { candidates, commonsCategory }
-}
-
-/**
- * The lead image a wiki article picked for a place. Only the file NAME is taken
- * from here; the bytes and the licence come from the same Commons batch as
- * everything else — the thumbnail URL the API offers alongside carries no
- * attribution, and a picture we cannot credit is a picture we cannot show.
- */
-export async function fetchWikiLeadImageName(
-  wikipediaTag: string | null | undefined,
-  signal?: AbortSignal,
-): Promise<string | null> {
-  const parsed = parseWikipediaTag(wikipediaTag)
-  if (!parsed) return null
-  const params = new URLSearchParams({
-    action: 'query',
-    format: 'json',
-    titles: parsed.title,
-    prop: 'pageimages',
-    piprop: 'name',
-    redirects: '1',
-  })
-  for (const host of ['wikivoyage', 'wikipedia'] as const) {
-    const data = (await wikiFetch(
-      `https://${parsed.lang}.${host}.org/w/api.php?${params}`,
-      signal ?? AbortSignal.timeout(WIKI_TIMEOUT_MS),
-    )) as { query?: { pages?: Record<string, { pageimage?: string }> } } | null
-    for (const page of Object.values(data?.query?.pages ?? {})) {
-      if (page.pageimage) return page.pageimage
-    }
-  }
-  return null
-}
-
-/** Which articles a Wikidata item is linked to, for the wikis we care about. */
 export async function fetchWikidataSitelinks(
   wikidataId: string,
   sites: string[],
@@ -609,6 +232,9 @@ async function fetchWikiExtract(
  * Which encyclopaedia entry, Wikidata item and Commons category describe this
  * place.
  *
+ * (The Commons field is still read for completeness; nothing consumes it now
+ * that the photo ladder is gone.)
+ *
  * Kept beside the provider payload rather than merged into it: `collectFacts`
  * and the OSM branch of `collectDescription` both gate on `details.source`, so
  * OSM tags folded into another record would be carried around and never read —
@@ -635,7 +261,7 @@ async function resolveIdentity(
     // article about this place", and a chain's is not.
     brand: { wikidata: fromPayload('brand:wikidata'), wikipedia: fromPayload('brand:wikipedia') },
   }
-  if (carried.wikipedia || carried.wikidata || carried.wikimedia_commons) return carried
+  if (carried.wikipedia || carried.wikidata) return carried
 
   const resolved = await resolveOsmIdentity(req.name, req.lat, req.lng, { lang: req.lang, signal })
   if (!resolved) return carried
@@ -646,84 +272,6 @@ async function resolveIdentity(
     // OSM first, the carried one when OSM has no brand tag for this object.
     brand: brand.wikidata || brand.wikipedia ? brand : carried.brand,
   }
-}
-
-// ── Photos ───────────────────────────────────────────────────────────────────
-
-async function collectPhotos(
-  placeId: string,
-  req: MapsPlaceEnrichmentRequest,
-  identity: PlaceIdentity,
-  details: Record<string, unknown> | null,
-  signal?: AbortSignal,
-): Promise<PlacePhotoCandidate[]> {
-  const { wikidata, wikipedia } = identity
-
-  // The free ladder, in order of how much anyone vouched that the picture shows
-  // THIS place:
-  //   Wikidata  — a person attached this file to this exact object.
-  //   Wiki lead — the article about it opens with this picture.
-  //   Category  — the set of pictures of it.
-  //   Nearby    — anything photographed within 60m.
-  // Only the last one has no claim on the subject at all, which is how an
-  // airport ended up represented by aerial survey tiles of its runway.
-  const commonsPool: CommonsPick[] = []
-  let categoryName = identity.wikimedia_commons
-
-  if (wikidata) {
-    const fromWikidata = await fetchWikidataCandidates(wikidata, COMMONS_CAP, signal)
-    push(commonsPool, fromWikidata.candidates, 'wikidata')
-    categoryName ??= fromWikidata.commonsCategory
-  }
-
-  if (commonsPool.length < COMMONS_CAP && wikipedia) {
-    const leadName = await fetchWikiLeadImageName(wikipedia, signal)
-    if (leadName) {
-      const byName = await fetchCommonsFilesByName([leadName], signal)
-      push(commonsPool, [...byName.values()], 'wikipedia')
-    }
-  }
-
-  if (commonsPool.length < COMMONS_CAP && categoryName) {
-    push(commonsPool, await fetchCommonsCategoryCandidates(categoryName, COMMONS_CAP, signal), 'category')
-  }
-
-  // Two is the bar: one curated picture plus the nearby noise reads worse than
-  // one curated picture on its own. The nearby fetch starts early because it is
-  // free and unmetered — discarded results cost nothing — and it is skipped
-  // outright for the categories where it misleads.
-  const curated = commonsPool.length
-  const skipNearby = nearbyWouldMislead(details) || nearbyWouldMislead(identity.osmTags)
-  const nearbyPending =
-    curated < 2 && !skipNearby
-      ? fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP, signal)
-      : Promise.resolve([] as CommonsCandidate[])
-
-  if (curated < 2) push(commonsPool, await nearbyPending, 'nearby')
-
-  // One ranking pass over everything: the same file reaches us from several
-  // rungs and only the page id catches that.
-  const ranked = rankCommonsCandidates(commonsPool, COMMONS_CAP, { perAuthor: curated > 0 ? 2 : 1 })
-
-  return ranked.map((pick) => {
-    const identityKey = `commons:${pick.pageId ?? pick.photoUrl}`
-    const key = candidateKey(placeId, identityKey)
-    const credit = creditLine(pick.attribution, pick.license)
-    if (credit) {
-      if (creditByKey.size >= CREDIT_MAP_MAX) creditByKey.delete(creditByKey.keys().next().value!)
-      creditByKey.set(key, credit)
-    }
-    return {
-      key,
-      // No proxy in a client-only build: the Commons thumb URL is shown as-is.
-      url: pick.photoUrl,
-      attribution: pick.attribution,
-      license: pick.license,
-      licenseUrl: pick.licenseUrl,
-      sourceUrl: pick.sourceUrl,
-      source: (pick.rung === 'wikipedia' ? 'wikipedia' : 'wikimedia') as 'wikipedia' | 'wikimedia',
-    }
-  })
 }
 
 // ── Description ──────────────────────────────────────────────────────────────
@@ -821,10 +369,10 @@ async function collectDescription(
 // ── Entry point ──────────────────────────────────────────────────────────────
 
 /**
- * Photos and a description for a place the user is looking at but has not saved
- * yet — the detail column next to the search field in the add-place dialog.
- * Signature matches `mapsApi.placeEnrichment`; the request is validated against
- * the shared schema before a single fetch goes out.
+ * A description, facts, hours and a rating for a place the user is looking at
+ * but has not saved yet — the detail column next to the search field in the
+ * add-place dialog. Signature matches `mapsApi.placeEnrichment`; the request
+ * is validated against the shared schema before a single fetch goes out.
  */
 export async function enrich(
   req: MapsPlaceEnrichmentRequest,
@@ -837,7 +385,7 @@ export async function enrich(
   const cached = enrichCache.get(cacheKey)
   if (cached) {
     const ttl = hasAnything(cached.value) ? CACHE_TTL_MS : EMPTY_CACHE_TTL_MS
-    if (Date.now() - cached.at < ttl) return mapsPlaceEnrichmentResultSchema.parse(cached.value)
+    if (Date.now() - cached.at < ttl) return mapsPlaceEnrichmentResultSchema.parse({ ...cached.value, photos: [] })
     enrichCache.delete(cacheKey)
   }
 
@@ -852,10 +400,7 @@ export async function enrich(
   }
   const identity = await resolveIdentity(req, details, signal)
 
-  const [photos, description] = await Promise.all([
-    collectPhotos(placeId, req, identity, details, signal),
-    collectDescription(req, details, identity, signal),
-  ])
+  const description = await collectDescription(req, details, identity, signal)
 
   // The OSM record found while resolving the identity carries the same tags an
   // Overpass lookup would — cuisine, opening_hours, wheelchair.
@@ -863,7 +408,6 @@ export async function enrich(
 
   const ownFacts = collectFacts(details)
   const result: CachedEnrichment = {
-    photos,
     description,
     facts: mergeFacts(ownFacts, collectFacts(osmDetails)),
     hours: collectHours(details) ?? collectHours(osmDetails),
@@ -879,5 +423,5 @@ export async function enrich(
     (description?.source === 'osm' || ownFacts.some((fact) => fact.url != null))
   if (!fromCaller) enrichCache.set(cacheKey, { at: Date.now(), value: result })
 
-  return mapsPlaceEnrichmentResultSchema.parse(result)
+  return mapsPlaceEnrichmentResultSchema.parse({ ...result, photos: [] })
 }

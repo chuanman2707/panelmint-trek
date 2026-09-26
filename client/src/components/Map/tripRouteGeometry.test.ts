@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { dayColor } from '../Roadtrip/dayColors'
+import { dayColor } from './dayColors'
 import { dayRouteColor, planTripRoute, routeTrip, summariseTripRoute } from './tripRouteGeometry'
 import { buildAssignment, buildDay, buildPlace } from '../../../tests/helpers/factories'
 import type { AssignmentsMap, RouteSegment } from '../../types'

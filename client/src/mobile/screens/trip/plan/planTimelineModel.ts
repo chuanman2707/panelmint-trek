@@ -3,7 +3,6 @@ import type { LucideIcon } from 'lucide-react'
 import { getAssignmentReservations, getDisplayTimeForDay, getSpanPhase, hidesOnMiddleDay, parseTimeToMinutes } from '../../../../utils/dayMerge'
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
 import type { MergedItem } from '../../../../utils/dayMerge'
-import type { TransitLegDisplay } from '../../../../components/Planner/transitDisplay'
 import type { Accommodation, Assignment, Day, DayNote, Reservation, RouteSegment, TranslationFn } from '../../../../types'
 
 /**
@@ -17,16 +16,9 @@ export type TransportEntry = Reservation & {
   __leg?: { index: number; total: number; from: string | null; to: string | null }
 }
 
-export interface TransitMeta {
-  legs: TransitLegDisplay[]
-  transfers?: number
-  duration?: number
-}
-
 export type PlanRow =
   | { key: string; kind: 'place'; item: MergedItem; assignment: Assignment; linkedReservations: Reservation[] }
   | { key: string; kind: 'transport'; item: MergedItem; res: TransportEntry }
-  | { key: string; kind: 'transit'; item: MergedItem; res: TransportEntry; transit: TransitMeta }
   | { key: string; kind: 'note'; item: MergedItem; note: DayNote }
   | { key: string; kind: 'conn'; seg: RouteSegment; assignmentId?: number }
 
@@ -36,13 +28,6 @@ export function parseReservationMeta(res: Reservation): Record<string, unknown> 
   if (typeof meta === 'string') { try { meta = JSON.parse(meta || '{}') } catch { meta = {} } }
   if (typeof meta === 'string') { try { meta = JSON.parse(meta || '{}') } catch { meta = {} } }
   return meta && typeof meta === 'object' ? (meta as Record<string, unknown>) : {}
-}
-
-/** Transit journey metadata (#1065) — present on 'transit' reservations saved from Transitous. */
-export function getTransitMeta(res: Reservation): TransitMeta | null {
-  if (res.type !== 'transit') return null
-  const transit = parseReservationMeta(res).transit as TransitMeta | undefined
-  return transit && Array.isArray(transit.legs) ? transit : null
 }
 
 /** Same subtitle language as the desktop day plan: airline/number, train/platform/seat, leg detail. */
@@ -114,10 +99,8 @@ export function buildPlanRows(opts: {
       // multi-day parking drops out of both on those days (#1937).
       if (res.type === 'car' && getSpanPhase(res, dayId) === 'middle') continue
       if (hidesOnMiddleDay(res, dayId)) continue
-      const transit = getTransitMeta(res)
       const key = `tr-${res.id}${res.__leg ? `-leg${res.__leg.index}` : ''}`
-      if (transit) base.push({ key, kind: 'transit', item, res, transit })
-      else base.push({ key, kind: 'transport', item, res })
+      base.push({ key, kind: 'transport', item, res })
     }
   }
 
@@ -133,11 +116,11 @@ export function buildPlanRows(opts: {
     const from = coordOf(row)
     if (!from) continue
     // Next located stop: a following place connects (possibly across notes);
-    // any transport/transit in between means that hop is the ride, not a walk.
+    // a transport in between means that hop is the ride, not a walk.
     let seg: RouteSegment | null = null
     for (let j = i + 1; j < base.length; j++) {
       const next = base[j]
-      if (next.kind === 'transport' || next.kind === 'transit') break
+      if (next.kind === 'transport') break
       const to = coordOf(next)
       if (to) { seg = takeSegment(from, to); break }
     }

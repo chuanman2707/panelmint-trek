@@ -1,8 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '../../../helpers/render';
+import { render, screen, fireEvent, within } from '../../../helpers/render';
 import MDashboard from '../../../../src/mobile/screens/dashboard/MDashboard';
-import { tripsApi } from '../../../../src/api/client';
 import { useAuthStore } from '../../../../src/store/authStore';
 import type { DashboardTrip } from '../../../../src/pages/dashboard/dashboardModel';
 
@@ -57,7 +56,6 @@ function buildDash(over: Record<string, unknown> = {}): Record<string, unknown> 
     setDeleteTrip: vi.fn(),
     copyTrip: null,
     setCopyTrip: vi.fn(),
-    applyCoverUpdate: vi.fn(),
     handleCreate: vi.fn(),
     handleUpdate: vi.fn(),
     confirmDelete: vi.fn(),
@@ -155,13 +153,6 @@ describe('MDashboard', () => {
     render(<MDashboard />);
 
     expect(screen.queryByText('dashboard.emptyTitle')).not.toBeInTheDocument();
-  });
-
-  it('FE-MOB-DASH-008: demo mode adds the banner', () => {
-    mocks.dash = buildDash({ demoMode: true });
-    render(<MDashboard />);
-
-    expect(screen.getByText(/demo/i)).toBeInTheDocument();
   });
 
   ;
@@ -444,18 +435,6 @@ describe('MDashboard', () => {
     expect(handleUnarchive).toHaveBeenCalledWith(18);
   });
 
-  it('FE-MOB-DASH-035: a cover uploaded in the sheet is patched into the trip list', async () => {
-    const applyCoverUpdate = vi.fn();
-    vi.spyOn(tripsApi, 'uploadCover').mockResolvedValue({ cover_image: '/uploads/covers/n.jpg' });
-    mocks.dash = buildDash({ showForm: true, editingTrip: buildTrip({ id: 19 }), applyCoverUpdate });
-    render(<MDashboard />);
-
-    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
-      target: { files: [new File(['x'], 'c.png', { type: 'image/png' })] },
-    });
-
-    await waitFor(() => expect(applyCoverUpdate).toHaveBeenCalledWith(19, '/uploads/covers/n.jpg'));
-  });
 
   it('FE-MOB-DASH-036: dismissing the copy sheet clears the pending trip', () => {
     const setCopyTrip = vi.fn();

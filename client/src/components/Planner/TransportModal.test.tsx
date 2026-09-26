@@ -17,11 +17,10 @@ import {
   buildTrip,
   buildDay,
   buildReservation,
-  buildTripFile,
 } from '../../../tests/helpers/factories';
 import { TransportModal } from './TransportModal';
 import type { Day, Reservation } from '../../types';
-import type { BookingReviewDraft } from './parsedItemToDraft';
+
 import type { TripMember } from '../Budget/BudgetPanelMemberChips';
 
 vi.mock('react-router', async (importActual) => {
@@ -54,9 +53,6 @@ const defaultProps = {
   reservation: null,
   days: [],
   selectedDayId: null,
-  files: [],
-  onFileUpload: vi.fn().mockResolvedValue(undefined),
-  onFileDelete: vi.fn().mockResolvedValue(undefined),
 };
 
 beforeEach(async () => {
@@ -93,12 +89,6 @@ describe('TransportModal', () => {
   it('FE-PLANNER-TRANSMODAL-002: shows "Add transport" title for new transport', () => {
     render(<TransportModal {...defaultProps} reservation={null} />);
     expect(screen.getByText(/Add transport/i)).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-002b: file input accepts pkpass (#1448)', () => {
-    render(<TransportModal {...defaultProps} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput.accept).toContain('.pkpass');
   });
 
   it('FE-PLANNER-TRANSMODAL-003: shows "Edit transport" title when editing', () => {
@@ -198,198 +188,11 @@ describe('TransportModal', () => {
     );
   });
 
-  // ── File attachment ───────────────────────────────────────────────────────────
+  // ── Stored transit metadata is not re-emitted ─────────────────────────────
 
-  it('FE-PLANNER-TRANSMODAL-014: attach file button rendered when onFileUpload provided', () => {
-    render(<TransportModal {...defaultProps} />);
-    expect(screen.getByRole('button', { name: /Attach file/i })).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-015: attach file button absent when onFileUpload is undefined', () => {
-    render(<TransportModal {...defaultProps} onFileUpload={undefined} />);
-    expect(screen.queryByRole('button', { name: /Attach file/i })).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-016: attached files shown for existing transport', () => {
-    const res = buildReservation({ id: 5, type: 'flight' });
-    const file = buildTripFile({ id: 1, trip_id: 1, original_name: 'boarding-pass.pdf' });
-    (file as any).reservation_id = 5;
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[file]} />);
-    expect(screen.getByText('boarding-pass.pdf')).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-017: pending file added for new transport on file input change', async () => {
-    render(<TransportModal {...defaultProps} reservation={null} />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const testFile = new File(['content'], 'itinerary.pdf', { type: 'application/pdf' });
-    fireEvent.change(fileInput, { target: { files: [testFile] } });
-
-    await waitFor(() => expect(screen.getByText('itinerary.pdf')).toBeInTheDocument());
-  });
-
-  it('FE-PLANNER-TRANSMODAL-018: file upload to existing transport calls onFileUpload with correct FormData', async () => {
-    const onFileUpload = vi.fn().mockResolvedValue(undefined);
-    const res = buildReservation({ id: 10, type: 'train', title: 'Eurostar' });
-
-    render(<TransportModal {...defaultProps} reservation={res} onFileUpload={onFileUpload} />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const testFile = new File(['content'], 'ticket.pdf', { type: 'application/pdf' });
-    fireEvent.change(fileInput, { target: { files: [testFile] } });
-
-    await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
-    const [fd] = onFileUpload.mock.calls[0] as [FormData];
-    expect(fd.get('file')).toBeTruthy();
-    expect(fd.get('reservation_id')).toBe('10');
-  });
-
-  it('FE-PLANNER-TRANSMODAL-019: link existing file button appears when unattached files exist', () => {
-    const res = buildReservation({ id: 5, type: 'flight' });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-    expect(screen.getByRole('button', { name: /Link existing file/i })).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-020: clicking "link existing file" shows file picker dropdown', async () => {
-    const res = buildReservation({ id: 5, type: 'flight' });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-021: clicking file in picker links it and closes picker', async () => {
-    server.use(
-      http.post('/api/trips/1/files/99/link', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
-    );
-
-    const res = buildReservation({ id: 5, type: 'flight' });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    await userEvent.click(screen.getByText('invoice.pdf'));
-
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument();
-    });
-  });
-
-  it('FE-PLANNER-TRANSMODAL-063: an outside pointer closes the file picker while an inside pointer keeps it open', async () => {
-    const res = buildReservation({ id: 5, type: 'flight' });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-
-    const pickerItem = screen.getByText('invoice.pdf');
-    fireEvent.pointerDown(pickerItem);
-    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
-
-    fireEvent.pointerDown(document.body);
-    expect(screen.queryByText('invoice.pdf')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-064: closing and reopening the modal resets the file picker', async () => {
-    const res = buildReservation({ id: 5, type: 'flight' });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
-    const { rerender } = render(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
-
-    rerender(<TransportModal {...defaultProps} isOpen={false} reservation={res} files={[unattachedFile]} />);
-    rerender(<TransportModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-
-    expect(screen.queryByText('invoice.pdf')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-022: removing pending file removes it from list', async () => {
-    render(<TransportModal {...defaultProps} reservation={null} />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const testFile = new File(['content'], 'draft.pdf', { type: 'application/pdf' });
-    fireEvent.change(fileInput, { target: { files: [testFile] } });
-
-    await waitFor(() => expect(screen.getByText('draft.pdf')).toBeInTheDocument());
-
-    const pendingFileRow = screen.getByText('draft.pdf').closest('div')!;
-    const removeBtn = pendingFileRow.querySelector('button')!;
-    await userEvent.click(removeBtn);
-
-    await waitFor(() => expect(screen.queryByText('draft.pdf')).not.toBeInTheDocument());
-  });
-
-  it('FE-PLANNER-TRANSMODAL-023: clicking attach file button triggers file input click', async () => {
-    render(<TransportModal {...defaultProps} />);
-    const attachBtn = screen.getByRole('button', { name: /Attach file/i });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const clickSpy = vi.spyOn(fileInput, 'click').mockImplementation(() => {});
-    await userEvent.click(attachBtn);
-    expect(clickSpy).toHaveBeenCalled();
-    clickSpy.mockRestore();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-024: unlinking a linked file removes it from attached list', async () => {
-    server.use(
-      http.post('/api/trips/1/files/42/link', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files/42/links', () => HttpResponse.json({ links: [{ id: 1, reservation_id: 7 }] })),
-      http.delete('/api/trips/1/files/42/link/1', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
-    );
-
-    const res = buildReservation({ id: 7, type: 'car' });
-    const looseFile = buildTripFile({ id: 42, original_name: 'rental-agreement.pdf' });
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[looseFile]} />);
-
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    await waitFor(() => expect(screen.getByText('rental-agreement.pdf')).toBeInTheDocument());
-    await userEvent.click(screen.getByText('rental-agreement.pdf'));
-
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument()
-    );
-
-    const fileRow = screen.getByText('rental-agreement.pdf').closest('div')!;
-    // The row carries two buttons: [0] opens the file, [1] unlinks it.
-    const unlinkBtn = fileRow.querySelectorAll('button[type="button"]')[1];
-    await userEvent.click(unlinkBtn);
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Link existing file/i })).toBeInTheDocument();
-    });
-  });
-
-  it('FE-PLANNER-TRANSMODAL-025: pending files flushed after saving new transport', async () => {
-    const savedReservation = buildReservation({ id: 99, type: 'flight' });
-    const onSave = vi.fn().mockResolvedValue(savedReservation);
-    const onFileUpload = vi.fn().mockResolvedValue(undefined);
-
-    render(<TransportModal {...defaultProps} onSave={onSave} onFileUpload={onFileUpload} reservation={null} />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const testFile = new File(['content'], 'boarding.pdf', { type: 'application/pdf' });
-    fireEvent.change(fileInput, { target: { files: [testFile] } });
-    await waitFor(() => expect(screen.getByText('boarding.pdf')).toBeInTheDocument());
-
-    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'LH001');
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
-    const [fd] = onFileUpload.mock.calls[0] as [FormData];
-    expect(fd.get('reservation_id')).toBe('99');
-    expect(fd.get('file')).toBeTruthy();
-  });
-
-  // ── Transit itinerary preservation (#1065) ─────────────────────────────────
-
-  it('FE-PLANNER-TRANSMODAL-020: re-saving a transit reservation keeps metadata.transit + stop endpoints', async () => {
+  it('FE-PLANNER-TRANSMODAL-020: re-saving a stored transit booking writes a clean from/to pair', async () => {
+    // The form neither shows nor edits automated-transit itineraries; saving
+    // drops the stored metadata.transit blob and its transfer-stop endpoints.
     const onSave = vi.fn().mockResolvedValue(undefined);
     const res = buildReservation({ title: 'Fernsehturm → Zoo', type: 'bus' }) as any;
     res.metadata = { transit: { provider: 'transitous', transfers: 1, legs: [{ mode: 'BUS', line: '100' }] } };
@@ -399,24 +202,19 @@ describe('TransportModal', () => {
       { role: 'to', sequence: 2, name: 'Zoologischer Garten', code: null, lat: 52.507, lng: 13.332, timezone: 'Europe/Berlin', local_date: '2025-06-01', local_time: '09:00' },
     ];
     render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
-    // Save without touching the route — the itinerary must survive.
     await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const payload = onSave.mock.calls[0][0];
-    expect(payload.metadata?.transit?.provider).toBe('transitous');
-    expect(payload.metadata?.transit?.legs).toHaveLength(1);
-    expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'stop', 'to']);
-    expect(payload.endpoints[1]).toMatchObject({ name: 'Alexanderplatz', lat: 52.521 });
+    expect(payload.metadata?.transit).toBeUndefined();
+    expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
   });
 
-  it('FE-PLANNER-TRANSMODAL-021: changing the destination drops the stale transit itinerary', async () => {
+  it('FE-PLANNER-TRANSMODAL-021: changing the destination writes the new endpoints', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     const res = buildReservation({ title: 'Fernsehturm → Zoo', type: 'bus' }) as any;
-    res.metadata = { transit: { provider: 'transitous', legs: [{ mode: 'BUS' }] } };
     res.endpoints = [
       { role: 'from', sequence: 0, name: 'Fernsehturm', code: null, lat: 52.5208, lng: 13.4094, timezone: 'Europe/Berlin', local_date: null, local_time: null },
-      { role: 'stop', sequence: 1, name: 'Alexanderplatz', code: null, lat: 52.521, lng: 13.41, timezone: 'Europe/Berlin', local_date: null, local_time: null },
-      { role: 'to', sequence: 2, name: 'Zoologischer Garten', code: null, lat: 52.507, lng: 13.332, timezone: 'Europe/Berlin', local_date: null, local_time: null },
+      { role: 'to', sequence: 1, name: 'Zoologischer Garten', code: null, lat: 52.507, lng: 13.332, timezone: 'Europe/Berlin', local_date: null, local_time: null },
     ];
     render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
     // Pick a different destination (mocked LocationSelect emits lat/lng 0,0).
@@ -425,33 +223,8 @@ describe('TransportModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const payload = onSave.mock.calls[0][0];
-    expect(payload.metadata?.transit).toBeUndefined();
     expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
-  });
-
-  it('FE-PLANNER-TRANSMODAL-029: re-saving a joined AirTrail flight keeps metadata.airtrail_ids (#1535)', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    const res = buildReservation({ title: 'BRU → HEL → JFK', type: 'flight' }) as any;
-    res.metadata = {
-      airline: 'Finnair',
-      flight_number: 'AY1502',
-      airtrail_ids: ['101', '102'],
-      legs: [
-        { from: 'BRU', to: 'HEL', flight_number: 'AY1502', dep_time: '08:00', arr_time: '12:30' },
-        { from: 'HEL', to: 'JFK', flight_number: 'AY15', dep_time: '14:00', arr_time: '15:00' },
-      ],
-    };
-    res.endpoints = [
-      { role: 'from', sequence: 0, name: 'Brussels', code: 'BRU', lat: 50.9, lng: 4.48, timezone: 'Europe/Brussels', local_date: '2025-06-01', local_time: '08:00' },
-      { role: 'stop', sequence: 1, name: 'Helsinki-Vantaa', code: 'HEL', lat: 60.32, lng: 24.96, timezone: 'Europe/Helsinki', local_date: '2025-06-01', local_time: '14:00' },
-      { role: 'to', sequence: 2, name: 'JFK', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: '2025-06-01', local_time: '15:00' },
-    ];
-    render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
-    // A routine edit (retitle + save) must not cost the booking its AirTrail
-    // linkage — the import picker relies on it to not re-offer the legs.
-    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0].metadata?.airtrail_ids).toEqual(['101', '102']);
+    expect(payload.endpoints[1]).toMatchObject({ name: 'Somewhere Else' });
   });
 
   it('FE-PLANNER-TRANSMODAL-022: creating shows the manual form directly (no Automated switch — the transit planner went away with the hosted build)', () => {
@@ -537,30 +310,6 @@ describe('TransportModal', () => {
     { id: 1, reservation_id: 1, role: 'from', sequence: 0, name: 'Frankfurt (FRA)', code: 'FRA', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin', local_date: fromDate, local_time: '10:00' },
     { id: 2, reservation_id: 1, role: 'to', sequence: 1, name: 'New York (JFK)', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: toDate, local_time: '13:00' },
   ]);
-
-  // #2076 — an import whose type could not be read used to arrive here as a flight.
-  // A wrong flight looks right enough to be saved without a second look; an
-  // explicit "other" asks to be corrected.
-  it('FE-PLANNER-TRANSMODAL-062: an unrecognised prefill type lands on transport_other, not flight', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    const prefill = { title: 'Airport transfer', type: 'shuttle-voucher', status: 'pending' } as any;
-    render(<TransportModal {...defaultProps} prefill={prefill} onSave={onSave} />);
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0].type).toBe('transport_other');
-  });
-
-  it('FE-PLANNER-TRANSMODAL-030: an import prefill resolves each waypoint day from its endpoint local_date (#1684)', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    // A parsed import carries local_date per endpoint but no day_id at all.
-    const prefill = { title: 'LH 400', type: 'flight', status: 'pending', endpoints: flightEndpoints('2026-08-02', '2026-08-03') } as any;
-    render(<TransportModal {...defaultProps} days={spanDays} prefill={prefill} onSave={onSave} />);
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    const payload = onSave.mock.calls[0][0];
-    expect(payload.day_id).toBe(11);
-    expect(payload.end_day_id).toBe(12);
-  });
 
   it('FE-PLANNER-TRANSMODAL-031: editing keeps the saved days when the endpoint local_date is stale', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
@@ -1039,115 +788,6 @@ describe('TransportModal', () => {
     delete window.__addToast;
   });
 
-  it('FE-PLANNER-TRANSMODAL-048: an imported transport with a price creates the linked cost on save', async () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
-      loaded: true,
-    });
-    const onSave = vi.fn().mockResolvedValue({ id: 62 });
-    const prefill = {
-      title: 'LH 400', type: 'flight', status: 'pending',
-      reservation_time: '2026-08-01T08:00', reservation_end_time: '2026-08-01T11:00',
-      metadata: { airline: 'Lufthansa', flight_number: 'LH 400', price: 189.5, priceCurrency: 'EUR' },
-      endpoints: [],
-    } as unknown as BookingReviewDraft;
-
-    render(<TransportModal {...defaultProps} days={routeDays} prefill={prefill} onSave={onSave} />);
-    // The parsed price is previewed before the booking exists.
-    expect(screen.getByText('Linked expense')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 189.5, category: 'flights' });
-  });
-
-  // ── File edge cases ─────────────────────────────────────────────────────────
-
-  it('FE-PLANNER-TRANSMODAL-049: a cancelled file dialog changes nothing', () => {
-    render(<TransportModal {...defaultProps} reservation={null} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(fileInput, { target: { files: [] } });
-    expect(screen.getByRole('button', { name: /Attach file/i })).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-TRANSMODAL-050: a failing upload to an existing booking shows the upload error', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
-    const onFileUpload = vi.fn().mockRejectedValue(new Error('disk full'));
-    const res = buildReservation({ id: 20, type: 'train', title: 'Eurostar' });
-
-    render(<TransportModal {...defaultProps} reservation={res} onFileUpload={onFileUpload} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(fileInput, { target: { files: [new File(['x'], 'fail.pdf', { type: 'application/pdf' })] } });
-
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to upload', 'error', undefined));
-    delete window.__addToast;
-  });
-
-  it('FE-PLANNER-TRANSMODAL-051: a failing unlink reports the update error', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
-    server.use(
-      http.put('/api/trips/1/files/70', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-      http.get('/api/trips/1/files/70/links', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-    );
-    const res = buildReservation({ id: 21, type: 'flight', title: 'LH 400' });
-    const attached = buildTripFile({ id: 70, original_name: 'boarding.pdf' });
-    (attached as unknown as { reservation_id: number }).reservation_id = 21;
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[attached]} />);
-    const row = screen.getByText('boarding.pdf').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getAllByRole('button')[1]);
-
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to update', 'error', undefined));
-    delete window.__addToast;
-  });
-
-  it('FE-PLANNER-TRANSMODAL-052: a failing link keeps the picker open and reports the error', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
-    server.use(http.post('/api/trips/1/files/71/link', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
-
-    const res = buildReservation({ id: 22, type: 'flight', title: 'LH 400' });
-    const loose = buildTripFile({ id: 71, original_name: 'invoice.pdf' });
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[loose]} />);
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    const pickerItem = screen.getByText('invoice.pdf').closest('button') as HTMLButtonElement;
-    fireEvent.mouseEnter(pickerItem);
-    fireEvent.mouseLeave(pickerItem);
-    await userEvent.click(pickerItem);
-
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to update', 'error', undefined));
-    expect(screen.getByRole('button', { name: /Link existing file/i })).toBeInTheDocument();
-    delete window.__addToast;
-  });
-
-  // ── Transit itinerary preservation, continued ──────────────────────────────
-
-  it('FE-PLANNER-TRANSMODAL-053: kept transfer stops are re-sequenced in order', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    const res = buildReservation({ title: 'A → C', type: 'bus' });
-    Object.assign(res, {
-      metadata: { transit: { provider: 'transitous', legs: [{ mode: 'BUS' }] } },
-      // Stops arrive out of order — the form must restore their sequence.
-      endpoints: [
-        { role: 'from', sequence: 0, name: 'A', code: null, lat: 0, lng: 0, timezone: null, local_date: null, local_time: null },
-        { role: 'stop', sequence: 2, name: 'Second stop', code: null, lat: 1, lng: 1, timezone: null, local_date: null, local_time: null },
-        { role: 'stop', sequence: 1, name: 'First stop', code: null, lat: 2, lng: 2, timezone: null, local_date: null, local_time: null },
-        { role: 'to', sequence: 3, name: 'C', code: null, lat: 3, lng: 3, timezone: null, local_date: null, local_time: null },
-      ],
-    });
-
-    render(<TransportModal {...defaultProps} reservation={res as unknown as Reservation} onSave={onSave} />);
-    await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    const payload = onSave.mock.calls[0][0];
-    expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual(['A', 'First stop', 'Second stop', 'C']);
-    expect(payload.endpoints.map((e: { sequence: number }) => e.sequence)).toEqual([0, 1, 2, 3]);
-  });
-
   it('FE-PLANNER-TRANSMODAL-055: an existing traveler list is toggled off and written back empty', async () => {
     const onSave = vi.fn().mockResolvedValue({ id: 63 });
     const res = buildReservation({ id: 63, type: 'flight', title: 'LH 400' });
@@ -1279,14 +919,4 @@ describe('TransportModal', () => {
     expect(onSave.mock.calls[0][0].endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'to']);
   });
 
-  it('FE-PLANNER-TRANSMODAL-057: the open-file link on an attached document does not throw', async () => {
-    const res = buildReservation({ id: 23, type: 'flight', title: 'LH 400' });
-    const attached = buildTripFile({ id: 72, original_name: 'boarding.pdf' });
-    (attached as unknown as { reservation_id: number }).reservation_id = 23;
-
-    render(<TransportModal {...defaultProps} reservation={res} files={[attached]} />);
-    const row = screen.getByText('boarding.pdf').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getByRole('button', { name: /open/i }));
-    expect(screen.getByText('boarding.pdf')).toBeInTheDocument();
-  });
 });

@@ -1,8 +1,8 @@
 /**
  * Resolve a server error whose message may be an i18n key.
  *
- * The server can return a translation key as its error message (e.g.
- * `files.uploadErrorType`). `t()` returns the key unchanged when it isn't a
+ * A local adapter can surface a translation key as its error message (e.g.
+ * `common.unknownError`). `t()` returns the key unchanged when it isn't a
  * known translation, so `translated === key` reliably means "not a key" — in
  * that case we fall back to a generic, always-localized message.
  */

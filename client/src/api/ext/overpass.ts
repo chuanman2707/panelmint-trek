@@ -1,8 +1,7 @@
 /**
- * Browser-side Overpass client — the POI explore pill and the road-trip
- * corridor searches, formerly `searchOverpassPois`/`fetchOverpassDetails`
- * inside the server's `maps.service.ts` (+ `overpassFetch` in
- * `overpass.client.ts`).
+ * Browser-side Overpass client — the POI explore pill, formerly
+ * `searchOverpassPois`/`fetchOverpassDetails` inside the server's
+ * `maps.service.ts` (+ `overpassFetch` in `overpass.client.ts`).
  *
  * What the port kept:
  *
@@ -16,14 +15,13 @@
  *    query stays cheap and fast at any zoom, instead of timing out on a huge
  *    area. The caller sees the `clamped` flag.
  *  - Per-category share of the result cap, name localization, the
- *    disused/closed filters, `poi_type` = the matched selector, and the
- *    charging-station fields.
+ *    disused/closed filters, `poi_type` = the matched selector.
  *  - The pan cache. Repeat pans/toggles of the same area answer locally for
  *    POI_CACHE_TTL_MS — also what keeps us inside Overpass's 2-slots-per-IP
  *    courtesy limit now that every user's browser is its own client.
  *
- * The constants and tables (mirrors, timeouts, category filters, charging tag
- * parser) live in `./geoHelpers.ts` so tests pin them without fetch.
+ * The constants and tables (mirrors, timeouts, category filters) live in
+ * `./geoHelpers.ts` so tests pin them without fetch.
  */
 
 import {
@@ -32,9 +30,7 @@ import {
   OVERPASS_QUERY_TIMEOUT_S,
   OVERPASS_TIMEOUT_MS,
   parsePoiCategories,
-  readChargingInfo,
   toApiLang,
-  type ChargingInfo,
 } from './geoHelpers'
 
 // Mirrors the `Poi` shape in components/Map/poiCategories.ts — kept structural
@@ -53,7 +49,6 @@ export interface OverpassPoi {
   phone: string | null
   opening_hours: string | null
   cuisine: string | null
-  charging?: ChargingInfo | null
   source: string
   rating?: number | null
 }
@@ -241,10 +236,8 @@ export async function searchOverpassPois(
   const pois: OverpassPoi[] = []
   for (const el of elements) {
     const tags = el.tags || {}
-    // `operator` comes last but matters for the road categories: petrol
-    // stations, charging points and service areas are routinely mapped with an
-    // operator and no name, and dropping those would empty the road trip
-    // corridor over long stretches.
+    // `operator` comes last: chains are routinely mapped with an operator and
+    // no name, and dropping those would empty whole stretches of the map.
     const name =
       tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || tags.operator || null
     if (!name) continue // unnamed POIs aren't useful to add to a plan
@@ -282,10 +275,6 @@ export async function searchOverpassPois(
       // Only the plain Q-id form is passed on; anything else would be a lookup
       // we would have to guess at.
       brand_wikidata: /^Q[0-9]+$/.test(tags['brand:wikidata'] ?? '') ? tags['brand:wikidata']! : null,
-      // Only where it means something. Every POI carries `capacity` and `fee`
-      // for its own reasons — a restaurant's capacity is seats — so reading
-      // them as charging data anywhere else would be wrong on most of the map.
-      charging: categoryOfFilter.get(matched) === 'charging' ? readChargingInfo(tags) : null,
       source: 'openstreetmap',
     })
   }

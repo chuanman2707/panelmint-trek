@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': '降水概率',
-  'day.precipitation': '降水量',
-  'day.wind': '风速',
-  'day.sunrise': '日出',
-  'day.sunset': '日落',
-  'day.hourlyForecast': '逐小时预报',
   'day.climateHint': '历史平均值——实际预报在该日期前 16 天内可用。',
   'day.noWeather': '无天气数据。请添加有坐标的地点。',
   'day.weatherFor': '{name}的天气预报',

@@ -1,13 +1,11 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../src/store/tripStore';
 import { tripsApi, daysApi, tagsApi, placesApi, categoriesApi } from '../../src/api/client';
 import { packingRepo } from '../../src/repo/packingRepo';
 import { todoRepo } from '../../src/repo/todoRepo';
 import { resetAllStores } from '../helpers/store';
-import { buildTrip, buildDay, buildPlace, buildPackingItem, buildTodoItem, buildTag, buildCategory, buildAssignment, buildDayNote, buildBudgetItem, buildReservation, buildTripFile } from '../helpers/factories';
-import { server } from '../helpers/msw/server';
+import { buildTrip, buildDay, buildPlace, buildPackingItem, buildTodoItem, buildTag, buildCategory, buildAssignment, buildDayNote, buildBudgetItem, buildReservation } from '../helpers/factories';
 import { db } from '../../src/db/panelmintDb';
 import type { DayRow } from '../../src/api/local/dexieStore';
 import type { Tag } from '../../src/types';
@@ -35,15 +33,15 @@ async function seedLocalTrip(id: number, days: import('../../src/types').Day[] =
 }
 
 /**
- * Full set of MSW handlers for one trip's loadTrip fan-out — trips/days/tags,
- * packing/todo, budget and reservations are local now, so the trip row (plus
- * any `data.tags` / `data.budget` / `data.reservations` rows) are seeded into
- * `panelmint` and only the still-HTTP resources keep handlers.
+ * Seed one trip's loadTrip fan-out — trips/days/tags, packing/todo, budget and
+ * reservations are all local now, so the trip row (plus any `data.tags` /
+ * `data.budget` / `data.reservations` rows) is seeded into `panelmint` and no
+ * HTTP handlers remain.
  */
-async function tripHandlers(
+async function seedTripData(
   id: number,
   data: {
-    budget?: unknown[]; reservations?: import('../../src/types').Reservation[]; files?: unknown[];
+    budget?: unknown[]; reservations?: import('../../src/types').Reservation[];
     tags?: unknown[]; categories?: unknown[];
   },
 ) {
@@ -57,9 +55,6 @@ async function tripHandlers(
   for (const reservation of data.reservations ?? []) {
     await db.reservations.put(reservation);
   }
-  return [
-    http.get(`/api/trips/${id}/files`, () => HttpResponse.json({ files: data.files ?? [] })),
-  ];
 }
 
 describe('tripStore', () => {
@@ -180,11 +175,10 @@ describe('tripStore', () => {
       expect(state.error).not.toBeNull();
     });
 
-    it('FE-TRIP-H5: loadTrip uniformly hydrates budget, reservations and files', async () => {
+    it('FE-TRIP-H5: loadTrip uniformly hydrates budget and reservations', async () => {
       const budgetItem = buildBudgetItem({ trip_id: 1 });
       const reservation = buildReservation({ trip_id: 1 });
-      const file = buildTripFile({ trip_id: 1 });
-      server.use(...(await tripHandlers(1, { budget: [budgetItem], reservations: [reservation], files: [file] })));
+      await seedTripData(1, { budget: [budgetItem], reservations: [reservation] });
 
       await useTripStore.getState().loadTrip(1);
       const state = useTripStore.getState();
@@ -196,36 +190,32 @@ describe('tripStore', () => {
       expect(state.budgetItems[0]).toMatchObject(budgetItem);
       expect(state.reservations).toHaveLength(1);
       expect(state.reservations[0]).toMatchObject(reservation);
-      expect(state.files).toEqual([file]);
     });
 
-    it('FE-TRIP-H4: switching trips does not leak budget/reservations/files from the previous trip', async () => {
-      // Trip 1 has budget/reservations/files; trip 2 has none.
-      server.use(...(await tripHandlers(1, {
+    it('FE-TRIP-H4: switching trips does not leak budget/reservations from the previous trip', async () => {
+      // Trip 1 has budget/reservations; trip 2 has none.
+      await seedTripData(1, {
         budget: [buildBudgetItem({ trip_id: 1 })],
         reservations: [buildReservation({ trip_id: 1 })],
-        files: [buildTripFile({ trip_id: 1 })],
-      })));
+      });
       await useTripStore.getState().loadTrip(1);
       expect(useTripStore.getState().budgetItems).toHaveLength(1);
 
-      server.use(...(await tripHandlers(2, {})));
+      await seedTripData(2, {});
       await useTripStore.getState().loadTrip(2);
       const state = useTripStore.getState();
 
       expect(state.trip!.id).toBe(2);
       expect(state.budgetItems).toEqual([]);
       expect(state.reservations).toEqual([]);
-      expect(state.files).toEqual([]);
     });
 
     it('FE-TRIP-H4b: resetTrip clears every trip-scoped slice but keeps tags/categories', async () => {
-      server.use(...(await tripHandlers(1, {
+      await seedTripData(1, {
         budget: [buildBudgetItem({ trip_id: 1 })],
         reservations: [buildReservation({ trip_id: 1 })],
-        files: [buildTripFile({ trip_id: 1 })],
         tags: [buildTag()],
-      })));
+      });
       await useTripStore.getState().loadTrip(1);
       expect(useTripStore.getState().budgetItems).toHaveLength(1);
 
@@ -236,7 +226,6 @@ describe('tripStore', () => {
       expect(state.places).toEqual([]);
       expect(state.budgetItems).toEqual([]);
       expect(state.reservations).toEqual([]);
-      expect(state.files).toEqual([]);
       expect(state.selectedDayId).toBeNull();
       // Global lookups survive a trip reset.
       expect(state.tags).toHaveLength(1);
@@ -244,13 +233,8 @@ describe('tripStore', () => {
   });
 
   describe('hydrateActiveTrip', () => {
-    const loadHandlers = () => [
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
-    ];
-
     it('FE-TRIP-H1: silently refreshes resources without resetting or splashing', async () => {
       await seedLocalTrip(1);
-      server.use(...loadHandlers());
       await useTripStore.getState().loadTrip(1);
       expect(useTripStore.getState().trip!.id).toBe(1);
 

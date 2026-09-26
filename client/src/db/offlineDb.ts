@@ -1,64 +1,9 @@
-import type { RoadtripPreferences } from '@trek/shared';
 import Dexie, { type Table } from 'dexie';
-import type { Trip, Day, Place, BudgetItem, Reservation, TripFile, Accommodation, TripMember, Tag, Category } from '../types';
+import type { Trip, Day, Place, BudgetItem, Reservation, Accommodation, TripMember, Tag, Category } from '../types';
 
 /** TripMember enriched with tripId so we can index by trip. */
 export interface CachedTripMember extends TripMember {
   tripId: number;
-}
-
-// ── Queue + sync types ────────────────────────────────────────────────────────
-
-// 'conflict' is terminal-until-resolved: the server rejected the replay because
-// the entity changed underneath the offline edit (#1135 ask 3). It is surfaced
-// to the user for a keep-mine / keep-theirs decision rather than dropped.
-export type MutationStatus = 'pending' | 'syncing' | 'failed' | 'conflict';
-
-export interface QueuedMutation {
-  /** UUID — also used as X-Idempotency-Key sent to the server */
-  id: string;
-  tripId: number;
-  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  url: string;
-  body: unknown;
-  createdAt: number;
-  status: MutationStatus;
-  attempts: number;
-  lastError: string | null;
-  /** Dexie table name to write the server response into after flush (e.g. 'places') */
-  resource?: string;
-  /** For CREATE mutations enqueued offline: the temporary negative id written to Dexie */
-  tempId?: number;
-  /** For DELETE mutations: the entity id to remove from Dexie on flush */
-  entityId?: number;
-  /**
-   * For PUT/DELETE enqueued offline against a still-unsynced (negative-id) entity:
-   * the temp id of the target. The url carries an `{id}` placeholder that the
-   * mutation queue rewrites to the real server id once the dependent CREATE flushes.
-   */
-  tempEntityId?: number;
-  /**
-   * Optimistic-concurrency token: the entity's `updated_at` at the moment the
-   * offline edit was made. Sent as `X-Base-Updated-At` on replay so the server
-   * can reject the write (409) if someone else changed the entity in the
-   * meantime. Absent for creates and for resources without a token.
-   */
-  baseUpdatedAt?: string | null;
-  /**
-   * Set when the replay came back 409: the server's current version of the
-   * entity, kept so the conflict resolver can show "theirs" beside "mine"
-   * (which is reconstructed from `body`). Only present while status==='conflict'.
-   */
-  conflictServer?: unknown;
-  /** When the conflict was detected (for ordering / display). */
-  conflictAt?: number;
-  /**
-   * When the row was marked 'syncing'. Only meaningful while it is — the flush
-   * that set it clears the row on success or moves it off 'syncing' on failure.
-   * A stamp that outlives its flush is how a killed tab is recognised on the
-   * next one (see mutationQueue's STUCK_SYNCING_MS).
-   */
-  syncingSince?: number;
 }
 
 export interface SyncMeta {
@@ -67,8 +12,6 @@ export interface SyncMeta {
   status: 'idle' | 'syncing' | 'error';
   /** Bounding box [minLng, minLat, maxLng, maxLat] of pre-downloaded map tiles */
   tilesBbox: [number, number, number, number] | null;
-  /** Non-photo files available offline for this trip after the last sync. */
-  filesCachedCount: number;
   /**
    * The rounded bbox the cached area places were fetched for. Compared rather
    * than a timestamp: adding a place inside the area the trip already covers
@@ -77,22 +20,6 @@ export interface SyncMeta {
    * Optional so a row written before this landed still reads.
    */
   areaPlacesKey?: string;
-}
-
-export interface BlobCacheEntry {
-  /** Relative URL, e.g. "/api/files/42/download" */
-  url: string;
-  /**
-   * Trip this blob belongs to, so it is evicted together with the trip in
-   * clearTripData. Legacy rows cached before v3 carry the sentinel -1.
-   */
-  tripId: number;
-  blob: Blob;
-  /** Byte size captured at insert time — Blob.size is not reliably preserved
-   *  across IndexedDB round-trips, so the LRU budget reads this instead. */
-  bytes: number;
-  mime: string;
-  cachedAt: number;
 }
 
 /**
@@ -152,20 +79,16 @@ function initialDbName(): string {
 }
 
 class TrekOfflineDb extends Dexie {
-  roadtripPreferences!: Table<{ tripId: number; preferences: RoadtripPreferences }, number>;
   trips!: Table<Trip, number>;
   days!: Table<Day, number>;
   places!: Table<Place, number>;
   budgetItems!: Table<BudgetItem, number>;
   reservations!: Table<Reservation, number>;
-  tripFiles!: Table<TripFile, number>;
   accommodations!: Table<Accommodation, number>;
   tripMembers!: Table<CachedTripMember, [number, number]>;
   tags!: Table<Tag, number>;
   categories!: Table<Category, number>;
-  mutationQueue!: Table<QueuedMutation, string>;
   syncMeta!: Table<SyncMeta, number>;
-  blobCache!: Table<BlobCacheEntry, string>;
   areaPlaces!: Table<CachedAreaPlace, [string, number]>;
 
   constructor(name: string = ANON_DB_NAME) {
@@ -195,7 +118,7 @@ class TrekOfflineDb extends Dexie {
     this.version(3).stores({
       blobCache: 'url, cachedAt, tripId',
     }).upgrade(async (tx) => {
-      await tx.table('blobCache').toCollection().modify((row: Partial<BlobCacheEntry>) => {
+      await tx.table('blobCache').toCollection().modify((row: { tripId?: number; bytes?: number; blob?: Blob }) => {
         if (row.tripId == null) row.tripId = -1;
         if (row.bytes == null) row.bytes = row.blob?.size ?? 0;
       });
@@ -241,6 +164,18 @@ class TrekOfflineDb extends Dexie {
     // v10: packing and todo items live in panelmintDb now — the local
     // adapters are the write path, so this read-through cache went dead.
     this.version(10).stores({ packingItems: null, todoItems: null });
+
+    // v11: trip files are a cut feature (there is no /files endpoint or UI to
+    // feed them), the blob cache only ever served them, roadtrip preferences
+    // went with the roadtrip mode, and the mutation queue was the offline
+    // write-replay machinery for a server that no longer exists — writes are
+    // local and durable immediately.
+    this.version(11).stores({
+      tripFiles: null,
+      blobCache: null,
+      roadtripPreferences: null,
+      mutationQueue: null,
+    });
   }
 }
 
@@ -332,10 +267,6 @@ export async function upsertReservations(items: Reservation[]): Promise<void> {
   await offlineDb.reservations.bulkPut(items);
 }
 
-export async function upsertTripFiles(files: TripFile[]): Promise<void> {
-  await offlineDb.tripFiles.bulkPut(files);
-}
-
 export async function upsertAccommodations(items: Accommodation[]): Promise<void> {
   await offlineDb.accommodations.bulkPut(items);
 }
@@ -357,69 +288,12 @@ export async function upsertSyncMeta(meta: SyncMeta): Promise<void> {
   await offlineDb.syncMeta.put(meta);
 }
 
-/**
- * Read a pre-downloaded file blob for offline use. Returns null when the file
- * was never cached (or on any read error). The stored MIME is reapplied so the
- * caller's inline-vs-download decision stays correct even if the persisted Blob
- * lost its type.
- */
-export async function getCachedBlob(url: string): Promise<Blob | null> {
-  try {
-    const entry = await offlineDb.blobCache.get(url);
-    if (!entry) return null;
-    return entry.blob.type
-      ? entry.blob
-      : new Blob([entry.blob], { type: entry.mime || 'application/octet-stream' });
-  } catch {
-    return null;
-  }
-}
-
-// ── Blob-cache budget ───────────────────────────────────────────────────────
-
-/**
- * Upper bounds for the offline file-blob cache. Kept conservative so trip
- * documents never starve the map-tile cache (sized at MAX_TILES in
- * tilePrefetcher.ts) for the origin's storage quota.
- */
-export const BLOB_CACHE_MAX_ENTRIES = 200;
-export const BLOB_CACHE_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
-
-/**
- * Evict oldest-by-cachedAt blobs until the cache is under both the entry-count
- * and byte budget. Call after inserting new blobs. LRU on insertion time, which
- * is a reasonable proxy for access for write-once document blobs.
- */
-export async function enforceBlobBudget(
-  maxCount = BLOB_CACHE_MAX_ENTRIES,
-  maxBytes = BLOB_CACHE_MAX_BYTES,
-): Promise<void> {
-  const entries = await offlineDb.blobCache.orderBy('cachedAt').toArray();
-  let count = entries.length;
-  let totalBytes = entries.reduce((sum, e) => sum + (e.bytes ?? 0), 0);
-  if (count <= maxCount && totalBytes <= maxBytes) return;
-
-  const toDelete: string[] = [];
-  for (const e of entries) {
-    if (count <= maxCount && totalBytes <= maxBytes) break;
-    toDelete.push(e.url);
-    totalBytes -= e.bytes ?? 0;
-    count -= 1;
-  }
-  if (toDelete.length) await offlineDb.blobCache.bulkDelete(toDelete);
-}
-
 // ── Eviction / cleanup ────────────────────────────────────────────────────────
 
 /**
- * Delete one trip's cached READ data (eviction, per-trip opt-out). The offline
- * write queue is deliberately preserved except for already-dropped 'failed' rows:
- * a trip can be evicted for being stale, or turned off in the storage settings,
- * while it still holds unsynced offline edits (pending/syncing) or unresolved
- * conflicts — those must survive so the user's work is not silently lost (#1135).
- * The replay only needs the queued REST request, not the cached entities, and a
- * successful flush re-adds the canonical row. The full "Clear cache" wipe goes
- * through clearAll(), which intentionally drops everything.
+ * Delete one trip's cached read data (eviction, per-trip opt-out). The full
+ * "Clear cache" wipe goes through clearAll(), which intentionally drops
+ * everything.
  */
 export async function clearTripData(tripId: number): Promise<void> {
   await offlineDb.transaction(
@@ -429,28 +303,19 @@ export async function clearTripData(tripId: number): Promise<void> {
       offlineDb.places,
       offlineDb.budgetItems,
       offlineDb.reservations,
-      offlineDb.tripFiles,
       offlineDb.accommodations,
       offlineDb.tripMembers,
-      offlineDb.mutationQueue,
       offlineDb.syncMeta,
-      offlineDb.blobCache,
       offlineDb.areaPlaces,
-      offlineDb.roadtripPreferences,
     ],
     async () => {
-      await offlineDb.roadtripPreferences.delete(tripId);
       await offlineDb.days.where('trip_id').equals(tripId).delete();
       await offlineDb.places.where('trip_id').equals(tripId).delete();
       await offlineDb.budgetItems.where('trip_id').equals(tripId).delete();
       await offlineDb.reservations.where('trip_id').equals(tripId).delete();
-      await offlineDb.tripFiles.where('trip_id').equals(tripId).delete();
       await offlineDb.accommodations.where('trip_id').equals(tripId).delete();
       await offlineDb.tripMembers.where('tripId').equals(tripId).delete();
-      // Keep pending/syncing/conflict mutations — only purge dead 'failed' rows.
-      await offlineDb.mutationQueue.where('tripId').equals(tripId).and(m => m.status === 'failed').delete();
       await offlineDb.syncMeta.where('tripId').equals(tripId).delete();
-      await offlineDb.blobCache.where('tripId').equals(tripId).delete();
       // The cached places around this trip's area go with it. They are searched
       // across every trip, so leaving them behind kept a switched-off trip
       // answering offline searches — and nothing else ever deleted them, so they

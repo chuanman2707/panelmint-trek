@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Cloud, CloudLightning, CloudRain, CloudSnow, Sun, Wind } from 'lucide-react'
 import {
-  breaksChronology, buildPlanRows, cityPillsForDay, findUpNext, getTransitMeta, hotelChipsForDay,
+  breaksChronology, buildPlanRows, cityPillsForDay, findUpNext, hotelChipsForDay,
   hotelLegsForDay, itemHasTime, parseReservationMeta, transportSubtitle, weatherIconFor,
   type TransportEntry,
 } from '../../../../src/mobile/screens/trip/plan/planTimelineModel'
@@ -89,17 +89,6 @@ describe('planTimelineModel — metadata parsing', () => {
     expect(parseReservationMeta(buildReservation({ metadata: JSON.stringify('{not json') }))).toEqual({})
     expect(parseReservationMeta(buildReservation({ metadata: '""' }))).toEqual({})
   })
-
-  it('FE-MOB-PTLM-005: reads transit metadata only from transit reservations with legs', () => {
-    const legs = [{ mode: 'subway', line: 'U2' }]
-    const transit = buildReservation({
-      type: 'transit', metadata: JSON.stringify({ transit: { legs, transfers: 1, duration: 900 } }),
-    })
-    expect(getTransitMeta(transit)).toEqual({ legs, transfers: 1, duration: 900 })
-    expect(getTransitMeta(buildReservation({ type: 'flight', metadata: JSON.stringify({ transit: { legs } }) }))).toBeNull()
-    expect(getTransitMeta(buildReservation({ type: 'transit', metadata: '{}' }))).toBeNull()
-    expect(getTransitMeta(buildReservation({ type: 'transit', metadata: '{"transit":{"legs":"nope"}}' }))).toBeNull()
-  })
 })
 
 describe('planTimelineModel — transportSubtitle', () => {
@@ -176,14 +165,16 @@ describe('planTimelineModel — buildPlanRows', () => {
     expect(rows[0].key).toBe('tr-60-leg1')
   })
 
-  it('FE-MOB-PTLM-015: recognises a transit booking as its own row kind', () => {
+  it('FE-MOB-PTLM-015: a stored transit booking renders as an ordinary transport row', () => {
+    // The auto-transit planner is gone; imported transit reservations keep their
+    // type but render the generic row like every other manually kept transport.
     const transit = buildReservation({
       id: 61, type: 'transit', day_id: 2,
       metadata: JSON.stringify({ transit: { legs: [{ mode: 'subway', line: 'U2' }], transfers: 0 } }),
     })
     const rows = buildPlanRows({ merged: [transportItem(transit)], reservations: [], routeSegments: [], dayId: 2 })
-    expect(rows[0].kind).toBe('transit')
-    expect(rows[0].kind === 'transit' && rows[0].transit.legs).toHaveLength(1)
+    expect(rows[0].kind).toBe('transport')
+    expect(rows[0].key).toBe('tr-61')
   })
 
   it('FE-MOB-PTLM-016: hides a car rental on the days between pickup and drop-off', () => {

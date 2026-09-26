@@ -16,14 +16,12 @@ import type { BudgetItem } from '../../types'
  * Exactly one of reservationId / placeId is set — they are the two sides of the
  * same link, and the block behaves identically on both.
  */
-export function BookingCostsSection({ reservationId, placeId = null, hintKey = 'reservations.createExpenseHint', pendingExpense, onCreate, onEdit, onRemove }: {
+export function BookingCostsSection({ reservationId, placeId = null, hintKey = 'reservations.createExpenseHint', onCreate, onEdit, onRemove }: {
   reservationId: number | null
   /** Set instead of reservationId when the block sits in the place form (#1298). */
   placeId?: number | null
   /** What gets saved before the editor opens — "the booking" or "the place". */
   hintKey?: string
-  /** A cost parsed from an import that will be linked on save — previewed before the booking exists. */
-  pendingExpense?: { total_price: number; currency?: string | null; category: string } | null
   onCreate: () => void
   onEdit: (item: BudgetItem) => void
   onRemove: (item: BudgetItem) => void
@@ -40,25 +38,6 @@ export function BookingCostsSection({ reservationId, placeId = null, hintKey = '
       : null
 
   const labelCls = 'block text-[11px] font-semibold uppercase tracking-[0.08em] text-content-faint mb-[6px]'
-
-  // Import review (booking not saved yet): preview the parsed cost that will be linked on save.
-  if (!linked && pendingExpense && pendingExpense.total_price > 0) {
-    const meta = catMeta(pendingExpense.category)
-    const Icon = meta.Icon
-    return (
-      <div>
-        <label className={labelCls}>{t('reservations.linkedExpense')}</label>
-        <div className="bg-surface-secondary border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10 }}>
-          <span style={{ width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center', background: meta.color + '22', color: meta.color, flexShrink: 0 }}><Icon size={14} /></span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t(meta.labelKey)}</div>
-            <div className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))' }}>{t(hintKey)}</div>
-          </div>
-          <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, flexShrink: 0 }}>{formatMoney(pendingExpense.total_price, pendingExpense.currency || base, locale)}</span>
-        </div>
-      </div>
-    )
-  }
 
   if (linked) {
     const meta = catMeta(linked.category)

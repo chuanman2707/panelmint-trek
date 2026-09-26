@@ -12,13 +12,7 @@ const undo: TranslationStrings = {
   'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Η τοποθεσία μεταφέρθηκε σε άλλη ημέρα',
   'undo.lock': 'Το κλείδωμα τοποθεσίας εναλλάχθηκε',
-  'undo.importGpx': 'Εισαγωγή GPX',
-  'undo.importKeyholeMarkup': 'Εισαγωγή KMZ/KML',
-  'undo.importFiles': 'Εισαγωγή αρχείων',
-  'undo.importGoogleList': 'Εισαγωγή Google Maps',
-  'undo.importNaverList': 'Εισαγωγή Naver Maps',
   'undo.addPlace': 'Η τοποθεσία προστέθηκε',
   'undo.done': 'Αναιρέθηκε: {action}',
-  'undo.importBooking': 'Εισαγωγή επιβεβαίωσης κράτησης',
 };
 export default undo;

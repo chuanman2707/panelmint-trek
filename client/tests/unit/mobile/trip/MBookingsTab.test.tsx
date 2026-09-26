@@ -1,28 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import MBookingsTab from '../../../../src/mobile/screens/trip/tabs/MBookingsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
-import { openFile } from '../../../../src/utils/fileDownload'
-import type { Day, Reservation, TripFile } from '../../../../src/types'
-import { usePluginStore } from '../../../../src/store/pluginStore'
+import type { Day, Reservation } from '../../../../src/types'
 import { buildSettings } from '../../../helpers/factories'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
-import { seedStore } from '../../../helpers/store'
 
 // FE-MOB-BKTAB-001 to FE-MOB-BKTAB-023
-
-vi.mock('../../../../src/utils/fileDownload', async importOriginal => ({
-  ...(await importOriginal<typeof import('../../../../src/utils/fileDownload')>()),
-  openFile: vi.fn(),
-}))
-
-vi.mock('../../../../src/components/Plugins/PluginFrame', () => ({
-  default: ({ pluginId, tripId, reservationId, surface }: { pluginId: string; tripId: string | null; reservationId?: string | null; surface?: string }) => (
-    <div data-testid="plugin-frame" data-plugin={pluginId} data-trip={String(tripId)} data-reservation={String(reservationId)} data-surface={surface} />
-  ),
-}))
-
-const SEAT_MAP = { id: 'seat-map', name: 'Seat Map', type: 'widget', icon: null, slot: 'reservation-detail' } as const
 
 const DAYS = [
   { id: 1, trip_id: 7, day_number: 1, date: '2026-05-01', title: null },
@@ -69,11 +53,6 @@ const FLIGHT = {
   id: 205, trip_id: 7, type: 'flight', status: 'confirmed', title: 'HND to ITM', day_id: 1,
 } as unknown as Reservation
 
-const FILES = [
-  { id: 301, trip_id: 7, reservation_id: 202, original_name: 'voucher.pdf', url: '/uploads/f/301' },
-  { id: 302, trip_id: 7, reservation_id: 202, original_name: 'stale.pdf', url: '/uploads/f/302', deleted_at: '2026-01-01' },
-] as unknown as TripFile[]
-
 const ALL = [HOTEL, DINNER, SHOW, TOUR, FLIGHT]
 
 function planner(overrides: Partial<TripPlanner> = {}) {
@@ -81,7 +60,6 @@ function planner(overrides: Partial<TripPlanner> = {}) {
     tripId: 7,
     days: DAYS,
     reservations: ALL,
-    files: FILES,
     tripMembers: MEMBERS as unknown as TripPlanner['tripMembers'],
     settings: buildSettings({ time_format: '24h' }),
     ...overrides,
@@ -101,10 +79,6 @@ function cardOf(title: string): HTMLElement {
 }
 
 describe('MBookingsTab', () => {
-  beforeEach(() => {
-    vi.mocked(openFile).mockClear()
-    seedStore(usePluginStore, { plugins: [] })
-  })
 
   it('FE-MOB-BKTAB-001: keeps only the non-transport reservations, split by status', () => {
     renderTab()
@@ -157,17 +131,13 @@ describe('MBookingsTab', () => {
     expect(within(card).getByText('HG-77')).toBeInTheDocument()
   })
 
-  it('FE-MOB-BKTAB-008: renders the booking time range, travelers and files', () => {
+  it('FE-MOB-BKTAB-008: renders the booking time range and travelers', () => {
     renderTab()
     const card = cardOf('Sushi Saito')
     expect(within(card).getByText('Kyoto')).toBeInTheDocument()
     expect(within(card).getByText('19:30 – 21:00')).toBeInTheDocument()
     expect(within(card).getByText('reservations.travelers.label')).toBeInTheDocument()
     expect(within(card).getByText('Ada')).toBeInTheDocument()
-    expect(within(card).getByText('voucher.pdf')).toBeInTheDocument()
-    expect(within(card).queryByText('stale.pdf')).not.toBeInTheDocument()
-    fireEvent.click(within(card).getByText('voucher.pdf'))
-    expect(openFile).toHaveBeenCalledWith('/uploads/f/301', 'voucher.pdf')
   })
 
   it('FE-MOB-BKTAB-009: drops the day-range suffix when start and end day are the same', () => {
@@ -285,7 +255,6 @@ describe('MBookingsTab', () => {
     } as unknown as Reservation
     renderTab(planner({
       reservations: [SPA],
-      files: undefined as unknown as TripPlanner['files'],
       settings: { ...buildSettings(), time_format: '' },
     }))
     const card = cardOf('Onsen visit')
@@ -298,10 +267,8 @@ describe('MBookingsTab', () => {
   })
 
 
-  it('FE-MOB-BKTAB-023: compact mode drops the plugin frames with the rest of the body', () => {
-    seedStore(usePluginStore, { plugins: [SEAT_MAP] })
+  it('FE-MOB-BKTAB-023: compact mode collapses the card bodies', () => {
     renderTab(planner(), buildShell({ bookingsCompact: true }))
     expect(screen.getByText('Hotel Granvia')).toBeInTheDocument()
-    expect(screen.queryByTestId('plugin-frame')).not.toBeInTheDocument()
   })
 })

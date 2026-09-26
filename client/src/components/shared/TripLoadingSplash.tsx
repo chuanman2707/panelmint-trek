@@ -19,7 +19,7 @@ const STEPS: { scene: TrekScene; key: string }[] = [
   { scene: 'packing', key: 'trip.loadingSteps.pack' },
   { scene: 'transport', key: 'trip.loadingSteps.road' },
   { scene: 'dashboard', key: 'trip.loadingPhotos' },
-  { scene: 'collections', key: 'trip.loadingSteps.arrive' },
+  { scene: 'pin', key: 'trip.loadingSteps.arrive' },
 ]
 const STEP_MS = 1400
 const STILL_INDEX = 2

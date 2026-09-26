@@ -12,7 +12,6 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettings } from '../../../pages/settings/useSettings'
-import { useAuthStore } from '../../../store/authStore'
 import MSettingsGeneral from './MSettingsGeneral'
 import MSettingsAppearance from './MSettingsAppearance'
 import MSettingsMap from './MSettingsMap'
@@ -34,19 +33,13 @@ export default function MSettings() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { appVersion, activeTab, setActiveTab } = useSettings()
-  const managed = useAuthStore((s) => s.managed)
   const [dropOpen, setDropOpen] = useState(false)
 
   const tabs: SectionTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
     { id: 'appearance', label: t('settings.tabs.appearance'), icon: Palette },
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
-    // Same call as the desktop page: About is about the project — what TREK is,
-    // where to file a bug, where to support it — and a customer of a hosted
-    // instance is the audience for none of it. The version and the source link
-    // move to the footer below, because AGPL §13 wants those offered wherever
-    // people reach the software over a network.
-    ...(appVersion && !managed ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }] : []),
+    ...(appVersion ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }] : []),
   ]
 
   const active = tabs.find((tab) => tab.id === activeTab) || tabs[0]
@@ -101,19 +94,6 @@ export default function MSettings() {
       {active.id === 'appearance' && <MSettingsAppearance />}
       {active.id === 'map' && <MSettingsMap />}
       {active.id === 'about' && appVersion && <MSettingsAbout appVersion={appVersion} />}
-
-      {managed && appVersion && (
-        <p className="mt-8 text-center text-caption text-m-muted">
-          <a
-            href="https://github.com/chuanman2707/panelmint-trek"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="no-underline"
-          >
-            v{appVersion}
-          </a>
-        </p>
-      )}
     </div>
   )
 }

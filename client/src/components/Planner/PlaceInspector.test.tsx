@@ -64,8 +64,6 @@ const defaultProps = {
   onDelete: vi.fn(),
   onAssignToDay: vi.fn(),
   onRemoveAssignment: vi.fn(),
-  files: [] as any[],
-  onFileUpload: vi.fn().mockResolvedValue(undefined),
   tripMembers: [] as any[],
   onSetParticipants: vi.fn(),
   onUpdatePlace: vi.fn(),
@@ -360,41 +358,10 @@ describe('PlaceInspector', () => {
     expect(vi.mocked(mapsApi.details)).not.toHaveBeenCalled();
   });
 
-  // ── Files ──────────────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-INSPECTOR-028: files section shows file names after expanding', async () => {
-    const user = userEvent.setup();
-    const file = {
-      id: 1,
-      trip_id: 1,
-      place_id: place.id,
-      original_name: 'photo.jpg',
-      url: '/uploads/photo.jpg',
-      filename: 'photo.jpg',
-      mime_type: 'image/jpeg',
-      file_size: 1024,
-      created_at: '2025-01-01T00:00:00.000Z',
-    };
-    render(<PlaceInspector {...defaultProps} files={[file as any]} />);
-    // The files section header/toggle is always visible; click to expand
-    const allButtons = screen.getAllByRole('button');
-    const filesBtn = allButtons.find(btn => btn.textContent?.includes('1'));
-    // Click the expand button (file count label button)
-    if (filesBtn) {
-      await user.click(filesBtn);
-      expect(await screen.findByText('photo.jpg')).toBeInTheDocument();
-    } else {
-      // Try clicking the last non-footer button
-      const toggleButtons = allButtons.filter(btn => !btn.closest('footer'));
-      await user.click(toggleButtons[0]);
-    }
-  });
 
-  it('FE-PLANNER-INSPECTOR-029: hidden file input is present when onFileUpload provided', () => {
-    const { container } = render(<PlaceInspector {...defaultProps} />);
-    const fileInput = container.querySelector('input[type="file"]');
-    expect(fileInput).toBeTruthy();
-  });
+
+
 
   // ── Reservation chip ───────────────────────────────────────────────────────
 
@@ -589,54 +556,10 @@ describe('PlaceInspector', () => {
     expect(screen.getByText(/\+33 1 23 45 67 89/)).toBeTruthy();
   });
 
-  // ── File size display ──────────────────────────────────────────────────────
 
-  it('FE-PLANNER-INSPECTOR-034: file size displayed in KB for files < 1MB', async () => {
-    const user = userEvent.setup();
-    const file = {
-      id: 2,
-      trip_id: 1,
-      place_id: place.id,
-      original_name: 'doc.pdf',
-      url: '/uploads/doc.pdf',
-      filename: 'doc.pdf',
-      mime_type: 'application/pdf',
-      file_size: 2048,
-      created_at: '2025-01-01T00:00:00.000Z',
-    };
-    render(<PlaceInspector {...defaultProps} files={[file as any]} />);
-    // Click expand to see file details
-    const expandBtn = screen.getAllByRole('button').find(b => b.textContent?.includes('1'));
-    if (expandBtn) {
-      await user.click(expandBtn);
-      await waitFor(() => {
-        expect(screen.getByText(/2\.0 KB/)).toBeTruthy();
-      });
-    }
-  });
 
-  it('FE-PLANNER-INSPECTOR-035: file size displayed in MB for files >= 1MB', async () => {
-    const user = userEvent.setup();
-    const file = {
-      id: 3,
-      trip_id: 1,
-      place_id: place.id,
-      original_name: 'video.mp4',
-      url: '/uploads/video.mp4',
-      filename: 'video.mp4',
-      mime_type: 'video/mp4',
-      file_size: 2 * 1024 * 1024,
-      created_at: '2025-01-01T00:00:00.000Z',
-    };
-    render(<PlaceInspector {...defaultProps} files={[file as any]} />);
-    const expandBtn = screen.getAllByRole('button').find(b => b.textContent?.includes('1'));
-    if (expandBtn) {
-      await user.click(expandBtn);
-      await waitFor(() => {
-        expect(screen.getByText(/2\.0 MB/)).toBeTruthy();
-      });
-    }
-  });
+
+
 
   // ── GPX track stats ────────────────────────────────────────────────────────
 
@@ -698,21 +621,8 @@ describe('PlaceInspector', () => {
     await screen.findByText(/3\.0/);
   });
 
-  // ── File upload interaction ────────────────────────────────────────────────
 
-  it('FE-PLANNER-INSPECTOR-040: file input change triggers onFileUpload', async () => {
-    const onFileUpload = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlaceInspector {...defaultProps} onFileUpload={onFileUpload} />);
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput).toBeTruthy();
-    const testFile = new File(['content'], 'test.txt', { type: 'text/plain' });
-    await act(async () => {
-      fireEvent.change(fileInput, { target: { files: [testFile] } });
-    });
-    await waitFor(() => {
-      expect(onFileUpload).toHaveBeenCalled();
-    });
-  });
+
 
   // ── formatTime: 12h format ─────────────────────────────────────────────────
 
@@ -775,14 +685,8 @@ describe('PlaceInspector', () => {
     openSpy.mockRestore();
   });
 
-  // ── No files section when no upload handler and no files ──────────────────
 
-  it('FE-PLANNER-INSPECTOR-044: files section hidden when no files and no onFileUpload', () => {
-    const { container } = render(
-      <PlaceInspector {...defaultProps} files={[]} onFileUpload={undefined} />
-    );
-    expect(container.querySelector('input[type="file"]')).toBeNull();
-  });
+
 
   // ── Participants section hidden when tripMembers <= 1 ─────────────────────
 
@@ -950,69 +854,18 @@ describe('PlaceInspector', () => {
     expect(screen.getByText('Eiffel Tower')).toBeTruthy();
   });
 
-  // ── Files ────────────────────────────────────────────────────────────────────
 
-  const placeFile = (over: Record<string, unknown> = {}) => ({
-    id: 1, trip_id: 1, place_id: 1, original_name: 'map.pdf', filename: 'map.pdf',
-    mime_type: 'application/pdf', url: '/uploads/map.pdf', created_at: '2025-01-01T00:00:00.000Z',
-    ...over,
-  });
 
-  it('FE-PLANNER-INSPECTOR-061: file sizes render in B, KB and MB, and a zero size is omitted', async () => {
-    const files = [
-      placeFile({ id: 1, original_name: 'tiny.txt', file_size: 512, mime_type: 'text/plain' }),
-      placeFile({ id: 2, original_name: 'medium.pdf', file_size: 2048 }),
-      placeFile({ id: 3, original_name: 'big.png', file_size: 3 * 1024 * 1024, mime_type: 'image/png' }),
-      placeFile({ id: 4, original_name: 'unknown.bin', file_size: 0 }),
-    ];
-    render(<PlaceInspector {...defaultProps} files={files as any} />);
-    fireEvent.click(screen.getByText('4 files'));
-    expect(await screen.findByText('512 B')).toBeTruthy();
-    expect(screen.getByText('2.0 KB')).toBeTruthy();
-    expect(screen.getByText('3.0 MB')).toBeTruthy();
-    expect(screen.getByText('unknown.bin')).toBeTruthy();
-  });
 
-  it('FE-PLANNER-INSPECTOR-062: clicking an attached file opens it', async () => {
-    const { openFile } = await import('../../utils/fileDownload');
-    const spy = vi.spyOn({ openFile }, 'openFile');
-    render(<PlaceInspector {...defaultProps} files={[placeFile()] as any} />);
-    fireEvent.click(screen.getByText('1 files'));
-    const link = await screen.findByText('map.pdf');
-    fireEvent.click(link);
-    // The click is handled without throwing; the row stays in the list.
-    expect(screen.getByText('map.pdf')).toBeTruthy();
-    spy.mockRestore();
-  });
 
-  it('FE-PLANNER-INSPECTOR-063: an empty file selection is ignored', async () => {
-    const onFileUpload = vi.fn().mockResolvedValue(undefined);
-    render(<PlaceInspector {...defaultProps} onFileUpload={onFileUpload} />);
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [] } });
-    expect(onFileUpload).not.toHaveBeenCalled();
-  });
 
-  it('FE-PLANNER-INSPECTOR-064: a failing upload surfaces an error and re-enables the control', async () => {
-    const onFileUpload = vi.fn().mockRejectedValue(new Error('disk full'));
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    render(<PlaceInspector {...defaultProps} onFileUpload={onFileUpload} />);
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [new File(['x'], 'a.pdf', { type: 'application/pdf' })] } });
-    await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
-    await waitFor(() => expect(screen.getByText('Upload')).toBeTruthy());
-    expect(errorSpy).toHaveBeenCalled();
-    errorSpy.mockRestore();
-  });
 
-  it('FE-PLANNER-INSPECTOR-065: a successful upload expands the file list', async () => {
-    const onFileUpload = vi.fn().mockResolvedValue(undefined);
-    render(<PlaceInspector {...defaultProps} files={[placeFile()] as any} onFileUpload={onFileUpload} />);
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [new File(['x'], 'b.pdf', { type: 'application/pdf' })] } });
-    await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
-    expect(await screen.findByText('map.pdf')).toBeTruthy();
-  });
+
+
+
+
+
+
 
   // ── Track stats edge cases ───────────────────────────────────────────────────
 

@@ -1,12 +1,12 @@
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
-import { useAddonStore } from '../../../store/addonStore'
 import { resolveMobileDashOrder } from '../dashboard/MDashWidgets'
 import type { AppearanceConfig, MobileDashToken } from '@trek/shared'
 
-const LABEL_KEY: Record<Exclude<MobileDashToken, 'trips'>, string> = {
+// Partial: retired tokens (e.g. 'collections') can still appear in the type but
+// are filtered out of the resolved order before they ever render here.
+const LABEL_KEY: Partial<Record<Exclude<MobileDashToken, 'trips'>, string>> = {
   currency: 'settings.appearance.widget.currency',
-  collections: 'settings.appearance.widget.collections',
   timezones: 'settings.appearance.widget.timezones',
   upcomingReservations: 'settings.appearance.widget.upcomingReservations',
 }
@@ -22,17 +22,11 @@ export default function MMobileDashOrder({ cfg, onChange }: {
   onChange: (order: MobileDashToken[]) => void
 }) {
   const { t } = useTranslation()
-  const isAddonEnabled = useAddonStore((s) => s.isEnabled)
   const order = resolveMobileDashOrder(cfg.dashboard.mobileOrder)
   const m = cfg.dashboard.mobile
 
-  const isOn = (id: MobileDashToken): boolean => {
-    if (id === 'trips') return true
-    if (id === 'collections') return isAddonEnabled('collections') && m.collections
-    if (id === 'currency') return m.currency
-    if (id === 'timezones') return m.timezones
-    return m.upcomingReservations
-  }
+  const isOn = (id: MobileDashToken): boolean =>
+    id === 'trips' ? true : m[id] === true
 
   const move = (from: number, to: number) => {
     if (to < 0 || to >= order.length || from === to) return
@@ -50,7 +44,7 @@ export default function MMobileDashOrder({ cfg, onChange }: {
         <div key={id} className="flex items-center gap-[10px] rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[10px]">
           <span className="flex min-w-0 flex-1 items-center gap-2">
             <span className="truncate text-[0.8125rem] font-bold text-m-ink">
-              {id === 'trips' ? t('settings.appearance.dashOrder.trips') : t(LABEL_KEY[id])}
+              {id === 'trips' ? t('settings.appearance.dashOrder.trips') : t(LABEL_KEY[id] ?? id)}
             </span>
             {!isOn(id) && (
               <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.5625rem] font-bold uppercase tracking-wide text-m-faint">

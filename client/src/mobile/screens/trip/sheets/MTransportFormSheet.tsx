@@ -11,7 +11,6 @@ import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import AirportSelect, { type Airport } from '../../../../components/Planner/AirportSelect'
 import LocationSelect, { type LocationPoint } from '../../../../components/Planner/LocationSelect'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import PlFileAttach from './PlFileAttach'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
 import { useTripStore } from '../../../../store/tripStore'
@@ -145,7 +144,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     editingTransport, setEditingTransport,
     transportModalDayId, setTransportModalDayId,
     handleSaveTransport, handleDeleteReservation,
-    canUploadFiles, tripActions,
   } = planner
   const { locale } = useTranslation()
   const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
@@ -158,7 +156,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   const [waypoints, setWaypoints] = useState<WaypointForm[]>([emptyWaypoint(), emptyWaypoint()])
   const [trainWaypoints, setTrainWaypoints] = useState<StationWaypointForm[]>([emptyStationWaypoint(), emptyStationWaypoint()])
   const [carStops, setCarStops] = useState<CarStopForm[]>([])
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   // Travelers assigned to this booking (#1517) — seeded from the editing
   // reservation on open, persisted separately after the save resolves.
   const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
@@ -175,7 +172,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     setSnap({ res: editingTransport })
     expenseIntentRef.current = false
     setDeleteArmed(false)
-    setPendingFiles([])
     setTravelerIds(new Set((editingTransport?.travelers || []).map(tv => tv.user_id)))
 
     // Edit uses the saved `editingTransport`; the reservation still
@@ -465,21 +461,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         }
       }
 
-      // A transit itinerary lives in metadata.transit + 'stop' endpoints, which
-      // this form neither shows nor edits — keep them while from/to are unchanged.
-      const prevMeta = res ? parseReservationMetadata(res) : {}
-      const prevEndpointsAll = res?.endpoints || []
-      const prevFrom = prevEndpointsAll.find(ep => ep.role === 'from')
-      const prevTo = prevEndpointsAll.find(ep => ep.role === 'to')
-      const near = (a?: number | null, b?: number | null) => a != null && b != null && Math.abs(a - b) < 1e-6
-      const keepTransit = !!(prevMeta.transit && form.type !== 'flight' &&
-        prevFrom && prevTo && fromPick.location && toPick.location &&
-        near(prevFrom.lat, fromPick.location.lat) && near(prevFrom.lng, fromPick.location.lng) &&
-        near(prevTo.lat, toPick.location.lat) && near(prevTo.lng, toPick.location.lng))
-      if (keepTransit) metadata.transit = prevMeta.transit
-      // A joined AirTrail import records its source flight ids in metadata.airtrail_ids.
-      if (Array.isArray(prevMeta.airtrail_ids)) metadata.airtrail_ids = prevMeta.airtrail_ids
-
       const startDate = startDay?.date ?? null
       const endDate = (endDay ?? startDay)?.date ?? null
       const endpoints: ReturnType<typeof endpointFromAirport>[] = []
@@ -504,24 +485,14 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         })
       } else {
         if (fromPick.location) endpoints.push(endpointFromLocation(fromPick.location, 'from', 0, startDate, form.departure_time || null))
-        // A car writes the stops the driver planned; every other type keeps passing the
-        // itinerary's transfer stops through while the route is unchanged (#1065).
+        // A car writes the stops the driver planned; other types carry none.
         const carEndpoints = form.type === 'car'
           ? carStops
               .filter(s => s.location)
               .map((s, i) => endpointFromLocation(s.location!, 'stop', i + 1, startDate, s.time || null))
           : []
-        const stops = keepTransit && form.type !== 'car'
-          ? prevEndpointsAll.filter(ep => ep.role === 'stop').slice().sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-          : []
-        stops.forEach((s, i) => endpoints.push({
-          role: 'stop', sequence: i + 1, name: s.name, code: s.code ?? null,
-          lat: s.lat, lng: s.lng, timezone: s.timezone ?? null,
-          local_date: s.local_date ?? null, local_time: s.local_time ?? null,
-        }))
         carEndpoints.forEach(e => endpoints.push(e))
-        const stopCount = stops.length + carEndpoints.length
-        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', stopCount + 1, endDate, form.arrival_time || null))
+        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', carEndpoints.length + 1, endDate, form.arrival_time || null))
       }
 
       const flightDepDay = firstWp && firstWp.depDayId ? Number(firstWp.depDayId) : null
@@ -561,15 +532,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
         const next = [...travelerIds]
         const changed = original.length !== next.length || next.some(id => !original.includes(id))
         if (changed) await setReservationTravelers(tripId, savedId, next)
-      }
-      if (!res?.id && saved?.id && pendingFiles.length > 0 && canUploadFiles) {
-        for (const file of pendingFiles) {
-          const fd = new FormData()
-          fd.append('file', file)
-          fd.append('reservation_id', String(saved.id))
-          fd.append('description', form.title)
-          await tripActions.addFile(tripId, fd)
-        }
       }
       if (withExpense && saved?.id) {
         onOpenExpense({ prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) } })
@@ -987,17 +949,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
                   )
                 })}
               </div>
-            )}
-
-            {/* FILES */}
-            {canUploadFiles && (
-              <PlFileAttach
-                planner={planner}
-                files={pendingFiles}
-                onAdd={files => setPendingFiles(prev => [...prev, ...files])}
-                onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
-                hideHint
-              />
             )}
 
             {/* COSTS */}

@@ -1,17 +1,12 @@
 // FE-PLANNER-DPTOOLBAR-001 to FE-PLANNER-DPTOOLBAR-023
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
-import { downloadTripPDF } from '../PDF/TripPDF'
-import { buildDay, buildReservation, buildTrip } from '../../../tests/helpers/factories'
+import { buildDay, buildReservation } from '../../../tests/helpers/factories'
 import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
 import type { Reservation } from '../../types'
 
-vi.mock('../PDF/TripPDF', () => ({ downloadTripPDF: vi.fn().mockResolvedValue(undefined) }))
-
 const t = (key: string, params?: Record<string, unknown>) =>
   params ? `${key}|${Object.values(params).join('|')}` : key
-
-const trip = buildTrip({ id: 1, title: 'Roadtrip' })
 
 function makeToast() {
   return {
@@ -25,13 +20,8 @@ function makeToast() {
 function makeProps(overrides: Partial<React.ComponentProps<typeof DayPlanSidebarToolbar>> = {}) {
   return {
     tripId: 1,
-    trip,
     days: [],
-    places: [],
-    categories: [],
-    assignments: {},
     reservations: [] as Reservation[],
-    dayNotes: {},
     t,
     locale: 'en-US',
     toast: makeToast(),
@@ -72,17 +62,17 @@ describe('DayPlanSidebarToolbar', () => {
     expect(screen.queryByText('dayplan.pdf')).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DPTOOLBAR-002: the export button opens the dialog and closes again', async () => {
+  it('FE-PLANNER-DPTOOLBAR-002: the export button opens the dialog with the file-export stub', async () => {
     const user = userEvent.setup()
-    render(<DayPlanSidebarToolbar {...makeProps()} />)
+    const toast = makeToast()
+    render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
     const btn = screen.getByRole('button', { name: 'dayplan.export' })
     expect(btn).toHaveAttribute('aria-expanded', 'false')
     await user.click(btn)
     expect(btn).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('dayplan.exportDocument')).toBeInTheDocument()
-    await user.click(screen.getByText('dayplan.pdf'))
-    await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(screen.queryByText('dayplan.exportDocument')).not.toBeInTheDocument())
+    await user.click(screen.getByText('dayplan.exportFile'))
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith('dayplan.exportFileTooltip'))
   })
 
   it('FE-PLANNER-DPTOOLBAR-003: hovering the export button shows its tooltip', async () => {

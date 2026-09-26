@@ -11,14 +11,8 @@ const undo: TranslationStrings = {
   'undo.deletePlaces': 'Llocs eliminats',
   'undo.moveDay': 'Lloc mogut a un altre dia',
   'undo.lock': 'Bloqueig de lloc activat/desactivat',
-  'undo.importGpx': 'Importació GPX',
-  'undo.importKeyholeMarkup': 'Importació KMZ/KML',
-  'undo.importFiles': 'Importació de fitxers',
-  'undo.importGoogleList': 'Importació de Google Maps',
-  'undo.importNaverList': 'Importació de Naver Maps',
   'undo.addPlace': 'Lloc afegit',
   'undo.done': 'Desfet: {action}',
-  'undo.importBooking': 'Importa confirmació de reserva',
 
   'undo.changeCategory': 'Categoria canviada',
 };

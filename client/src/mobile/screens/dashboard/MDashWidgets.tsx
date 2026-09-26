@@ -6,7 +6,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
-import { useAddonStore } from '../../../store/addonStore'
 import { entityGradient } from '../../../utils/gradients'
 import { CURRENCIES } from '../../../components/Budget/BudgetPanel.constants'
 import { formatTime, splitReservationDateTime } from '../../../utils/formatters'
@@ -28,24 +27,27 @@ const RES_ICON: Record<string, React.ReactElement> = {
 const MOMENT_LABEL: Record<string, string> = { checkin: 'day.checkIn', checkout: 'day.checkOut' }
 
 /**
- * Inline dashboard widget panels (currency, collections, timezones, upcoming
- * reservations) for the mobile dashboard. The blocks are rendered individually
- * by MDashboard so they can be interleaved with the trip list in a user-chosen
- * order; this module owns the widget bodies plus the order/visibility helpers.
- * Visibility follows the per-device appearance widget config; collections is
- * additionally gated by the admin addon.
+ * Inline dashboard widget panels (currency, timezones, upcoming reservations)
+ * for the mobile dashboard. The blocks are rendered individually by MDashboard
+ * so they can be interleaved with the trip list in a user-chosen order; this
+ * module owns the widget bodies plus the order/visibility helpers.
+ * Visibility follows the per-device appearance widget config.
  */
 
+/** Tokens that survive in the stored schema but whose widgets are gone. */
+const RETIRED_TOKENS = new Set<string>(['collections'])
+
 /** Reconcile a stored mobile-dashboard order: keep known tokens in order, drop
- *  unknown/duplicate ones, and append any missing tokens in their built-in spot. */
+ *  unknown/duplicate/retired ones, and append any missing tokens in their
+ *  built-in spot. */
 export function resolveMobileDashOrder(stored: string[] | undefined): MobileDashToken[] {
   const valid = new Set<string>(MOBILE_DASH_TOKENS)
   const seen = new Set<string>()
   const out: MobileDashToken[] = []
   for (const tok of stored ?? []) {
-    if (valid.has(tok) && !seen.has(tok)) { seen.add(tok); out.push(tok as MobileDashToken) }
+    if (valid.has(tok) && !seen.has(tok) && !RETIRED_TOKENS.has(tok)) { seen.add(tok); out.push(tok as MobileDashToken) }
   }
-  for (const tok of MOBILE_DASH_TOKENS) if (!seen.has(tok)) out.push(tok)
+  for (const tok of MOBILE_DASH_TOKENS) if (!seen.has(tok) && !RETIRED_TOKENS.has(tok)) out.push(tok)
   return out
 }
 
@@ -55,15 +57,15 @@ export function useMobileDashOrder(): MobileDashToken[] {
   return resolveMobileDashOrder(normalizeAppearance(appearance).dashboard.mobileOrder)
 }
 
-/** Which blocks are currently visible — trips always; widgets per flag (+ addon). */
+/** Which blocks are currently visible — trips always; widgets per flag. */
 export function useMobileDashVisibility(): Record<MobileDashToken, boolean> {
   const appearance = useSettingsStore(s => s.settings.appearance)
-  const isAddonEnabled = useAddonStore(s => s.isEnabled)
   const w = normalizeAppearance(appearance).dashboard.mobile
   return {
     trips: true,
     currency: w.currency,
-    collections: isAddonEnabled('collections') && w.collections,
+    // The collections widget is gone; the token only survives in stored blobs.
+    collections: false,
     timezones: w.timezones,
     upcomingReservations: w.upcomingReservations,
   }

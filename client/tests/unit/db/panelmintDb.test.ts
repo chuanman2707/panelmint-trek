@@ -57,7 +57,6 @@ describe('panelmintDb', () => {
       lastSyncedAt: null,
       status: 'idle',
       tilesBbox: null,
-      filesCachedCount: 0,
     })
 
     expect(await db.days.where('trip_id').equals(1).count()).toBe(1)

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router'
-import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Paperclip, FileText, X, ExternalLink, Link2, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, X, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import CustomTimePicker from '../shared/CustomTimePicker'
@@ -11,15 +11,13 @@ import { useToast } from '../shared/Toast'
 import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import { formatDate, splitReservationDateTime, resolveDayId } from '../../utils/formatters'
-import { openFile } from '../../utils/fileDownload'
-import apiClient from '../../api/client'
-import type { Day, Reservation, ReservationEndpoint, TripFile, BudgetItem } from '../../types'
+import type { Day, Reservation, ReservationEndpoint, BudgetItem } from '../../types'
 import { parseReservationMetadata, orderedEndpoints } from '../../utils/flightLegs'
 import { BookingCostsSection } from './BookingCostsSection'
 import { TravelerPicker } from './TravelerPicker'
 import type { TripMember } from '../Budget/BudgetPanelMemberChips'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
-import type { BookingReviewDraft } from './parsedItemToDraft'
+
 import { typeToCostCategory } from '@trek/shared'
 
 const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'] as const
@@ -168,24 +166,17 @@ interface TransportModalProps {
   reservation: Reservation | null
   days: Day[]
   selectedDayId: number | null
-  files?: TripFile[]
-  onFileUpload?: (fd: FormData) => Promise<unknown>
-  onFileDelete?: (fileId: number) => Promise<void>
   onOpenExpense?: (req: BookingExpenseRequest) => void
-  // Pre-fill a brand-new transport booking from a parsed import item (review-
-  // before-save); like `reservation` for the form but stays in create mode.
-  prefill?: BookingReviewDraft | null
   /** Trip members + guests, for the traveler picker (#1517). */
   tripMembers?: TripMember[]
 }
 
-export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, files = [], onFileUpload, onFileDelete, onOpenExpense, prefill = null, tripMembers = [] }: TransportModalProps) {
+export function TransportModal({ isOpen, onClose, onSave, reservation, days, selectedDayId, onOpenExpense, tripMembers = [] }: TransportModalProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
-  const loadFiles = useTripStore(s => s.loadFiles)
   const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
   const { id: tripId } = useParams<{ id: string }>()
   // Set right before submitting when the user clicked "create/edit expense", so
@@ -213,37 +204,15 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       return next
     })
   }
-  const [uploadingFile, setUploadingFile] = useState(false)
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
-  const [showFilePicker, setShowFilePicker] = useState(false)
-  const [linkedFileIds, setLinkedFileIds] = useState<number[]>([])
   // Travelers assigned to this booking (#1517) — seeded on open, persisted after save.
   const [travelerIds, setTravelerIds] = useState<Set<number>>(new Set())
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const filePickerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!showFilePicker) return
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (!filePickerRef.current?.contains(event.target as Node)) setShowFilePicker(false)
-    }
-    document.addEventListener('pointerdown', closeOnOutsidePointer)
-    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer)
-  }, [showFilePicker])
-
-  useEffect(() => {
-    if (!isOpen) setShowFilePicker(false)
-  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
     setTravelerIds(new Set((reservation?.travelers || []).map(tv => tv.user_id)))
-    // Edit uses the saved `reservation`; a review-import populates from `prefill`.
-    // Either way the init reads the same fields — `reservation` still decides
-    // edit-vs-create at submit time.
-    const src = (reservation ?? prefill) as Reservation | null
-    // On a review-import, seed the booking's Files with the parsed source document.
-    setPendingFiles(!reservation && prefill?._sourceFiles ? prefill._sourceFiles : [])
+    // Edit uses the saved `reservation`, which also decides edit-vs-create at
+    // submit time.
+    const src = reservation
     if (src) {
       const meta = typeof src.metadata === 'string'
         ? JSON.parse(src.metadata || '{}')
@@ -261,8 +230,8 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         title: src.title || '',
         type,
         status: src.status === 'confirmed' ? 'confirmed' : 'pending',
-        // For an edit, keep the saved day; for an imported prefill (no day_id), resolve it
-        // from the parsed pick-up/return date so the date isn't lost on save.
+        // For an edit, keep the saved day; otherwise resolve the day from the
+        // pick-up/return date so the date isn't lost on save.
         start_day_id: src.day_id ?? resolveDayId(days, splitReservationDateTime(src.reservation_time).date),
         end_day_id: src.end_day_id ?? resolveDayId(days, splitReservationDateTime(src.reservation_end_time).date),
         departure_time: splitReservationDateTime(src.reservation_time).time ?? '',
@@ -275,12 +244,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         meta_platform: meta.platform || '',
         meta_seat: meta.seat || '',
       })
-      // Only an import prefill carries a per-endpoint local_date without a day_id. On an
-      // edit the saved day wins: local_date is denormalised and can lag behind after a
-      // day drag, insertDay or a trip-date shift, so resolving from it would silently
-      // move the booking to another day on a plain re-save.
-      const endpointDayId = (ep?: { local_date?: string | null } | null) =>
-        reservation ? '' : resolveDayId(days, ep?.local_date)
+      // The saved day wins over an endpoint's local_date: local_date is
+      // denormalised and can lag behind after a day drag, insertDay or a
+      // trip-date shift, so resolving from it would silently move the booking
+      // to another day on a plain re-save.
 
       if (type === 'flight') {
         const orderedEps = orderedEndpoints(src)
@@ -294,13 +261,9 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             const isLast = i === orderedEps.length - 1
             return {
               airport: airportFromEndpoint(ep),
-              // An import prefill gives each endpoint its own local_date but no day_id, so
-              // resolve the day from that date — otherwise the review's per-leg day
-              // selectors render empty even though the time, read from the same
-              // endpoint, is filled.
-              arrDayId: legInto?.arr_day_id ?? (endpointDayId(ep) || (isLast ? (src.end_day_id ?? '') : '')),
+              arrDayId: legInto?.arr_day_id ?? (isLast ? (src.end_day_id ?? '') : ''),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (endpointDayId(ep) || (isFirst ? (src.day_id ?? '') : '')),
+              depDayId: legOut?.dep_day_id ?? (isFirst ? (src.day_id ?? '') : ''),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               airline: legOut?.airline ?? (isFirst ? (meta.airline ?? '') : ''),
               flight_number: legOut?.flight_number ?? (isFirst ? (meta.flight_number ?? '') : ''),
@@ -313,13 +276,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           })
         } else {
           // Legacy flight with no (or partial) endpoints — seed two waypoints.
-          const dep = emptyWaypoint(endpointDayId(from) || (src.day_id ?? ''))
+          const dep = emptyWaypoint(src.day_id ?? '')
           dep.airport = airportFromEndpoint(from)
           dep.depTime = splitReservationDateTime(src.reservation_time).time ?? ''
           dep.airline = meta.airline ?? ''
           dep.flight_number = meta.flight_number ?? ''
           dep.seat = meta.seat ?? ''
-          const arr = emptyWaypoint(endpointDayId(to) || (src.end_day_id ?? src.day_id ?? ''))
+          const arr = emptyWaypoint(src.end_day_id ?? src.day_id ?? '')
           arr.airport = airportFromEndpoint(to)
           arr.arrTime = splitReservationDateTime(src.reservation_end_time).time ?? ''
           wps = [dep, arr]
@@ -341,11 +304,9 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             const isLast = i === orderedEps.length - 1
             return {
               location: locationFromEndpoint(ep),
-              // See the flight branch: resolve each station's day from its endpoint local_date
-              // so an import prefill doesn't leave the per-leg day selectors empty.
-              arrDayId: legInto?.arr_day_id ?? (endpointDayId(ep) || (isLast ? (src.end_day_id ?? '') : '')),
+              arrDayId: legInto?.arr_day_id ?? (isLast ? (src.end_day_id ?? '') : ''),
               arrTime: legInto?.arr_time ?? (!isFirst ? (ep.local_time ?? '') : ''),
-              depDayId: legOut?.dep_day_id ?? (endpointDayId(ep) || (isFirst ? (src.day_id ?? '') : '')),
+              depDayId: legOut?.dep_day_id ?? (isFirst ? (src.day_id ?? '') : ''),
               depTime: legOut?.dep_time ?? (!isLast ? (ep.local_time ?? '') : ''),
               train_number: legOut?.train_number ?? (isFirst ? (meta.train_number ?? '') : ''),
               platform: legOut?.platform ?? (isFirst ? (meta.platform ?? '') : ''),
@@ -355,13 +316,13 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             }
           })
         } else {
-          const dep = emptyStationWaypoint(endpointDayId(from) || (src.day_id ?? ''))
+          const dep = emptyStationWaypoint(src.day_id ?? '')
           dep.location = locationFromEndpoint(from)
           dep.depTime = splitReservationDateTime(src.reservation_time).time ?? ''
           dep.train_number = meta.train_number ?? ''
           dep.platform = meta.platform ?? ''
           dep.seat = meta.seat ?? ''
-          const arr = emptyStationWaypoint(endpointDayId(to) || (src.end_day_id ?? src.day_id ?? ''))
+          const arr = emptyStationWaypoint(src.end_day_id ?? src.day_id ?? '')
           arr.location = locationFromEndpoint(to)
           arr.arrTime = splitReservationDateTime(src.reservation_end_time).time ?? ''
           wps = [dep, arr]
@@ -392,7 +353,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       setTrainWaypoints([emptyStationWaypoint(selectedDayId ?? ''), emptyStationWaypoint(selectedDayId ?? '')])
       setCarStops([])
     }
-  }, [isOpen, reservation, prefill, selectedDayId, budgetItems])
+  }, [isOpen, reservation, selectedDayId, budgetItems])
 
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }))
 
@@ -496,25 +457,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         }
       }
 
-      // A transit itinerary (#1065) lives in metadata.transit + 'stop' endpoints,
-      // neither of which this form shows or edits — so re-saving must not wipe
-      // them. They're kept only while from/to are unchanged: picking a different
-      // origin or destination invalidates the stored connection.
-      const prevMeta = reservation ? parseReservationMetadata(reservation) : {}
-      const prevEndpointsAll = reservation?.endpoints || []
-      const prevFrom = prevEndpointsAll.find(ep => ep.role === 'from')
-      const prevTo = prevEndpointsAll.find(ep => ep.role === 'to')
-      const near = (a?: number | null, b?: number | null) => a != null && b != null && Math.abs(a - b) < 1e-6
-      const keepTransit = !!(prevMeta.transit && form.type !== 'flight' &&
-        prevFrom && prevTo && fromPick.location && toPick.location &&
-        near(prevFrom.lat, fromPick.location.lat) && near(prevFrom.lng, fromPick.location.lng) &&
-        near(prevTo.lat, toPick.location.lat) && near(prevTo.lng, toPick.location.lng))
-      if (keepTransit) metadata.transit = prevMeta.transit
-      // A joined AirTrail import (#1535) records every source flight id in
-      // metadata.airtrail_ids so the picker doesn't offer those legs again —
-      // an edit in this form must not drop that linkage.
-      if (Array.isArray(prevMeta.airtrail_ids)) metadata.airtrail_ids = prevMeta.airtrail_ids
-
       const startDate = startDay?.date ?? null
       const endDate = (endDay ?? startDay)?.date ?? null
       const endpoints: ReturnType<typeof endpointFromAirport>[] = []
@@ -541,24 +483,14 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         })
       } else {
         if (fromPick.location) endpoints.push(endpointFromLocation(fromPick.location, 'from', 0, startDate, form.departure_time || null))
-        // A car writes the stops the driver planned; every other type keeps passing the
-        // itinerary's transfer stops through while the route is unchanged (#1065).
+        // A car writes the stops the driver planned; other types carry none.
         const carEndpoints = form.type === 'car'
           ? carStops
               .filter(s => s.location)
               .map((s, i) => endpointFromLocation(s.location!, 'stop', i + 1, startDate, s.time || null))
           : []
-        const stops = keepTransit && form.type !== 'car'
-          ? prevEndpointsAll.filter(ep => ep.role === 'stop').slice().sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-          : []
-        stops.forEach((s, i) => endpoints.push({
-          role: 'stop', sequence: i + 1, name: s.name, code: s.code ?? null,
-          lat: s.lat, lng: s.lng, timezone: s.timezone ?? null,
-          local_date: s.local_date ?? null, local_time: s.local_time ?? null,
-        }))
         carEndpoints.forEach(e => endpoints.push(e))
-        const stopCount = stops.length + carEndpoints.length
-        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', stopCount + 1, endDate, form.arrival_time || null))
+        if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', carEndpoints.length + 1, endDate, form.arrival_time || null))
       }
 
       // Flights and trains derive their span from the first/last waypoint; other
@@ -597,15 +529,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         endpoints,
         needs_review: false,
       }
-      // Imported booking → auto-create the linked cost from the parsed price (what the
-      // old direct import did). Only on create (not edit) and only when there's a price.
-      if (!reservation && prefill && isBudgetEnabled) {
-        const pmeta = prefill.metadata && typeof prefill.metadata === 'object' ? (prefill.metadata as Record<string, unknown>) : {}
-        const price = Number(pmeta.price)
-        if (Number.isFinite(price) && price > 0) {
-          ;(payload as Record<string, unknown>).create_budget_entry = { total_price: price, category: typeToCostCategory(form.type) }
-        }
-      }
       const saved = await onSave(payload)
       // Persist the traveler assignment once we have the reservation id (create → save
       // result, edit → existing reservation), and only when it actually changed (#1517).
@@ -616,15 +539,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         const changed = original.length !== nextIds.length || nextIds.some(id => !original.includes(id))
         if (changed) {
           try { await setReservationTravelers(tripId, savedId, nextIds) } catch { toast.error(t('common.unknownError')) }
-        }
-      }
-      if (!reservation?.id && saved?.id && pendingFiles.length > 0 && onFileUpload) {
-        for (const file of pendingFiles) {
-          const fd = new FormData()
-          fd.append('file', file)
-          fd.append('reservation_id', String(saved.id))
-          fd.append('description', form.title)
-          await onFileUpload(fd)
         }
       }
       // The user asked to create/edit the linked expense — open the Costs editor
@@ -647,45 +561,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const handleRemoveExpense = async (item: BudgetItem) => {
     try { await deleteBudgetItem(Number(tripId), item.id) } catch { toast.error(t('common.unknownError')) }
   }
-
-  // On an import review (not yet saved), preview the parsed price as the cost that will be linked.
-  const prefillMeta = prefill?.metadata && typeof prefill.metadata === 'object' ? (prefill.metadata as Record<string, unknown>) : null
-  const prefillPrice = Number(prefillMeta?.price)
-  const pendingExpense = !reservation && Number.isFinite(prefillPrice) && prefillPrice > 0
-    ? { total_price: prefillPrice, currency: (prefillMeta?.priceCurrency as string | null) ?? null, category: typeToCostCategory(form.type) }
-    : null
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (reservation?.id) {
-      setUploadingFile(true)
-      try {
-        const fd = new FormData()
-        fd.append('file', file)
-        fd.append('reservation_id', String(reservation.id))
-        fd.append('description', reservation.title)
-        await onFileUpload!(fd)
-        toast.success(t('reservations.toast.fileUploaded'))
-      } catch {
-        toast.error(t('reservations.toast.uploadError'))
-      } finally {
-        setUploadingFile(false)
-        e.target.value = ''
-      }
-    } else {
-      setPendingFiles(prev => [...prev, file])
-      e.target.value = ''
-    }
-  }
-
-  const attachedFiles = reservation?.id
-    ? files.filter(f =>
-        f.reservation_id === reservation.id ||
-        linkedFileIds.includes(f.id) ||
-        (f.linked_reservation_ids && f.linked_reservation_ids.includes(reservation.id))
-      )
-    : []
 
   const inputClass = 'w-full border border-edge rounded-[10px] px-[12px] py-[8px] text-[13px] font-[inherit] outline-none box-border text-content bg-surface-input'
   const labelClass = 'block text-[11px] font-semibold text-content-faint mb-[5px] uppercase tracking-[0.03em]'
@@ -1074,100 +949,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
           <TravelerPicker tripMembers={tripMembers} selectedIds={travelerIds} onToggle={toggleTraveler} />
         </div>
 
-        {/* Files */}
-        <div>
-          <label className={labelClass}>{t('files.title')}</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {attachedFiles.map(f => (
-              <div key={f.id} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
-                <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
-                <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                <button type="button" onClick={() => { openFile(f.url).catch(() => {}) }} aria-label={t('common.open')} className="text-content-faint" style={{ background: 'none', border: 'none', padding: 0, display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></button>
-                <button type="button" onClick={async () => {
-                  if (f.reservation_id === reservation?.id) {
-                    try { await apiClient.put(`/trips/${tripId}/files/${f.id}`, { reservation_id: null }) } catch { toast.error(t('reservations.toast.updateError')) }
-                  }
-                  try {
-                    const linksRes = await apiClient.get(`/trips/${tripId}/files/${f.id}/links`)
-                    const link = (linksRes.data.links || []).find((l: any) => l.reservation_id === reservation?.id)
-                    if (link) await apiClient.delete(`/trips/${tripId}/files/${f.id}/link/${link.id}`)
-                  } catch { toast.error(t('reservations.toast.updateError')) }
-                  setLinkedFileIds(prev => prev.filter(id => id !== f.id))
-                  if (tripId) loadFiles(tripId)
-                }} className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
-                  <X size={11} />
-                </button>
-              </div>
-            ))}
-            {pendingFiles.map((f, i) => (
-              <div key={i} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
-                <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
-                <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
-                  className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
-                  <X size={11} />
-                </button>
-              </div>
-            ))}
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.pkpass,.pkpasses,image/*,application/vnd.apple.pkpass,application/vnd.apple.pkpasses" style={{ display: 'none' }} onChange={handleFileChange} />
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {onFileUpload && <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="text-content-faint" style={{
-                display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-                border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                fontSize: 'calc(11px * var(--fs-scale-caption, 1))', cursor: uploadingFile ? 'default' : 'pointer', fontFamily: 'inherit',
-              }}>
-                <Paperclip size={11} />
-                {uploadingFile ? t('reservations.uploading') : t('reservations.attachFile')}
-              </button>}
-              {reservation?.id && files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).length > 0 && (
-                <div ref={filePickerRef} style={{ position: 'relative' }}>
-                  <button type="button" onClick={() => setShowFilePicker(v => !v)} className="text-content-faint" style={{
-                    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-                    border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                    fontSize: 'calc(11px * var(--fs-scale-caption, 1))', cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                    <Link2 size={11} /> {t('reservations.linkExisting')}
-                  </button>
-                  {showFilePicker && (
-                    <div className="bg-surface-card" style={{
-                      position: 'absolute', bottom: '100%', left: 0, marginBottom: 4, zIndex: 50,
-                      border: '1px solid var(--border-primary)', borderRadius: 10,
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 220, maxHeight: 200, overflowY: 'auto',
-                    }}>
-                      {files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).map(f => (
-                        <button key={f.id} type="button" onClick={async () => {
-                          try {
-                            await apiClient.post(`/trips/${tripId}/files/${f.id}/link`, { reservation_id: reservation.id })
-                            setLinkedFileIds(prev => [...prev, f.id])
-                            setShowFilePicker(false)
-                            if (tripId) loadFiles(tripId)
-                          } catch { toast.error(t('reservations.toast.updateError')) }
-                        }}
-                          className="text-content-secondary"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px',
-                            background: 'none', border: 'none', cursor: 'pointer', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
-                            borderRadius: 7, textAlign: 'left',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                          <FileText size={12} className="text-content-faint" style={{ flexShrink: 0 }} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Costs — create / view the expense linked to this booking */}
         {isBudgetEnabled && (
           <BookingCostsSection
             reservationId={reservation?.id ?? null}
-            pendingExpense={pendingExpense}
             onCreate={handleCreateExpense}
             onEdit={handleEditExpense}
             onRemove={handleRemoveExpense}

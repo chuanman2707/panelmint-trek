@@ -291,9 +291,9 @@ describe('MapView', () => {
     expect(screen.getAllByTestId('polyline').length).toBe(3)
   })
 
-  it.each([false, true])('FE-COMP-MAPVIEW-010: place clustering stays enabled with roadtrip=%s', (roadtrip) => {
+  it('FE-COMP-MAPVIEW-010: place clustering is enabled', () => {
     const places = [buildMapPlace({ lat: 48.8584, lng: 2.2945 })]
-    render(<MapView places={places} clusterLoosely={roadtrip} />)
+    render(<MapView places={places} />)
     expect(screen.getByTestId('cluster-group')).toBeTruthy()
   })
 
@@ -665,18 +665,14 @@ describe('MapView explore POIs', () => {
     expect(onPoiClick).toHaveBeenCalledWith(poi)
   })
 
-  it('keeps native POI clicks working after a pan and uses the latest callback', () => {
+  it('uses the latest onPoiClick callback after a rerender', () => {
     const first = vi.fn()
     const latest = vi.fn()
     const poi = buildPoi({ osm_id: 'node/7' })
-    const { rerender } = render(<MapView pois={[poi]} onPoiClick={first} onPoiDropOnRoute={() => {}} />)
-    const marker = markersWithZ('500')[0]
-    expect(marker).toHaveAttribute('draggable', 'true')
-    fireEvent.mouseDown(marker)
-    fireEvent.mouseUp(marker)
-    fireEvent.click(marker)
+    const { rerender } = render(<MapView pois={[poi]} onPoiClick={first} />)
+    fireEvent.click(markersWithZ('500')[0])
     expect(first).toHaveBeenCalledTimes(1)
-    rerender(<MapView pois={[poi]} onPoiClick={latest} onPoiDropOnRoute={() => {}} />)
+    rerender(<MapView pois={[poi]} onPoiClick={latest} />)
     fireEvent.click(markersWithZ('500')[0])
     expect(latest).toHaveBeenCalledExactlyOnceWith(poi)
     expect(first).toHaveBeenCalledTimes(1)
@@ -698,72 +694,6 @@ describe('MapView explore POIs', () => {
     const poiIcons = L.divIcon.mock.calls.filter(c => JSON.stringify((c[0] as { iconSize: number[] }).iconSize) === '[26,26]')
     expect(markersWithZ('500')).toHaveLength(2)
     expect(poiIcons).toHaveLength(1)
-  })
-})
-
-describe('MapView plugin route vias', () => {
-  const via = (overrides: Record<string, any> = {}) => ({ lat: 48.5, lng: 2.5, tone: 'default', ...overrides })
-
-  it('FE-COMP-MAPVIEW-037: draws a tone dot for each via point', () => {
-    render(<MapView routeVias={[via({ tone: 'success' }), via({ tone: 'danger', lat: 48.7 })]} />)
-    const vias = markersWithZ('800')
-    expect(vias).toHaveLength(2)
-    expect(iconHtmlOf(vias[0])).toContain('#10b981')
-    expect(iconHtmlOf(vias[1])).toContain('#ef4444')
-  })
-
-  it('FE-COMP-MAPVIEW-038: an unknown tone falls back to the default indigo', () => {
-    render(<MapView routeVias={[via({ tone: 'chartreuse' })]} />)
-    expect(iconHtmlOf(markersWithZ('800')[0])).toContain('#4F46E5')
-  })
-
-  it('FE-COMP-MAPVIEW-039: vias of the same tone share one cached icon', async () => {
-    const L = await leafletMock()
-    render(<MapView routeVias={[via({ tone: 'warn' }), via({ tone: 'warn', lat: 48.9 })]} />)
-    const viaIcons = L.divIcon.mock.calls.filter(c => JSON.stringify((c[0] as { iconSize: number[] }).iconSize) === '[13,13]')
-    expect(markersWithZ('800')).toHaveLength(2)
-    expect(viaIcons).toHaveLength(1)
-  })
-
-  it('FE-COMP-MAPVIEW-040: a via tooltip joins its label and its dwell time', () => {
-    render(<MapView routeVias={[via({ label: 'Supercharger', dwellSeconds: 5400 })]} />)
-    expect(markersWithZ('800')[0].textContent).toContain('Supercharger · 1 h 30 min')
-  })
-
-  it('hides night badges at wide zoom and shows the full description when zoomed in', () => {
-    mapMock.getZoom.mockReturnValue(5)
-    const label = 'Tagesende von Tag 1 um 18:00 Uhr'
-    render(<MapView routeVias={[via({ label, hoverCard: true, nightPause: { day: 1, atPlace: true } })]} />)
-    expect(markersWithZ('800')).toHaveLength(0)
-    mapMock.getZoom.mockReturnValue(6)
-    act(() => { mapMock.on.mock.calls.find(([events]) => events === 'moveend zoomend')![1]() })
-    const badge = markersWithZ('800')[0]
-    expect(iconHtmlOf(badge)).toContain('data-night-pause="place"')
-    fireEvent.click(screen.getByTestId('marker-hover-trigger'))
-    expect(screen.getByRole('tooltip')).toHaveTextContent(label)
-    mapMock.getZoom.mockReturnValue(5)
-    act(() => {
-      mapMock.on.mock.calls.find(([events]) => events === 'movestart zoomstart')![1]()
-      mapMock.on.mock.calls.find(([events]) => events === 'moveend zoomend')![1]()
-    })
-    expect(markersWithZ('800')).toHaveLength(0)
-    expect(screen.queryByRole('tooltip')).toBeNull()
-    mapMock.getZoom.mockReturnValue(10)
-  })
-
-  it('FE-COMP-MAPVIEW-041: a dwell under an hour is shown in minutes alone', () => {
-    render(<MapView routeVias={[via({ dwellSeconds: 1500 })]} />)
-    expect(markersWithZ('800')[0].textContent).toContain('25 min')
-  })
-
-  it('FE-COMP-MAPVIEW-042: a bare via carries no tooltip at all', () => {
-    render(<MapView routeVias={[via()]} />)
-    expect(markersWithZ('800')[0].textContent).toBe('')
-  })
-
-  it('FE-COMP-MAPVIEW-074: a via with a label but no dwell shows the label alone', () => {
-    render(<MapView routeVias={[via({ label: 'Rest area' })]} />)
-    expect(markersWithZ('800')[0].textContent).toBe('Rest area')
   })
 })
 

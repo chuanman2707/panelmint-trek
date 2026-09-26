@@ -1,7 +1,6 @@
 // FE-APISURF-001 to FE-APISURF-057
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import { db } from '../db/panelmintDb'
@@ -14,10 +13,9 @@ import { clearWeatherCache } from './ext/openmeteo'
 // their transactions — keep the surface suite offline.
 vi.mock('./ext/fx', () => ({ fetchExchangeRates: vi.fn().mockResolvedValue(null) }))
 import {
-  apiClient,
   tripsApi, daysApi, placesApi, assignmentsApi, packingApi, todoApi,
   tagsApi, categoriesApi,
-  airportsApi, budgetApi, filesApi, reservationsApi, weatherApi,
+  airportsApi, budgetApi, reservationsApi, weatherApi,
   accommodationsApi, dayNotesApi, usersApi,
 } from './client'
 import { fetchExchangeRates } from './ext/fx'
@@ -107,14 +105,6 @@ async function assertCalls(calls: Call[]): Promise<void> {
   }
 }
 
-/** Runs one call and returns the request it produced. */
-async function traceOne(run: () => Promise<unknown>): Promise<Recorded> {
-  log = []
-  await run()
-  expect(log).toHaveLength(1)
-  return log[0]
-}
-
 describe('client > endpoint wiring', () => {
   it('FE-APISURF-003: tripsApi covers the trip, member and guest surface locally', async () => {
     // Every call resolves against the seeded panelmint db and emits no HTTP —
@@ -125,7 +115,6 @@ describe('client > endpoint wiring', () => {
       { n: 'get', r: async () => { await seedTripAndDays(); return tripsApi.get(3) }, e: 'local' },
       { n: 'update', r: async () => { await seedTripAndDays(); return tripsApi.update(3, { title: 'Rome 2' }) }, e: 'local' },
       { n: 'delete', r: async () => { await seedTripAndDays(); return tripsApi.delete(3) }, e: 'local' },
-      { n: 'searchCoverImages', r: () => tripsApi.searchCoverImages('rome'), e: 'local' },
       { n: 'archive', r: async () => { await seedTripAndDays(); return tripsApi.archive(3) }, e: 'local' },
       { n: 'unarchive', r: async () => { await seedTripAndDays(); return tripsApi.unarchive(3) }, e: 'local' },
       { n: 'getMembers', r: async () => { await seedTripAndDays(); return tripsApi.getMembers(3) }, e: 'local' },
@@ -356,21 +345,6 @@ describe('client > endpoint wiring', () => {
       { n: 'deleteSettlement', r: async () => { await seedBudgetWorld(); return budgetApi.deleteSettlement(1, 6) }, e: 'local' },
       { n: 'reorderItems', r: async () => { await seedBudgetWorld(); return budgetApi.reorderItems(1, [2, 3]) }, e: 'local' },
       { n: 'reorderCategories', r: async () => { await seedBudgetWorld(); return budgetApi.reorderCategories(1, ['Food']) }, e: 'local' },
-    ])
-  })
-
-  it('FE-APISURF-018: filesApi maps file, trash and link endpoints', async () => {
-    await assertCalls([
-      { n: 'list', r: () => filesApi.list(1), e: 'GET /api/trips/1/files' },
-      { n: 'update', r: () => filesApi.update(1, 3, { description: 'x' }), e: 'PUT /api/trips/1/files/3' },
-      { n: 'delete', r: () => filesApi.delete(1, 3), e: 'DELETE /api/trips/1/files/3' },
-      { n: 'toggleStar', r: () => filesApi.toggleStar(1, 3), e: 'PATCH /api/trips/1/files/3/star' },
-      { n: 'restore', r: () => filesApi.restore(1, 3), e: 'POST /api/trips/1/files/3/restore' },
-      { n: 'permanentDelete', r: () => filesApi.permanentDelete(1, 3), e: 'DELETE /api/trips/1/files/3/permanent' },
-      { n: 'emptyTrash', r: () => filesApi.emptyTrash(1), e: 'DELETE /api/trips/1/files/trash/empty' },
-      { n: 'addLink', r: () => filesApi.addLink(1, 3, { place_id: 5 }), e: 'POST /api/trips/1/files/3/link' },
-      { n: 'removeLink', r: () => filesApi.removeLink(1, 3, 7), e: 'DELETE /api/trips/1/files/3/link/7' },
-      { n: 'getLinks', r: () => filesApi.getLinks(1, 3), e: 'GET /api/trips/1/files/3/links' },
     ])
   })
 
@@ -615,11 +589,6 @@ describe('client > query parameters', () => {
     expect(log).toHaveLength(0)
   })
 
-  it('FE-APISURF-036: filesApi.list only sets the trash flag when asked', async () => {
-    expect((await traceOne(() => filesApi.list(1))).url).toBe('/api/trips/1/files')
-    expect((await traceOne(() => filesApi.list(1, true))).url).toBe('/api/trips/1/files?trash=true')
-  })
-
   it('FE-APISURF-037: budgetApi.settlement selects the FX base currency the param asked for', async () => {
     // The axios version forwarded ?base= on the wire; the local adapter uses
     // the same base to fetch live rates and convert — assert the selection,
@@ -692,59 +661,4 @@ describe('client > query parameters', () => {
 
 })
 
-describe('client > multipart uploads', () => {
-  // jsdom FormData bodies deadlock inside MSW, so uploads are asserted at the
-  // axios boundary instead (same approach as tests/integration/api/client.test.ts).
-  function spyPost() {
-    return vi.spyOn(apiClient, 'post')
-      .mockResolvedValue({ data: { ok: true } } as unknown as AxiosResponse)
-  }
 
-  it('FE-APISURF-046: every upload opts out of the 8s global timeout', async () => {
-    const post = spyPost()
-    const fd = new FormData()
-
-    // tripsApi.uploadCover is local — the file lands on the trip row as a
-    // data: URL, no axios call is made.
-    await db.trips.put(buildTrip({ id: 3 }))
-    const coverFd = new FormData()
-    coverFd.append('cover', new File(['x'], 'cover.png', { type: 'image/png' }))
-    const cover = await tripsApi.uploadCover(3, coverFd)
-    expect(cover.cover_image).toMatch(/^data:image\/png/)
-    expect((await db.trips.get(3))?.cover_image).toBe(cover.cover_image)
-    await filesApi.upload(1, fd)
-
-    expect(post.mock.calls.map(c => c[0])).toEqual([
-      '/trips/1/files',
-    ])
-    for (const call of post.mock.calls) {
-      expect(call[1]).toBeInstanceOf(FormData)
-      expect(call[2]).toMatchObject({ timeout: 0 })
-      expect((call[2] as { headers: Record<string, string> }).headers['Content-Type']).toBe('multipart/form-data')
-    }
-  })
-
-  it('FE-APISURF-047: postMultipart forwards progress, abort signal and idempotency key', async () => {
-    const post = spyPost()
-    const onUploadProgress = vi.fn((_e: unknown) => {})
-    const controller = new AbortController()
-
-    await filesApi.upload(1, new FormData(), {
-      onUploadProgress,
-      signal: controller.signal,
-      idempotencyKey: 'fixed-key',
-    })
-
-    const config = post.mock.calls[0][2] as {
-      headers: Record<string, string>
-      onUploadProgress?: unknown
-      signal?: AbortSignal
-      timeout: number
-    }
-    expect(config.headers['X-Idempotency-Key']).toBe('fixed-key')
-    expect(config.onUploadProgress).toBe(onUploadProgress)
-    expect(config.signal).toBe(controller.signal)
-    expect(config.timeout).toBe(0)
-  })
-
-})

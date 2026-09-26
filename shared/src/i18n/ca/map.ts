@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Connexions',
   'map.showConnections': 'Mostra les rutes de reserves',
   'map.hideConnections': 'Amaga les rutes de reserves',
   'poi.searchThisArea': 'Cerca en aquesta zona',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Activitats',
   'map.showAllConnections': 'Mostra totes les rutes de reserva',
   'map.hideAllConnections': 'Amaga totes les rutes de reserva',
-  'map.baseLayer.default': 'Mapa',
-  'map.baseLayer.satellite': 'Satèl·lit',
   'map.baseLayer.switchToSatellite': 'Canvia a vista de satèl·lit',
   'map.baseLayer.switchToDefault': 'Canvia a vista de mapa',
   'map.location.denied': 'L’accés a la ubicació està bloquejat. Revisa la configuració del dispositiu; una app instal·lada té el seu propi permís d’ubicació, separat del navegador.',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': 'Mostra tot el viatge',
   'map.overview.hide': 'Amaga tot el viatge',
   'map.overview.total': 'Distància total',
-  'map.attribution': 'Crèdits del mapa',
   'map.overview.unrouted': 'No s’han pogut calcular {count} tram(s), per això les distàncies són incompletes.',
   'map.overview.dayUnrouted': 'No s’han pogut calcular {count} tram(s) d’aquest dia',
 };

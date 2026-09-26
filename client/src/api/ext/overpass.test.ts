@@ -102,21 +102,10 @@ describe('overpass POI shaping', () => {
 
   it('FE-EXT-OVERPASS-007: way/relation elements resolve through center', async () => {
     mockAllMirrors(() => HttpResponse.json({
-      elements: [{ type: 'way', id: 9, center: { lat: 48.05, lon: 2.05 }, tags: { amenity: 'fuel', operator: 'Total' } }],
+      elements: [{ type: 'way', id: 9, center: { lat: 48.05, lon: 2.05 }, tags: { amenity: 'cafe', brand: 'Café Chaîne' } }],
     }));
-    const res = await searchOverpassPois('fuel', { ...BBOX, south: 47.8 });
-    expect(res.pois[0]).toMatchObject({ osm_id: 'way:9', lat: 48.05, name: 'Total', category: 'fuel' });
-  });
-
-  it('FE-EXT-OVERPASS-008: charging stations carry socket data; cafes do not', async () => {
-    mockAllMirrors(() => HttpResponse.json({
-      elements: [
-        element(1, { amenity: 'charging_station', name: 'Fastned', 'socket:type2': '4', 'socket:type2:output': '22 kW', capacity: '8' }),
-      ],
-    }));
-    const res = await searchOverpassPois('charging', { ...BBOX, south: 47.85 });
-    expect(res.pois[0].charging).toMatchObject({ capacity: 8 });
-    expect(res.pois[0].charging!.sockets[0]).toMatchObject({ type: 'type2', count: 4 });
+    const res = await searchOverpassPois('cafe', { ...BBOX, south: 47.8 });
+    expect(res.pois[0]).toMatchObject({ osm_id: 'way:9', lat: 48.05, name: 'Café Chaîne', category: 'cafe' });
   });
 
   it('FE-EXT-OVERPASS-009: an unknown category is a 400 before any fetch', async () => {

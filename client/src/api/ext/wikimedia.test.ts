@@ -1,39 +1,15 @@
 /**
- * `ext/wikimedia` — the free enrichment ladder. MSW stands in for Commons,
- * Wikidata and the two encyclopaedias; the assertions pin the rung order
- * (Wikidata → wiki lead → category → nearby), the credit-line bookkeeping
- * `placePhotoCredit` later reads, the facts/hours/rating derivation and the
- * positive/negative cache split.
+ * `ext/wikimedia` — the free enrichment ladder. MSW stands in for Wikidata and
+ * the two encyclopaedias; the assertions pin the description ladder, the
+ * facts/hours/rating derivation and the positive/negative cache split. The
+ * photo ladder is gone with the photo UI: `photos` is pinned empty.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
-import {
-  enrich, photoCredit, candidateKey, creditLine,
-  collectFacts, collectHours, collectRating, nearbyWouldMislead,
-} from './wikimedia';
+import { enrich, collectFacts, collectHours, collectRating } from './wikimedia';
 
-const COMMONS = 'https://commons.wikimedia.org/w/api.php';
 const WIKIDATA = 'https://www.wikidata.org/w/api.php';
-
-/** A Commons query response carrying one usable file. */
-function commonsPage(pageid: number, title: string, extra: Record<string, unknown> = {}) {
-  return {
-    pageid, title,
-    imageinfo: [{
-      url: `https://upload.wikimedia.org/${title}`,
-      thumburl: `https://upload.wikimedia.org/thumb/${title}`,
-      mime: 'image/jpeg', width: 2000, height: 1200,
-      descriptionurl: `https://commons.wikimedia.org/wiki/${encodeURIComponent(title)}`,
-      extmetadata: {
-        Artist: { value: 'Alice Example' },
-        LicenseShortName: { value: 'CC BY-SA 4.0' },
-        LicenseUrl: { value: 'https://creativecommons.org/licenses/by-sa/4.0' },
-        ...extra,
-      },
-    }],
-  };
-}
 
 function wikiExtract(text: string, title = 'Eiffel Tower') {
   return { query: { pages: { '1': { title, extract: text } } } };
@@ -42,7 +18,6 @@ function wikiExtract(text: string, title = 'Eiffel Tower') {
 beforeEach(() => {
   // Defaults: every wiki endpoint answers "nothing".
   server.use(
-    http.get(COMMONS, () => HttpResponse.json({ query: { pages: {} } })),
     http.get(WIKIDATA, () => HttpResponse.json({ entities: {} })),
     http.get('https://en.wikivoyage.org/w/api.php', () => HttpResponse.json({ query: { pages: {} } })),
     http.get('https://en.wikipedia.org/w/api.php', () => HttpResponse.json({ query: { pages: {} } })),
@@ -51,18 +26,6 @@ beforeEach(() => {
 });
 
 describe('pure helpers', () => {
-  it('FE-EXT-WIKI-001: creditLine joins attribution and license, either alone survives', () => {
-    expect(creditLine('Alice', 'CC BY-SA')).toBe('Alice · CC BY-SA');
-    expect(creditLine('Alice', null)).toBe('Alice');
-    expect(creditLine(null, null)).toBeNull();
-  });
-
-  it('FE-EXT-WIKI-002: candidateKey is stable per place+identity, differs per picture', () => {
-    expect(candidateKey('p1', 'commons:5')).toBe(candidateKey('p1', 'commons:5'));
-    expect(candidateKey('p1', 'commons:5')).not.toBe(candidateKey('p1', 'commons:6'));
-    expect(candidateKey('p1', 'commons:5')).toMatch(/^p1~p[0-9a-f]{8}$/);
-  });
-
   it('FE-EXT-WIKI-003: collectFacts reads OSM tags only from OSM records', () => {
     const facts = collectFacts({ source: 'openstreetmap', cuisine: 'french;italian', wheelchair: 'yes', takeaway: 'no' });
     const labels = facts.map(f => `${f.kind}:${f.value}`);
@@ -78,12 +41,6 @@ describe('pure helpers', () => {
     expect(collectRating({ rating: 4.5, rating_count: 120 })).toEqual({ value: 4.5, count: 120 });
     expect(collectRating({})).toBeNull();
   });
-
-  it('FE-EXT-WIKI-005: nearbyWouldMislead fires on food rows and fails open on unknowns', () => {
-    expect(nearbyWouldMislead({ amenity: 'cafe' })).toBe(true);
-    expect(nearbyWouldMislead({ tourism: 'museum' })).toBe(false);
-    expect(nearbyWouldMislead(null)).toBe(false);
-  });
 });
 
 describe('enrich', () => {
@@ -97,42 +54,7 @@ describe('enrich', () => {
       details: { wikipedia: 'en:Eiffel Tower', source: 'openstreetmap' },
     });
     expect(res.description).toMatchObject({ source: 'wikivoyage', text: 'A tower worth visiting.' });
-  });
-
-  it('FE-EXT-WIKI-007: wikidata claims become candidates and the credit is recorded', async () => {
-    server.use(
-      http.get(WIKIDATA, ({ request }) => {
-        const url = new URL(request.url);
-        if (url.searchParams.get('props') === 'claims') {
-          return HttpResponse.json({
-            entities: {
-              Q243: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Eiffel_Tower_2024.jpg' } } }] } },
-            },
-          });
-        }
-        return HttpResponse.json({ entities: {} });
-      }),
-      http.get(COMMONS, ({ request }) => {
-        const url = new URL(request.url);
-        if (url.searchParams.get('titles')) {
-          return HttpResponse.json({ query: { pages: { '77': commonsPage(77, 'File:Eiffel Tower 2024.jpg') } } });
-        }
-        return HttpResponse.json({ query: { pages: {} } });
-      }),
-    );
-    const res = await enrich({
-      placeId: 'node:9', lat: 48.85, lng: 2.29, name: 'Eiffel Tower', lang: 'en',
-      details: { wikidata: 'Q243' },
-    });
-    expect(res.photos).toHaveLength(1);
-    expect(res.photos[0]).toMatchObject({
-      url: 'https://upload.wikimedia.org/thumb/File:Eiffel Tower 2024.jpg',
-      attribution: 'Alice Example',
-      license: 'CC BY-SA 4.0',
-      source: 'wikimedia',
-    });
-    // The credit the strip showed is retrievable by the same key afterwards.
-    expect(photoCredit(res.photos[0].key)).toEqual({ credit: 'Alice Example · CC BY-SA 4.0' });
+    expect(res.photos).toEqual([]);
   });
 
   it('FE-EXT-WIKI-008: no identity and no details answers the empty result, not an error', async () => {

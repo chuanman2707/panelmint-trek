@@ -6,8 +6,8 @@ import { haversineKm, MAX_DRIVE_KM } from '../utils/geo'
 /**
  * Real road-network geometry for road-based transport bookings (car, bus, taxi,
  * bicycle), so their map lines follow actual streets instead of a straight
- * as-the-crow-flies line — the same idea as the real transit paths (#1065),
- * but routed on demand rather than stored on the reservation.
+ * as-the-crow-flies line — routed on demand rather than stored on the
+ * reservation.
  *
  * Trains and "other transport" keep their straight line (rail/unknown modes
  * aren't road-routable); flights/cruises/ferries use the great-circle arc.

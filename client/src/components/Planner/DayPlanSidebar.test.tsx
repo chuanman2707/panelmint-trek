@@ -7,7 +7,6 @@ import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
 import { useAuthStore } from '../../store/authStore'
 import { useTripStore, type TripStoreState } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
-import { usePluginStore } from '../../store/pluginStore'
 import { installTouchDragBridge } from '../../utils/touchDragBridge'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import {
@@ -54,8 +53,6 @@ vi.mock('../../api/client', async (importOriginal) => {
     },
   }
 })
-
-vi.mock('../PDF/TripPDF', () => ({ downloadTripPDF: vi.fn().mockResolvedValue(undefined) }))
 
 vi.mock('../Map/RouteCalculator', () => ({
   calculateRoute: vi.fn().mockResolvedValue({ distanceText: '5 km', durationText: '1h', coordinates: [] }),
@@ -477,7 +474,7 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByLabelText('Edit')).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DAYPLAN-104: a stored transit journey renders line chips and opens the regular transport editor (#1065)', async () => {
+  it('FE-PLANNER-DAYPLAN-104: a stored transit booking renders as an ordinary transport row and opens the editor', async () => {
     const user = userEvent.setup()
     const onEditTransport = vi.fn()
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
@@ -490,59 +487,34 @@ describe('DayPlanSidebar', () => {
         transit: {
           provider: 'transitous', duration: 1800, transfers: 1, walk_seconds: 240,
           legs: [
-            { mode: 'WALK', duration: 240, from: { name: 'Start' }, to: { name: 'Alexanderplatz' } },
-            { mode: 'SUBWAY', line: 'U2', line_color: '#FF3300', line_text_color: '#FFFFFF', headsign: 'Ruhleben', duration: 1440, stops: 6, from: { name: 'Alexanderplatz', time: '08:36' }, to: { name: 'Zoo', time: '09:00' } },
+            { mode: 'SUBWAY', line: 'U2', duration: 1440, from: { name: 'Alexanderplatz' }, to: { name: 'Zoo' } },
           ],
         },
       },
     }
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [res as any], onEditTransport })} />)
-    // Line chip + transfer summary render inline in the timeline row; the
-    // title uses an arrow icon, so its parts are separate text nodes.
-    expect(screen.getByText('U2')).toBeInTheDocument()
-    // Transfer counts stay out of the compact row — the chips say it all.
-    expect(screen.queryByText(/1 transfers/)).not.toBeInTheDocument()
-    // Clicking the row opens the booking detail — the dedicated journey modal
-    // went away with the hosted transit planner; the detail's edit affordance
-    // still routes to the regular transport editor.
-    await user.click(screen.getByText('Fernsehturm'))
-    expect(onEditTransport).not.toHaveBeenCalled()
-    expect(await screen.findByText('Alexanderplatz')).toBeInTheDocument()
+    // The dedicated itinerary view is gone — transit metadata stays stored but
+    // the row renders like any other transport.
+    expect(screen.getByText('Fernsehturm → Zoo')).toBeInTheDocument()
+    expect(screen.queryByText('U2')).not.toBeInTheDocument()
+    await user.click(screen.getByText('Fernsehturm → Zoo'))
+    expect(onEditTransport).toHaveBeenCalledWith(expect.objectContaining({ id: 300 }))
   })
 
-  it('FE-PLANNER-DAYPLAN-105: the transit row folds its itinerary out inline (#1065)', async () => {
-    const user = userEvent.setup()
+  it('FE-PLANNER-DAYPLAN-105: a stored transit booking gets the ordinary route toggle', () => {
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     const res = {
       ...buildReservation({ id: 301, type: 'transit', title: 'A → B', reservation_time: '2025-06-01T08:30:00', day_id: 10 }),
-      metadata: {
-        transit: {
-          provider: 'transitous', duration: 1800, transfers: 1, walk_seconds: 240,
-          legs: [
-            { mode: 'WALK', duration: 240, from: { name: 'Start' }, to: { name: 'Alexanderplatz' } },
-            { mode: 'SUBWAY', line: 'U2', line_color: '#FF3300', headsign: 'Ruhleben', duration: 1440, stops: 6, from: { name: 'Alexanderplatz', time: '08:36', track: '2' }, to: { name: 'Zoo', time: '09:00' } },
-          ],
-        },
-      },
       endpoints: [
         { role: 'from', sequence: 0, name: 'A', code: null, lat: 1, lng: 2, timezone: null, local_date: null, local_time: null },
         { role: 'to', sequence: 1, name: 'B', code: null, lat: 3, lng: 4, timezone: null, local_date: null, local_time: null },
       ],
     }
-    const onToggleConnection = vi.fn()
-    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [res as any], onToggleConnection, visibleConnectionIds: [] })} />)
-    // No map-connections toggle on transit rows — the expander replaces it.
-    expect(screen.queryByLabelText(/connections/i)).not.toBeInTheDocument()
-    // Collapsed: no stop names beyond the chips.
-    expect(screen.queryByText('Alexanderplatz')).not.toBeInTheDocument()
-    await user.click(screen.getByLabelText('Expand'))
-    expect(await screen.findByText('Alexanderplatz')).toBeInTheDocument()
-    expect(screen.getByText(/Platform 2/)).toBeInTheDocument()
-    // The day's own chevron carries the same accessible name, so pick the one
-    // that is not in the day's action block.
-    const rowCollapse = screen.getAllByLabelText('Collapse').find(el => !el.closest('.dp-day-actions'))!
-    await user.click(rowCollapse)
-    expect(screen.queryByText('Alexanderplatz')).not.toBeInTheDocument()
+    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [res as any], onToggleConnection: vi.fn(), visibleConnectionIds: [] })} />)
+    // No inline itinerary expander anymore; with two endpoints the row carries
+    // the same map-route toggle every other transport has.
+    expect(screen.queryByLabelText('Expand')).not.toBeInTheDocument()
+    expect(screen.getAllByLabelText('Show booking routes').length).toBeGreaterThan(0)
   })
 
   it('FE-PLANNER-DAYPLAN-106: the toolbar button shows "show all" and calls onToggleAllConnections when not all routes are shown', async () => {
@@ -654,21 +626,22 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByLabelText('Undo')).toBeNull()
   })
 
-  // ── PDF export ──────────────────────────────────────────────────────────
+  // ── File export (stub until the Phase C codec) ───────────────────────────
 
   it('FE-PLANNER-DAYPLAN-025: the export button is present', () => {
     render(<DayPlanSidebar {...makeDefaultProps()} />)
     expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DAYPLAN-026: the PDF row in the export dialog calls downloadTripPDF', async () => {
+  it('FE-PLANNER-DAYPLAN-026: the export dialog carries the export-file stub instead of the PDF', async () => {
     const user = userEvent.setup()
-    const { downloadTripPDF } = await import('../PDF/TripPDF')
     render(<DayPlanSidebar {...makeDefaultProps()} />)
     await user.click(screen.getByRole('button', { name: 'Export' }))
-    await user.click(await screen.findByText('PDF'))
+    const row = await screen.findByText('Export file')
+    expect(screen.queryByText('PDF')).not.toBeInTheDocument()
+    await user.click(row)
     await waitFor(() => {
-      expect(downloadTripPDF).toHaveBeenCalled()
+      expect(mockToast.info).toHaveBeenCalled()
     })
   })
 
@@ -962,12 +935,14 @@ describe('DayPlanSidebar', () => {
 
   // ── Export ─────────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-DAYPLAN-043: the export dialog carries only the local PDF', async () => {
+  it('FE-PLANNER-DAYPLAN-043: the export dialog carries only the file-export stub', async () => {
     const user = userEvent.setup()
     render(<DayPlanSidebar {...makeDefaultProps()} />)
     await user.click(screen.getByRole('button', { name: 'Export' }))
-    expect(await screen.findByText('PDF')).toBeInTheDocument()
-    // The hosted formats — ICS download, calendar feed, GPX — are cut.
+    expect(await screen.findByText('Export file')).toBeInTheDocument()
+    // The hosted formats — server-rendered PDF, ICS download, calendar feed,
+    // GPX — are cut.
+    expect(screen.queryByText('PDF')).not.toBeInTheDocument()
     expect(screen.queryByText('Download .ics')).not.toBeInTheDocument()
     expect(screen.queryByText('Subscribe to calendar')).not.toBeInTheDocument()
   })
@@ -1911,26 +1886,6 @@ describe('DayPlanSidebar', () => {
     expect(screen.getByText('Museum')).toBeInTheDocument()
   })
 
-  // ── PDF click with populated dayNotes ─────────────────────────────────────
-
-  it('FE-PLANNER-DAYPLAN-085: clicking PDF with populated dayNotes includes notes in call', async () => {
-    const user = userEvent.setup()
-    const { downloadTripPDF } = await import('../PDF/TripPDF')
-    const place = buildPlace({ id: 1, name: 'Eiffel' })
-    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
-    const assignment = buildAssignment({ id: 99, day_id: 10, order_index: 0, place })
-    const note = buildDayNote({ id: 55, day_id: 10, sort_order: 0, text: 'PDF Note' })
-    mockDayNotesState.dayNotes = { '10': [note] }
-    render(<DayPlanSidebar {...makeDefaultProps({
-      days: [day], places: [place], assignments: { '10': [assignment] },
-    })} />)
-    await user.click(screen.getByRole('button', { name: 'Export' }))
-    await user.click(await screen.findByText('PDF'))
-    await waitFor(() => expect(downloadTripPDF).toHaveBeenCalledWith(
-      expect.objectContaining({ dayNotes: expect.arrayContaining([expect.objectContaining({ text: 'PDF Note' })]) })
-    ))
-  })
-
   // ── Accommodation sort: checkout day ─────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-086: accommodation that ends on current day shows checkout styling', () => {
@@ -2016,7 +1971,7 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps()} />)
     await user.click(screen.getByRole('button', { name: 'Export' }))
     await waitFor(() => {
-      expect(screen.getByText('PDF')).toBeInTheDocument()
+      expect(screen.getByText('Export file')).toBeInTheDocument()
     })
   })
 
@@ -3873,9 +3828,6 @@ describe('DayPlanSidebar', () => {
     expect(onToggleRoute).toHaveBeenCalledTimes(1)
   })
 
-  // ── Plugin day schedule ──────────────────────────────────────────────────
-
-
   // ── Day header details ───────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYPLAN-176: a transfer day lists the check-out hotel before the check-in one', async () => {
@@ -4120,25 +4072,6 @@ describe('DayPlanSidebar', () => {
     await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('place failed'))
     expect(mockToast.error).toHaveBeenCalledWith('note failed')
     expect(mockToast.error).toHaveBeenCalledWith('booking failed')
-  })
-
-  it('FE-PLANNER-DAYPLAN-186: a transit row without a journey view falls back to the booking detail', async () => {
-    const user = userEvent.setup()
-    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
-    const transit = buildReservation({
-      id: 550, type: 'transit', title: 'U2 to Zoo', day_id: 10, location: 'Alexanderplatz',
-      metadata: JSON.stringify({
-        transit: { duration: 900, transfers: 0, walk_seconds: 60, legs: [{ mode: 'WALK', duration: 300, from: { name: 'A' }, to: { name: 'B' } }] },
-      }),
-    })
-    render(<DayPlanSidebar {...makeDefaultProps({ days: [day], reservations: [transit] })} />)
-    const expand = screen.getByLabelText('Expand')
-    fireEvent.mouseEnter(expand)
-    fireEvent.mouseLeave(expand)
-    await user.click(expand)
-    expect(screen.getAllByLabelText('Collapse').some(el => !el.closest('.dp-day-actions'))).toBe(true)
-    await user.click(cardRow(screen.getByText('U2 to Zoo')))
-    expect(await screen.findByText('Alexanderplatz')).toBeInTheDocument()
   })
 
   it('FE-PLANNER-DAYPLAN-187: a same-day note dropped on the end zone moves after the last stop', async () => {

@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': 'Peluang hujan',
-  'day.precipitation': 'Curah hujan',
-  'day.wind': 'Angin',
-  'day.sunrise': 'Matahari terbit',
-  'day.sunset': 'Matahari terbenam',
-  'day.hourlyForecast': 'Prakiraan Per Jam',
   'day.climateHint': 'Rata-rata historis — prakiraan nyata tersedia dalam 16 hari dari tanggal ini.',
   'day.noWeather': 'Data cuaca tidak tersedia. Tambahkan tempat dengan koordinat.',
   'day.weatherFor': 'Prakiraan untuk {name}',

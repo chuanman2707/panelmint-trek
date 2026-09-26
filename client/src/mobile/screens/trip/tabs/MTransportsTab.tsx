@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { FileText, Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime, formatTime, cleanAmountText } from '../../../../utils/formatters'
-import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import MConfirmSheet from '../../settings/MConfirmSheet'
@@ -17,8 +16,8 @@ import {
 } from './transportsModel'
 
 /**
- * Tab 1 — Transporte. Real `planner.reservations` filtered to the 10 transport
- * types, grouped Confirmed / Pending / Automated-Transit like the desktop
+ * Tab 1 — Transporte. Real `planner.reservations` filtered to the transport
+ * types, grouped Confirmed / Pending like the desktop
  * panel. The shell owns the header (Add transport / import / AirTrail / compact
  * toggle); this panel is the list. A row tap opens the existing transport
  * detail sheet; the status dot, edit and delete are gated on `day_edit` (the
@@ -40,7 +39,6 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
   const sections = [
     { id: 'confirmed', label: t('reservations.confirmed'), rows: groups.confirmed },
     { id: 'pending', label: t('reservations.pending'), rows: groups.pending },
-    { id: 'transit', label: t('reservations.type.transit'), rows: groups.transit },
   ].filter(s => s.rows.length > 0)
 
   return (
@@ -102,10 +100,9 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
   const meta = parseTransportMeta(res)
   const TypeIcon = RES_ICONS[res.type as keyof typeof RES_ICONS] || RES_ICONS.other
   const typeColor = TRANSPORT_TYPE_COLOR[res.type] || '#6b7280'
-  const isTransit = res.type === 'transit'
   const confirmed = res.status === 'confirmed'
-  const dotColor = isTransit ? STATUS_COLOR.info : confirmed ? STATUS_COLOR.confirmed : STATUS_COLOR.pending
-  const tint = isTransit ? 'rgba(74,125,219,.10)' : confirmed ? 'rgba(47,163,122,.10)' : 'rgba(232,161,58,.12)'
+  const dotColor = confirmed ? STATUS_COLOR.confirmed : STATUS_COLOR.pending
+  const tint = confirmed ? 'rgba(47,163,122,.10)' : 'rgba(232,161,58,.12)'
 
   const startDay = res.day_id != null ? days.find(d => d.id === res.day_id) : undefined
   const endDay = res.end_day_id != null ? days.find(d => d.id === res.end_day_id) : undefined
@@ -130,10 +127,6 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
   if (meta.price != null && meta.price !== '') {
     metaCells.push({ label: t('reservations.price'), value: `${cleanAmountText(meta.price)}${meta.priceCurrency ? ` ${meta.priceCurrency}` : ''}` })
   }
-
-  const files = (planner.files || []).filter(
-    f => !f.deleted_at && (f.reservation_id === res.id || (f.linked_reservation_ids || []).includes(res.id)),
-  )
 
   const openDetail = () => shell.openSheet('transport', { reservationId: res.id })
   const toggleStatus = async () => {
@@ -253,29 +246,6 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
             )}
 
             <TravelerAvatars travelers={res.travelers || []} label={t('reservations.travelers.label')} />
-
-            {files.length > 0 && (
-              <div className="mt-2">
-                <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
-                  {t('files.title')}
-                </div>
-                <div className="flex flex-col gap-1">
-                  {files.map(f => (
-                    <span
-                      key={f.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={e => { e.stopPropagation(); openFile(f.url, f.original_name) }}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openFile(f.url, f.original_name) } }}
-                      className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
-                    >
-                      <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
-                      <span className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{f.original_name}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </button>
         </div>
       )}

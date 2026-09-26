@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Koneksi',
   'map.showConnections': 'Tampilkan rute pemesanan',
   'map.hideConnections': 'Sembunyikan rute pemesanan',
   'poi.searchThisArea': 'Cari di area ini',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Aktivitas',
   'map.showAllConnections': 'Tampilkan semua rute pemesanan',
   'map.hideAllConnections': 'Sembunyikan semua rute pemesanan',
-  'map.baseLayer.default': 'Peta',
-  'map.baseLayer.satellite': 'Satelit',
   'map.baseLayer.switchToSatellite': 'Beralih ke tampilan satelit',
   'map.baseLayer.switchToDefault': 'Beralih ke tampilan peta',
   'map.location.denied': 'Akses lokasi diblokir. Periksa pengaturan perangkat; aplikasi yang terpasang punya izin lokasi sendiri, terpisah dari browser.',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': 'Tampilkan seluruh perjalanan',
   'map.overview.hide': 'Sembunyikan seluruh perjalanan',
   'map.overview.total': 'Jarak total',
-  'map.attribution': 'Kredit peta',
   'map.overview.unrouted': '{count} ruas tidak dapat dihitung, jadi jaraknya belum lengkap.',
   'map.overview.dayUnrouted': '{count} ruas pada hari ini tidak dapat dihitung',
 };

@@ -1,4 +1,3 @@
-import { AxiosError } from 'axios';
 import { installGlobalErrorHandlers } from './globalErrorHandlers';
 
 let teardown: () => void;
@@ -26,13 +25,6 @@ function rejectWith(reason: unknown) {
 }
 
 describe('global error handlers', () => {
-  it('FE-UTIL-GLOBALERR-001: ignores axios rejections, which the app already reports itself', () => {
-    // The interceptor rejects onward and there are 600+ toast.error call sites;
-    // logging here as well would turn every handled 500 into a phantom crash.
-    rejectWith(new AxiosError('Request failed with status code 500'));
-    expect(consoleError).not.toHaveBeenCalled();
-  });
-
   it('FE-UTIL-GLOBALERR-002: logs a genuine unhandled rejection', () => {
     const reason = new Error('nobody caught me');
     rejectWith(reason);

@@ -8,7 +8,6 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
-import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildAdmin, buildTrip, buildDay, buildPlace, buildReservation } from '../../../tests/helpers/factories';
 import { weatherApi, accommodationsApi } from '../../api/client';
@@ -1333,9 +1332,6 @@ describe('DayDetailPanel', () => {
     await userEvent.click(await screen.findByText(/Add accommodation/i));
     expect(await screen.findByText('Add places to your trip first')).toBeInTheDocument();
   });
-
-  // ── Day-detail plugin slot ──────────────────────────────────────────────────
-
 
 });
 

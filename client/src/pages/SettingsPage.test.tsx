@@ -108,7 +108,6 @@ describe('SettingsPage', () => {
           return HttpResponse.json({
             has_users: true,
             allow_registration: true,
-            demo_mode: false,
             oidc_configured: false,
             oidc_only_mode: false,
             version: '2.9.10',

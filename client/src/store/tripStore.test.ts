@@ -15,7 +15,6 @@ import {
   buildTag,
   buildTodoItem,
   buildTrip,
-  buildTripFile,
 } from '../../tests/helpers/factories';
 import { offlineDb } from '../db/offlineDb';
 import { db } from '../db/panelmintDb';
@@ -35,7 +34,6 @@ async function clearCache(): Promise<void> {
     offlineDb.days.clear(),
     offlineDb.places.clear(),
     offlineDb.reservations.clear(),
-    offlineDb.tripFiles.clear(),
     offlineDb.tags.clear(),
     offlineDb.categories.clear(),
   ]);
@@ -115,7 +113,6 @@ describe('tripStore', () => {
         packingItems: [buildPackingItem({ trip_id: 1 })],
         todoItems: [buildTodoItem({ trip_id: 1 })],
         budgetItems: [buildBudgetItem({ trip_id: 1 })],
-        files: [buildTripFile({ trip_id: 1 })],
         reservations: [buildReservation({ trip_id: 1 })],
         tags: [buildTag({ id: 5 })],
         categories: [buildCategory({ id: 6 })],
@@ -136,7 +133,6 @@ describe('tripStore', () => {
       expect(state.packingItems).toEqual([]);
       expect(state.todoItems).toEqual([]);
       expect(state.budgetItems).toEqual([]);
-      expect(state.files).toEqual([]);
       expect(state.reservations).toEqual([]);
       expect(state.selectedDayId).toBeNull();
       expect(state.placesFilter).toBe('all');
@@ -151,9 +147,6 @@ describe('tripStore', () => {
   describe('loadTrip', () => {
     it('FE-TSTORE-003: fills every slice and builds the assignments/dayNotes maps', async () => {
       await seedLocalTrip(buildTrip({ id: 1, title: 'Paris' }));
-      server.use(
-        http.get('/api/trips/1/files', () => HttpResponse.json({ files: [buildTripFile({ id: 95, trip_id: 1 })] })),
-      );
       // packing/todo are local — the "endpoint answers" are rows in
       // `panelmintDb`, same as places/tags/categories/reservations/budget
       // (place 500 arrived via seedLocalTrip's assignment join).
@@ -174,7 +167,6 @@ describe('tripStore', () => {
       expect(state.todoItems.map(i => i.id)).toEqual([70]);
       expect(state.budgetItems.map(i => i.id)).toEqual([80]);
       expect(state.reservations.map(r => r.id)).toEqual([90]);
-      expect(state.files.map(f => f.id)).toEqual([95]);
       expect(state.tags.map(t => t.id)).toEqual([11]);
       expect(state.categories.map(c => c.id)).toEqual([12]);
       expect(state.assignments['1'].map(a => a.id)).toEqual([900]);
@@ -207,15 +199,12 @@ describe('tripStore', () => {
       expect(useTripStore.getState().trip?.id).toBe(1);
     });
 
-    it('FE-TSTORE-005: a failing budget/reservations/files fetch is non-fatal', async () => {
+    it('FE-TSTORE-005: a failing budget/reservations fetch is non-fatal', async () => {
       await db.trips.put(buildTrip({ id: 1 }));
       // budgetRepo/reservationRepo are local — their failure is a rejected
       // adapter call, the same rejection loadTrip treats as non-fatal.
       vi.spyOn(budgetRepo, 'list').mockRejectedValue(new LocalApiError(500, 'nope'));
       vi.spyOn(reservationRepo, 'list').mockRejectedValue(new LocalApiError(500, 'nope'));
-      server.use(
-        http.get('/api/trips/1/files', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-      );
 
       await useTripStore.getState().loadTrip(1);
 
@@ -223,7 +212,6 @@ describe('tripStore', () => {
       expect(state.trip?.id).toBe(1);
       expect(state.budgetItems).toEqual([]);
       expect(state.reservations).toEqual([]);
-      expect(state.files).toEqual([]);
       expect(state.error).toBeNull();
     });
 
@@ -249,7 +237,6 @@ describe('tripStore', () => {
       await offlineDb.trips.put(buildTrip({ id: 1, title: 'Cached trip' }));
       await offlineDb.days.bulkPut([buildDay({ id: 1, trip_id: 1, day_number: 1 })]);
       await offlineDb.places.bulkPut([buildPlace({ id: 502, trip_id: 1 })]);
-      await offlineDb.tripFiles.bulkPut([buildTripFile({ id: 97, trip_id: 1 })]);
       // Packing/todo/reservations/budget live in panelmintDb now — forced
       // offline only gates the network, the local adapter reads the system of
       // record either way.
@@ -282,7 +269,6 @@ describe('tripStore', () => {
       expect(state.todoItems.map(i => i.id)).toEqual([73]);
       expect(state.budgetItems.map(i => i.id)).toEqual([82]);
       expect(state.reservations.map(r => r.id)).toEqual([93]);
-      expect(state.files.map(f => f.id)).toEqual([97]);
       expect(state.tags.map(t => t.name)).toEqual(['Offline tag']);
       expect(state.categories.map(c => c.name)).toEqual(['Offline category']);
       expect(state.isLoading).toBe(false);
@@ -320,9 +306,6 @@ describe('tripStore', () => {
       ]);
       await db.places.put(buildPlace({ id: 501, trip_id: 1 }));
 
-      server.use(
-        http.get('/api/trips/1/files', () => HttpResponse.json({ files: [buildTripFile({ id: 96, trip_id: 1 })] })),
-      );
       await db.packingItems.put(buildPackingItem({ id: 61, trip_id: 1 }));
       await db.todoItems.put(buildTodoItem({ id: 71, trip_id: 1 }));
       await db.budgetItems.put(buildBudgetItem({ id: 81, trip_id: 1 }));
@@ -340,7 +323,6 @@ describe('tripStore', () => {
       expect(state.todoItems.map(i => i.id)).toEqual([71]);
       expect(state.budgetItems.map(i => i.id)).toEqual([81]);
       expect(state.reservations.map(r => r.id)).toEqual([91]);
-      expect(state.files.map(f => f.id)).toEqual([96]);
       // The trip itself is not re-fetched — no splash, no resetTrip.
       expect(state.isLoading).toBe(false);
       expect(nudged).toHaveBeenCalledTimes(1);

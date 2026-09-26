@@ -9,7 +9,6 @@ import Section from './Section'
 import { withTileApiKey } from '../../utils/tileUrl'
 import { AMAP_ROAD, AMAP_SATELLITE } from '../../constants/mapDefaults'
 import type { Place } from '../../types'
-import { useAuthStore } from '../../store/authStore'
 
 interface MapPreset {
   name: string
@@ -46,7 +45,6 @@ export default function MapSettingsTab(): React.ReactElement {
   const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
-  const managed = useAuthStore((s) => s.managed)
   const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
 
   useEffect(() => {
@@ -113,29 +111,26 @@ export default function MapSettingsTab(): React.ReactElement {
         <p className="text-xs text-slate-400 mt-1">{t('settings.mapDefaultHint')}</p>
       </div>
 
-      {/* A managed install brings its own key. */}
-      {!managed && (
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapCartoKey')}</label>
-          <input
-            type="text"
-            value={cartoKey}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCartoKey(e.target.value)}
-            spellCheck={false}
-            autoComplete="off"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-          />
-          <p className="text-xs text-slate-400 mt-1">
-            {t('settings.mapCartoKeyHint')}{' '}
-            <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noreferrer" className="underline">
-              {t('settings.mapCartoKeyLink')}
-            </a>
-          </p>
-          {cartoNeedsKey && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{t('settings.mapCartoKeyMissing')}</p>
-          )}
-        </div>
-      )}
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapCartoKey')}</label>
+        <input
+          type="text"
+          value={cartoKey}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCartoKey(e.target.value)}
+          spellCheck={false}
+          autoComplete="off"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+        />
+        <p className="text-xs text-slate-400 mt-1">
+          {t('settings.mapCartoKeyHint')}{' '}
+          <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noreferrer" className="underline">
+            {t('settings.mapCartoKeyLink')}
+          </a>
+        </p>
+        {cartoNeedsKey && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{t('settings.mapCartoKeyMissing')}</p>
+        )}
+      </div>
 
       <div>
         <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
@@ -144,7 +139,6 @@ export default function MapSettingsTab(): React.ReactElement {
             places: previewPlaces,
             dayPlaces: [],
             route: null,
-            routeSegments: null,
             selectedPlaceId: null,
             onMarkerClick: null,
             onMapClick: null,

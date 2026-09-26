@@ -283,34 +283,6 @@ describe('tripsApi.delete', () => {
   });
 });
 
-describe('tripsApi covers', () => {
-  it('stores the file inline as a data: URL', async () => {
-    await seedTrip();
-    const fd = new FormData();
-    fd.set('cover', new File([new Uint8Array([1, 2, 3])], 'c.png', { type: 'image/png' }));
-    const res = await tripsApi.uploadCover(1, fd);
-    expect(res.cover_image).toMatch(/^data:image\/png;base64,/);
-    expect((await db.trips.get(1))!.cover_image).toBe(res.cover_image);
-  });
-
-  it('mirrors the multer filter order: bad type → 500, missing file → 400 after access', async () => {
-    await seedTrip();
-    const bad = new FormData();
-    bad.set('cover', new File([new Uint8Array([1])], 'c.svg', { type: 'image/svg+xml' }));
-    const err = await fail(tripsApi.uploadCover(1, bad));
-    expect(err.response.status).toBe(500);
-    const missing = await fail(tripsApi.uploadCover(1, new FormData()));
-    expect(missing.response.status).toBe(400);
-    expect(missing.response.data.error).toBe('No image uploaded');
-    // And the file check fires even for a trip that does not exist.
-    const badMissingTrip = await fail(tripsApi.uploadCover(999, bad));
-    expect(badMissingTrip.response.status).toBe(500);
-  });
-
-  it('searchCoverImages returns the empty photos envelope', async () => {
-    expect(await tripsApi.searchCoverImages('lisbon')).toEqual({ photos: [] });
-  });
-});
 
 describe('tripsApi members', () => {
   beforeEach(() => seedTrip());
@@ -461,7 +433,6 @@ describe('tripsApi.bundle', () => {
     expect(b.places).toHaveLength(1);
     expect(b.reservations).toHaveLength(1);
     expect(b.accommodations).toHaveLength(1);
-    expect(b.files).toEqual([]);
     expect(b.members[0]).toMatchObject({ id: 1, role: 'owner' });
     expect(Array.isArray(b.packingItems)).toBe(true);
     expect(Array.isArray(b.todoItems)).toBe(true);

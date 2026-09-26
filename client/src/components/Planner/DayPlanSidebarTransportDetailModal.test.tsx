@@ -3,8 +3,7 @@ import { render, screen, fireEvent } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useTripStore } from '../../store/tripStore'
-import { buildReservation, buildTripFile } from '../../../tests/helpers/factories'
+import { buildReservation } from '../../../tests/helpers/factories'
 import { DayPlanSidebarTransportDetailModal } from './DayPlanSidebarTransportDetailModal'
 import type { Reservation } from '../../types'
 
@@ -131,82 +130,11 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     expect(code.style.filter).toBe('none')
   })
 
-  it('FE-PLANNER-DPTRANSPORT-011: a transit journey renders its summary and itinerary legs', () => {
-    const res = buildReservation({
-      id: 44, type: 'transit', title: 'Alexanderplatz → Zoo', status: 'confirmed',
-      metadata: {
-        transit: {
-          duration: 1800, transfers: 1, walk_seconds: 240,
-          legs: [
-            { mode: 'WALK', duration: 240, from: { name: 'Start' }, to: { name: 'Alexanderplatz' } },
-            {
-              mode: 'SUBWAY', line: 'U2', line_color: '#FF3300', line_text_color: '#FFFFFF',
-              headsign: 'Ruhleben', duration: 1440, stops: 6,
-              from: { name: 'Alexanderplatz', time: '08:36' }, to: { name: 'Zoo', time: '09:00' },
-            },
-          ],
-        },
-      },
-    } as unknown as Partial<Reservation>)
-    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
-    expect(screen.getByText('transit.min|30')).toBeInTheDocument()
-    expect(screen.getByText('transit.transfers|1')).toBeInTheDocument()
-    expect(screen.getByText('transit.itinerary')).toBeInTheDocument()
-    expect(screen.getByText('transit.walkTo|Alexanderplatz')).toBeInTheDocument()
-    expect(screen.getByText('U2')).toBeInTheDocument()
-    expect(screen.getByText('Zoo')).toBeInTheDocument()
-    expect(screen.getByText(/08:36 – 09:00 · transit\.min\|24 · transit\.stops\|6 · → Ruhleben/)).toBeInTheDocument()
-  })
-
-  it('FE-PLANNER-DPTRANSPORT-012: a direct, long, walk-free journey renders hours and the direct label', () => {
-    const res = buildReservation({
-      id: 45, type: 'transit', title: 'Long haul', status: 'confirmed',
-      metadata: {
-        transit: {
-          duration: 7200, transfers: 0, walk_seconds: 30,
-          legs: [{ mode: 'BUS', duration: 7200, from: { name: 'A' }, to: { name: 'B' } }],
-        },
-      },
-    } as unknown as Partial<Reservation>)
-    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
-    expect(screen.getByText('2 h 0 min')).toBeInTheDocument()
-    expect(screen.getByText('transit.direct')).toBeInTheDocument()
-    // Under a minute of walking is not worth a chip.
-    expect(screen.queryByText('transit.min|1')).not.toBeInTheDocument()
-    // No line name on this leg, so the badge falls back to the mode.
-    expect(screen.getByText('BUS')).toBeInTheDocument()
-  })
-
   it('FE-PLANNER-DPTRANSPORT-013: notes render as markdown', () => {
     const res = { ...flight(), notes: 'Bring **passport**' } as Reservation
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
     expect(screen.getByText('reservations.notes')).toBeInTheDocument()
     expect(screen.getByText('passport').tagName).toBe('STRONG')
-  })
-
-  it('FE-PLANNER-DPTRANSPORT-014: linked trip files are listed, deleted and unrelated ones are not', () => {
-    seedStore(useTripStore, {
-      files: [
-        buildTripFile({ id: 1, original_name: 'boarding.pdf', reservation_id: 41 }),
-        buildTripFile({ id: 2, original_name: 'linked.pdf', reservation_id: null, linked_reservation_ids: [41] }),
-        buildTripFile({ id: 3, original_name: 'trashed.pdf', reservation_id: 41, deleted_at: '2025-06-01' }),
-        buildTripFile({ id: 4, original_name: 'other.pdf', reservation_id: 99 }),
-      ],
-    })
-    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight() })} />)
-    expect(screen.getByText('boarding.pdf')).toBeInTheDocument()
-    expect(screen.getByText('linked.pdf')).toBeInTheDocument()
-    expect(screen.queryByText('trashed.pdf')).not.toBeInTheDocument()
-    expect(screen.queryByText('other.pdf')).not.toBeInTheDocument()
-  })
-
-  it('FE-PLANNER-DPTRANSPORT-015: attached files render as informational rows — the files tab is gone', () => {
-    seedStore(useTripStore, { files: [buildTripFile({ id: 1, original_name: 'boarding.pdf', reservation_id: 41 })] })
-    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight() })} />)
-    const row = screen.getByText('boarding.pdf')
-    // No button, no navigation: attachments are managed in the reservation editor.
-    expect(row.closest('button')).toBeNull()
-    expect(row.closest('a')).toBeNull()
   })
 
   it('FE-PLANNER-DPTRANSPORT-016: the edit action hands the reservation back to the caller', async () => {

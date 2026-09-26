@@ -10,8 +10,6 @@ import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAddonStore } from '../../store/addonStore';
-import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildSettings } from '../../../tests/helpers/factories';
 import BottomNav from './BottomNav';
@@ -49,29 +47,6 @@ describe('BottomNav', () => {
     expect(await screen.findByText('Mes voyages')).toBeInTheDocument();
   });
 
-  it('FE-COMP-BOTTOMNAV-005: addon labels translate when language is fr', async () => {
-    seedStore(useSettingsStore, { settings: buildSettings({ language: 'fr' }) });
-    seedStore(useAddonStore, {
-      addons: [
-        { id: 'vacay', name: 'Vacay', type: 'global', icon: 'calendar', enabled: true },
-        { id: 'atlas', name: 'Atlas', type: 'global', icon: 'globe', enabled: true },
-        { id: 'journey', name: 'Journey', type: 'global', icon: 'compass', enabled: true },
-      ],
-    });
-    render(<BottomNav />);
-    expect(await screen.findByText('Vacances')).toBeInTheDocument();
-    expect(await screen.findByText('Atlas')).toBeInTheDocument();
-    expect(await screen.findByText('Journal de voyage')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-BOTTOMNAV-006: unknown addon id is not rendered', () => {
-    seedStore(useAddonStore, {
-      addons: [{ id: 'foo', name: 'Foo Addon', type: 'global', icon: 'star', enabled: true }],
-    });
-    render(<BottomNav />);
-    expect(screen.queryByText('Foo Addon')).not.toBeInTheDocument();
-  });
-
   // Context-aware "+" inside a trip — #1349
   it('FE-COMP-BOTTOMNAV-007: in a trip, the "+" adds a place by default (plan tab)', async () => {
     const user = userEvent.setup();
@@ -103,22 +78,5 @@ describe('BottomNav', () => {
     render(<BottomNav />, { initialEntries: ['/trips/42'] });
     await user.click(screen.getByRole('button', { name: 'Add expense' }));
     expect(mockNavigate).toHaveBeenCalledWith('/trips/42?create=expense');
-  });
-
-  it('FE-COMP-BOTTOMNAV-011: page plugin renders the icon its manifest declares', () => {
-    seedStore(usePluginStore, {
-      plugins: [{ id: 'trip-doctor', name: 'Trip Doctor', type: 'page', icon: 'Stethoscope' }],
-    });
-    const { container } = render(<BottomNav />);
-    expect(screen.getByText('Trip Doctor')).toBeInTheDocument();
-    expect(container.querySelector('.lucide-stethoscope')).not.toBeNull();
-  });
-
-  it('FE-COMP-BOTTOMNAV-012: page plugin with an unknown icon falls back to Blocks', () => {
-    seedStore(usePluginStore, {
-      plugins: [{ id: 'bogus', name: 'Bogus', type: 'page', icon: 'NotAnIcon' }],
-    });
-    const { container } = render(<BottomNav />);
-    expect(container.querySelector('.lucide-blocks')).not.toBeNull();
   });
 });

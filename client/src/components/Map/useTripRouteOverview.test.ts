@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { dayColor } from '../Roadtrip/dayColors'
+import { dayColor } from './dayColors'
 import { useTripRouteOverview } from './useTripRouteOverview'
 import { buildAssignment, buildDay, buildPlace } from '../../../tests/helpers/factories'
 import type { AssignmentsMap, RouteSegment } from '../../types'

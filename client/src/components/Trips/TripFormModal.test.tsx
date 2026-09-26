@@ -18,25 +18,18 @@ import { db, type LocalTripMember } from '../../db/panelmintDb';
 import { tripsApi } from '../../api/client';
 import { LocalApiError } from '../../api/local/helpers';
 
-type CoverSearchResult = Awaited<ReturnType<typeof tripsApi.searchCoverImages>>;
-type CoverPhoto = CoverSearchResult['photos'][number];
-
 const defaultProps = {
   isOpen: true,
   onClose: vi.fn(),
   onSave: vi.fn(),
   trip: null,
-  onCoverUpdate: vi.fn(),
 };
 
 type AddToast = NonNullable<typeof window.__addToast>;
 let addToast: Mock<AddToast>;
-/** Blob URLs handed out for staged cover files; jsdom has no real implementation. */
-let createObjectURL: Mock<(obj: Blob) => string>;
-let originalCreateObjectURL: typeof URL.createObjectURL;
 
-/** tripsApi is the local adapter now — cover uploads, cover_image updates and
- *  member add/remove all write through Dexie. Trips 1/5/99 cover every id the
+/** tripsApi is the local adapter now — member add/remove writes through
+ * Dexie. Trips 1/5/99 cover every id the
  *  suite references; self's roster name is 'me' so the owner chip matches the
  *  old server fixtures. */
 async function seedLocalData() {
@@ -52,15 +45,6 @@ async function seedLocalData() {
 const seedRoster = (...names: { id: number; name: string }[]) =>
   db.localUsers.bulkPut(names.map(u => ({ id: u.id, name: u.name, is_self: 0 as const })));
 
-/** Search results for the cover picker — searchCoverImages is a hosted-only
- *  integration, so the local adapter returns an empty list; tests that need
- *  photos stub the adapter method directly. */
-function stubCoverSearch(
-  impl: (query: string) => Promise<{ photos: CoverPhoto[] }>,
-) {
-  return vi.spyOn(tripsApi, 'searchCoverImages').mockImplementation(impl);
-}
-
 beforeEach(async () => {
   resetAllStores();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
@@ -68,20 +52,13 @@ beforeEach(async () => {
   await seedLocalData();
   addToast = vi.fn<AddToast>(() => 0);
   window.__addToast = addToast;
-  createObjectURL = vi.fn(() => 'blob:cover');
-  originalCreateObjectURL = URL.createObjectURL;
-  Object.defineProperty(URL, 'createObjectURL', { writable: true, configurable: true, value: createObjectURL });
 });
 
 afterEach(() => {
   delete window.__addToast;
-  Object.defineProperty(URL, 'createObjectURL', { writable: true, configurable: true, value: originalCreateObjectURL });
   vi.restoreAllMocks();
 });
 
-const pngFile = () => new File(['img'], 'cover.png', { type: 'image/png' });
-
-const fileInput = () => document.querySelector('input[type="file"]') as HTMLInputElement;
 
 const submitNewTrip = async (user: ReturnType<typeof userEvent.setup>) => {
   const btn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
@@ -174,10 +151,6 @@ describe('TripFormModal', () => {
     expect(screen.getByText('Title')).toBeInTheDocument();
   });
 
-  it('FE-COMP-TRIPFORM-013: shows Cover Image section', () => {
-    render(<TripFormModal {...defaultProps} />);
-    expect(screen.getByText('Cover Image')).toBeInTheDocument();
-  });
 
   it('FE-COMP-TRIPFORM-014: shows start and end date labels', () => {
     render(<TripFormModal {...defaultProps} />);
@@ -300,25 +273,6 @@ describe('TripFormModal', () => {
     await waitFor(() => expect(screen.queryByText('alice')).not.toBeInTheDocument());
   });
 
-  it('FE-COMP-TRIPFORM-026: cover image paste fires URL.createObjectURL', async () => {
-    const mockCreateObjectURL = vi.fn(() => 'blob:mock-paste-url');
-    const original = URL.createObjectURL;
-    Object.defineProperty(URL, 'createObjectURL', { writable: true, configurable: true, value: mockCreateObjectURL });
-
-    render(<TripFormModal {...defaultProps} trip={null} />);
-    const form = document.querySelector('form')!;
-    const file = new File(['img'], 'cover.png', { type: 'image/png' });
-    fireEvent.paste(form, {
-      clipboardData: {
-        items: [{ type: 'image/png', getAsFile: () => file }],
-      },
-    });
-    // Cover selection now normalizes the file (HEIC -> JPEG) before previewing, so the
-    // createObjectURL call lands a microtask later; a non-HEIC file passes through unchanged.
-    await waitFor(() => expect(mockCreateObjectURL).toHaveBeenCalledWith(file));
-
-    Object.defineProperty(URL, 'createObjectURL', { writable: true, configurable: true, value: original });
-  });
 
   it('FE-COMP-TRIPFORM-027: onSave error message is displayed', async () => {
     const user = userEvent.setup();
@@ -364,41 +318,6 @@ describe('TripFormModal', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it('FE-COMP-TRIPFORM-031: selects an Unsplash cover and saves it after trip creation', async () => {
-    const user = userEvent.setup();
-    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
-    let updateBody: unknown;
-    stubCoverSearch(async () => ({
-      photos: [{
-        id: 'unsplash-1',
-        url: 'https://images.example.com/regular.jpg',
-        thumb: 'https://images.example.com/thumb.jpg',
-        description: 'Mountain lake',
-        photographer: 'Alice',
-        link: 'https://unsplash.com/photos/unsplash-1',
-      }],
-    }));
-    // The cover save is tripsApi.update — local now. Capture the body and let
-    // the real adapter persist it against the seeded trip 99 row.
-    const realUpdate = tripsApi.update.bind(tripsApi);
-    vi.spyOn(tripsApi, 'update').mockImplementation(async (id, body) => {
-      updateBody = body;
-      return realUpdate(id, body);
-    });
-
-    render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
-    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Alpine Trip');
-    await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
-    await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
-    await user.click(await screen.findByRole('button', { name: /Use Unsplash photo by Alice/i }));
-
-    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
-    await user.click(submitBtn.closest('button')!);
-
-    await waitFor(() => {
-      expect(updateBody).toMatchObject({ cover_image: 'https://images.example.com/regular.jpg' });
-    });
-  });
 
   // The trip currency is the base every expense and settlement is netted against, and
   // until #1543 the only way to set it was the legacy Budget addon panel.
@@ -539,7 +458,7 @@ describe('TripFormModal', () => {
     // stays hidden (the old version fed an empty /api/auth/users payload).
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'me' }), isAuthenticated: true });
     render(<TripFormModal {...defaultProps} trip={null} />);
-    await screen.findByText('Cover Image');
+    await screen.findByText('Title');
     expect(screen.queryByText('Travel buddies')).not.toBeInTheDocument();
   });
 
@@ -563,7 +482,7 @@ describe('TripFormModal', () => {
     expect(document.querySelector(`input[max="${MAX_TRIP_DAYS}"]`)).toHaveValue('7');
   });
 
-  // ── Create follow-ups: members and cover ──────────────────────────────────
+  // ── Create follow-ups: members ──────────────────────────────────
 
   it('FE-COMP-TRIPFORM-042: a save handler that returns nothing still closes the modal', async () => {
     const user = userEvent.setup();
@@ -617,298 +536,11 @@ describe('TripFormModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('FE-COMP-TRIPFORM-045: a staged cover file is uploaded once the trip exists', async () => {
-    const user = userEvent.setup();
-    const onCoverUpdate = vi.fn();
-    // Real local upload — cover_image lands as a data: URL on the trip 99 row.
-    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
-    render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} onCoverUpdate={onCoverUpdate} />);
 
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-    await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
-    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Cover Trip');
-    await submitNewTrip(user);
 
-    await waitFor(() => expect(onCoverUpdate).toHaveBeenCalledWith(99, expect.stringMatching(/^data:image\//)));
-    expect((await db.trips.get(99))?.cover_image).toMatch(/^data:image\//);
-  });
 
-  it('FE-COMP-TRIPFORM-046: a failing cover upload after create only warns', async () => {
-    const user = userEvent.setup();
-    const onCoverUpdate = vi.fn();
-    vi.spyOn(tripsApi, 'uploadCover').mockRejectedValue(new LocalApiError(500, 'nope'));
-    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
-    render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} onCoverUpdate={onCoverUpdate} />);
 
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-    await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
-    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Cover Trip');
-    await submitNewTrip(user);
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to upload', 'error', undefined));
-    expect(onCoverUpdate).not.toHaveBeenCalled();
-  });
-
-  it('FE-COMP-TRIPFORM-047: a failing Unsplash cover save after create only warns', async () => {
-    const user = userEvent.setup();
-    stubCoverSearch(async () => ({
-      photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Alice' }],
-    }));
-    vi.spyOn(tripsApi, 'update').mockRejectedValue(new LocalApiError(500, 'nope'));
-    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
-    render(<TripFormModal {...defaultProps} trip={null} onSave={onSave} />);
-
-    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Alpine Trip');
-    await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
-    await user.click(await screen.findByRole('button', { name: /Use Unsplash photo by Alice/i }));
-    await submitNewTrip(user);
-
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to save cover image', 'error', undefined));
-  });
-
-  // ── Cover upload on an existing trip ──────────────────────────────────────
-
-  it('FE-COMP-TRIPFORM-048: picking a file on an existing trip uploads it immediately', async () => {
-    const onCoverUpdate = vi.fn();
-    // Real local upload — the stored cover is a data: URL, not an /uploads path.
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} onCoverUpdate={onCoverUpdate} />);
-
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-
-    await waitFor(() => expect(onCoverUpdate).toHaveBeenCalledWith(1, expect.stringMatching(/^data:image\//)));
-    expect(addToast).toHaveBeenCalledWith('Cover image saved', 'success', undefined);
-    expect(document.querySelector('img[src^="data:image/"]')).toBeInTheDocument();
-    // Staging a file is only for new trips — nothing gets a blob URL here.
-    expect(createObjectURL).not.toHaveBeenCalled();
-  });
-
-  it('FE-COMP-TRIPFORM-049: a failing immediate cover upload shows an error toast', async () => {
-    const onCoverUpdate = vi.fn();
-    vi.spyOn(tripsApi, 'uploadCover').mockRejectedValue(new LocalApiError(500, 'nope'));
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1 })} onCoverUpdate={onCoverUpdate} />);
-
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to upload', 'error', undefined));
-    expect(onCoverUpdate).not.toHaveBeenCalled();
-  });
-
-  it('FE-COMP-TRIPFORM-050: clearing the file picker uploads nothing', async () => {
-    const uploadSpy = vi.spyOn(tripsApi, 'uploadCover');
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1 })} />);
-
-    fireEvent.change(fileInput(), { target: { files: [] } });
-
-    await waitFor(() => expect(fileInput().value).toBe(''));
-    expect(uploadSpy).not.toHaveBeenCalled();
-    expect(addToast).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: /Add cover image/i })).toBeInTheDocument();
-  });
-
-  it('FE-COMP-TRIPFORM-051: the Change button opens the hidden file picker', async () => {
-    const user = userEvent.setup();
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} />);
-
-    const clickSpy = vi.spyOn(fileInput(), 'click').mockImplementation(() => {});
-    await user.click(screen.getByRole('button', { name: /Change/i }));
-
-    expect(clickSpy).toHaveBeenCalled();
-    expect(document.querySelector('img[src="/uploads/covers/a.jpg"]')).toBeInTheDocument();
-  });
-
-  // ── Unsplash search ───────────────────────────────────────────────────────
-
-  it('FE-COMP-TRIPFORM-052: pressing Enter without a query or title asks for a search term', async () => {
-    render(<TripFormModal {...defaultProps} trip={null} />);
-    const search = screen.getByPlaceholderText('Search destination photos');
-
-    fireEvent.keyDown(search, { key: 'a' });
-    expect(screen.queryByText('Enter a search term')).not.toBeInTheDocument();
-
-    fireEvent.keyDown(search, { key: 'Enter' });
-    await screen.findByText('Enter a search term');
-  });
-
-  it('FE-COMP-TRIPFORM-053: a search without results reports it', async () => {
-    const user = userEvent.setup();
-    // The local searchCoverImages always returns an empty photo list — exactly
-    // the "no results" branch this test covers.
-    render(<TripFormModal {...defaultProps} trip={null} />);
-
-    await user.type(screen.getByPlaceholderText('Search destination photos'), 'nowhere');
-    await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
-
-    expect(await screen.findByText('No images found')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-TRIPFORM-054: a failing search shows the server error', async () => {
-    const user = userEvent.setup();
-    stubCoverSearch(async () => { throw new LocalApiError(500, 'Unsplash key missing'); });
-    render(<TripFormModal {...defaultProps} trip={null} />);
-
-    await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
-    await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
-
-    expect(await screen.findByText('Unsplash key missing')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-TRIPFORM-055: a photo without a photographer falls back in the label and drops the credit', async () => {
-    const user = userEvent.setup();
-    stubCoverSearch(async () => ({
-      photos: [{ id: 'p1', url: '', thumb: 'https://img/t.jpg', description: null, photographer: null }],
-    }));
-    render(<TripFormModal {...defaultProps} trip={null} />);
-
-    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Alps');
-    await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
-
-    const photoBtn = await screen.findByRole('button', { name: 'Use Unsplash photo by Unsplash' });
-    expect(photoBtn.querySelector('img')).toHaveAttribute('alt', '');
-    expect(photoBtn.querySelector('span')).toBeNull();
-
-    // An empty url is not selectable — nothing is staged.
-    await user.click(photoBtn);
-    expect(document.querySelector('img[src="https://img/t.jpg"]')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Change/i })).not.toBeInTheDocument();
-  });
-
-  it('FE-COMP-TRIPFORM-056: picking an Unsplash photo while editing saves it right away', async () => {
-    const user = userEvent.setup();
-    const onCoverUpdate = vi.fn();
-    let putBody: Record<string, unknown> | null = null;
-    stubCoverSearch(async () => ({
-      photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }],
-    }));
-    // tripsApi.update is local — capture the cover_image body and let the real
-    // adapter persist it on the seeded trip 1 row.
-    const realUpdate = tripsApi.update.bind(tripsApi);
-    vi.spyOn(tripsApi, 'update').mockImplementation(async (id, body) => {
-      putBody = body as Record<string, unknown>;
-      return realUpdate(id, body);
-    });
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} onCoverUpdate={onCoverUpdate} />);
-
-    await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
-    await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
-    await user.click(await screen.findByRole('button', { name: /Use Unsplash photo by Bob/i }));
-
-    await waitFor(() => {
-      // putBody flips inside the spy before the awaited update resolves — hold
-      // the follow-up assertions in the same wait so the save can finish.
-      expect(putBody).toMatchObject({ cover_image: 'https://img/regular.jpg' });
-      expect(onCoverUpdate).toHaveBeenCalledWith(1, 'https://img/regular.jpg');
-      expect(addToast).toHaveBeenCalledWith('Cover image saved', 'success', undefined);
-    });
-  });
-
-  it('FE-COMP-TRIPFORM-057: a failing Unsplash save while editing shows the server error', async () => {
-    const user = userEvent.setup();
-    stubCoverSearch(async () => ({
-      photos: [{ id: 'p1', url: 'https://img/regular.jpg', thumb: 'https://img/t.jpg', photographer: 'Bob' }],
-    }));
-    vi.spyOn(tripsApi, 'update').mockRejectedValue(new LocalApiError(500, 'Cover rejected'));
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, title: 'Edit Me' })} />);
-
-    await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
-    await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
-    await user.click(await screen.findByRole('button', { name: /Use Unsplash photo by Bob/i }));
-
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Cover rejected', 'error', undefined));
-  });
-
-  // ── Removing a cover ──────────────────────────────────────────────────────
-
-  it('FE-COMP-TRIPFORM-058: removing a staged cover only clears the preview', async () => {
-    const user = userEvent.setup();
-    const updateSpy = vi.spyOn(tripsApi, 'update');
-    render(<TripFormModal {...defaultProps} trip={null} />);
-
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-    await waitFor(() => expect(document.querySelector('img[src="blob:cover"]')).toBeInTheDocument());
-
-    await user.click(screen.getByRole('button', { name: /Change/i }).nextElementSibling as HTMLElement);
-
-    await waitFor(() => expect(document.querySelector('img[src="blob:cover"]')).not.toBeInTheDocument());
-    expect(updateSpy).not.toHaveBeenCalled();
-  });
-
-  it('FE-COMP-TRIPFORM-059: removing an existing cover clears it on the server', async () => {
-    const user = userEvent.setup();
-    const onCoverUpdate = vi.fn();
-    // tripsApi.update is local — capture the body, let the adapter write it.
-    let putBody: Record<string, unknown> | null = null;
-    const realUpdate = tripsApi.update.bind(tripsApi);
-    vi.spyOn(tripsApi, 'update').mockImplementation(async (id, body) => {
-      putBody = body as Record<string, unknown>;
-      return realUpdate(id, body);
-    });
-    await db.trips.update(1, { cover_image: '/uploads/covers/a.jpg' });
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} onCoverUpdate={onCoverUpdate} />);
-
-    await user.click(screen.getByRole('button', { name: /Change/i }).nextElementSibling as HTMLElement);
-
-    await waitFor(() => expect(putBody).toMatchObject({ cover_image: null }));
-    // putBody is captured inside the spy before the adapter resolves — the
-    // onCoverUpdate continuation lands a microtask later.
-    await waitFor(() => expect(onCoverUpdate).toHaveBeenCalledWith(1, null));
-    expect(document.querySelector('img[src="/uploads/covers/a.jpg"]')).not.toBeInTheDocument();
-    expect((await db.trips.get(1))?.cover_image).toBeNull();
-  });
-
-  it('FE-COMP-TRIPFORM-060: a failing cover removal keeps the preview and warns', async () => {
-    const user = userEvent.setup();
-    vi.spyOn(tripsApi, 'update').mockRejectedValue(new LocalApiError(500, 'nope'));
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} />);
-
-    await user.click(screen.getByRole('button', { name: /Change/i }).nextElementSibling as HTMLElement);
-
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to remove', 'error', undefined));
-    expect(document.querySelector('img[src="/uploads/covers/a.jpg"]')).toBeInTheDocument();
-  });
-
-  // ── Drag & drop / paste ───────────────────────────────────────────────────
-
-  it('FE-COMP-TRIPFORM-061: the drop zone only accepts image drops', async () => {
-    render(<TripFormModal {...defaultProps} trip={null} />);
-    const zone = screen.getByRole('button', { name: /Add cover image/i });
-
-    // Dragging over highlights the zone in the user's accent. This used to be
-    // four handlers writing element.style, which is how a hard-coded indigo
-    // outlived the switch to a configurable accent.
-    fireEvent.dragOver(zone);
-    expect(zone.className).toContain('border-accent');
-    fireEvent.dragLeave(zone);
-    expect(zone.className).not.toContain('border-accent');
-
-    fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'notes.txt', { type: 'text/plain' })] } });
-    expect(createObjectURL).not.toHaveBeenCalled();
-
-    fireEvent.drop(zone, { dataTransfer: { files: [pngFile()] } });
-    await waitFor(() => expect(document.querySelector('img[src="blob:cover"]')).toBeInTheDocument());
-  });
-
-  it('FE-COMP-TRIPFORM-062: pastes without a usable image are ignored', () => {
-    render(<TripFormModal {...defaultProps} trip={null} />);
-    const form = document.querySelector('form')!;
-
-    fireEvent.paste(form, { clipboardData: {} });
-    fireEvent.paste(form, { clipboardData: { items: [{ type: 'text/plain', getAsFile: () => null }] } });
-    fireEvent.paste(form, { clipboardData: { items: [{ type: 'image/png', getAsFile: () => null }] } });
-
-    expect(createObjectURL).not.toHaveBeenCalled();
-  });
-
-  it('FE-COMP-TRIPFORM-063: without the cover permission the section and paste handler are inert', () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 7, role: 'user' }), isAuthenticated: true });
-    seedStore(usePermissionsStore, { permissions: { trip_cover_upload: 'admin', trip_edit: 'admin' } });
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, user_id: 7, title: 'Locked' })} />);
-
-    expect(screen.queryByText('Cover Image')).not.toBeInTheDocument();
-    fireEvent.paste(document.querySelector('form')!, {
-      clipboardData: { items: [{ type: 'image/png', getAsFile: () => pngFile() }] },
-    });
-    expect(createObjectURL).not.toHaveBeenCalled();
-  });
 
   it('FE-COMP-TRIPFORM-064: without the edit permission the text fields are read-only', () => {
     seedStore(useAuthStore, { user: buildUser({ id: 7, role: 'user' }), isAuthenticated: true });
@@ -1146,15 +778,6 @@ describe('TripFormModal', () => {
     expect(screen.getByText('Keep bookings on their dates')).toBeInTheDocument();
   });
 
-  it('FE-COMP-TRIPFORM-078: the empty drop zone opens the hidden file picker', async () => {
-    const user = userEvent.setup();
-    render(<TripFormModal {...defaultProps} trip={null} />);
-
-    const clickSpy = vi.spyOn(fileInput(), 'click').mockImplementation(() => {});
-    await user.click(screen.getByRole('button', { name: /Add cover image/i }));
-
-    expect(clickSpy).toHaveBeenCalled();
-  });
 
   it('FE-COMP-TRIPFORM-079: a typed description is sent on save', async () => {
     const user = userEvent.setup();
@@ -1170,67 +793,9 @@ describe('TripFormModal', () => {
     ));
   });
 
-  it('FE-COMP-TRIPFORM-080: the cover button reports the upload while it runs', async () => {
-    // Hold the local upload open the way the delayed msw handler did.
-    vi.spyOn(tripsApi, 'uploadCover').mockImplementation(async () => {
-      await delay(30);
-      return { cover_image: '/uploads/covers/late.jpg' };
-    });
-    render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, cover_image: '/uploads/covers/a.jpg' })} />);
-
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-
-    await screen.findByText(/Uploading/);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Change/i })).toBeInTheDocument());
-    expect(document.querySelector('img[src="/uploads/covers/late.jpg"]')).toBeInTheDocument();
-  });
 
   // A slow first search must never overwrite the results of a newer one (#1277).
-  it('FE-COMP-TRIPFORM-081: a stale successful search response is discarded', async () => {
-    let staleResolved = false;
-    stubCoverSearch(async (query) => {
-      if (query === 'slow') {
-        await delay(60);
-        staleResolved = true;
-        return { photos: [{ id: 's', url: 'https://img/s.jpg', thumb: 'https://img/st.jpg', photographer: 'Stale' }] };
-      }
-      return { photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }] };
-    });
-    render(<TripFormModal {...defaultProps} trip={null} />);
-    const search = screen.getByPlaceholderText('Search destination photos');
 
-    fireEvent.change(search, { target: { value: 'slow' } });
-    fireEvent.keyDown(search, { key: 'Enter' });
-    fireEvent.change(search, { target: { value: 'fast' } });
-    fireEvent.keyDown(search, { key: 'Enter' });
-
-    await screen.findByRole('button', { name: /Use Unsplash photo by Fresh/i });
-    await waitFor(() => expect(staleResolved).toBe(true));
-    expect(screen.queryByRole('button', { name: /Use Unsplash photo by Stale/i })).not.toBeInTheDocument();
-  });
-
-  it('FE-COMP-TRIPFORM-082: a stale failing search does not clobber fresh results', async () => {
-    let staleResolved = false;
-    stubCoverSearch(async (query) => {
-      if (query === 'slow') {
-        await delay(60);
-        staleResolved = true;
-        throw new LocalApiError(500, 'Stale failure');
-      }
-      return { photos: [{ id: 'f', url: 'https://img/f.jpg', thumb: 'https://img/ft.jpg', photographer: 'Fresh' }] };
-    });
-    render(<TripFormModal {...defaultProps} trip={null} />);
-    const search = screen.getByPlaceholderText('Search destination photos');
-
-    fireEvent.change(search, { target: { value: 'slow' } });
-    fireEvent.keyDown(search, { key: 'Enter' });
-    fireEvent.change(search, { target: { value: 'fast' } });
-    fireEvent.keyDown(search, { key: 'Enter' });
-
-    await screen.findByRole('button', { name: /Use Unsplash photo by Fresh/i });
-    await waitFor(() => expect(staleResolved).toBe(true));
-    expect(screen.queryByText('Stale failure')).not.toBeInTheDocument();
-  });
 
   it('FE-COMP-TRIPFORM-083: a closed modal fetches nothing until it is opened', async () => {
     // The trip planner keeps the modal mounted behind the page. Both roster and
@@ -1258,20 +823,6 @@ describe('TripFormModal', () => {
     expect(seen).toContain('members');
   });
 
-  it('FE-COMP-TRIPFORM-084: staging another cover revokes the preview it replaces', async () => {
-    const revokeObjectURL = vi.fn();
-    const original = URL.revokeObjectURL;
-    Object.defineProperty(URL, 'revokeObjectURL', { writable: true, configurable: true, value: revokeObjectURL });
-    createObjectURL.mockReturnValueOnce('blob:first').mockReturnValueOnce('blob:second');
-    render(<TripFormModal {...defaultProps} trip={null} />);
-
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-
-    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:first'));
-    Object.defineProperty(URL, 'revokeObjectURL', { writable: true, configurable: true, value: original });
-  });
 
   it('FE-COMP-TRIPFORM-085: a trip longer than a year is saved with its full range (#2403)', async () => {
     const user = userEvent.setup();

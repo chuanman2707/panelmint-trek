@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Kapcsolatok',
   'map.showConnections': 'Foglalási útvonalak megjelenítése',
   'map.hideConnections': 'Foglalási útvonalak elrejtése',
   'poi.searchThisArea': 'Keresés ezen a területen',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Programok',
   'map.showAllConnections': 'Összes foglalási útvonal megjelenítése',
   'map.hideAllConnections': 'Összes foglalási útvonal elrejtése',
-  'map.baseLayer.default': 'Térkép',
-  'map.baseLayer.satellite': 'Műhold',
   'map.baseLayer.switchToSatellite': 'Váltás műholdas nézetre',
   'map.baseLayer.switchToDefault': 'Váltás térkép nézetre',
   'map.location.denied': 'A helyhozzáférés le van tiltva. Ellenőrizd a készülék beállításait; a telepített alkalmazásnak saját helyengedélye van, a böngészőtől függetlenül.',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': 'Teljes utazás megjelenítése',
   'map.overview.hide': 'Teljes utazás elrejtése',
   'map.overview.total': 'Teljes távolság',
-  'map.attribution': 'Térkép forrásai',
   'map.overview.unrouted': '{count} szakaszt nem sikerült kiszámítani, a távolságok hiányosak.',
   'map.overview.dayUnrouted': 'Ennek a napnak {count} szakaszát nem sikerült kiszámítani',
 };

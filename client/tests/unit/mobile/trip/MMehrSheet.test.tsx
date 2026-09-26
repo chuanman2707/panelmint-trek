@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { FolderOpen, Users } from 'lucide-react'
+import { FolderOpen } from 'lucide-react'
 import MMehrSheet from '../../../../src/mobile/screens/trip/sheets/MMehrSheet'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
-import type { TripFile, TripMember } from '../../../../src/types'
+import type { TripMember } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores } from '../../../helpers/store'
 import { fireEvent, render, screen, within } from '../../../helpers/render'
@@ -18,15 +18,10 @@ const TABS = [
   { id: 'buchungen', label: 'Bookings', icon: FolderOpen },
   { id: 'finanzplan', label: 'Budget', icon: FolderOpen },
   { id: 'listen', label: 'Lists', icon: FolderOpen },
-  { id: 'dateien', label: 'Files', icon: FolderOpen },
-  { id: 'collab', label: 'Collaboration', icon: Users },
 ]
 
-const FILES = [
-  { id: 1, trip_id: 1, filename: 'a.pdf', deleted_at: null },
-  { id: 2, trip_id: 1, filename: 'b.pdf', deleted_at: null },
-  { id: 3, trip_id: 1, filename: 'gone.pdf', deleted_at: '2026-05-01T10:00:00Z' },
-] as unknown as TripFile[]
+/** A section outside the dock priority — exercises the generic overflow path. */
+const EXTRA = { id: 'extra', label: 'Extra', icon: FolderOpen }
 
 const MEMBERS = [
   { user_id: 1, username: 'maurice', role: 'owner' },
@@ -37,7 +32,6 @@ const MEMBERS = [
 function renderSheet(plannerOverrides: Partial<TripPlanner> = {}, shellOverrides: Partial<MTripShellApi> = {}) {
   const planner = buildPlanner({
     TRIP_TABS: TABS as TripPlanner['TRIP_TABS'],
-    files: FILES,
     tripMembers: MEMBERS,
     ...plannerOverrides,
   })
@@ -62,23 +56,16 @@ describe('MMehrSheet', () => {
   })
 
   it('FE-MOB-MEHR-003: only tiles the sections that are not in the dock', () => {
-    renderSheet()
-    expect(screen.getByRole('button', { name: /Files/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Collaboration/ })).toBeInTheDocument()
+    renderSheet({ TRIP_TABS: [...TABS, EXTRA] as TripPlanner['TRIP_TABS'] })
+    expect(screen.getByRole('button', { name: /Extra/ })).toBeInTheDocument()
     for (const dockLabel of ['Plan', 'Transport', 'Bookings', 'Budget', 'Lists']) {
       expect(screen.queryByRole('button', { name: new RegExp(`^${dockLabel}`) })).not.toBeInTheDocument()
     }
   })
 
-  it('FE-MOB-MEHR-004: counts only the files that are not in the trash', () => {
-    renderSheet()
-    expect(screen.getByText('2 files')).toBeInTheDocument()
-  })
-
-  
-  it('FE-MOB-MEHR-006: a plugin tile gets the neutral tint and no stat line', () => {
+  it('FE-MOB-MEHR-006: an overflow tile gets the neutral tint and no stat line', () => {
     renderSheet({
-      TRIP_TABS: [...TABS, { id: 'plugin:todos', label: 'Trip To-Dos', icon: FolderOpen }] as TripPlanner['TRIP_TABS'],
+      TRIP_TABS: [...TABS, { id: 'todos', label: 'Trip To-Dos', icon: FolderOpen }] as TripPlanner['TRIP_TABS'],
     })
     const tile = screen.getByRole('button', { name: /Trip To-Dos/ })
     expect(tile.textContent).toBe('Trip To-Dos')
@@ -86,16 +73,16 @@ describe('MMehrSheet', () => {
   })
 
   it('FE-MOB-MEHR-007: survives a tab entry without an icon component', () => {
-    renderSheet({ TRIP_TABS: [{ id: 'plugin:bare', label: 'Bare Plugin', icon: undefined }] as unknown as TripPlanner['TRIP_TABS'] })
-    const tile = screen.getByRole('button', { name: 'Bare Plugin' })
+    renderSheet({ TRIP_TABS: [{ id: 'bare', label: 'Bare Section', icon: undefined }] as unknown as TripPlanner['TRIP_TABS'] })
+    const tile = screen.getByRole('button', { name: 'Bare Section' })
     expect(tile.querySelector('svg')).toBeNull()
   })
 
   it('FE-MOB-MEHR-008: opening a section closes the sheet and switches the trip tab', () => {
-    const { shell } = renderSheet()
-    fireEvent.click(screen.getByRole('button', { name: /Files/ }))
+    const { shell } = renderSheet({ TRIP_TABS: [...TABS, EXTRA] as TripPlanner['TRIP_TABS'] })
+    fireEvent.click(screen.getByRole('button', { name: /Extra/ }))
     expect(shell.closeSheet).toHaveBeenCalledTimes(1)
-    expect(shell.setTrTab).toHaveBeenCalledWith('dateien')
+    expect(shell.setTrTab).toHaveBeenCalledWith('extra')
   })
 
   it('FE-MOB-MEHR-009: the action rows open the export and edit sheets', () => {
@@ -115,16 +102,13 @@ describe('MMehrSheet', () => {
   })
 
   it('FE-MOB-MEHR-011: renders only the action rows when every section sits in the dock', () => {
-    renderSheet({
-      TRIP_TABS: TABS.filter(tab => tab.id !== 'dateien' && tab.id !== 'collab') as TripPlanner['TRIP_TABS'],
-    })
-    expect(screen.queryByText(/files$/)).not.toBeInTheDocument()
+    renderSheet()
     const rows = screen.getByRole('button', { name: 'Export' }).parentElement
     expect(rows).not.toHaveClass('mt-2')
   })
 
   it('FE-MOB-MEHR-012: separates the action rows from the tile grid when both are present', () => {
-    renderSheet()
+    renderSheet({ TRIP_TABS: [...TABS, EXTRA] as TripPlanner['TRIP_TABS'] })
     const rows = screen.getByRole('button', { name: 'Export' }).parentElement
     expect(rows).toHaveClass('mt-2')
   })
@@ -133,38 +117,25 @@ describe('MMehrSheet', () => {
   // hand-kept copies, and extending only one showed the same section in the dock AND
   // as a tile here.
   describe('the dock overflow', () => {
-    /** The sections with the road trip addon on, in the order the planner builds them. */
-    const WITH_ROADTRIP = [
-      { id: 'plan', label: 'Plan', icon: FolderOpen },
-      { id: 'transports', label: 'Transport', icon: FolderOpen },
-      { id: 'buchungen', label: 'Bookings', icon: FolderOpen },
-      { id: 'roadtrip', label: 'Road trip', icon: FolderOpen },
-      { id: 'listen', label: 'Lists', icon: FolderOpen },
-      { id: 'finanzplan', label: 'Budget', icon: FolderOpen },
-      { id: 'dateien', label: 'Files', icon: FolderOpen },
-      { id: 'collab', label: 'Collaboration', icon: Users },
-    ]
+    it('FE-MOB-MEHR-013: a section outside the dock priority lands here', () => {
+      renderSheet({ TRIP_TABS: [...TABS, EXTRA] as TripPlanner['TRIP_TABS'] })
 
-    it('FE-MOB-MEHR-013: the section the drive pushed out of the dock lands here', () => {
-      renderSheet({ TRIP_TABS: WITH_ROADTRIP as TripPlanner['TRIP_TABS'] })
-
-      // Six sections do not fit the dock, so the packing list gives up its seat.
-      expect(screen.getByRole('button', { name: 'Lists' })).toBeInTheDocument()
-      // The drive itself never overflows: it sits second in the priority list.
-      expect(screen.queryByRole('button', { name: 'Road trip' })).not.toBeInTheDocument()
-      // Exactly the three the dock could not seat, nothing shown twice.
-      const grid = screen.getByRole('button', { name: 'Lists' }).parentElement
-      expect(within(grid as HTMLElement).getAllByRole('button')).toHaveLength(3)
+      // The five dockable sections all get a seat; the extra one overflows.
+      expect(screen.getByRole('button', { name: 'Extra' })).toBeInTheDocument()
+      for (const dockLabel of ['Plan', 'Transport', 'Bookings', 'Budget', 'Lists']) {
+        expect(screen.queryByRole('button', { name: new RegExp(`^${dockLabel}`) })).not.toBeInTheDocument()
+      }
+      // Exactly the one the dock could not seat, nothing shown twice.
+      const grid = screen.getByRole('button', { name: 'Extra' }).parentElement
+      expect(within(grid as HTMLElement).getAllByRole('button')).toHaveLength(1)
     })
 
-    it('FE-MOB-MEHR-014: a dock with room keeps the packing list, addon or no addon', () => {
+    it('FE-MOB-MEHR-014: a dock with room seats every enabled section', () => {
       renderSheet({
-        TRIP_TABS: WITH_ROADTRIP.filter(
-          tab => tab.id !== 'finanzplan' && tab.id !== 'dateien' && tab.id !== 'collab',
-        ) as TripPlanner['TRIP_TABS'],
+        TRIP_TABS: TABS.filter(tab => tab.id !== 'finanzplan') as TripPlanner['TRIP_TABS'],
       })
 
-      // Five sections still fit beside the More button, so nothing overflows and the
+      // Four sections fit beside the More button, so nothing overflows and the
       // sheet is the action rows alone.
       expect(screen.queryByRole('button', { name: 'Lists' })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Export' }).parentElement).not.toHaveClass('mt-2')

@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': 'Πιθανότητα βροχής',
-  'day.precipitation': 'Κατακρημνίσματα',
-  'day.wind': 'Άνεμος',
-  'day.sunrise': 'Ανατολή',
-  'day.sunset': 'Δύση',
-  'day.hourlyForecast': 'Ωριαία Πρόγνωση',
   'day.climateHint':
     'Ιστορικοί μέσοι όροι — η πραγματική πρόγνωση είναι διαθέσιμη εντός 16 ημερών από αυτή την ημερομηνία.',
   'day.noWeather': 'Δεν υπάρχουν διαθέσιμα δεδομένα καιρού. Προσθέστε μια τοποθεσία με συντεταγμένες.',

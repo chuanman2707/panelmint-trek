@@ -231,16 +231,6 @@ describe('useMPlanTimeline', () => {
     expect(second.result.current.weather).toBeNull()
   })
 
-  it('FE-MOB-PLTL-013: toggles an expanded transit row on and off', async () => {
-    const { result } = await renderTimeline(makePlanner())
-    act(() => { result.current.toggleTransit('tr-61') })
-    expect(result.current.openTransitKeys.has('tr-61')).toBe(true)
-    act(() => { result.current.toggleTransit('tr-62') })
-    expect([...result.current.openTransitKeys].sort()).toEqual(['tr-61', 'tr-62'])
-    act(() => { result.current.toggleTransit('tr-61') })
-    expect(result.current.openTransitKeys.has('tr-61')).toBe(false)
-  })
-
   it('FE-MOB-PLTL-014: counts down on today and shows nothing for a day gone by', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 4, 2, 10, 15))

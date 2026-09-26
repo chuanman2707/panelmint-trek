@@ -7,21 +7,15 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
-import { usePluginStore } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildReservation, buildDay, buildPlace } from '../../../tests/helpers/factories';
-import { openFile } from '../../utils/fileDownload';
 import ReservationsPanel from './ReservationsPanel';
-
-vi.mock('../../api/authUrl', () => ({ getAuthUrl: vi.fn().mockResolvedValue('http://test/file') }));
-vi.mock('../../utils/fileDownload', () => ({ openFile: vi.fn(async () => {}) }));
 
 const defaultProps = {
   tripId: 1,
   reservations: [],
   days: [],
   assignments: {},
-  files: [],
   onAdd: vi.fn(),
   onEdit: vi.fn(),
   onDelete: vi.fn(),
@@ -399,22 +393,6 @@ describe('ReservationsPanel', () => {
     await waitFor(() => expect(screen.queryByText('Cancel')).not.toBeInTheDocument());
   });
 
-  // ── Files ───────────────────────────────────────────────────────────────────
-
-  it('FE-PLANNER-RESP-037: attached files section appears for reservation with files', () => {
-    const res = buildReservation({ id: 77, status: 'confirmed' });
-    const files = [{ id: 1, trip_id: 1, reservation_id: 77, original_name: 'boarding_pass.pdf', url: '/uploads/bp.pdf', filename: 'bp.pdf', mime_type: 'application/pdf', created_at: '2025-01-01T00:00:00.000Z' }];
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} files={files} />);
-    expect(screen.getByText('boarding_pass.pdf')).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESP-038: linked file (via linked_reservation_ids) also appears', () => {
-    const res = buildReservation({ id: 77, status: 'confirmed' });
-    const files = [{ id: 2, trip_id: 1, reservation_id: null, linked_reservation_ids: [77], original_name: 'voucher.pdf', url: '/uploads/v.pdf', filename: 'v.pdf', mime_type: 'application/pdf', created_at: '2025-01-01T00:00:00.000Z' }];
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} files={files as any} />);
-    expect(screen.getByText('voucher.pdf')).toBeInTheDocument();
-  });
-
   // ── Add button ──────────────────────────────────────────────────────────────
 
   it('FE-PLANNER-RESP-039: "Add" button hidden when canEdit=false', () => {
@@ -504,48 +482,6 @@ describe('ReservationsPanel', () => {
     render(<ReservationsPanel {...defaultProps} reservations={[hotel, flight]} days={[day1, day2]} />);
     const text = document.body.textContent || '';
     expect(text.indexOf('Mid flight')).toBeLessThan(text.indexOf('Hotel stay'));
-  });
-
-  // AirTrail sync badge — three states (#1646)
-  it('FE-PLANNER-RESP-046: a synced AirTrail flight shows the AirTrail badge', () => {
-    const res = buildReservation({ title: 'Synced flight', type: 'flight', external_source: 'airtrail', sync_enabled: 1 } as any);
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    expect(screen.getByTitle('Synced from AirTrail — edits stay in sync both ways.')).toBeInTheDocument();
-    expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESP-047: a multi-leg import shows the layover hint, not the "removed" message', () => {
-    const res = buildReservation({
-      title: 'Layover flight', type: 'flight', external_source: 'airtrail', sync_enabled: 0,
-      metadata: JSON.stringify({ legs: [{ from: 'AMS' }, { from: 'IST' }] }),
-    } as any);
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    // Not falsely labelled "Not synced" / "removed in AirTrail"…
-    expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
-    // …and carries the truthful layover explanation.
-    expect(
-      screen.getByTitle('Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.'),
-    ).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESP-048: a single-leg flight removed upstream still shows "Not synced"', () => {
-    const res = buildReservation({ title: 'Removed flight', type: 'flight', external_source: 'airtrail', sync_enabled: 0 } as any);
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    expect(screen.getByText('Not synced')).toBeInTheDocument();
-    expect(screen.getByTitle('This flight was removed in AirTrail and no longer syncs.')).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESP-049: a flight grown into multiple legs locally (endpoints > 2, no legs array) shows the layover hint, not "Not synced"', () => {
-    // Matches the server's second hasLocalMultiLegShape criterion (endpoint count > 2).
-    const res = buildReservation({
-      title: 'Grown multi-leg', type: 'flight', external_source: 'airtrail', sync_enabled: 0,
-      endpoints: [{ sequence: 0 }, { sequence: 1 }, { sequence: 2 }],
-    } as any);
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    expect(screen.queryByText('Not synced')).not.toBeInTheDocument();
-    expect(
-      screen.getByTitle('Imported from AirTrail. A multi-leg flight with a layover has no single AirTrail flight to sync back to, so it stays as a one-time import.'),
-    ).toBeInTheDocument();
   });
 
   // ── Type + traveler filters ─────────────────────────────────────────────────
@@ -709,15 +645,6 @@ describe('ReservationsPanel', () => {
     expect(screen.getByText('320 EUR')).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESP-064: an attached file opens through the download helper', async () => {
-    const user = userEvent.setup();
-    const res = buildReservation({ id: 7, status: 'confirmed' });
-    const files = [{ id: 1, trip_id: 1, reservation_id: 7, original_name: 'ticket.pdf', url: '/uploads/ticket.pdf', filename: 'ticket.pdf', mime_type: 'application/pdf', created_at: '2025-01-01T00:00:00.000Z' }];
-    render(<ReservationsPanel {...defaultProps} reservations={[res]} files={files} />);
-    await user.click(screen.getByText('ticket.pdf'));
-    expect(vi.mocked(openFile)).toHaveBeenCalledWith('/uploads/ticket.pdf');
-  });
-
   it('FE-PLANNER-RESP-065: an assignment without a place is skipped by the day/place lookup', () => {
     const day = { ...buildDay({ id: 1, title: 'Day 1', date: '2025-06-01' }), day_number: 1 } as any;
     const assignments = {
@@ -742,94 +669,28 @@ describe('ReservationsPanel', () => {
     expect(screen.queryByText('Hidden card')).not.toBeInTheDocument();
   });
 
-  // ── Transit journeys (#1065) ────────────────────────────────────────────────
+  // ── Stored transit bookings ────────────────────────────────────────────────
 
-  const transitJourney = (over: Record<string, unknown> = {}) => buildReservation({
-    id: 900,
-    title: 'Berlin Hbf → Hamburg Hbf',
-    type: 'transit',
-    status: 'confirmed',
-    day_id: 501,
-    reservation_time: '2025-06-01T08:00',
-    reservation_end_time: '2025-06-01T09:45',
-    metadata: JSON.stringify({
-      transit: {
-        provider: 'transitous', duration: 6300, transfers: 1, walk_seconds: 300,
-        legs: [
-          { mode: 'WALK', duration: 300, line: null },
-          { mode: 'SUBWAY', duration: 900, line: 'U2', line_color: '#FF3300' },
-          { mode: 'HIGHSPEED_RAIL', duration: 5100, line: 'ICE 599', line_color: null },
-        ],
-      },
-    }),
-    ...over,
-  } as any);
-
-  it('FE-PLANNER-RESP-067: a transit journey renders its own section with legs, day and duration', () => {
-    const day = buildDay({ id: 501, date: '2025-06-01', day_number: 2, title: 'Travel day' } as any);
-    render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} days={[day]} />);
-    expect(screen.getByText('Automated public transit')).toBeInTheDocument();
-    expect(screen.getByText('U2')).toBeInTheDocument();
-    expect(screen.getByText('ICE 599')).toBeInTheDocument();
-    expect(screen.getByText('Travel day')).toBeInTheDocument();
-    expect(screen.getByText(/08:00/)).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESP-068: clicking a transit journey opens it through onEdit', async () => {
-    const user = userEvent.setup();
-    const onEdit = vi.fn();
-    render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} onEdit={onEdit} />);
-    await user.click(screen.getByText(/Hamburg Hbf/));
-    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 900 }));
-  });
-
-  it('FE-PLANNER-RESP-069: deleting a transit journey asks first and does not open the journey', async () => {
-    const user = userEvent.setup();
-    const onDelete = vi.fn();
-    const onEdit = vi.fn();
-    render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} onDelete={onDelete} onEdit={onEdit} />);
-    await user.click(screen.getByTitle('Delete'));
-    expect(onEdit).not.toHaveBeenCalled();
-
-    // Cancel first — nothing is deleted.
-    await user.click(await screen.findByText('Cancel'));
-    expect(onDelete).not.toHaveBeenCalled();
-
-    await user.click(screen.getByTitle('Delete'));
-    const dialogButtons = (await screen.findByText('Cancel')).parentElement!.querySelectorAll('button');
-    await user.click(dialogButtons[1]);
-    expect(onDelete).toHaveBeenCalledWith(900);
-  });
-
-  it('FE-PLANNER-RESP-070: a transit journey with unreadable metadata still renders its header', () => {
-    render(<ReservationsPanel {...defaultProps} reservations={[transitJourney({ metadata: '{broken' })]} />);
-    expect(screen.getByText(/Hamburg Hbf/)).toBeInTheDocument();
-    expect(screen.queryByText('U2')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESP-071: a transit journey shows its first note line and traveler avatars', () => {
-    const res = transitJourney({
-      notes: '**Reserve** a seat\nsecond line',
-      travelers: [{ user_id: 1, username: 'ada', avatar_url: null }],
-    });
+  it('FE-PLANNER-RESP-067: a stored transit booking renders as an ordinary card', () => {
+    // The automated-transit planner is gone; an imported transit reservation is
+    // just another booking in the confirmed section now.
+    const res = buildReservation({
+      id: 900, title: 'Berlin Hbf → Hamburg Hbf', type: 'transit', status: 'confirmed',
+      day_id: 501, reservation_time: '2025-06-01T08:00',
+      metadata: JSON.stringify({ transit: { legs: [{ mode: 'SUBWAY', line: 'U2' }] } }),
+    } as any);
     render(<ReservationsPanel {...defaultProps} reservations={[res]} />);
-    expect(screen.getByText('Reserve')).toBeInTheDocument();
-    expect(screen.queryByText(/second line/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Automated public transit')).not.toBeInTheDocument();
+    expect(screen.getByText(/Hamburg Hbf/)).toBeInTheDocument();
   });
 
-  // ── Reservation-detail plugin slot ──────────────────────────────────────────
-
-
-
-  it('FE-PLANNER-RESP-074: the transit delete dialog closes on a backdrop click without deleting', async () => {
+  it('FE-PLANNER-RESP-068: a stored transit booking opens through onEdit', async () => {
     const user = userEvent.setup();
-    const onDelete = vi.fn();
-    render(<ReservationsPanel {...defaultProps} reservations={[transitJourney()]} onDelete={onDelete} />);
-    await user.click(screen.getByTitle('Delete'));
-    const backdrop = await waitFor(() => document.querySelector('[style*="z-index: 3000"]') as HTMLElement);
-    fireEvent.click(backdrop);
-    await waitFor(() => expect(document.querySelector('[style*="z-index: 3000"]')).toBeNull());
-    expect(onDelete).not.toHaveBeenCalled();
+    const onEdit = vi.fn();
+    const res = buildReservation({ id: 900, title: 'Berlin Hbf → Hamburg Hbf', type: 'transit', status: 'confirmed' } as any);
+    render(<ReservationsPanel {...defaultProps} reservations={[res]} onEdit={onEdit} />);
+    await user.click(screen.getByTitle('Edit'));
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 900 }));
   });
 
   it('FE-PLANNER-RESP-075: hovering a blurred code reveals it and leaving hides it again', () => {

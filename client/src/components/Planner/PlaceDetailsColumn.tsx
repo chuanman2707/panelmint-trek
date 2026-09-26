@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Bike,
   Building2,
-  Check,
   ChefHat,
   ChevronDown,
   ChevronUp,
@@ -20,7 +19,7 @@ import {
   Sun,
   Wifi,
 } from 'lucide-react'
-import type { MapsPlaceEnrichmentResult, PlaceFact, PlaceHours, PlacePhotoCandidate, PlaceRating } from '@trek/shared'
+import type { MapsPlaceEnrichmentResult, PlaceFact, PlaceHours, PlaceRating } from '@trek/shared'
 import { mapsApi } from '../../api/client'
 import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState'
 import { convertHoursLine, isUnknownHoursLine, splitHoursLine } from './placeHoursFormat'
@@ -40,9 +39,6 @@ export interface PlaceDetailsSelection {
 
 interface PlaceDetailsColumnProps {
   selection: PlaceDetailsSelection | null
-  /** Currently chosen hero image, so the picked tile can show as picked. */
-  selectedImageUrl?: string
-  onPickImage: (url: string | null) => void
   onAdoptDescription: (text: string) => void
   /** True once the form's description field has something in it. */
   hasDescription: boolean
@@ -110,8 +106,6 @@ function Overline({ children }: { children: React.ReactNode }): React.ReactEleme
 
 export default function PlaceDetailsColumn({
   selection,
-  selectedImageUrl,
-  onPickImage,
   onAdoptDescription,
   hasDescription,
   language,
@@ -187,17 +181,14 @@ export default function PlaceDetailsColumn({
   const isEmpty =
     state === 'ready' &&
     !data?.disabled &&
-    !data?.photos.length &&
     !data?.description &&
     !data?.facts.length &&
     !data?.hours &&
     !data?.rating
 
   return (
-    // 320px, not 288: the picture grid was doing (288 - 24 - 12) / 3 = 84px
-    // tiles, which is too small to tell a facade from a foyer. The column is
-    // stretched to the form's height by the row it sits in, so the extra room
-    // costs nothing that was being used.
+    // Stretched to the form's height by the row it sits in; 320px keeps the
+    // rating, hours and facts readable beside the form.
     <aside className="w-full sm:w-80 shrink-0 flex flex-col rounded-xl border border-edge bg-surface-secondary overflow-hidden self-stretch">
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-edge shrink-0">
         <Landmark size={15} className="text-accent" />
@@ -248,7 +239,6 @@ export default function PlaceDetailsColumn({
 
         {selection && state === 'ready' && !data?.disabled && !isEmpty && (
           <>
-            <PhotoStrip photos={data?.photos ?? []} selectedImageUrl={selectedImageUrl} onPickImage={onPickImage} t={t} />
             <RatingRow rating={data?.rating ?? null} locale={locale} />
             <OpeningHoursBlock
               hours={data?.hours ?? null}
@@ -288,107 +278,6 @@ export default function PlaceDetailsColumn({
   )
 }
 
-/** The name to put under a picture. Google gives no author, so it gets its own name. */
-function creditOf(photo: PlacePhotoCandidate): string {
-  return photo.attribution || sourceLabelFor(photo.source)
-}
-
-/**
- * The picture grid.
- *
- * A grid rather than one large image: this sits beside a form in a dialog, and
- * a picture that takes half the column pushes the facts and the description out
- * of sight. Three columns at 320px gives ~96px tiles, which is enough to tell
- * the pictures apart while leaving the rest of the column visible.
- *
- * Only the picture in play is credited in full — crediting all of them at once
- * cost two lines each and drowned the column, and the licence obligation
- * attaches to the one that gets used. Every tile still carries the full credit
- * as its tooltip and links to its source page.
- */
-function PhotoStrip({
-  photos,
-  selectedImageUrl,
-  onPickImage,
-  t,
-}: {
-  photos: PlacePhotoCandidate[]
-  selectedImageUrl?: string
-  onPickImage: (url: string | null) => void
-  t: TranslationFn
-}): React.ReactElement | null {
-  const [hovered, setHovered] = useState<string | null>(null)
-  if (photos.length === 0) return null
-
-  const shown = photos.find((p) => p.url === (hovered ?? selectedImageUrl)) ?? photos[0]
-
-  return (
-    <div className="space-y-2">
-      <Overline>{t('places.details.pickImage')}</Overline>
-      <div className="grid grid-cols-3 gap-1.5">
-        {photos.map((photo) => (
-          <PhotoTile
-            key={photo.key}
-            photo={photo}
-            selected={selectedImageUrl === photo.url}
-            onPick={onPickImage}
-            onHover={setHovered}
-            t={t}
-          />
-        ))}
-      </div>
-      <p className="text-caption leading-tight text-content-faint truncate">
-        <PhotoCredit photo={shown} />
-      </p>
-    </div>
-  )
-}
-
-function PhotoTile({
-  photo,
-  selected,
-  onPick,
-  onHover,
-  t,
-}: {
-  photo: PlacePhotoCandidate
-  selected: boolean
-  onPick: (url: string | null) => void
-  onHover: (url: string | null) => void
-  t: TranslationFn
-}): React.ReactElement {
-  const credit = creditOf(photo)
-
-  return (
-    <button
-      type="button"
-      onClick={() => onPick(selected ? null : photo.url)}
-      onMouseEnter={() => onHover(photo.url)}
-      onMouseLeave={() => onHover(null)}
-      onFocus={() => onHover(photo.url)}
-      onBlur={() => onHover(null)}
-      aria-pressed={selected}
-      aria-label={`${t('places.details.pickImage')} — ${credit}`}
-      title={`${credit}${photo.license ? ` · ${photo.license}` : ''}`}
-      className={`group relative block w-full aspect-square overflow-hidden rounded-lg transition-shadow ${
-        selected ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface-secondary' : 'ring-1 ring-edge hover:ring-content-muted'
-      }`}
-    >
-      <img
-        src={photo.url}
-        alt=""
-        loading="lazy"
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
-      />
-      {selected && (
-        <span className="absolute top-1 right-1 rounded-full bg-accent p-0.5 shadow-card">
-          <Check className="w-2.5 h-2.5 text-accent-on" />
-        </span>
-      )}
-    </button>
-  )
-}
-
 /**
  * Who the description came from, as the reader would name them.
  *
@@ -419,59 +308,6 @@ function descriptionSourceLabel(
       }
   }
 }
-
-function sourceLabelFor(source: PlacePhotoCandidate['source']): string {
-  if (source === 'google') return 'Google'
-  if (source === 'wikipedia') return 'Wikipedia'
-  return 'Wikimedia Commons'
-}
-
-/**
- * Author and licence for the picture currently in play.
- *
- * Not decoration: Commons images are largely CC BY / CC BY-SA, and reusing one
- * without naming its author does not satisfy those terms. When a source hands
- * us no author (Google), we say where it came from rather than inventing one.
- * Rendered inline — the container supplies the colour and the truncation.
- */
-function PhotoCredit({ photo }: { photo: PlacePhotoCandidate }): React.ReactElement {
-  const credit = creditOf(photo)
-
-  return (
-    <>
-      {photo.sourceUrl ? (
-        <a href={photo.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-          {credit}
-        </a>
-      ) : (
-        credit
-      )}
-      {photo.license && (
-        <>
-          {' · '}
-          {photo.licenseUrl ? (
-            <a href={photo.licenseUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-              {photo.license}
-            </a>
-          ) : (
-            photo.license
-          )}
-        </>
-      )}
-    </>
-  )
-}
-
-/**
- * Shown when the free sources found nothing and no Google key is configured.
- *
- * Both halves matter. With a key there is nothing to suggest, and on a place
- * the free sources did describe the same card would just be an advert — which
- * is why it lives inside the empty state rather than at the foot of the column.
- *
- * It also names who to ask: the key is an instance-wide setting, so on most
- * installs the person reading this cannot act on it themselves.
- */
 
 /**
  * The star rating, as stars.

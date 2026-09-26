@@ -6,14 +6,11 @@ const todo: TranslationStrings = {
   'todo.subtab.todo': 'Taken',
   'todo.completed': 'voltooid',
   'todo.filter.all': 'Alles',
-  'todo.filter.open': 'Openstaand',
   'todo.filter.done': 'Klaar',
-  'todo.uncategorized': 'Geen lijst',
   'todo.namePlaceholder': 'Taaknaam',
   'todo.descriptionPlaceholder': 'Beschrijving (optioneel)',
   'todo.unassigned': 'Niet toegewezen',
   'todo.noCategory': 'Geen lijst',
-  'todo.hasDescription': 'Heeft beschrijving',
   'todo.addItem': 'Nieuwe taak',
   'todo.sidebar.sortBy': 'Sorteren op',
   'todo.priority': 'Prioriteit',
@@ -36,6 +33,5 @@ const todo: TranslationStrings = {
   'todo.detail.create': 'Taak aanmaken',
   'todo.detail.priority': 'Prioriteit',
   'todo.detail.noPriority': 'Geen',
-  'todo.sortByPrio': 'Prioriteit',
 };
 export default todo;

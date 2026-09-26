@@ -5,21 +5,19 @@ import type { MTripSheetsProps } from '../MTripShell'
 import { dockTabIds } from '../dockTabs'
 import { useTranslation } from '../../../../i18n'
 
-/** Demo tile tints per legacy tab id; plugins share the files neutral. */
+/** Tile tints per tab id for the sections that spill out of the dock. */
 const TILE_COLORS: Record<string, string> = {
-  roadtrip: '#0a84ff',
   transports: '#4A7DDB',
   buchungen: '#9B5DE5',
   listen: '#2FA9A0',
   finanzplan: '#E8A33D',
-  dateien: '#68686F',
-  collab: '#EC4899',
 }
+const TILE_FALLBACK = '#68686F'
 
 /**
  * "Mehr" dock-overflow sheet: bottom-anchored panel above the dock with a
- * transparent scrim. Grid of the trip sections that did not fit the dock
- * (files/collab/plugins, with short stats) plus the share/export/settings rows.
+ * transparent scrim. Grid of the trip sections that did not fit the dock plus
+ * the export/trip-settings rows.
  */
 export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   const { t } = useTranslation()
@@ -30,13 +28,6 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   // can never show up in both places at once.
   const seated = dockTabIds(new Set(planner.TRIP_TABS.map(tab => tab.id)))
   const gridTabs = planner.TRIP_TABS.filter(tab => !seated.has(tab.id))
-
-  const tileStat = (id: string): string | null => {
-    if (id === 'dateien') {
-      return t('mobileTrip.statDocuments', { count: planner.files.filter(f => !f.deleted_at).length })
-    }
-    return null
-  }
 
   const openSection = (id: string) => {
     shell.closeSheet()
@@ -57,8 +48,7 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
           <div className="grid grid-cols-2 gap-2">
             {gridTabs.map(tab => {
               const Icon = tab.icon
-              const color = TILE_COLORS[tab.id] ?? TILE_COLORS.dateien
-              const stat = tileStat(tab.id)
+              const color = TILE_COLORS[tab.id] ?? TILE_FALLBACK
               return (
                 <button
                   key={tab.id}
@@ -73,7 +63,6 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
                     {Icon && <Icon size={19} strokeWidth={1.9} />}
                   </div>
                   <div className="mt-3 truncate text-[0.90625rem] font-bold">{tab.label}</div>
-                  {stat && <div className="truncate font-geist text-[0.65625rem] text-m-muted">{stat}</div>}
                 </button>
               )
             })}

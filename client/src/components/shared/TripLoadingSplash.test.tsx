@@ -62,7 +62,7 @@ describe('TripLoadingSplash', () => {
     expect(screen.getByTestId('mascot')).toHaveAttribute('data-scene', 'transport')
 
     act(() => { vi.advanceTimersByTime(1400 * 2) })
-    expect(screen.getByTestId('mascot')).toHaveAttribute('data-scene', 'collections')
+    expect(screen.getByTestId('mascot')).toHaveAttribute('data-scene', 'pin')
 
     act(() => { vi.advanceTimersByTime(1400) })
     expect(screen.getByTestId('mascot')).toHaveAttribute('data-scene', 'packing')

@@ -22,7 +22,6 @@ import type {
   PackingBagMember,
   BudgetItem,
   BudgetItemMember,
-  BudgetItemReceipt,
   BudgetSettlement,
   Reservation,
   ReservationEndpoint,
@@ -47,7 +46,6 @@ export type {
   PackingBagMember,
   BudgetItem,
   BudgetItemMember,
-  BudgetItemReceipt,
   BudgetSettlement,
   Reservation,
   ReservationEndpoint,
@@ -85,30 +83,6 @@ export interface TodoItem {
   /** The server's created_at column — `SELECT *` carried it and the list
    *  orders by it; older local rows may lack it. */
   created_at?: string
-}
-
-export interface TripFile {
-  id: number
-  trip_id: number
-  place_id?: number | null
-  reservation_id?: number | null
-  note_id?: number | null
-  uploaded_by?: number | null
-  uploaded_by_name?: string | null
-  uploaded_by_avatar?: string | null
-  filename: string
-  original_name: string
-  file_size?: number | null
-  mime_type: string
-  description?: string | null
-  starred?: number
-  deleted_at?: string | null
-  created_at: string
-  reservation_title?: string
-  linked_reservation_ids?: (number | null)[]
-  linked_place_ids?: (number | null)[]
-  /** Served download path — always present on list/create/update responses (formatFile). */
-  url: string
 }
 
 export type DistanceUnit = 'metric' | 'imperial'
@@ -251,62 +225,6 @@ export interface RouteAnchors {
   end?: Waypoint
 }
 
-// User with optional OIDC fields
-export interface UserWithOidc extends User {
-  oidc_issuer?: string | null
-}
-
-// Atlas place detail
-export interface AtlasPlace {
-  id: number
-  name: string
-  lat: number | null
-  lng: number | null
-}
-
-// GeoJSON types (simplified for atlas map)
-export interface GeoJsonFeature {
-  type: 'Feature'
-  properties: Record<string, string | number | null | undefined>
-  geometry: {
-    type: string
-    coordinates: unknown
-  }
-  id?: string
-}
-
-export interface GeoJsonFeatureCollection {
-  type: 'FeatureCollection'
-  features: GeoJsonFeature[]
-}
-
-// App config from /auth/app-config
-export interface AppConfig {
-  has_users: boolean
-  allow_registration: boolean
-  /** True when the operator of this install owns its configuration, not the admin */
-  managed?: boolean
-  demo_mode: boolean
-  oidc_configured: boolean
-  oidc_display_name?: string
-  oidc_only_mode?: boolean
-  has_maps_key?: boolean
-  /** Amap (高德地图) key present for this caller — the alternative places provider. */
-  has_amap_key?: boolean
-  /** The admin's places provider choice: 'auto' | 'google' | 'amap' | 'openstreetmap'. */
-  places_provider?: string
-  allowed_file_types?: string
-  timezone?: string
-  /** When true, users without MFA cannot use the app until they enable it */
-  require_mfa?: boolean
-  // Granular auth toggles
-  password_login?: boolean
-  password_registration?: boolean
-  oidc_login?: boolean
-  oidc_registration?: boolean
-  env_override_oidc_only?: boolean
-}
-
 // Translation function type
 export type TranslationFn = (key: string, params?: Record<string, string | number | null>) => string
 
@@ -319,128 +237,6 @@ export type TranslationFn = (key: string, params?: Record<string, string | numbe
 export interface WebSocketEvent {
   type: TrekWsEventName | TrekWsPluginEventName | (string & {})
   [key: string]: unknown
-}
-
-// Vacay types
-export interface VacayHolidayCalendar {
-  id: number
-  plan_id: number
-  type?: 'public_holiday' | 'school_holiday'
-  region: string
-  label: string | null
-  color: string
-  sort_order: number
-}
-
-export interface VacayPlan {
-  id: number
-  holidays_enabled: boolean
-  school_holidays_enabled?: boolean
-  holidays_region: string | null
-  holiday_calendars: VacayHolidayCalendar[]
-  block_weekends: boolean
-  carry_over_enabled: boolean
-  company_holidays_enabled: boolean
-  // Comma-separated weekday indices (e.g. '0,6'); stored as TEXT on vacay_plans.
-  weekend_days?: string
-  week_start?: number
-  name?: string
-  year?: number
-  owner_id?: number
-  created_at?: string
-  updated_at?: string
-}
-
-export interface VacayUser {
-  id: number
-  username: string
-  color: string | null
-}
-
-export interface VacayEntry {
-  date: string
-  user_id: number
-  plan_id?: number
-  person_color?: string
-  person_name?: string
-  // Portion of a vacation day this entry counts as: 1 = full day, 0.5 = half
-  // day (#552). Absent on legacy entries, which are treated as full days.
-  fraction?: number
-  // Leave type (#1074): 'comp' = flex/comp day (does not touch the entitlement),
-  // 'vacation' (or absent, for legacy entries) = a regular vacation day.
-  kind?: 'vacation' | 'comp'
-}
-
-// Vacay per-user stats row as returned by getStats
-// (server/src/services/vacayService.ts -> getStats).
-export interface VacayStat {
-  user_id: number
-  person_name: string
-  person_color: string
-  year: number
-  vacation_days: number
-  carried_over: number
-  total_available: number
-  used: number
-  remaining: number
-  // Comp/flex days used this year (#1074) — informational, not deducted from the
-  // entitlement. Absent on older server builds.
-  comp_used?: number
-  // The leave-year window this row was computed over (#737), as YYYY-MM-DD.
-  // `window_end` is exclusive. Absent on older server builds.
-  window_start?: string
-  window_end?: string
-}
-
-export type VacayYearType = 'calendar' | 'fiscal' | 'anniversary'
-
-/**
- * Per-user leave-year configuration (#737). 'calendar' is the unchanged Jan–Dec
- * default, 'fiscal' starts on a fixed month/day, 'anniversary' on the month/day
- * of the hire date.
- */
-export interface VacayYearSettings {
-  year_type: VacayYearType
-  year_start_month: number
-  year_start_day: number
-  hire_date: string | null
-}
-
-export interface HolidayInfo {
-  name: string
-  localName: string
-  color: string
-  label: string | null
-  type?: 'public_holiday' | 'school_holiday'
-}
-
-export interface HolidaysMap {
-  [date: string]: HolidayInfo | HolidayInfo[]
-}
-
-// Read-only calendar shares (#444/#667)
-export interface VacayShareOutgoing {
-  id: number
-  user_id: number
-  username: string
-}
-
-export interface VacayShareIncoming {
-  id: number
-  owner_id: number
-  username: string
-  color: string
-  hidden: boolean
-}
-
-export interface SharedVacayCalendar {
-  share_id: number
-  owner_id: number
-  owner_name: string
-  color: string
-  hidden: boolean
-  entries: { date: string; fraction?: number; kind?: 'vacation' | 'comp' }[]
-  companyHolidays: { date: string; note?: string }[]
 }
 
 // API error shape from axios

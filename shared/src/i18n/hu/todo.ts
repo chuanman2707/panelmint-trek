@@ -6,14 +6,11 @@ const todo: TranslationStrings = {
   'todo.subtab.todo': 'Teendők',
   'todo.completed': 'kész',
   'todo.filter.all': 'Mind',
-  'todo.filter.open': 'Nyitott',
   'todo.filter.done': 'Kész',
-  'todo.uncategorized': 'Nincs lista',
   'todo.namePlaceholder': 'Feladat neve',
   'todo.descriptionPlaceholder': 'Leírás (opcionális)',
   'todo.unassigned': 'Nem hozzárendelt',
   'todo.noCategory': 'Nincs lista',
-  'todo.hasDescription': 'Van leírás',
   'todo.addItem': 'Új feladat',
   'todo.sidebar.sortBy': 'Rendezés',
   'todo.priority': 'Prioritás',
@@ -36,6 +33,5 @@ const todo: TranslationStrings = {
   'todo.detail.create': 'Feladat létrehozása',
   'todo.detail.priority': 'Prioritás',
   'todo.detail.noPriority': 'Nincs',
-  'todo.sortByPrio': 'Prioritás',
 };
 export default todo;

@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Bağlantılar',
   'map.showConnections': 'Rezervasyon rotalarını göster',
   'map.hideConnections': 'Rezervasyon rotalarını gizle',
   'poi.searchThisArea': 'Bu alanda ara',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Aktiviteler',
   'map.showAllConnections': 'Tüm rezervasyon rotalarını göster',
   'map.hideAllConnections': 'Tüm rezervasyon rotalarını gizle',
-  'map.baseLayer.default': 'Harita',
-  'map.baseLayer.satellite': 'Uydu',
   'map.baseLayer.switchToSatellite': 'Uydu görünümüne geç',
   'map.baseLayer.switchToDefault': 'Harita görünümüne geç',
   'map.location.denied': 'Konum erişimi engellendi. Cihaz ayarlarını kontrol edin; yüklü bir uygulamanın tarayıcıdan ayrı kendi konum izni vardır.',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': 'Tüm geziyi göster',
   'map.overview.hide': 'Tüm geziyi gizle',
   'map.overview.total': 'Toplam mesafe',
-  'map.attribution': 'Harita kaynakları',
   'map.overview.unrouted': '{count} etap hesaplanamadı, bu yüzden mesafeler eksik.',
   'map.overview.dayUnrouted': 'Bu günün {count} etabı hesaplanamadı',
 };

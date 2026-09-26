@@ -113,12 +113,6 @@ export const mapsPlaceDetailsResultSchema = z.object({
 });
 export type MapsPlaceDetailsResult = z.infer<typeof mapsPlaceDetailsResultSchema>;
 
-export const mapsPlacePhotoResultSchema = z.object({
-  photoUrl: z.string().nullable(),
-  attribution: z.string().nullable().optional(),
-});
-export type MapsPlacePhotoResult = z.infer<typeof mapsPlacePhotoResultSchema>;
-
 export const mapsReverseResultSchema = z.object({
   name: z.string().nullable(),
   address: z.string().nullable(),
@@ -135,14 +129,13 @@ export const mapsResolveUrlResultSchema = z.object({
 export type MapsResolveUrlResult = z.infer<typeof mapsResolveUrlResultSchema>;
 
 /**
- * Place enrichment — the photo candidates and description shown next to the
- * search field while adding a place.
+ * Place enrichment — the description, facts, hours and rating shown next to the
+ * search field while adding a place. `photos` survives on the wire for schema
+ * compatibility; the client-only build has no photo pipeline and answers it
+ * empty.
  *
- * Unlike the endpoints above this one is not provider-shaped: the whole point
- * is that a Commons image and a Google photo arrive in the same shape, so the
- * column renders one strip regardless of which sources the instance has.
- * Everything nullable is genuinely optional per source — Commons gives us a
- * licence and an author, Google gives us neither in a form we may reproduce.
+ * Unlike the endpoints above this one is not provider-shaped. Everything
+ * nullable is genuinely optional per source.
  */
 export const placePhotoSourceSchema = z.enum(['google', 'wikimedia', 'wikipedia', 'cached']);
 export type PlacePhotoSource = z.infer<typeof placePhotoSourceSchema>;

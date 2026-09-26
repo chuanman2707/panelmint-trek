@@ -6,7 +6,6 @@ import { LocalApiError } from '../../api/local/helpers';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { useAddonStore } from '../../store/addonStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildPlace, buildCategory, buildAssignment } from '../../../tests/helpers/factories';
 import PlaceFormModal from './PlaceFormModal';
@@ -551,12 +550,7 @@ describe('PlaceFormModal', () => {
     expect(screen.getByDisplayValue('20:34')).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-PLACEFORM-086: on a road trip the End says the drive leaves at it', () => {
-    const place = buildPlace({ name: 'Test', place_time: '09:00', end_time: '14:00' });
-    const assignment = buildAssignment({ id: 10, day_id: 5, place });
-    render(<PlaceFormModal {...defaultProps} place={place} assignmentId={10} dayAssignments={[assignment]} roadtripActive />);
-    expect(screen.getByText('On the road trip, the drive leaves at this time.')).toBeInTheDocument();
-  });
+
 
   it('FE-PLANNER-PLACEFORM-087: in Days the End stays a plain label', () => {
     const place = buildPlace({ name: 'Test', place_time: '09:00', end_time: '14:00' });
@@ -597,48 +591,14 @@ describe('PlaceFormModal', () => {
     expect(screen.getByText(/Time overlap with:/i)).toBeInTheDocument();
   });
 
-  // ── File attachments ──────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-PLACEFORM-029: file attachment section shown when canUploadFiles=true', () => {
-    // Default: permissions={} → not configured → allow → canUploadFiles=true
-    render(<PlaceFormModal {...defaultProps} />);
-    expect(screen.getByText('Attach')).toBeInTheDocument();
-  });
 
-  it('FE-PLANNER-PLACEFORM-030: file attachment section hidden when canUploadFiles=false', () => {
-    // Set file_upload to 'admin' level; non-admin user cannot upload
-    seedStore(usePermissionsStore, { permissions: { file_upload: 'admin' } });
-    render(<PlaceFormModal {...defaultProps} />);
-    expect(screen.queryByText('Attach')).not.toBeInTheDocument();
-  });
 
-  it('FE-PLANNER-PLACEFORM-031: pending files list shows file names after adding', async () => {
-    render(<PlaceFormModal {...defaultProps} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput).toBeTruthy();
 
-    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
-    fireEvent.change(fileInput, { target: { files: [file] } });
 
-    await screen.findByText('photo.jpg');
-  });
 
-  it('FE-PLANNER-PLACEFORM-032: removing a pending file removes it from the list', async () => {
-    const user = userEvent.setup();
-    render(<PlaceFormModal {...defaultProps} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
 
-    const file = new File(['x'], 'remove-me.jpg', { type: 'image/jpeg' });
-    fireEvent.change(fileInput, { target: { files: [file] } });
-    await screen.findByText('remove-me.jpg');
 
-    // The X button is inside the file item's container div
-    const fileItem = screen.getByText('remove-me.jpg').closest('div.flex') as HTMLElement;
-    const removeBtn = within(fileItem).getByRole('button');
-    await user.click(removeBtn);
-
-    expect(screen.queryByText('remove-me.jpg')).not.toBeInTheDocument();
-  });
 
   // ── Submit ────────────────────────────────────────────────────────────────────
 
@@ -1067,25 +1027,9 @@ describe('PlaceFormModal', () => {
     delete window.__addToast;
   });
 
-  // ── Paste-to-attach ────────────────────────────────────────────────────────
 
-  function pasteItems(target: Element, items: { type: string; file: File | null }[]) {
-    fireEvent.paste(target, {
-      clipboardData: {
-        items: items.map(i => ({ type: i.type, getAsFile: () => i.file })),
-      },
-    });
-  }
 
-  it('FE-PLANNER-PLACEFORM-054: pasting an image attaches it as a pending file', () => {
-    render(<PlaceFormModal {...defaultProps} />);
-    const form = document.querySelector('form') as HTMLFormElement;
-    pasteItems(form, [
-      { type: 'text/plain', file: null },
-      { type: 'image/png', file: new File(['x'], 'screenshot.png', { type: 'image/png' }) },
-    ]);
-    expect(screen.getByText('screenshot.png')).toBeInTheDocument();
-  });
+
 
   it('FE-PLANNER-PLACEFORM-057: a prefilled place drives the detail column, not the previous one', () => {
     // A POI tapped on the map opens the dialog through prefillCoords, never
@@ -1102,37 +1046,11 @@ describe('PlaceFormModal', () => {
     expect(screen.queryByDisplayValue('Helgas Kitchen')).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-PLACEFORM-055: pasting plain text alone attaches nothing', () => {
-    render(<PlaceFormModal {...defaultProps} />);
-    const form = document.querySelector('form') as HTMLFormElement;
-    pasteItems(form, [{ type: 'text/plain', file: null }]);
-    // The list only renders once something is attached, so its absence is the
-    // assertion (this used to lean on the clipboard hint, which is gone).
-    expect(screen.queryByTestId('pending-files')).not.toBeInTheDocument();
 
-    // Counter-check, so the assertion above cannot pass on a missing testid:
-    // a real file does show up in that list.
-    pasteItems(form, [{ type: 'image/png', file: new File(['x'], 'shot.png', { type: 'image/png' }) }]);
-    expect(screen.getByTestId('pending-files')).toBeInTheDocument();
-  });
 
-  it('FE-PLANNER-PLACEFORM-056: paste is ignored entirely without upload permission', () => {
-    seedStore(usePermissionsStore, { permissions: { file_upload: 'admin' } });
-    render(<PlaceFormModal {...defaultProps} />);
-    const form = document.querySelector('form') as HTMLFormElement;
-    pasteItems(form, [{ type: 'application/pdf', file: new File(['x'], 'ticket.pdf', { type: 'application/pdf' }) }]);
-    expect(screen.queryByText('ticket.pdf')).not.toBeInTheDocument();
-  });
 
-  it('FE-PLANNER-PLACEFORM-057: the Attach button opens the hidden file input', async () => {
-    const user = userEvent.setup();
-    render(<PlaceFormModal {...defaultProps} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const clickSpy = vi.spyOn(fileInput, 'click').mockImplementation(() => {});
-    await user.click(screen.getByRole('button', { name: /Attach/i }));
-    expect(clickSpy).toHaveBeenCalled();
-    clickSpy.mockRestore();
-  });
+
+
 
   // ── Remaining form fields ──────────────────────────────────────────────────
 
@@ -1624,258 +1542,3 @@ describe('PlaceFormModal remaining branches', () => {
 
 // ── The road trip's own use of this form: a service stop added by hand ────────
 
-/**
- * FE-PLANNER-PLACEFORM-073 to -080.
- *
- * The corridor search reads OpenStreetMap and misses a good share of the chargers
- * actually standing at a junction, so "add manually" opens THIS form rather than a
- * bespoke one: its typed-ahead search is the one the rest of TREK uses. Three things
- * change and nothing else does, which is what the first two tests here pin.
- *
- * Where the stop goes cannot be decided when the dialog opens, because nothing has been
- * chosen yet. It is worked out at the save, from the coordinates being saved.
- */
-describe('PlaceFormModal as a road trip service stop', () => {
-  type Mode = NonNullable<React.ComponentProps<typeof PlaceFormModal>['serviceStop']>;
-
-  const serviceStop = (over: Partial<Mode> = {}): Mode => ({
-    days: [
-      { dayId: 5, dayNumber: 1, stops: ['Hamburg', 'Bremen', 'Berlin'] },
-      { dayId: 6, dayNumber: 2, stops: ['Berlin', 'Dresden'] },
-    ],
-    appendDay: { dayId: 5, dayNumber: 1, position: 3 },
-    // Everything east of the twelfth meridian falls on the second day's leg here; the
-    // real projection is the planner's and has its own suite.
-    targetFor: (_lat: number, lng: number) =>
-      lng > 12 ? { dayId: 6, position: 1, offRouteKm: 0.4 } : { dayId: 5, position: 1, offRouteKm: 0.2 },
-    ...over,
-  });
-
-  const withBudgetAddon = () => seedStore(useAddonStore, {
-    addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
-    loaded: true,
-  });
-
-  const typeCoords = (lat: string, lng: string) => {
-    fireEvent.change(screen.getByPlaceholderText(/Latitude/i), { target: { value: lat } });
-    fireEvent.change(screen.getByPlaceholderText(/Longitude/i), { target: { value: lng } });
-  };
-
-  const named = (name: string) => {
-    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), { target: { value: name } });
-  };
-
-  it('FE-PLANNER-PLACEFORM-073: the ordinary add place keeps its category and its costs', () => {
-    withBudgetAddon();
-    render(<PlaceFormModal {...defaultProps} />);
-
-    expect(screen.getByText('Category')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Create expense/i })).toBeInTheDocument();
-    expect(screen.queryByText('Kind of stop')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-PLACEFORM-074: a service stop swaps the category for the kind and drops the costs', () => {
-    withBudgetAddon();
-    render(<PlaceFormModal {...defaultProps} serviceStop={serviceStop()} />);
-
-    expect(screen.getByText('Kind of stop')).toBeInTheDocument();
-    expect(screen.getByText('Time at this stop')).toBeInTheDocument();
-    // Nothing has been chosen yet, so the row that asks where on the drive it goes says
-    // what it needs first. It turns into the list of legs the moment a place arrives.
-    expect(screen.getByTestId('service-stop-needs-point')).toBeInTheDocument();
-    // A petrol stop is not an activity with a budget line, and it is not a taste either.
-    expect(screen.queryByText('Category')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Create expense/i })).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-PLACEFORM-075: it opens on a kind rather than on none, and says which dialog it is', () => {
-    render(<PlaceFormModal {...defaultProps} serviceStop={serviceStop()} />);
-
-    // A stop left without a kind is a numbered destination that counts in every total,
-    // which is the very thing this path exists to avoid.
-    expect(screen.getByRole('button', { name: 'Fuel' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /10 min/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getAllByText('Add as a stop').length).toBeGreaterThan(0);
-  });
-
-  it('FE-PLANNER-PLACEFORM-085: it opens on the kind the corridor was looking for, dwell and all', () => {
-    // The panel seeds itself to charging on an electric car, and a form opening on a
-    // fuel pump under a picker that says Charging is the fault this carries the answer to.
-    render(<PlaceFormModal {...defaultProps} serviceStop={serviceStop({ defaultKind: 'charging' })} />);
-
-    expect(screen.getByRole('button', { name: 'Charging' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /30 min/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Fuel' })).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  it('FE-PLANNER-PLACEFORM-076: picking a kind also picks how long that kind takes', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 9 });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
-
-    named('Supercharger');
-    fireEvent.click(screen.getByRole('button', { name: 'Charging' }));
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      stop_type: 'charging',
-      duration_minutes: 30,
-      category_id: null,
-    }));
-  });
-
-  it('FE-PLANNER-PLACEFORM-077: where it goes is worked out from the coordinates that are saved', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 9 });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
-
-    // The form opened on nothing at all. These coordinates arrive afterwards, and they
-    // are what the position has to follow.
-    named('Supercharger');
-    typeCoords('51.05', '13.73');
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      _serviceStop: { dayId: 6, position: 1, offRouteKm: 0.4 },
-    }));
-  });
-
-  it('FE-PLANNER-PLACEFORM-078: the leg the traveller overrules is the one that lands', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 9 });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
-
-    named('Supercharger');
-    typeCoords('51.05', '13.73');
-    fireEvent.click(screen.getByRole('button', { name: /Berlin · Dresden/ }));
-    fireEvent.click(screen.getByText(/Bremen · Berlin/));
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      // Overruled onto another stretch, so the projection's distance does not come
-      // along: it was measured against the leg the drive guessed, not this one.
-      _serviceStop: { dayId: 5, position: 2, offRouteKm: null },
-    }));
-  });
-
-  it('FE-PLANNER-PLACEFORM-079: a place far off the drawn line is noted, never refused', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 9 });
-    const far = serviceStop({ targetFor: () => ({ dayId: 5, position: 2, offRouteKm: 18.3 }) });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={far} />);
-
-    named('Supercharger');
-    typeCoords('41.9', '12.5');
-    expect(screen.getByText(/check which leg it belongs on/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      _serviceStop: { dayId: 5, position: 2, offRouteKm: 18.3 },
-    }));
-  });
-
-  it('FE-PLANNER-PLACEFORM-081: a stop with no coordinates is not filed onto a leg by guesswork', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 9 });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
-
-    // The premise case: the charger is in no index, so the traveller types the name. It
-    // cannot be measured onto a road, and picking a leg for it anyway used to file it as
-    // the first stop of the trip's first day without a word.
-    named('Supercharger Dammer Berge');
-    expect(screen.getByTestId('service-stop-needs-point')).toBeInTheDocument();
-    expect(screen.queryByText('Add between')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ _serviceStop: null }));
-  });
-
-  it('FE-PLANNER-PLACEFORM-082: a second stop of the same brand saves on the first press', async () => {
-    // Four hundred kilometres apart and both called Aral, which on a motorway is the
-    // normal case and is exactly what this path is for. The name check used to refuse
-    // the first press and demand a second.
-    seedStore(useTripStore, {
-      trip: buildTrip({ id: 1 }),
-      places: [buildPlace({ id: 3, name: 'Aral', lat: 53.1, lng: 8.8 })],
-    });
-    const onSave = vi.fn().mockResolvedValue({ id: 9 });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
-
-    named('Aral');
-    typeCoords('51.05', '13.73');
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole('button', { name: /Add anyway/i })).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-PLACEFORM-083: the same pump twice over is noted beside the name, not refused', async () => {
-    seedStore(useTripStore, {
-      trip: buildTrip({ id: 1 }),
-      places: [buildPlace({ id: 3, name: 'Aral Dammer Berge', lat: 52.5, lng: 8.2 })],
-    });
-    const onSave = vi.fn().mockResolvedValue({ id: 9 });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={serviceStop()} />);
-
-    named('Tankstelle');
-    typeCoords('52.5', '8.2');
-
-    // The same place standing at the same coordinates is worth saying. It is a note
-    // while the form is being filled, and the press that saves still saves.
-    expect(screen.getByText(/is already on this trip/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-  });
-
-  it('FE-PLANNER-PLACEFORM-084: an expense intent left over from a refused save never reaches this form', async () => {
-    withBudgetAddon();
-    const refused = vi.fn().mockRejectedValue(new Error('Server error'));
-    const onOpenExpense = vi.fn();
-    const { rerender } = render(
-      <PlaceFormModal {...defaultProps} onSave={refused} onOpenExpense={onOpenExpense} />,
-    );
-
-    // An ordinary add place, asked for an expense, that the server refuses.
-    named('Louvre');
-    fireEvent.click(screen.getByRole('button', { name: /Create expense/i }));
-    await waitFor(() => expect(refused).toHaveBeenCalled());
-    expect(onOpenExpense).not.toHaveBeenCalled();
-
-    const saved = vi.fn().mockResolvedValue({ id: 9 });
-    rerender(<PlaceFormModal {...defaultProps} isOpen={false} onSave={saved} onOpenExpense={onOpenExpense} />);
-    rerender(
-      <PlaceFormModal
-        {...defaultProps}
-        onSave={saved}
-        onOpenExpense={onOpenExpense}
-        serviceStop={serviceStop()}
-      />,
-    );
-
-    named('Supercharger');
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    // The one mode whose contract is that costs are gone: an editor opening here would
-    // file a petrol stop as an activity nobody asked to pay for.
-    await waitFor(() => expect(saved).toHaveBeenCalled());
-    expect(onOpenExpense).not.toHaveBeenCalled();
-  });
-
-  it('FE-PLANNER-PLACEFORM-080: with nothing routed it appends to the day the panel is on', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 9 });
-    const unrouted = serviceStop({ days: [], appendDay: { dayId: 5, dayNumber: 1, position: 2 } });
-    render(<PlaceFormModal {...defaultProps} onSave={onSave} serviceStop={unrouted} />);
-
-    named('Supercharger');
-    typeCoords('53.55', '9.99');
-    expect(screen.getByText(/it goes at the end of day 1/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      _serviceStop: { dayId: 5, position: 2, offRouteKm: 0 },
-    }));
-  });
-});

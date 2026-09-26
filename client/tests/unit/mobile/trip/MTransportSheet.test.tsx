@@ -1,15 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MTransportSheet from '../../../../src/mobile/screens/trip/sheets/MTransportSheet'
-import { openFile } from '../../../../src/utils/fileDownload'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
-import type { Reservation, TripFile } from '../../../../src/types'
+import type { Reservation } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen } from '../../../helpers/render'
 
 // FE-MOB-TRSH-001 to FE-MOB-TRSH-024
-
-vi.mock('../../../../src/utils/fileDownload', () => ({ openFile: vi.fn() }))
 
 const FLIGHT = {
   id: 7,
@@ -32,7 +29,6 @@ const FLIGHT = {
 function makePlanner(overrides: Record<string, unknown> = {}) {
   return buildPlanner({
     reservations: [FLIGHT],
-    files: [],
     ...overrides,
   } as unknown as Parameters<typeof buildPlanner>[0])
 }
@@ -114,31 +110,6 @@ describe('MTransportSheet', () => {
     expect(screen.queryByText('Seat')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-TRSH-009: renders the transit itinerary with line, walk, duration and stop counts', () => {
-    const res = {
-      ...FLIGHT, type: 'transit', title: 'To the museum', endpoints: [], metadata: {
-        transit: {
-          legs: [
-            { mode: 'WALK', duration: 240, to: { name: 'Karlsplatz' } },
-            {
-              mode: 'SUBWAY', line: 'U4', line_color: '#00a94f', line_text_color: '#fff', duration: 600, stops: 4,
-              from: { name: 'Karlsplatz', time: '09:10' }, to: { name: 'Schwedenplatz', time: '09:20' },
-            },
-            { mode: 'BUS', line: null, duration: 0, from: { name: 'Schwedenplatz', time: null }, to: { name: 'Prater' } },
-          ],
-        },
-      },
-    } as unknown as Reservation
-    render(<MTransportSheet planner={makePlanner({ reservations: [res] })} shell={makeShell()} />)
-    expect(screen.getByText('Walk to Karlsplatz')).toBeInTheDocument()
-    expect(screen.getByText('4 min')).toBeInTheDocument()
-    expect(screen.getByText('U4')).toBeInTheDocument()
-    expect(screen.getByText('09:10 – 09:20 · 10 min · 4 stops')).toBeInTheDocument()
-    // A leg without a line falls back to its mode and renders no meta line.
-    expect(screen.getByText('BUS')).toBeInTheDocument()
-    expect(screen.getByText('Prater')).toBeInTheDocument()
-  })
-
   it('FE-MOB-TRSH-010: shows the pending status and the booking code unblurred by default', () => {
     render(<MTransportSheet planner={makePlanner()} shell={makeShell()} />)
     expect(screen.getByText('Pending')).toBeInTheDocument()
@@ -201,23 +172,6 @@ describe('MTransportSheet', () => {
     expect(shell.closeSheet).not.toHaveBeenCalled()
     expect(shell.setTrTab).not.toHaveBeenCalled()
     expect(shell.toggleView).not.toHaveBeenCalled()
-  })
-
-  it('FE-MOB-TRSH-016: lists the attached files and opens one on tap', () => {
-    const files = [
-      { id: 1, reservation_id: 7, original_name: 'boardingpass.pdf', url: '/api/trips/1/files/1/download' },
-      { id: 2, reservation_id: null, linked_reservation_ids: [7], original_name: 'invoice.pdf', url: '/api/trips/1/files/2/download' },
-      { id: 3, reservation_id: 7, deleted_at: '2026-04-01', original_name: 'trashed.pdf', url: '/x' },
-      { id: 4, reservation_id: 99, original_name: 'other.pdf', url: '/y' },
-    ] as unknown as TripFile[]
-    render(<MTransportSheet planner={makePlanner({ files })} shell={makeShell()} />)
-    expect(screen.getByText('boardingpass.pdf')).toBeInTheDocument()
-    expect(screen.getByText('invoice.pdf')).toBeInTheDocument()
-    expect(screen.queryByText('trashed.pdf')).not.toBeInTheDocument()
-    expect(screen.queryByText('other.pdf')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByText('boardingpass.pdf'))
-    expect(openFile).toHaveBeenCalledWith('/api/trips/1/files/1/download', 'boardingpass.pdf')
   })
 
   it('FE-MOB-TRSH-017: opens the transport editor for the booking', () => {

@@ -1,59 +1,23 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { ChevronRight, FileDown } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
-import { useTripStore } from '../../../../store/tripStore'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings'
 import { useTranslation } from '../../../../i18n'
 import { INNER_CLS, TileHeader } from './MTripSheetUi'
 import type { MTripSheetsProps } from '../MTripShell'
 import type { LucideIcon } from 'lucide-react'
 
 /**
- * Export sheet ('export', opened from the Mehr sheet): the desktop day-plan
- * toolbar's PDF export. The ICS download/subscribe and GPX download were
- * hosted endpoints and are cut in the local build.
+ * Export sheet ('export', opened from the Mehr sheet). The hosted formats — ICS
+ * download/subscribe, GPX, the server-rendered PDF — are cut in the local build.
+ * The one remaining row is the file export, a stub until Phase C wires the
+ * `.panelmint.json` codec (`src/share/codec.ts`).
  */
 export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
-  const { t, locale } = useTranslation()
-  // The PDF is built outside React, so it cannot read this itself (#2066).
-  const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  // Fed the way the desktop dialog feeds it: the store's assignments and the switch,
-  // and the export applies the day plan's filter itself, so both shells print the same.
-  const showServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false, planner.tripId)
+  const { t } = useTranslation()
   const open = shell.sheet?.id === 'export'
-  const dayNotes = useTripStore(s => s.dayNotes)
-  const [pdfBusy, setPdfBusy] = useState(false)
 
-  const exportPdf = async () => {
-    if (!planner.trip || pdfBusy) return
-    const flatNotes = Object.entries(dayNotes).flatMap(([dayId, notes]) =>
-      notes.map(n => ({ ...n, day_id: Number(dayId) })),
-    )
-    setPdfBusy(true)
-    try {
-      // See DayPlanSidebarToolbar: loaded on demand, not with the trip.
-      const { downloadTripPDF } = await import('../../../../components/PDF/TripPDF')
-      await downloadTripPDF({
-        trip: planner.trip,
-        days: planner.days,
-        places: planner.places,
-        assignments: planner.storedAssignments,
-        categories: planner.categories,
-        dayNotes: flatNotes,
-        reservations: planner.reservations,
-        t,
-        locale,
-        timeFormat,
-        distanceUnit,
-        showServiceStops,
-      })
-    } catch (e) {
-      planner.toast.error(`${t('dayplan.pdfError')}: ${e instanceof Error ? e.message : String(e)}`)
-    } finally {
-      setPdfBusy(false)
-    }
+  const exportFile = () => {
+    planner.toast.info(t('dayplan.exportFileTooltip'))
   }
 
   return (
@@ -71,9 +35,9 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
         <div className="flex flex-col gap-2">
           <ExportRow
             icon={FileDown}
-            title={pdfBusy ? t('common.loading') : t('dayplan.pdf')}
-            sub={t('dayplan.pdfTooltip')}
-            onClick={() => void exportPdf()}
+            title={t('dayplan.exportFile')}
+            sub={t('dayplan.exportFileTooltip')}
+            onClick={exportFile}
           />
         </div>
       </div>

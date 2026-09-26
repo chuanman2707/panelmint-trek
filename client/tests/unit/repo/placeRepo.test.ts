@@ -7,7 +7,6 @@
  * Offline path: returns the `offlineDb` cache, skips the adapter.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { AxiosError } from 'axios';
 import { placeRepo } from '../../../src/repo/placeRepo';
 import { placesApi } from '../../../src/api/client';
 import { db } from '../../../src/db/panelmintDb';
@@ -81,11 +80,12 @@ describe('placeRepo.list', () => {
 
   it('online but request fails — falls back to Dexie cache (captive portal)', async () => {
     // navigator.onLine lies "true" on a captive portal; the request throws at
-    // the network level (an Axios error with no response).
+    // the network level (an axios-shaped error with no response).
     const place = buildPlace({ trip_id: 1 });
     await offlineDb.places.put(place);
 
-    vi.spyOn(placesApi, 'list').mockRejectedValue(new AxiosError('Network Error'));
+    const networkError = Object.assign(new Error('Network Error'), { isAxiosError: true });
+    vi.spyOn(placesApi, 'list').mockRejectedValue(networkError);
 
     const result = await placeRepo.list(1);
     expect(result.places).toHaveLength(1);

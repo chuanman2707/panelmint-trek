@@ -1,12 +1,8 @@
 import React from 'react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { useLocation } from 'react-router';
 import { render, screen, fireEvent } from '../../helpers/render';
 import MBottomNav from '../../../src/mobile/components/MBottomNav';
-import { useAddonStore } from '../../../src/store/addonStore';
-import { usePluginStore } from '../../../src/store/pluginStore';
-import { useSettingsStore } from '../../../src/store/settingsStore';
-import { DEFAULT_APPEARANCE } from '@trek/shared';
 
 function LocationEcho() {
   const location = useLocation();
@@ -18,27 +14,8 @@ const nav = (entry: string) =>
 
 const at = () => screen.getByTestId('loc').textContent;
 
-// FE-MOB-NAV-001 onwards
-
-function seedAddons(ids: string[]) {
-  useAddonStore.setState({
-    addons: ids.map((id) => ({ id, name: id, type: 'global', icon: 'globe', enabled: true })),
-    loaded: true,
-  });
-}
-
-type MobileNavCfg = { bar: string[]; more: string[] } | null;
-
-/** A dock split as the Appearance customizer persists it; null = un-customised. */
-function seedMobileNav(cfg: MobileNavCfg) {
-  const { settings } = useSettingsStore.getState();
-  useSettingsStore.setState({
-    settings: {
-      ...settings,
-      appearance: { ...DEFAULT_APPEARANCE, mobileNav: cfg ?? { bar: [], more: [] } },
-    },
-  });
-}
+// FE-MOB-NAV-001 onwards — the dock holds the dashboard plus the context FAB;
+// the addon/plugin items and the More popover are gone with their surfaces.
 
 /** [left group, centre slot, right group] of the dock, in DOM order. */
 function dockSlots(container: HTMLElement) {
@@ -48,33 +25,15 @@ function dockSlots(container: HTMLElement) {
 }
 
 describe('MBottomNav', () => {
-  beforeEach(() => {
-    useAddonStore.setState({ addons: [], loaded: true });
-    usePluginStore.setState({ plugins: [], loaded: true });
-    seedMobileNav(null);
-  });
-
-  it('FE-MOB-NAV-001: renders the dashboard tab plus enabled global addons', () => {
-    seedAddons(['vacay', 'atlas']);
+  it('FE-MOB-NAV-001: renders the dashboard tab', () => {
     render(<MBottomNav />, { initialEntries: ['/dashboard'] });
 
     expect(screen.getByRole('button', { name: 'My Trips' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Vacay' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Atlas' })).toBeInTheDocument();
-  });
-
-  it('FE-MOB-NAV-002: omits tabs for addons that are not enabled', () => {
-    render(<MBottomNav />, { initialEntries: ['/dashboard'] });
-
-    expect(screen.getByRole('button', { name: 'My Trips' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Atlas' })).not.toBeInTheDocument();
   });
 
   it('FE-MOB-NAV-003: marks the current route as the active tab', () => {
-    seedAddons(['atlas']);
-    render(<MBottomNav />, { initialEntries: ['/atlas'] });
+    render(<MBottomNav />, { initialEntries: ['/settings'] });
 
-    expect(screen.getByRole('button', { name: 'Atlas' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'My Trips' })).not.toHaveAttribute('aria-current');
   });
 
@@ -89,87 +48,20 @@ describe('MBottomNav', () => {
     expect(screen.getByRole('button', { name: 'Manual Booking' })).toBeInTheDocument();
   });
 
-  it('FE-MOB-NAV-006: atlas and collections live in the More popover, not the dock', () => {
-    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
+  it('FE-MOB-NAV-007: no More slot — there is nothing left to overflow into it', () => {
     render(<MBottomNav />, { initialEntries: ['/dashboard'] });
-
-    expect(screen.queryByRole('button', { name: 'Atlas' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { expanded: false }));
-    expect(screen.getByRole('button', { name: /Atlas/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Collections/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
   });
-
-  it('FE-MOB-NAV-006b: the dock keeps Journey next to Vacay when both are enabled', () => {
-    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
-    render(<MBottomNav />, { initialEntries: ['/dashboard'] });
-
-    expect(screen.getByRole('button', { name: 'Journey' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Vacay' })).toBeInTheDocument();
-  });
-
-  it('FE-MOB-NAV-006c: an instance without the journey addon keeps the Vacay/Atlas dock', () => {
-    seedAddons(['vacay', 'atlas', 'collections']);
-    render(<MBottomNav />, { initialEntries: ['/dashboard'] });
-
-    expect(screen.getByRole('button', { name: 'Vacay' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Atlas' })).toBeInTheDocument();
-  });
-
-  it('FE-MOB-NAV-007: no More slot without popover entries', () => {
-    seedAddons(['vacay', 'atlas']);
-    render(<MBottomNav />, { initialEntries: ['/dashboard'] });
-    expect(screen.queryByRole('button', { expanded: false })).not.toBeInTheDocument();
-  });
-
 
   it('FE-MOB-NAV-009: settings shows the disabled logo slot instead of a create action', () => {
     render(<MBottomNav />, { initialEntries: ['/settings'] });
     expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
   });
 
-
-  it('FE-MOB-NAV-011: choosing a More entry navigates and closes the popover', () => {
-    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
-    render(<MBottomNav />, { initialEntries: ['/dashboard'] });
-
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    fireEvent.click(screen.getByRole('button', { name: /Atlas/ }));
-
-    const more = screen.getByRole('button', { name: 'More' });
-    expect(more).toHaveAttribute('aria-expanded', 'false');
-    expect(more).toHaveAttribute('aria-current', 'page');
-  });
-
-  it('FE-MOB-NAV-012: tapping the scrim closes the More popover again', () => {
-    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
-    const { container } = render(<MBottomNav />, { initialEntries: ['/dashboard'] });
-
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    const scrim = container.querySelector('.fixed.inset-0') as HTMLElement;
-
-    fireEvent.click(scrim);
-
-    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('button', { name: /Collections/ })).not.toBeInTheDocument();
-  });
-
-  it('FE-MOB-NAV-013: a click inside the popover does not close it', () => {
-    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
-    const { container } = render(<MBottomNav />, { initialEntries: ['/dashboard'] });
-
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    fireEvent.click(container.querySelector('.fixed.inset-0 > div') as HTMLElement);
-
-    expect(screen.getByRole('button', { name: /Journey/ })).toBeInTheDocument();
-  });
-
-  // The hosted "+" routes (journey/collections/atlas) are gone — only the
-  // dashboard and in-trip creates remain.
   it.each([
     ['/trips/7', 'Add Place/Activity', '/trips/7?create=place'],
     ['/dashboard', 'New Trip', '/dashboard?create=1'],
   ])('FE-MOB-NAV-014: the "+" on %s runs "%s"', (route, label, target) => {
-    seedAddons(['journey', 'collections', 'atlas']);
     nav(route);
 
     fireEvent.click(screen.getByRole('button', { name: label }));
@@ -190,36 +82,16 @@ describe('MBottomNav', () => {
     expect(at()).toBe(target);
   });
 
-  it('FE-MOB-NAV-016: a dock tab navigates to its route', () => {
-    seedAddons(['vacay', 'atlas']);
-    nav('/dashboard');
+  it('FE-MOB-NAV-016: the dashboard dock tab navigates to its route', () => {
+    nav('/settings');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Atlas' }));
+    // The centre slot is the logo there, so the item sits in the left group.
+    fireEvent.click(screen.getByRole('button', { name: 'My Trips' }));
 
-    expect(at()).toBe('/atlas');
+    expect(at()).toBe('/dashboard');
   });
 
-  it('FE-MOB-NAV-017: a More entry navigates to its route', () => {
-    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
-    nav('/dashboard');
-
-    fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    fireEvent.click(screen.getByRole('button', { name: /Collections/ }));
-
-    expect(at()).toBe('/collections');
-  });
-
-
-  const DOCK_CONFIGS: [string, MobileNavCfg][] = [
-    ['the built-in dock', null],
-    ['vacay pinned alone', { bar: ['vacay'], more: ['atlas', 'journey', 'collections'] }],
-    ['vacay demoted to More', { bar: ['journey', 'collections'], more: ['vacay', 'atlas'] }],
-  ];
-
-  it.each(DOCK_CONFIGS)('FE-MOB-NAV-019: the empty vacay slot keeps the FAB geometry (%s)', (_label, cfg) => {
-    seedAddons(['vacay', 'atlas', 'journey', 'collections']);
-    seedMobileNav(cfg);
-
+  it('FE-MOB-NAV-019: the settings logo slot keeps the FAB geometry', () => {
     const dashboard = render(<MBottomNav />, { initialEntries: ['/dashboard'] });
     const withFab = dockSlots(dashboard.container);
     const groups = [withFab.left.children.length, withFab.right.children.length];
@@ -227,8 +99,8 @@ describe('MBottomNav', () => {
     const slots = withFab.count;
     dashboard.unmount();
 
-    const vacay = render(<MBottomNav />, { initialEntries: ['/vacay'] });
-    const placeholder = dockSlots(vacay.container);
+    const settings = render(<MBottomNav />, { initialEntries: ['/settings'] });
+    const placeholder = dockSlots(settings.container);
 
     expect(placeholder.count).toBe(slots);
     // Same 56px box as MFab, so both tab groups stay symmetric around the centre.

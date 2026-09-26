@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { FileText, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { MapPin, Pencil, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime, formatTime, cleanAmountText } from '../../../../utils/formatters'
-import { openFile } from '../../../../utils/fileDownload'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import MConfirmSheet from '../../settings/MConfirmSheet'
@@ -132,10 +131,6 @@ function BookingCard({ res, planner, canEdit, compact }: {
   }
   if (meta.check_out_time) metaCells.push({ label: t('reservations.meta.checkOut'), value: formatTime(meta.check_out_time, locale, timeFormat) })
 
-  const files = (planner.files || []).filter(
-    f => !f.deleted_at && (f.reservation_id === res.id || (f.linked_reservation_ids || []).includes(res.id)),
-  )
-
   const openEdit = () => {
     if (!canEdit) return
     planner.setEditingReservation(res)
@@ -231,31 +226,6 @@ function BookingCard({ res, planner, canEdit, compact }: {
             {res.notes && (
               <div className="mt-2 rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-2">
                 <p className="whitespace-pre-wrap font-geist text-[0.6875rem] leading-[1.5] text-m-muted">{res.notes}</p>
-              </div>
-            )}
-
-            {files.length > 0 && (
-              <div className="mt-2">
-                <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
-                  {t('files.title')}
-                </div>
-                <div className="flex flex-col gap-1">
-                  {/* A span with a button role, not a <button>: the whole card body
-                      is already one, and buttons cannot nest. */}
-                  {files.map(f => (
-                    <span
-                      key={f.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={e => { e.stopPropagation(); openFile(f.url, f.original_name) }}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openFile(f.url, f.original_name) } }}
-                      className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
-                    >
-                      <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
-                      <span className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{f.original_name}</span>
-                    </span>
-                  ))}
-                </div>
               </div>
             )}
           </button>

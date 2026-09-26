@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ExternalLink, FileText, Hotel, Link2, ParkingSquare, Plus, Ticket, Users, Utensils } from 'lucide-react'
+import { Check, FileText, Hotel, Link2, ParkingSquare, Plus, Ticket, Users, Utensils } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
@@ -9,9 +9,7 @@ import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import PlFileAttach from './PlFileAttach'
 import { buildAssignmentOptions } from '../../../../components/Planner/assignmentOptions'
-import { openFile } from '../../../../utils/fileDownload'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
 import { useTripStore } from '../../../../store/tripStore'
@@ -50,7 +48,7 @@ const EMPTY = {
  * driven by the planner's own editor flags (showReservationModal / editingReservation /
  * bookingForAssignmentId) so every entry point (bookings tab, day
  * sheet, timeline) opens it unchanged. Saving reuses
- * planner.handleSaveReservation, which owns the accommodation split, file upload and undo.
+ * planner.handleSaveReservation, which owns the accommodation split and undo.
  */
 export default function MReservationSheet({ planner, onOpenExpense }: MReservationSheetProps) {
   const {
@@ -58,8 +56,8 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     showReservationModal, setShowReservationModal,
     editingReservation, setEditingReservation,
     bookingForAssignmentId, setBookingForAssignmentId,
-    assignments, files,
-    handleSaveReservation, canUploadFiles, tripActions,
+    assignments,
+    handleSaveReservation,
   } = planner
   const { locale } = useTranslation()
   const setReservationTravelers = useTripStore(s => s.setReservationTravelers)
@@ -67,7 +65,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
 
   const [form, setForm] = useState(EMPTY)
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const assignmentOptions = useMemo(
     () => buildAssignmentOptions(days, assignments, t, locale),
     [days, assignments, t, locale],
@@ -93,7 +90,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     setSnap({ res: editingReservation, assignmentId: bookingForAssignmentId ?? null })
     setAssignmentId(bookingForAssignmentId ?? editingReservation?.assignment_id ?? '')
     expenseIntentRef.current = false
-    setPendingFiles([])
     setTravelerIds(new Set((editingReservation?.travelers || []).map(tv => tv.user_id)))
 
     const res = editingReservation
@@ -138,16 +134,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   }, [showReservationModal])
 
   const res = snap.res
-  // Files already on this booking. The sheet used to list only the ones picked
-  // in this session, so an upload from the desktop was invisible here (#2217).
-  const attachedFiles = res?.id
-    ? (files || []).filter(f =>
-        !f.deleted_at && (
-          String(f.reservation_id) === String(res.id) ||
-          (f.linked_reservation_ids || []).includes(res.id)
-        ),
-      )
-    : []
   const isHotel = form.type === 'hotel'
   const set = (field: keyof typeof EMPTY, value: string | number) => setForm(prev => ({ ...prev, [field]: value }))
 
@@ -270,15 +256,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         const next = [...travelerIds]
         const changed = original.length !== next.length || next.some(id => !original.includes(id))
         if (changed) await setReservationTravelers(tripId, savedId, next)
-      }
-      if (!res?.id && saved?.id && pendingFiles.length > 0 && canUploadFiles) {
-        for (const file of pendingFiles) {
-          const fd = new FormData()
-          fd.append('file', file)
-          fd.append('reservation_id', String(saved.id))
-          fd.append('description', form.title)
-          await tripActions.addFile(tripId, fd)
-        }
       }
       if (withExpense && saved?.id) {
         onOpenExpense({ prefill: { reservationId: saved.id, name: form.title, category: typeToCostCategory(form.type) } })
@@ -583,35 +560,6 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
               size="sm"
             />
           </>
-        )}
-
-        {/* FILES */}
-        {attachedFiles.length > 0 && (
-          <>
-            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('files.title')}</Eyebrow>
-            <div className="flex flex-col gap-1">
-              {attachedFiles.map(f => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => openFile(f.url, f.original_name)}
-                  className="flex w-full items-center gap-2 rounded-[10px] bg-[color:var(--m-ic)] px-[10px] py-[7px] text-left"
-                >
-                  <span className="min-w-0 flex-1 truncate text-[0.75rem] font-medium">{f.original_name}</span>
-                  <ExternalLink size={11} strokeWidth={2} className="flex-none text-m-faint" />
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-        {canUploadFiles && (
-          <PlFileAttach
-            planner={planner}
-            files={pendingFiles}
-            onAdd={files => setPendingFiles(prev => [...prev, ...files])}
-            onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
-            hideHint
-          />
         )}
 
         {/* COSTS */}

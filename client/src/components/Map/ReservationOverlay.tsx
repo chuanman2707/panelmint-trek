@@ -1,10 +1,9 @@
-import { Fragment, createElement, useMemo, useState } from 'react'
+import { createElement, useMemo, useState } from 'react'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { escapeHtml } from '@trek/shared'
-import { getTransitMapSegments, type TransitMapSegment } from './transitGeometry'
 import { geodesicArcs } from './flightGeodesy'
 import { cleanEndpointName } from './reservationName'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -136,7 +135,6 @@ interface TransportItem {
   waypoints: ReservationEndpoint[]
   type: TransportType
   arcs: [number, number][][]
-  transitSegs: TransitMapSegment[]
   // Route ("VIE → LHR") and duration/distance line. Computed on every update but
   // not drawn since the stats badge was dropped; computeDuration still guards the
   // non-finite date that used to blank the trip (#1620).
@@ -201,23 +199,18 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
       const subParts = [duration, distance].filter(Boolean) as string[]
       const subLabel = subParts.length > 0 ? subParts.join(' · ') : null
 
-      out.push({ res: r, from, to, waypoints, type, arcs, transitSegs: type === 'transit' ? getTransitMapSegments(r) : [], mainLabel, subLabel })
+      out.push({ res: r, from, to, waypoints, type, arcs, mainLabel, subLabel })
     }
     return out
   }, [reservations])
 
   const visibleItems = useMemo(() => {
     const project = (p: readonly [number, number]) => map.latLngToContainerPoint([p[0], p[1]])
-    return items.filter(item => {
-      // A transit journey draws its real rail/bus alignment, not a straight from->to
-      // line, so the endpoint-proximity declutter (which exists to hide tiny no-op
-      // straight connectors) must not suppress it. Otherwise a zoomed-out day — e.g. one
-      // with no other places to tighten the map onto — hides the whole route (#1570).
-      if (item.transitSegs.length > 0) return true
+    return items.filter(item =>
       // Measured along what is drawn, not between the ends: a routed drive can
       // cover half the screen while its endpoints sit close together (#2275).
-      return hopIsVisible(item.type, linesFor(item, roadRoutes), project)
-    })
+      hopIsVisible(item.type, linesFor(item, roadRoutes), project)
+    )
   }, [items, zoom, map, roadRoutes])
 
   const labelVisibleIds = useMemo(() => {
@@ -234,27 +227,9 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
 
   return (
     <>
-      {visibleItems.map(item => {
-        if (item.transitSegs.length > 0) {
-          return item.transitSegs.map((seg, segIdx) => (
-            <Fragment key={`transit-${item.res.id}-${segIdx}`}>
-              {!seg.walk && (
-                <Polyline
-                  positions={seg.coords}
-                  pathOptions={{ color: '#ffffff', weight: 6, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }}
-                />
-              )}
-              <Polyline
-                positions={seg.coords}
-                pathOptions={seg.walk
-                  ? { color: '#64748b', weight: 3, opacity: 0.8, dashArray: '1, 7', lineCap: 'round' }
-                  : { color: seg.color || TYPE_META.transit.color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
-              />
-            </Fragment>
-          ))
-        }
+      {visibleItems.map(item =>
         // Prefer the real road route (car/bus/taxi/bicycle) over the straight arc.
-        return linesFor(item, roadRoutes).map((seg, segIdx) => (
+        linesFor(item, roadRoutes).map((seg, segIdx) => (
           <Polyline
             key={`line-${item.res.id}-${segIdx}`}
             positions={seg}
@@ -266,7 +241,7 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
             }}
           />
         ))
-      })}
+      )}
 
       {visibleItems.flatMap(item => item.waypoints.map((wp, wi) => (
         <Marker

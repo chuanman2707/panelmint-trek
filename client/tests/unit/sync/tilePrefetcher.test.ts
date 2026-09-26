@@ -321,7 +321,7 @@ describe('prefetchTilesForTrip', () => {
   });
 
   it('updates syncMeta tilesBbox after prefetch', async () => {
-    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null });
 
     const places = [
       buildPlace({ trip_id: 1, lat: 48.8566, lng: 2.3522 }),
@@ -334,7 +334,7 @@ describe('prefetchTilesForTrip', () => {
   });
 
   it('#2228: caps the depth when the browser refused persistent storage', async () => {
-    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null });
     const places = [buildPlace({ trip_id: 1, lat: 48.8566, lng: 2.3522 })];
 
     // Opaque tiles are billed at ~7 MB each. Without an eviction exemption a
@@ -358,7 +358,7 @@ describe('prefetchTilesForTrip', () => {
   });
 
   it('zoom-clamps instead of skipping when the bbox exceeds MAX_TILES', async () => {
-    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null });
 
     // ~4° road-trip span: low zooms fit the budget, high zooms (z14+) blow past
     // it. The old guard skipped the whole trip; now we keep what fits.
@@ -375,7 +375,7 @@ describe('prefetchTilesForTrip', () => {
   });
 
   it('prefetches a region-sized (0.5°) trip that the old all-or-nothing guard would have skipped', async () => {
-    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null });
 
     const places = [
       buildPlace({ trip_id: 1, lat: 48.6, lng: 2.1 }),
@@ -396,7 +396,7 @@ describe('prefetchTilesForTrip — repeat runs', () => {
   const tmpl = 'https://{s}.example.com/{z}/{x}/{y}.png';
 
   beforeEach(async () => {
-    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null });
   });
 
   it('does nothing on a second run with an unchanged bbox', async () => {

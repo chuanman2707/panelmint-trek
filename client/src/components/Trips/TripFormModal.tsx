@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from '../shared/Modal'
-import { Calendar, Camera, Search, X, UserPlus, Bell } from 'lucide-react'
+import { Calendar, X, UserPlus, Bell } from 'lucide-react'
 import { tripsApi } from '../../api/client'
 import { db } from '../../db/panelmintDb'
 import CustomSelect from '../shared/CustomSelect'
@@ -10,8 +10,7 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
-import { normalizeImageFile } from '../../utils/convertHeic'
-import { getApiErrorMessage, type Trip } from '../../types'
+import { type Trip } from '../../types'
 import { MAX_TRIP_DAYS, tripSpanDays, type TripCreateRequest } from '@trek/shared'
 import { NumericInput } from '../shared/NumericInput'
 import { currenciesWith, SYMBOLS } from '../Budget/BudgetPanel.constants'
@@ -21,35 +20,20 @@ type DateShiftMode = 'keep_bookings' | 'shift_all'
 interface TripFormModalProps {
   isOpen: boolean
   onClose: () => void
-  // Create returns the new trip (so we can attach members / upload the cover);
+  // Create returns the new trip (so we can attach members);
   // update resolves without a payload.
   onSave: (data: TripCreateRequest & { date_shift_mode?: DateShiftMode }) => Promise<{ trip?: Trip } | void> | void
   trip: Trip | null
-  onCoverUpdate?: (tripId: number, coverUrl: string | null) => void
 }
 
-interface CoverSearchPhoto {
-  id: string
-  url: string
-  thumb: string
-  description?: string | null
-  photographer?: string | null
-  link?: string | null
-}
-
-export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUpdate }: TripFormModalProps) {
+export default function TripFormModal({ isOpen, onClose, onSave, trip }: TripFormModalProps) {
   const isEditing = !!trip
-  const fileRef = useRef<HTMLInputElement>(null)
-  const coverSearchSeq = useRef(0)
-  // The staged cover lives on as an object URL until it is replaced or the modal goes.
-  const previewUrlRef = useRef<string | null>(null)
   const toast = useToast()
   const { t } = useTranslation()
   const currentUser = useAuthStore(s => s.user)
   const defaultCurrency = useSettingsStore(s => s.settings.default_currency) || 'EUR'
   const tripRemindersEnabled = useAuthStore(s => s.tripRemindersEnabled)
   const can = useCanDo()
-  const canUploadCover = !isEditing || can('trip_cover_upload', trip)
   const canEditTrip = !isEditing || can('trip_edit', trip)
 
   const [formData, setFormData] = useState({
@@ -64,18 +48,6 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [customReminder, setCustomReminder] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [coverPreview, setCoverPreview] = useState<string | null>(null)
-  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null)
-  const [pendingUnsplashUrl, setPendingUnsplashUrl] = useState<string | null>(null)
-  const [uploadingCover, setUploadingCover] = useState(false)
-  const [coverSearchQuery, setCoverSearchQuery] = useState('')
-  const [coverSearchResults, setCoverSearchResults] = useState<CoverSearchPhoto[]>([])
-  const [coverSearchError, setCoverSearchError] = useState('')
-  const [searchingCover, setSearchingCover] = useState(false)
-  // Drives the drop zone's hover look. Used to be four handlers writing
-  // element.style directly, which is how the indigo dragover colour survived
-  // the move to a configurable accent.
-  const [coverDragActive, setCoverDragActive] = useState(false)
   const [allUsers, setAllUsers] = useState<{ id: number; username: string }[]>([])
   const [selectedMembers, setSelectedMembers] = useState<number[]>([])
   const [existingMembers, setExistingMembers] = useState<{ id: number; username: string }[]>([])
@@ -98,22 +70,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         day_count: trip.day_count || 7,
       })
       setCustomReminder(![0, 1, 3, 9].includes(rd))
-      setCoverPreview(trip.cover_image || null)
-      setCoverSearchQuery('')
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', currency: defaultCurrency, reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
-      setCoverPreview(null)
-      setCoverSearchQuery('')
     }
-    if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current)
-      previewUrlRef.current = null
-    }
-    setPendingCoverFile(null)
-    setPendingUnsplashUrl(null)
-    setCoverSearchResults([])
-    setCoverSearchError('')
     setSelectedMembers([])
     setPendingDateShift(null)
     setDateShiftMode('keep_bookings')
@@ -137,12 +97,6 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setFormData(prev => ({ ...prev, reminder_days: tripRemindersEnabled ? 3 : 0 }))
     }
   }, [tripRemindersEnabled])
-
-  // A staged cover that never got uploaded would otherwise pin the full image for
-  // as long as the tab lives.
-  useEffect(() => () => {
-    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
-  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -199,146 +153,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         }
         if (memberAddFailed) toast.error(t('trips.memberAddError'))
       }
-      // Upload pending cover for newly created trips
-      if (pendingCoverFile && createdTrip?.id) {
-        try {
-          const fd = new FormData()
-          fd.append('cover', pendingCoverFile)
-          const data = await tripsApi.uploadCover(createdTrip.id, fd)
-          onCoverUpdate?.(createdTrip.id, data.cover_image)
-        } catch {
-          // Cover upload failed but trip was created — surface it without blocking the create
-          toast.error(t('dashboard.coverUploadError'))
-        }
-      } else if (pendingUnsplashUrl && createdTrip?.id) {
-        try {
-          await tripsApi.update(createdTrip.id, { cover_image: pendingUnsplashUrl })
-          onCoverUpdate?.(createdTrip.id, pendingUnsplashUrl)
-        } catch {
-          toast.error(t('dashboard.coverSaveError'))
-        }
-      }
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('places.saveError'))
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleCoverSelect = async (file: File | null | undefined) => {
-    if (!file) return
-    // HEIC/HEIF from iOS can't be rendered or stored as-is — convert to JPEG first
-    const normalized = await normalizeImageFile(file)
-    setPendingUnsplashUrl(null)
-    if (isEditing && trip?.id) {
-      // Existing trip: upload immediately
-      uploadCoverNow(normalized)
-    } else {
-      // New trip: stage for upload after creation
-      setPendingCoverFile(normalized)
-      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
-      previewUrlRef.current = URL.createObjectURL(normalized)
-      setCoverPreview(previewUrlRef.current)
-    }
-  }
-
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleCoverSelect(e.target.files?.[0])
-    e.target.value = ''
-  }
-
-  const uploadCoverNow = async (file: File) => {
-    setUploadingCover(true)
-    try {
-      const fd = new FormData()
-      fd.append('cover', file)
-      const data = await tripsApi.uploadCover(trip.id, fd)
-      setCoverPreview(data.cover_image)
-      onCoverUpdate?.(trip.id, data.cover_image)
-      toast.success(t('dashboard.coverSaved'))
-    } catch {
-      toast.error(t('dashboard.coverUploadError'))
-    } finally {
-      setUploadingCover(false)
-    }
-  }
-
-  const handleCoverSearch = async () => {
-    const query = coverSearchQuery.trim() || formData.title.trim()
-    if (!query) {
-      setCoverSearchError(t('dashboard.unsplashQueryRequired'))
-      return
-    }
-    // Guard against out-of-order responses: only the latest search applies its
-    // results, so a slow earlier query can't overwrite a newer one. #1277 review
-    const seq = ++coverSearchSeq.current
-    setSearchingCover(true)
-    setCoverSearchError('')
-    try {
-      const data = await tripsApi.searchCoverImages(query)
-      if (seq !== coverSearchSeq.current) return
-      const photos = data.photos || []
-      setCoverSearchResults(photos)
-      if (photos.length === 0) setCoverSearchError(t('dashboard.unsplashNoResults'))
-    } catch (err: unknown) {
-      if (seq !== coverSearchSeq.current) return
-      setCoverSearchError(getApiErrorMessage(err, t('dashboard.coverSearchError')))
-    } finally {
-      if (seq === coverSearchSeq.current) setSearchingCover(false)
-    }
-  }
-
-  const handleUnsplashSelect = async (photo: CoverSearchPhoto) => {
-    if (!photo.url) return
-    setPendingCoverFile(null)
-    if (isEditing && trip?.id) {
-      setUploadingCover(true)
-      try {
-        await tripsApi.update(trip.id, { cover_image: photo.url })
-        setCoverPreview(photo.url)
-        onCoverUpdate?.(trip.id, photo.url)
-        toast.success(t('dashboard.coverSaved'))
-      } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, t('dashboard.coverSaveError')))
-      } finally {
-        setUploadingCover(false)
-      }
-    } else {
-      setPendingUnsplashUrl(photo.url)
-      setCoverPreview(photo.url)
-    }
-  }
-
-  const handleRemoveCover = async () => {
-    if (pendingCoverFile || pendingUnsplashUrl) {
-      setPendingCoverFile(null)
-      setPendingUnsplashUrl(null)
-      setCoverPreview(null)
-      return
-    }
-    // Nothing pending left, so the preview is a saved trip's stored cover.
-    try {
-      await tripsApi.update(trip.id, { cover_image: null })
-      setCoverPreview(null)
-      onCoverUpdate?.(trip.id, null)
-    } catch {
-      toast.error(t('dashboard.coverRemoveError'))
-    }
-  }
-
-  // Paste support for cover image
-  const handlePaste = (e: React.ClipboardEvent) => {
-    if (!canUploadCover) return
-    const items = e.clipboardData?.items
-    if (!items) return
-    for (const item of Array.from(items)) {
-      if (item.type.startsWith('image/')) {
-        e.preventDefault()
-        const file = item.getAsFile()
-        if (file) handleCoverSelect(file)
-        return
-      }
     }
   }
 
@@ -434,86 +253,15 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           <p className="text-caption text-content-faint">{t('dashboard.dateShiftHint')}</p>
         </div>
       )}
-      <form onSubmit={handleSubmit} className={pendingDateShift ? 'hidden' : 'space-y-4'} onPaste={handlePaste}>
+      <form onSubmit={handleSubmit} className={pendingDateShift ? 'hidden' : 'space-y-4'}>
         {error && (
           <div className="p-3 bg-danger-soft border border-danger/30 rounded-xl text-body text-danger">{error}</div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-start">
 
-        {/* Left column — what the trip is: its picture, its name, what it is about. */}
+        {/* Left column — what the trip is: its name, what it is about. */}
         <div className={columnCls}>
-
-        {/* Cover image — gated by trip_cover_upload permission */}
-        {canUploadCover && <div className={panelCls}>
-          <label className={labelCls}>{t('dashboard.coverImage')}</label>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
-          {coverPreview ? (
-            <div className="relative h-[130px] rounded-xl overflow-hidden">
-              <img src={coverPreview} alt="" className="w-full h-full object-cover" />
-              <div className="absolute bottom-2 right-2 flex gap-1.5">
-                {/* Chrome sitting on top of a photo, so it is deliberately dark in
-                    both themes rather than following the surface tokens. */}
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
-                  className="flex items-center gap-1 px-2.5 py-[5px] rounded-lg bg-black/55 backdrop-blur-sm text-white text-caption font-semibold">
-                  <Camera size={12} /> {uploadingCover ? t('common.uploading') : t('common.change')}
-                </button>
-                <button type="button" onClick={handleRemoveCover} aria-label={t('common.remove')}
-                  className="flex items-center px-2 py-[5px] rounded-lg bg-black/55 backdrop-blur-sm text-white">
-                  <X size={12} />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
-              onDragOver={e => { e.preventDefault(); setCoverDragActive(true) }}
-              onDragLeave={() => setCoverDragActive(false)}
-              onDrop={e => { e.preventDefault(); setCoverDragActive(false); const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) handleCoverSelect(file) }}
-              className={`w-full h-[130px] px-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-1.5 text-body transition-colors ${
-                coverDragActive
-                  ? 'border-accent bg-accent-subtle text-content'
-                  : 'border-edge text-content-faint hover:border-edge-secondary hover:text-content-muted'
-              }`}>
-              <Camera size={15} /> {uploadingCover ? t('common.uploading') : t('dashboard.addCoverImage')}
-            </button>
-          )}
-          <div className="mt-2 flex gap-2">
-            <input
-              type="text"
-              value={coverSearchQuery}
-              onChange={e => setCoverSearchQuery(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCoverSearch() } }}
-              placeholder={t('dashboard.unsplashSearchPlaceholder')}
-              className={inputCls}
-            />
-            <button type="button" onClick={handleCoverSearch} disabled={searchingCover || (!coverSearchQuery.trim() && !formData.title.trim())}
-              className="px-3 py-2 text-body text-content-secondary border border-edge rounded-xl hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap">
-              {searchingCover ? <div className="w-4 h-4 border-2 border-edge border-t-content-muted rounded-full animate-spin" /> : <Search size={14} />}
-              {t('dashboard.searchUnsplash')}
-            </button>
-          </div>
-          {coverSearchError && <p className="text-caption text-danger mt-1.5">{coverSearchError}</p>}
-          {coverSearchResults.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {coverSearchResults.map(photo => (
-                <button
-                  type="button"
-                  key={photo.id}
-                  onClick={() => handleUnsplashSelect(photo)}
-                  aria-label={t('dashboard.useUnsplashPhoto', { photographer: photo.photographer || 'Unsplash' })}
-                  className={`relative h-20 overflow-hidden rounded-xl border transition-colors ${coverPreview === photo.url ? 'border-accent ring-2 ring-accent/20' : 'border-edge hover:border-content-faint'}`}
-                >
-                  <img src={photo.thumb} alt={photo.description || ''} loading="lazy" className="w-full h-full object-cover" />
-                  {photo.photographer && (
-                    <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1.5 py-1 text-caption text-white">
-                      {photo.photographer}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>}
 
         <div className={`${panelCls} flex-1`}>
           <div>

@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': 'Xác suất mưa',
-  'day.precipitation': 'Sự kết tủa',
-  'day.wind': 'Gió',
-  'day.sunrise': 'Bình minh',
-  'day.sunset': 'Hoàng hôn',
-  'day.hourlyForecast': 'Dự báo hàng giờ',
   'day.climateHint': 'Trung bình lịch sử — dự báo thực tế có sẵn trong vòng 16 ngày kể từ ngày này.',
   'day.noWeather': 'Không có dữ liệu thời tiết. Thêm địa điểm có tọa độ.',
   'day.weatherFor': 'Dự báo cho {name}',

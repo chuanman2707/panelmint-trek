@@ -18,10 +18,9 @@ import {
   buildPlace,
   buildAssignment,
   buildReservation,
-  buildTripFile,
 } from '../../../tests/helpers/factories';
 import { ReservationModal } from './ReservationModal';
-import type { BookingReviewDraft } from './parsedItemToDraft';
+
 import type { TripMember } from '../Budget/BudgetPanelMemberChips';
 
 // Mock react-router useParams
@@ -65,9 +64,6 @@ const defaultProps = {
   places: [],
   assignments: {},
   selectedDayId: null,
-  files: [],
-  onFileUpload: vi.fn().mockResolvedValue(undefined),
-  onFileDelete: vi.fn().mockResolvedValue(undefined),
   accommodations: [],
 };
 
@@ -327,28 +323,8 @@ describe('ReservationModal', () => {
     expect(screen.getByText(/Link to day assignment/i)).toBeInTheDocument();
   });
 
-  // ── Files ──────────────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-RESMODAL-022: attached files shown for existing reservation', () => {
-    const res = buildReservation({ id: 5 });
-    const file = buildTripFile({
-      id: 1,
-      trip_id: 1,
-      original_name: 'ticket.pdf',
-    });
-    // Add reservation_id field manually (not in standard TripFile type but used in component)
-    (file as any).reservation_id = 5;
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[file]}
-      />
-    );
-
-    expect(screen.getByText('ticket.pdf')).toBeInTheDocument();
-  });
 
   it('FE-PLANNER-RESMODAL-023: Cancel button calls onClose', async () => {
     const onClose = vi.fn();
@@ -405,32 +381,12 @@ describe('ReservationModal', () => {
     expect(screen.getByText('Hotel deposit')).toBeInTheDocument();
   });
 
-  // ── File upload ───────────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-RESMODAL-028: pending file added for new reservation on file input change', async () => {
-    render(<ReservationModal {...defaultProps} reservation={null} />);
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const testFile = new File(['content'], 'document.pdf', { type: 'application/pdf' });
 
-    fireEvent.change(fileInput, { target: { files: [testFile] } });
 
-    // Pending file name should appear in the list
-    await waitFor(() => {
-      expect(screen.getByText('document.pdf')).toBeInTheDocument();
-    });
-  });
 
-  it('FE-PLANNER-RESMODAL-029: attach file button is rendered when onFileUpload provided', () => {
-    render(<ReservationModal {...defaultProps} />);
-    expect(screen.getByRole('button', { name: /Attach file/i })).toBeInTheDocument();
-  });
 
-  it('FE-PLANNER-RESMODAL-029b: file input accepts pkpass (#1448)', () => {
-    render(<ReservationModal {...defaultProps} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput.accept).toContain('.pkpass');
-  });
 
   it('FE-PLANNER-RESMODAL-030: hotel type — saving calls onSave with correct hotel shape', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
@@ -492,133 +448,19 @@ describe('ReservationModal', () => {
     expect(screen.getByPlaceholderText(/e\.g\. ABC12345/i)).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESMODAL-036: file upload to existing reservation calls onFileUpload', async () => {
-    const onFileUpload = vi.fn().mockResolvedValue(undefined);
-    const res = buildReservation({ id: 10, title: 'My Trip', type: 'other' });
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        onFileUpload={onFileUpload}
-      />
-    );
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const testFile = new File(['content'], 'boarding-pass.pdf', { type: 'application/pdf' });
-    fireEvent.change(fileInput, { target: { files: [testFile] } });
 
-    await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
-    const [fd] = onFileUpload.mock.calls[0] as [FormData];
-    expect(fd.get('file')).toBeTruthy();
-    // FormData.append coerces numbers to strings
-    expect(fd.get('reservation_id')).toBe('10');
-  });
 
-  it('FE-PLANNER-RESMODAL-037: link existing file button appears when unattached files exist', () => {
-    const res = buildReservation({ id: 5 });
-    // File NOT attached to this reservation
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[unattachedFile]}
-      />
-    );
 
-    expect(screen.getByRole('button', { name: /Link existing file/i })).toBeInTheDocument();
-  });
 
-  it('FE-PLANNER-RESMODAL-038: clicking "link existing file" shows file picker dropdown', async () => {
-    const res = buildReservation({ id: 5 });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[unattachedFile]}
-      />
-    );
 
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
-  });
 
-  it('FE-PLANNER-RESMODAL-039: clicking file in picker links it and closes picker', async () => {
-    server.use(
-      http.post('/api/trips/1/files/99/link', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
-    );
 
-    const res = buildReservation({ id: 5 });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[unattachedFile]}
-      />
-    );
 
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    await userEvent.click(screen.getByText('invoice.pdf'));
 
-    // After linking, the file is moved to attached files and the "Link existing file" button disappears
-    // (all files are now attached, so the picker condition becomes false)
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument();
-    });
-  });
-
-  it('FE-PLANNER-RESMODAL-094: an outside pointer closes the file picker while an inside pointer keeps it open', async () => {
-    const res = buildReservation({ id: 5 });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
-
-    render(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-
-    const pickerItem = screen.getByText('invoice.pdf');
-    fireEvent.pointerDown(pickerItem);
-    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
-
-    fireEvent.pointerDown(document.body);
-    expect(screen.queryByText('invoice.pdf')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESMODAL-095: closing and reopening the modal resets the file picker', async () => {
-    const res = buildReservation({ id: 5 });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
-    const { rerender } = render(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    expect(screen.getByText('invoice.pdf')).toBeInTheDocument();
-
-    rerender(<ReservationModal {...defaultProps} isOpen={false} reservation={res} files={[unattachedFile]} />);
-    rerender(<ReservationModal {...defaultProps} reservation={res} files={[unattachedFile]} />);
-
-    expect(screen.queryByText('invoice.pdf')).not.toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESMODAL-040: removing pending file removes it from list', async () => {
-    render(<ReservationModal {...defaultProps} reservation={null} />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const testFile = new File(['content'], 'draft.pdf', { type: 'application/pdf' });
-    fireEvent.change(fileInput, { target: { files: [testFile] } });
-
-    await waitFor(() => expect(screen.getByText('draft.pdf')).toBeInTheDocument());
-
-    // Click the X next to the pending file
-    const removeButtons = screen.getAllByRole('button');
-    const pendingFileRow = screen.getByText('draft.pdf').closest('div')!;
-    const removeBtn = pendingFileRow.querySelector('button')!;
-    await userEvent.click(removeBtn);
-
-    await waitFor(() => expect(screen.queryByText('draft.pdf')).not.toBeInTheDocument());
-  });
 
   it('FE-PLANNER-RESMODAL-041: budget section not shown when addon disabled', () => {
     render(<ReservationModal {...defaultProps} />);
@@ -640,25 +482,7 @@ describe('ReservationModal', () => {
     );
   });
 
-  it('FE-PLANNER-RESMODAL-043: hover styles applied to file picker items', async () => {
-    const res = buildReservation({ id: 5 });
-    const unattachedFile = buildTripFile({ id: 99, original_name: 'invoice.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[unattachedFile]}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    const filePickerItem = screen.getByText('invoice.pdf').closest('button')!;
-    fireEvent.mouseEnter(filePickerItem);
-    fireEvent.mouseLeave(filePickerItem);
-    // Just testing the handlers don't throw
-    expect(filePickerItem).toBeInTheDocument();
-  });
 
   it('FE-PLANNER-RESMODAL-045: tour type shows time pickers', async () => {
     render(<ReservationModal {...defaultProps} />);
@@ -677,59 +501,9 @@ describe('ReservationModal', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: 'other' })));
   });
 
-  it('FE-PLANNER-RESMODAL-048: clicking attach file button triggers file input', async () => {
-    render(<ReservationModal {...defaultProps} />);
-    const attachBtn = screen.getByRole('button', { name: /Attach file/i });
-    // Mock click on hidden file input
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const clickSpy = vi.spyOn(fileInput, 'click').mockImplementation(() => {});
-    await userEvent.click(attachBtn);
-    expect(clickSpy).toHaveBeenCalled();
-    clickSpy.mockRestore();
-  });
 
-  it('FE-PLANNER-RESMODAL-049: unlinking a linked file removes it from attached list', async () => {
-    // First link the file, then unlink it via the X button
-    server.use(
-      http.post('/api/trips/1/files/42/link', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files/42/links', () => HttpResponse.json({ links: [{ id: 1, reservation_id: 7 }] })),
-      http.delete('/api/trips/1/files/42/link/1', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
-    );
 
-    const res = buildReservation({ id: 7 });
-    // File is NOT attached (no reservation_id) — it will be in the "link existing" picker
-    const looseFile = buildTripFile({ id: 42, original_name: 'receipt.pdf' });
 
-    render(
-      <ReservationModal
-        {...defaultProps}
-        reservation={res}
-        files={[looseFile]}
-      />
-    );
-
-    // Link the file via the picker
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    await waitFor(() => expect(screen.getByText('receipt.pdf')).toBeInTheDocument());
-    await userEvent.click(screen.getByText('receipt.pdf'));
-
-    // File is now in attached list; "Link existing file" button gone
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument()
-    );
-
-    // Click the X to unlink
-    const fileRow = screen.getByText('receipt.pdf').closest('div')!;
-    // Two buttons per row: [0] opens the file, [1] is the unlink X.
-    const unlinkBtn = fileRow.querySelectorAll('button[type="button"]')[1];
-    await userEvent.click(unlinkBtn);
-
-    // File removed from attached list and "Link existing file" button reappears
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Link existing file/i })).toBeInTheDocument();
-    });
-  });
 
   it('FE-PLANNER-RESMODAL-035: hotel type saves correctly', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
@@ -902,8 +676,6 @@ describe('ReservationModal', () => {
     expect(saved.location).toBe('Main Road 3');
   });
 
-  // ── Import review (prefill) ────────────────────────────────────────────────
-
   const budgetEnabled = () =>
     seedStore(useAddonStore, {
       addons: [{ id: 'budget', name: 'Budget', type: 'budget', icon: '', enabled: true }],
@@ -915,144 +687,6 @@ describe('ReservationModal', () => {
     buildDay({ id: 2, trip_id: 1, date: '2026-05-02' }),
     buildDay({ id: 3, trip_id: 1, date: '2026-05-03' }),
   ];
-
-  function hotelPrefill(overrides: Record<string, unknown> = {}): BookingReviewDraft {
-    return {
-      title: 'Hotel Adlon',
-      type: 'hotel',
-      status: 'pending',
-      reservation_time: '2026-05-01T14:00:00',
-      reservation_end_time: '2026-05-03T11:00:00',
-      location: 'Unter den Linden 77',
-      confirmation_number: 'ADL-9',
-      notes: 'Late arrival',
-      url: 'https://adlon.example',
-      metadata: { check_in_time: '15:00', check_in_end_time: '23:00', check_out_time: '11:00', price: 240, priceCurrency: 'EUR' },
-      _venue: { name: 'Hotel Adlon', address: 'Unter den Linden 77' },
-      _accommodation: { check_in: '2026-05-01', check_out: '2026-05-03' },
-      ...overrides,
-    } as unknown as BookingReviewDraft;
-  }
-
-  it('FE-PLANNER-RESMODAL-055: a hotel prefill populates the form and matches the venue to a trip place', () => {
-    const place = buildPlace({ id: 5, name: 'Hotel Adlon', address: 'Unter den Linden 77' });
-    render(<ReservationModal {...defaultProps} prefill={hotelPrefill()} days={reviewDays()} places={[place]} />);
-
-    // Still a create — the modal never leaves "New Reservation".
-    expect(screen.getByText(/New Reservation/i)).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Hotel Adlon')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('ADL-9')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Late arrival')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('https://adlon.example')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Unter den Linden 77')).toBeInTheDocument();
-    // Check-in / check-in-until / check-out come from the parsed metadata.
-    const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
-    expect(times.map(i => i.value)).toEqual(['15:00', '23:00', '11:00']);
-  });
-
-  it('FE-PLANNER-RESMODAL-056: saving a hotel prefill creates the accommodation over the resolved day range', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 77 });
-    const place = buildPlace({ id: 5, name: 'Hotel Adlon', address: 'Unter den Linden 77' });
-    render(
-      <ReservationModal {...defaultProps} onSave={onSave} prefill={hotelPrefill()} days={reviewDays()} places={[place]} />,
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    const saved = onSave.mock.calls[0][0];
-    expect(saved.create_accommodation).toMatchObject({
-      place_id: 5,
-      start_day_id: 1,
-      end_day_id: 3,
-      check_in: '15:00',
-      check_in_end: '23:00',
-      check_out: '11:00',
-      confirmation: 'ADL-9',
-    });
-    // Hotels persist no reservation time; the address rides on `location`.
-    expect(saved.reservation_time).toBeNull();
-    expect(saved.location).toBe('Unter den Linden 77');
-    expect(saved.metadata).toMatchObject({ check_in_time: '15:00', check_out_time: '11:00' });
-  });
-
-  it('FE-PLANNER-RESMODAL-057: a venue name that only loosely matches still links the trip place', () => {
-    const place = buildPlace({ id: 6, name: 'Adlon', address: 'Pariser Platz' });
-    render(<ReservationModal {...defaultProps} prefill={hotelPrefill()} days={reviewDays()} places={[place]} />);
-    // Loose contains-match wins when there is no exact name hit — the picker
-    // shows the linked place instead of the "—" placeholder.
-    expect(screen.getByText('Adlon')).toBeInTheDocument();
-  });
-
-  it('FE-PLANNER-RESMODAL-058: a prefill without a venue or title links no place', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 78 });
-    const place = buildPlace({ id: 7, name: 'Some Hotel' });
-    const prefill = hotelPrefill({ title: '', _venue: undefined, _accommodation: undefined });
-    render(
-      <ReservationModal {...defaultProps} onSave={onSave} prefill={prefill} days={reviewDays()} places={[place]} />,
-    );
-    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Unnamed stay');
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    // No day range resolved either, so nothing is created alongside the booking.
-    expect(onSave.mock.calls[0][0].create_accommodation).toBeUndefined();
-  });
-
-  it('FE-PLANNER-RESMODAL-059: a date-only end in the prefill fills the end date and leaves the time blank', () => {
-    const prefill = hotelPrefill({ type: 'event', reservation_end_time: '2026-05-03', _venue: undefined, _accommodation: undefined });
-    render(<ReservationModal {...defaultProps} prefill={prefill} days={reviewDays()} />);
-    const datePickers = screen.getAllByTestId('date-picker') as HTMLInputElement[];
-    expect(datePickers[1].value).toBe('2026-05-03');
-    const timePickers = screen.getAllByTestId('time-picker') as HTMLInputElement[];
-    expect(timePickers[1].value).toBe('');
-  });
-
-  it('FE-PLANNER-RESMODAL-060: a parsed price previews the cost and is created with the booking', async () => {
-    budgetEnabled();
-    const onSave = vi.fn().mockResolvedValue({ id: 79 });
-    render(<ReservationModal {...defaultProps} onSave={onSave} prefill={hotelPrefill()} days={reviewDays()} />);
-
-    // The parsed price is previewed as the cost that will be linked on save.
-    expect(screen.getByText('Linked expense')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 240, category: 'accommodation' });
-  });
-
-  it('FE-PLANNER-RESMODAL-061: a prefill without a price creates no cost entry', async () => {
-    budgetEnabled();
-    const onSave = vi.fn().mockResolvedValue({ id: 80 });
-    const prefill = hotelPrefill({ metadata: { check_in_time: '15:00' } });
-    render(<ReservationModal {...defaultProps} onSave={onSave} prefill={prefill} days={reviewDays()} />);
-
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave.mock.calls[0][0].create_budget_entry).toBeUndefined();
-  });
-
-  it('FE-PLANNER-RESMODAL-062: the parsed source document is seeded as a pending file and uploaded after save', async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: 81 });
-    const onFileUpload = vi.fn().mockResolvedValue(undefined);
-    const sourceFile = new File(['x'], 'booking.pdf', { type: 'application/pdf' });
-    const prefill = hotelPrefill({ _sourceFiles: [sourceFile] });
-
-    render(
-      <ReservationModal
-        {...defaultProps}
-        onSave={onSave}
-        onFileUpload={onFileUpload}
-        prefill={prefill}
-        days={reviewDays()}
-      />,
-    );
-    expect(screen.getByText('booking.pdf')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
-    await waitFor(() => expect(onFileUpload).toHaveBeenCalled());
-    const [fd] = onFileUpload.mock.calls[0] as [FormData];
-    expect(fd.get('reservation_id')).toBe('81');
-    expect(fd.get('description')).toBe('Hotel Adlon');
-  });
 
   // ── Existing-reservation end date/time parsing ──────────────────────────────
 
@@ -1314,62 +948,13 @@ describe('ReservationModal', () => {
 
   // ── File error paths ────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-RESMODAL-077: a cancelled file dialog changes nothing', () => {
-    render(<ReservationModal {...defaultProps} reservation={null} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(fileInput, { target: { files: [] } });
-    expect(screen.getByRole('button', { name: /Attach file/i })).toBeInTheDocument();
-  });
 
-  it('FE-PLANNER-RESMODAL-078: a failing upload to an existing booking shows the upload error', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
-    const onFileUpload = vi.fn().mockRejectedValue(new Error('disk full'));
-    const res = buildReservation({ id: 12, title: 'My Trip', type: 'other' });
 
-    render(<ReservationModal {...defaultProps} reservation={res} onFileUpload={onFileUpload} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(fileInput, { target: { files: [new File(['x'], 'fail.pdf', { type: 'application/pdf' })] } });
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to upload', 'error', undefined));
-    delete window.__addToast;
-  });
 
-  it('FE-PLANNER-RESMODAL-079: a failing unlink reports the update error but still drops the row', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
-    server.use(
-      http.put('/api/trips/1/files/50', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-      http.get('/api/trips/1/files/50/links', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-    );
-    const res = buildReservation({ id: 13, type: 'other', title: 'Trip' });
-    const attached = buildTripFile({ id: 50, original_name: 'voucher.pdf' });
-    (attached as unknown as { reservation_id: number }).reservation_id = 13;
 
-    render(<ReservationModal {...defaultProps} reservation={res} files={[attached]} />);
-    const row = screen.getByText('voucher.pdf').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getAllByRole('button')[1]);
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to update', 'error', undefined));
-    delete window.__addToast;
-  });
 
-  it('FE-PLANNER-RESMODAL-080: a failing link keeps the picker open and reports the error', async () => {
-    const addToast = vi.fn();
-    window.__addToast = addToast;
-    server.use(http.post('/api/trips/1/files/60/link', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
-
-    const res = buildReservation({ id: 14, type: 'other', title: 'Trip' });
-    const loose = buildTripFile({ id: 60, original_name: 'invoice.pdf' });
-
-    render(<ReservationModal {...defaultProps} reservation={res} files={[loose]} />);
-    await userEvent.click(screen.getByRole('button', { name: /Link existing file/i }));
-    await userEvent.click(screen.getByText('invoice.pdf'));
-
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Failed to update', 'error', undefined));
-    expect(screen.getByRole('button', { name: /Link existing file/i })).toBeInTheDocument();
-    delete window.__addToast;
-  });
 
   it('FE-PLANNER-RESMODAL-082: submitting the form with an empty title is a no-op', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
@@ -1435,17 +1020,7 @@ describe('ReservationModal', () => {
     });
   });
 
-  it('FE-PLANNER-RESMODAL-086: the open-file button on an attached file does not throw', async () => {
-    const res = buildReservation({ id: 16, type: 'other', title: 'Trip' });
-    const attached = buildTripFile({ id: 80, original_name: 'ticket.pdf' });
-    (attached as unknown as { reservation_id: number }).reservation_id = 16;
 
-    render(<ReservationModal {...defaultProps} reservation={res} files={[attached]} />);
-    const row = screen.getByText('ticket.pdf').closest('div') as HTMLElement;
-    await userEvent.click(within(row).getAllByRole('button')[0]);
-    // The download is best-effort; the row must survive a failed fetch.
-    expect(screen.getByText('ticket.pdf')).toBeInTheDocument();
-  });
 
   it('FE-PLANNER-RESMODAL-081: an accommodation that has not loaded yet leaves the hotel fields blank', () => {
     const res = buildReservation({ id: 15, title: 'Grand Hotel', type: 'hotel' });

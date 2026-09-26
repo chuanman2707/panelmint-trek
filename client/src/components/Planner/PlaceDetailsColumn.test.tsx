@@ -2,8 +2,8 @@
  * FE-PDC-001..015 — the detail column beside the add-place search field.
  *
  * mapsApi.placeEnrichment is mocked; these cover the load states, the caches,
- * the abort on selection change, image picking and the attribution rendering
- * that the Commons licences require.
+ * the abort on selection change and the description/facts/hours rendering.
+ * The photo strip is gone with the photo UI.
  */
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -19,28 +19,8 @@ const t = ((key: string) => key) as never
 
 const SELECTION: PlaceDetailsSelection = { placeId: 'way:1', lat: 50.9, lng: 6.96, name: 'Museum Ludwig' }
 
-const COMMONS_PHOTO = {
-  key: 'way:1~p0',
-  url: '/api/maps/place-photo/way%3A1~p0/bytes',
-  attribution: 'Alice',
-  license: 'CC BY-SA 4.0',
-  licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-  sourceUrl: 'https://commons.wikimedia.org/wiki/File:X.jpg',
-  source: 'wikimedia' as const,
-}
-
-const GOOGLE_PHOTO = {
-  key: 'way:1~p1',
-  url: '/api/maps/place-photo/way%3A1~p1/bytes',
-  attribution: null,
-  license: null,
-  licenseUrl: null,
-  sourceUrl: null,
-  source: 'google' as const,
-}
-
 const RESULT: MapsPlaceEnrichmentResult = {
-  photos: [COMMONS_PHOTO],
+  photos: [],
   facts: [],
   description: {
     text: 'Ein Museum in Köln.',
@@ -51,12 +31,10 @@ const RESULT: MapsPlaceEnrichmentResult = {
 }
 
 function renderColumn(props: Partial<React.ComponentProps<typeof PlaceDetailsColumn>> = {}) {
-  const onPickImage = vi.fn()
   const onAdoptDescription = vi.fn()
   const utils = render(
     <PlaceDetailsColumn
       selection={SELECTION}
-      onPickImage={onPickImage}
       onAdoptDescription={onAdoptDescription}
       hasDescription={false}
       language="de"
@@ -64,7 +42,7 @@ function renderColumn(props: Partial<React.ComponentProps<typeof PlaceDetailsCol
       {...props}
     />,
   )
-  return { ...utils, onPickImage, onAdoptDescription }
+  return { ...utils, onAdoptDescription }
 }
 
 beforeEach(() => {
@@ -110,40 +88,9 @@ describe('PlaceDetailsColumn', () => {
     })
   })
 
-  it('FE-PDC-004: renders author and licence under every Commons picture', async () => {
-    renderColumn()
 
-    const credit = await screen.findByText('Alice')
-    // Links to the file description page, where the full terms are.
-    expect(credit.closest('a')).toHaveAttribute('href', 'https://commons.wikimedia.org/wiki/File:X.jpg')
-    const licence = screen.getByText('CC BY-SA 4.0', { selector: 'a' })
-    expect(licence).toHaveAttribute('href', 'https://creativecommons.org/licenses/by-sa/4.0/')
-  })
 
-  it('FE-PDC-005: names the source when a picture has no author, instead of inventing one', async () => {
-    placeEnrichment.mockResolvedValue({ photos: [GOOGLE_PHOTO], description: null, facts: [] })
-    renderColumn()
 
-    expect(await screen.findByText('Google')).toBeInTheDocument()
-  })
-
-  it('FE-PDC-006: picking a picture reports its proxy URL', async () => {
-    const { onPickImage } = renderColumn()
-
-    fireEvent.click(await screen.findByRole('button', { name: /places.details.pickImage/ }))
-
-    expect(onPickImage).toHaveBeenCalledWith('/api/maps/place-photo/way%3A1~p0/bytes')
-  })
-
-  it('FE-PDC-007: clicking the picked picture again clears the hero image', async () => {
-    const { onPickImage } = renderColumn({ selectedImageUrl: COMMONS_PHOTO.url })
-
-    const tile = await screen.findByRole('button', { name: /places.details.pickImage/ })
-    expect(tile).toHaveAttribute('aria-pressed', 'true')
-    fireEvent.click(tile)
-
-    expect(onPickImage).toHaveBeenCalledWith(null)
-  })
 
   it('FE-PDC-008: adopting the description hands the text up', async () => {
     const { onAdoptDescription } = renderColumn()
@@ -164,8 +111,6 @@ describe('PlaceDetailsColumn', () => {
 
     const link = await screen.findByRole('link', { name: /Wikipedia/ })
     expect(link).toHaveAttribute('href', 'https://de.wikipedia.org/wiki/Museum_Ludwig')
-    // The photo credit carries the same licence string, so scope to the source
-    // line that sits directly under the description.
     expect(link.parentElement).toHaveTextContent('CC BY-SA 4.0')
   })
 
@@ -293,7 +238,7 @@ describe('PlaceDetailsColumn', () => {
 
   it('FE-PDC-015: aborts the pending request when the selection changes', async () => {
     placeEnrichment.mockReturnValue(new Promise(() => {})) // never settles
-    const { rerender, onPickImage, onAdoptDescription } = renderColumn()
+    const { rerender, onAdoptDescription } = renderColumn()
 
     await waitFor(() => expect(placeEnrichment).toHaveBeenCalledTimes(1))
     const firstSignal = placeEnrichment.mock.calls[0][1] as AbortSignal
@@ -302,7 +247,6 @@ describe('PlaceDetailsColumn', () => {
     rerender(
       <PlaceDetailsColumn
         selection={{ placeId: 'way:2', lat: 1, lng: 2, name: 'Somewhere else' }}
-        onPickImage={onPickImage}
         onAdoptDescription={onAdoptDescription}
         hasDescription={false}
         language="de"
@@ -521,6 +465,7 @@ describe('PlaceDetailsColumn — chain description', () => {
     expect(screen.queryByText('places.details.description')).not.toBeInTheDocument()
   })
 
+
   it('FE-PDC-031: a description of the place itself keeps the plain heading', async () => {
     placeEnrichment.mockResolvedValue({
       photos: [],
@@ -532,102 +477,5 @@ describe('PlaceDetailsColumn — chain description', () => {
     expect(await screen.findByText('places.details.description')).toBeInTheDocument()
     expect(screen.queryByText('places.details.aboutBrand')).not.toBeInTheDocument()
     expect(screen.queryByText('places.details.aboutBrandNote')).not.toBeInTheDocument()
-  })
-})
-
-/**
- * FE-PDC-032..037 — the picture grid.
- *
- * A lead image plus a thumbnail rail was tried and dropped: it took too much of
- * a column that also has to show facts, hours and a description. What must hold
- * either way is that picking a picture stays one click.
- */
-describe('PlaceDetailsColumn — picture layout', () => {
-  const photo = (n: number, over: Record<string, unknown> = {}) => ({
-    key: `way:1~p${n}`,
-    url: `/api/maps/place-photo/p${n}/bytes`,
-    attribution: `Author ${n}`,
-    license: 'CC BY-SA 4.0',
-    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-    sourceUrl: `https://commons.wikimedia.org/wiki/File:P${n}.jpg`,
-    source: 'wikimedia' as const,
-    ...over,
-  })
-
-  const withPhotos = (n: number) =>
-    placeEnrichment.mockResolvedValue({
-      photos: Array.from({ length: n }, (_, i) => photo(i)),
-      facts: [],
-      description: null,
-    })
-
-  // alt="" makes an image presentational, so it carries no `img` role — these
-  // read the DOM directly, the way the strip cases above already do.
-  const shownImages = () => Array.from(document.querySelectorAll('img'))
-
-  it('FE-PDC-032: shows one tile per picture and nothing else', async () => {
-    withPhotos(4)
-    renderColumn()
-
-    await screen.findByText('places.details.pickImage')
-    expect(shownImages()).toHaveLength(4)
-  })
-
-  it('FE-PDC-033: a single picture is a single tile', async () => {
-    withPhotos(1)
-    renderColumn()
-
-    await screen.findByText('places.details.pickImage')
-    expect(shownImages()).toHaveLength(1)
-  })
-
-  it('FE-PDC-034: picking a picture is one click', async () => {
-    withPhotos(3)
-    const { onPickImage } = renderColumn()
-
-    await screen.findByText('places.details.pickImage')
-    const tiles = screen.getAllByRole('button', { name: /places.details.pickImage/ })
-    fireEvent.click(tiles[1])
-
-    expect(onPickImage).toHaveBeenCalledWith('/api/maps/place-photo/p1/bytes')
-    expect(onPickImage).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-PDC-035: clicking the picked tile again clears the choice', async () => {
-    withPhotos(2)
-    const { onPickImage } = renderColumn({ selectedImageUrl: '/api/maps/place-photo/p1/bytes' })
-
-    await screen.findByText('places.details.pickImage')
-    const tiles = screen.getAllByRole('button', { name: /places.details.pickImage/ })
-    fireEvent.click(tiles[1])
-
-    expect(onPickImage).toHaveBeenCalledWith(null)
-  })
-
-  it('FE-PDC-036: hovering a tile moves the credit to it without picking it', async () => {
-    withPhotos(3)
-    const { onPickImage } = renderColumn()
-
-    await screen.findByText('Author 0')
-    const tiles = screen.getAllByRole('button', { name: /places.details.pickImage/ })
-    fireEvent.mouseEnter(tiles[2])
-
-    expect(screen.getByText('Author 2')).toBeInTheDocument()
-    expect(onPickImage).not.toHaveBeenCalled()
-  })
-
-  it('FE-PDC-037: credits the picture in play, licence included', async () => {
-    withPhotos(2)
-    renderColumn()
-
-    expect(await screen.findByText('Author 0')).toBeInTheDocument()
-    expect(screen.getByText('Author 0').closest('a')).toHaveAttribute(
-      'href',
-      'https://commons.wikimedia.org/wiki/File:P0.jpg',
-    )
-    expect(screen.getAllByText('CC BY-SA 4.0')[0].closest('a')).toHaveAttribute(
-      'href',
-      'https://creativecommons.org/licenses/by-sa/4.0/',
-    )
   })
 })

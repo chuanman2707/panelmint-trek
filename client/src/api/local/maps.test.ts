@@ -1,7 +1,7 @@
 /**
  * `mapsApi` facade tests. The facade itself is a delegation layer — the
  * assertions pin which ext module answers which method, in which envelope,
- * and that the removed-server stubs (`placePhoto`, `area`) answer honestly
+ * and that the removed-server stub (`area`) answers honestly
  * instead of throwing.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -16,7 +16,6 @@ vi.mock('../ext/places', () => ({
 }));
 vi.mock('../ext/wikimedia', () => ({
   enrich: vi.fn(async () => ({ photos: [], description: null, facts: [] })),
-  photoCredit: vi.fn(async () => ({ credit: 'Alice / CC BY-SA' })),
 }));
 vi.mock('../ext/overpass', () => ({
   searchOverpassPois: vi.fn(async () => ({ pois: [], source: 'openstreetmap', truncated: false, clamped: false })),
@@ -24,7 +23,7 @@ vi.mock('../ext/overpass', () => ({
 
 import { mapsApi } from './maps';
 import * as extPlaces from '../ext/places';
-import { enrich, photoCredit } from '../ext/wikimedia';
+import { enrich } from '../ext/wikimedia';
 import { searchOverpassPois } from '../ext/overpass';
 
 beforeEach(() => vi.clearAllMocks());
@@ -52,16 +51,6 @@ describe('mapsApi facade', () => {
     const body = { lat: 1, lng: 2, name: 'X' };
     await mapsApi.placeEnrichment(body, signal);
     expect(enrich).toHaveBeenCalledWith(body, signal);
-  });
-
-  it('FE-LOCAL-MAPS-005: placePhotoCredit reads the enrichment credit map', async () => {
-    expect(await mapsApi.placePhotoCredit('k1')).toEqual({ credit: 'Alice / CC BY-SA' });
-    expect(photoCredit).toHaveBeenCalledWith('k1');
-  });
-
-  it('FE-LOCAL-MAPS-006: placePhoto answers the honest empty result — there is no proxy', async () => {
-    expect(await mapsApi.placePhoto('gp-1', 1, 2, 'X'))
-      .toEqual({ photoUrl: null, attribution: null });
   });
 
   it('FE-LOCAL-MAPS-007: reverse and resolveUrl delegate', async () => {

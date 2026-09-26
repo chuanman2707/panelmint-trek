@@ -3,13 +3,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, act } from '../../helpers/render';
 import MobileShell from '../../../src/mobile/MobileShell';
 import { useAddonStore } from '../../../src/store/addonStore';
-import { usePluginStore } from '../../../src/store/pluginStore';
 
 // FE-MOB-MSHELL-001 onwards
 
 beforeEach(() => {
   useAddonStore.setState({ addons: [], loaded: true });
-  usePluginStore.setState({ plugins: [], loaded: true });
 });
 
 describe('MobileShell', () => {

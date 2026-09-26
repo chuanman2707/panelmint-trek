@@ -6,14 +6,11 @@ const todo: TranslationStrings = {
   'todo.subtab.todo': 'Úkoly',
   'todo.completed': 'dokončeno',
   'todo.filter.all': 'Vše',
-  'todo.filter.open': 'Otevřené',
   'todo.filter.done': 'Hotové',
-  'todo.uncategorized': 'Bez seznamu',
   'todo.namePlaceholder': 'Název úkolu',
   'todo.descriptionPlaceholder': 'Popis (volitelné)',
   'todo.unassigned': 'Nepřiřazeno',
   'todo.noCategory': 'Bez seznamu',
-  'todo.hasDescription': 'Má popis',
   'todo.addItem': 'Přidat nový úkol',
   'todo.sidebar.sortBy': 'Řadit podle',
   'todo.priority': 'Priorita',
@@ -36,6 +33,5 @@ const todo: TranslationStrings = {
   'todo.detail.create': 'Vytvořit úkol',
   'todo.detail.priority': 'Priorita',
   'todo.detail.noPriority': 'Žádná',
-  'todo.sortByPrio': 'Priorita',
 };
 export default todo;

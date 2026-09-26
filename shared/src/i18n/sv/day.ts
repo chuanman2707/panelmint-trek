@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': 'Sannolikhet för regn',
-  'day.precipitation': 'Nederbörd',
-  'day.wind': 'Vind',
-  'day.sunrise': 'Soluppgång',
-  'day.sunset': 'Solnedgång',
-  'day.hourlyForecast': 'Prognos per timme',
   'day.climateHint': 'Historiska medelvärden — prognos i realtid tillgänglig inom 16 dagar från detta datum.',
   'day.noWeather': 'Det finns inga väderuppgifter tillgängliga. Lägg till en plats med koordinater.',
   'day.weatherFor': 'Prognos för {name}',

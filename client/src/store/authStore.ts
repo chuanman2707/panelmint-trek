@@ -30,10 +30,6 @@ export interface AuthState {
    *  is always false. Kept because `useDashboard` folds it into its load-error
    *  banner. */
   authCheckFailed: boolean
-  /** The operator-of-this-install flag. Nothing is managed — always false. */
-  managed: boolean
-  /** Demo mode is cut — always false. */
-  demoMode: boolean
   isPrerelease: boolean
   /** The build's version tag, baked in by the vite/vitest `define`. */
   appVersion: string
@@ -49,14 +45,10 @@ export interface AuthState {
   appRequireMfa: boolean
   /** Trip reminders stay on — the flag used to come from app-config. */
   tripRemindersEnabled: boolean
-  /** Place photos are cut (no photo proxy) — always false. */
-  placesPhotosEnabled: boolean
   placesAutocompleteEnabled: boolean
   placesDetailsEnabled: boolean
   /** Wikimedia enrichment is a keyless browser-direct call — stays on. */
   placesEnrichEnabled: boolean
-  /** Server-side search shadowing never existed locally — always false. */
-  placeShadowEnabled: boolean
 
   /**
    * First-run boot: seed the `panelmint` Dexie database (self profile,
@@ -71,8 +63,6 @@ export const useAuthStore = create<AuthState>()((set) => ({
   isAuthenticated: false,
   isLoading: true,
   authCheckFailed: false,
-  managed: false,
-  demoMode: false,
   isPrerelease: false,
   appVersion: typeof __TREK_UI_VERSION__ === 'string' ? __TREK_UI_VERSION__ : '',
   hasMapsKey: false,
@@ -81,14 +71,9 @@ export const useAuthStore = create<AuthState>()((set) => ({
   serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   appRequireMfa: false,
   tripRemindersEnabled: true,
-  // Photos resolve through the server's photo proxy
-  // (`photoService` → `mapsApi.placePhoto` → `/maps/place-photo/*`) — a dead
-  // network call on the local build, so they stay off.
-  placesPhotosEnabled: false,
   placesAutocompleteEnabled: true,
   placesDetailsEnabled: true,
   placesEnrichEnabled: true,
-  placeShadowEnabled: false,
 
   bootLocal: async () => {
     // The legacy offline cache is per-user (`trek-offline-u<id>`); point it at

@@ -1,8 +1,7 @@
 import type { StoreApi } from 'zustand'
 import type { TrekWsTripEventName } from '@trek/shared'
 import type { TripStoreState } from '../tripStore'
-import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetItemMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
-import { offlineDb } from '../../db/offlineDb'
+import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetItemMember, Reservation, Trip, WebSocketEvent } from '../../types'
 import { db } from '../../db/panelmintDb'
 import { useAuthStore } from '../authStore'
 import { mergeAssignmentPlace } from './placesSlice'
@@ -13,9 +12,7 @@ type GetState = StoreApi<TripStoreState>['getState']
 // ── Dexie write-through ───────────────────────────────────────────────────────
 //
 // Entity rows write through to `db` (panelmintDb) — the system of record in
-// local mode. `tripFiles` is the one exception: panelmintDb has no files table
-// yet, so file:* events keep writing to the legacy offlineDb cache until the
-// files domain is ported or dropped.
+// local mode.
 //
 // The same writers run for local writes: api/local/* adapters mutate `db`
 // inside their own transaction and hand the side-channel fields the server
@@ -85,9 +82,6 @@ const putReservation: DexieWriter = async payload => {
   // throws and only the swallowed catch keeps it quiet.
   if (!payload.reservation) return
   await db.reservations.put(payload.reservation as Reservation)
-}
-const putTripFile: DexieWriter = async payload => {
-  await offlineDb.tripFiles.put(payload.file as TripFile)
 }
 
 /**
@@ -167,13 +161,6 @@ export const DEXIE_WRITERS: Partial<Record<TrekWsTripEventName, DexieWriter>> = 
   // ── Trip ─────────────────────────────────────────────────────────────────
   'trip:updated': async payload => {
     await db.trips.put(payload.trip as Trip)
-  },
-
-  // ── Files ─────────────────────────────────────────────────────────────────
-  'file:created': putTripFile,
-  'file:updated': putTripFile,
-  'file:deleted': async payload => {
-    await offlineDb.tripFiles.delete(payload.fileId as number)
   },
 }
 
@@ -517,18 +504,6 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
 
   // Trip
   'trip:updated': payload => ({ trip: payload.trip as Trip }),
-
-  // Files
-  'file:created': (payload, state) => {
-    if (state.files.some(f => f.id === (payload.file as TripFile).id)) return {}
-    return { files: [payload.file as TripFile, ...state.files] }
-  },
-  'file:updated': (payload, state) => ({
-    files: state.files.map(f => f.id === (payload.file as TripFile).id ? payload.file as TripFile : f),
-  }),
-  'file:deleted': (payload, state) => ({
-    files: state.files.filter(f => f.id !== payload.fileId),
-  }),
 
   // Memories / Photos
   'memories:updated': payload => {

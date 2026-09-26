@@ -5,14 +5,11 @@ const todo: TranslationStrings = {
   'todo.subtab.todo': 'Pendents',
   'todo.completed': 'completat(s)',
   'todo.filter.all': 'Tot',
-  'todo.filter.open': 'Obert',
   'todo.filter.done': 'Fet',
-  'todo.uncategorized': 'Sense categoria',
   'todo.namePlaceholder': 'Nom de la tasca',
   'todo.descriptionPlaceholder': 'Descripció (opcional)',
   'todo.unassigned': 'Sense assignar',
   'todo.noCategory': 'Sense categoria',
-  'todo.hasDescription': 'Amb descripció',
   'todo.addItem': 'Tasca nova',
   'todo.sidebar.sortBy': 'Ordena per',
   'todo.priority': 'Prioritat',
@@ -35,7 +32,6 @@ const todo: TranslationStrings = {
   'todo.detail.create': 'Crea una tasca',
   'todo.detail.priority': 'Prioritat',
   'todo.detail.noPriority': 'Cap',
-  'todo.sortByPrio': 'Prioritat',
   'todo.emptyFiltered': 'Cap tasca coincideix amb aquest filtre',
 };
 export default todo;

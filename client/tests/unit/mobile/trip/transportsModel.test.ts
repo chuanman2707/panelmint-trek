@@ -127,7 +127,7 @@ describe('transportsModel — groupTransports', () => {
     expect(groupTransports([dated, undated], days).confirmed.map(r => r.id)).toEqual([1, 2]);
   });
 
-  it('FE-MOB-TRPM-012: splits confirmed, pending and automated transit', () => {
+  it('FE-MOB-TRPM-012: splits confirmed and pending, transit included by status', () => {
     const confirmed = res({ id: 1, reservation_time: '2026-07-01T08:00' });
     const pending = res({ id: 2, status: 'pending', reservation_time: '2026-07-01T09:00' });
     const cancelled = res({ id: 3, status: 'cancelled', reservation_time: '2026-07-01T07:00' });
@@ -136,15 +136,14 @@ describe('transportsModel — groupTransports', () => {
 
     const groups = groupTransports([confirmed, pending, cancelled, transitConfirmed, transitPending], days);
 
-    expect(groups.confirmed.map(r => r.id)).toEqual([1]);
+    // A stored transit booking groups by its status like every other type.
+    expect(groups.confirmed.map(r => r.id)).toEqual([1, 4]);
     // anything not confirmed lands in pending, still chronological
-    expect(groups.pending.map(r => r.id)).toEqual([3, 2]);
-    // transit is peeled off regardless of status
-    expect(groups.transit.map(r => r.id)).toEqual([5, 4]);
+    expect(groups.pending.map(r => r.id)).toEqual([5, 3, 2]);
   });
 
-  it('FE-MOB-TRPM-013: an empty list yields three empty groups', () => {
-    expect(groupTransports([], days)).toEqual({ confirmed: [], pending: [], transit: [] });
+  it('FE-MOB-TRPM-013: an empty list yields two empty groups', () => {
+    expect(groupTransports([], days)).toEqual({ confirmed: [], pending: [] });
     expect(groupTransports([res({ id: 1, reservation_time: '2026-07-01T08:00' })], []).confirmed).toHaveLength(1);
   });
 

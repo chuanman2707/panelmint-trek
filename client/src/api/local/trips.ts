@@ -23,13 +23,10 @@
  *    gaps: reservation endpoints, travelers and day_positions were never
  *    copied server-side, so the local copy drops them too (the embedded
  *    arrays simply don't get written on the new rows).
- *  - bundle() aggregates the same sub-collections the offline bundle did;
- *    `files` is `[]` — the files feature is cut by the design doc.
- *  - uploadCover stores the image inline as a data: URL — there is no
- *    /uploads store locally. searchCoverImages returns an empty photo list
- *    (Unsplash is a hosted-only integration; the cover-search UI is being
- *    stripped per the design doc, and an empty list renders as "no results"
- *    rather than an error).
+ *  - bundle() aggregates the same sub-collections the offline bundle did
+ *    (minus `files` — the attachments feature is cut by the design doc).
+ *  - `cover_image` stays a stored field — an import can carry one — but there
+ *    is no cover upload or Unsplash search in a client-only build.
  */
 import {
   MAX_TRIP_DAYS,
@@ -53,7 +50,6 @@ import type {
   Reservation,
   TodoItem,
   Trip,
-  TripFile,
 } from '../../types';
 import type { LocalPlace } from '../../db/panelmintDb';
 import type { PlaceWire } from './dexieStore';
@@ -72,20 +68,6 @@ import { addDays, DayReorderError, restampReservationDates, resyncAccommodationD
 import { assertTripSpan, computeDayDiff, planDayRegeneration } from './ported/generate-days';
 import { resyncReservationDays, ReservationValidationError } from './ported/reservation-cascade';
 
-const MAX_COVER_SIZE = 20 * 1024 * 1024;
-const COVER_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-
-/** The photo shape the Unsplash search returned; the local search always
- *  emits an empty list (the integration is hosted-only). */
-interface CoverSearchPhoto {
-  id: string;
-  url: string;
-  thumb: string;
-  description?: string | null;
-  photographer?: string | null;
-  link?: string | null;
-}
-
 /** The server's listMembers envelope — `owner` is null only when the trip's
  *  owner row is missing, the way the server join read NULL. */
 interface TripMembersResponse {
@@ -94,7 +76,8 @@ interface TripMembersResponse {
   current_user_id: number;
 }
 
-/** The offline bundle aggregate (server TripReadModelService.bundle). */
+/** The offline bundle aggregate (server TripReadModelService.bundle). The
+ *  hosted `files` collection is gone — trip files are a cut feature. */
 export interface TripBundle {
   trip: Trip;
   days: Day[];
@@ -103,7 +86,6 @@ export interface TripBundle {
   todoItems: TodoItem[];
   budgetItems: BudgetItem[];
   reservations: Reservation[];
-  files: TripFile[];
   accommodations: Accommodation[];
   members: TripMember[];
 }
@@ -151,29 +133,6 @@ function regenerateDays(
   } else if (plan.followUp === 'reanchor') {
     resyncReservationDays(store, tripId);
     resyncAccommodationDays(store, tripId, plan.prevDateByDayId);
-  }
-}
-
-/** File → data: URL without FileReader (works in jsdom and the browser). */
-async function fileToDataUrl(file: File): Promise<string> {
-  const buf = new Uint8Array(await file.arrayBuffer());
-  let binary = '';
-  for (const b of buf) binary += String.fromCharCode(b);
-  return `data:${file.type || 'image/jpeg'};base64,${btoa(binary)}`;
-}
-
-/** The server's cover fileFilter, mirrored on the stored File. Multer ran as
- *  an interceptor — BEFORE the handler's access check — and its rejections
- *  mapped through the exception filter: a plain Error → 500 'Internal server
- *  error', LIMIT_FILE_SIZE → 413 'File too large'. */
-function checkCoverFile(file: File): void {
-  const ext = `.${(file.name.split('.').pop() ?? '').toLowerCase()}`;
-  const typeOk = file.type.startsWith('image/') && !file.type.includes('svg');
-  if (!typeOk || !COVER_EXTENSIONS.includes(ext)) {
-    throw apiError(500, 'Internal server error');
-  }
-  if (file.size > MAX_COVER_SIZE) {
-    throw apiError(413, 'File too large');
   }
 }
 
@@ -279,7 +238,7 @@ export const tripsApi = {
   update: async (id: number | string, data: TripUpdateRequest): Promise<{ trip: Trip }> => {
     // A currency switch re-anchors the budget to fresh FX rates, and the fetch
     // must resolve BEFORE the rw transaction — a non-Dexie await inside
-    // `withStore` would let Dexie auto-commit early (the uploadCover rule).
+    // `withStore` would let Dexie auto-commit early .
     // fetchExchangeRates never rejects; null rates produce the same "not
     // frozen" pins the server wrote when Frankfurter was unreachable.
     const requested =
@@ -383,41 +342,6 @@ export const tripsApi = {
       store.deleteTripCascade(trip.id);
       return { success: true as const };
     }),
-
-  /**
-   * Local cover upload: no /uploads store exists, so the file is kept inline
-   * as a data: URL — the same field the hosted version filled with the
-   * uploaded file's path. The file checks mirror the multer filter.
-   */
-  uploadCover: async (id: number | string, formData: FormData): Promise<{ cover_image: string | null }> => {
-    const file = formData.get('cover');
-    // fileFilter/limit ran while multer parsed the upload — before the
-    // handler's access check — so type/size rejections fire first here too.
-    if (file instanceof File) checkCoverFile(file);
-    // Read the bytes BEFORE opening the transaction — a non-Dexie await inside
-    // `withStore` would let Dexie auto-commit early.
-    const dataUrl = file instanceof File ? await fileToDataUrl(file) : null;
-    return withStore((store) => {
-      const trip = requireTrip(store, id);
-      // trip_cover_upload is owner-level by default — the cover route's own
-      // wording, distinct from update()'s 'No permission to change cover image'.
-      if (trip.user_id !== SELF_ID) {
-        throw apiError(403, 'No permission to change the cover image');
-      }
-      // 'No image uploaded' fired inside the handler, after the access 404.
-      if (!file) throw badRequest('No image uploaded');
-      trip.cover_image = dataUrl;
-      trip.updated_at = nowIso();
-      store.putTrip(trip);
-      return { cover_image: dataUrl };
-    });
-  },
-
-  // Unsplash search was a hosted integration; the cover-search UI is being
-  // stripped. An empty result set is the graceful local answer — the modal
-  // renders "no results" instead of an error.
-  searchCoverImages: (_query: string): Promise<{ photos: CoverSearchPhoto[] }> =>
-    Promise.resolve({ photos: [] }),
 
   archive: (id: number | string) => tripsApi.update(id, { is_archived: true }),
   unarchive: (id: number | string) => tripsApi.update(id, { is_archived: false }),
@@ -524,8 +448,8 @@ export const tripsApi = {
 
   /**
    * The offline bundle — the same aggregate the server's
-   * TripReadModelService.bundle returned. `files` is `[]`: the attachments
-   * feature is cut by the design doc. `members` is owner + roster rows.
+   * TripReadModelService.bundle returned, minus `files` (the attachments
+   * feature is cut by the design doc). `members` is owner + roster rows.
    */
   bundle: (id: number | string): Promise<TripBundle> =>
     withStore((store) => {
@@ -582,7 +506,6 @@ export const tripsApi = {
           .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id),
         budgetItems: store.listBudgetItemsWire(trip.id),
         reservations: store.listReservationsWire(trip.id),
-        files: [],
         accommodations: store.listAccommodationsWire(trip.id),
         members,
       };

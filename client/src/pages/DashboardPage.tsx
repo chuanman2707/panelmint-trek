@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
-import DemoBanner from '../components/Layout/DemoBanner'
 import TripFormModal from '../components/Trips/TripFormModal'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import CopyTripDialog from '../components/shared/CopyTripDialog'
@@ -105,12 +104,12 @@ function DashboardPageDesktop(): React.ReactElement {
   // Page = wiring container: all state, data loading and mutations live in the
   // useDashboard data hook; this component only renders what it returns.
   const {
-    demoMode, locale, t, navigate,
+    locale, t, navigate,
     spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
     loadError, retryLoad,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
-    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
+    deleteTrip, setDeleteTrip, copyTrip, setCopyTrip,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
   } = useDashboard()
 
@@ -132,7 +131,6 @@ function DashboardPageDesktop(): React.ReactElement {
           `.trek-dash button` reset (which shifted the bell icon + menu items). */}
       <Navbar />
       <div className="trek-dash trek-dash-shell">
-      {demoMode && <DemoBanner />}
       <div className="trek-dash-scroll">
         <MobileTopBar />
         <main className="page" data-no-sidebar={sidebarVisible ? undefined : 'true'}>
@@ -249,7 +247,6 @@ function DashboardPageDesktop(): React.ReactElement {
           trip={editingTrip}
           onClose={() => { setShowForm(false); setEditingTrip(null) }}
           onSave={editingTrip ? handleUpdate : handleCreate}
-          onCoverUpdate={applyCoverUpdate}
         />
       )}
       {deleteTrip && (

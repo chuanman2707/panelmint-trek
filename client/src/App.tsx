@@ -4,7 +4,6 @@ import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { applyAppearance } from './theme/applyAppearance'
 import { useAddonStore } from './store/addonStore'
-import { usePluginStore } from './store/pluginStore'
 import { ToastContainer } from './components/shared/Toast'
 import MobileShell from './mobile/MobileShell'
 import MRouteFallback from './mobile/components/MRouteFallback'
@@ -144,7 +143,6 @@ function RouteFallback() {
 export default function App() {
   const { loadSettings } = useSettingsStore()
   const { loadAddons } = useAddonStore()
-  const { loadPlugins } = usePluginStore()
 
   // The whole boot: seed the local database, adopt the self profile, then load
   // the stores. Nothing here touches the network — PanelMint is local-first.
@@ -157,9 +155,8 @@ export default function App() {
       .finally(() => {
         loadSettings()
         loadAddons()
-        loadPlugins()
       })
-  }, [loadSettings, loadAddons, loadPlugins])
+  }, [loadSettings, loadAddons])
 
   const { settings } = useSettingsStore()
 

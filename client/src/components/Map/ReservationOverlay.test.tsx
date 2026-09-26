@@ -92,20 +92,6 @@ function booking(over: Partial<Reservation> = {}): Reservation {
   } as unknown as Reservation
 }
 
-const GEOMETRY = '__upzA_gayB_af@_pR_ry@~oR'
-
-function transitBooking(legs: Record<string, unknown>[]): Reservation {
-  return booking({
-    id: 2,
-    type: 'transit',
-    endpoints: [
-      endpoint({ role: 'from', sequence: 0, name: 'Stop A', lat: 48, lng: 16 }),
-      endpoint({ role: 'to', sequence: 1, name: 'Stop B', lat: 48.02, lng: 16 }),
-    ],
-    metadata: { transit: { legs } },
-  } as unknown as Partial<Reservation>)
-}
-
 function renderOverlay(props: Partial<React.ComponentProps<typeof ReservationOverlay>> = {}) {
   return render(
     <ReservationOverlay
@@ -476,39 +462,6 @@ describe('ReservationOverlay declutter floors and road routes', () => {
       })],
     })
     expect(markers().map(labelOf)).toEqual(['VIE', 'Zuerich HB', 'LHR'])
-  })
-})
-
-describe('ReservationOverlay transit journeys (#1570)', () => {
-  it('FE-COMP-RESOVERLAY-020: draws the stored rail alignment with a white casing under it', () => {
-    renderOverlay({ reservations: [transitBooking([{ geometry: GEOMETRY, mode: 'BUS', line_color: '#7c3aed' }])] })
-    expect(lines()).toHaveLength(2)
-    expect(styleOf(lines()[0])).toMatchObject({ color: '#ffffff', weight: 6 })
-    expect(styleOf(lines()[1])).toMatchObject({ color: '#7c3aed', weight: 3.5 })
-    expect(JSON.parse(lines()[1].getAttribute('data-points') || '[]')).toEqual([[48, 2], [48.02, 2.01], [48.05, 2]])
-  })
-
-  it('FE-COMP-RESOVERLAY-021: a walking leg is dotted and gets no casing', () => {
-    renderOverlay({ reservations: [transitBooking([{ geometry: GEOMETRY, mode: 'WALK' }])] })
-    expect(lines()).toHaveLength(1)
-    expect(styleOf(lines()[0])).toMatchObject({ color: '#64748b', dashArray: '1, 7' })
-  })
-
-  it('FE-COMP-RESOVERLAY-022: a leg without a line colour falls back to the transit blue', () => {
-    renderOverlay({ reservations: [transitBooking([{ geometry: GEOMETRY, mode: 'BUS' }])] })
-    expect(styleOf(lines()[1])).toMatchObject({ color: '#3b82f6' })
-  })
-
-  it('FE-COMP-RESOVERLAY-023: real geometry survives the endpoint declutter even zoomed right out', () => {
-    // The two stations project ~20 px apart — far under the 200 px floor.
-    renderOverlay({ reservations: [transitBooking([{ geometry: GEOMETRY, mode: 'BUS' }])] })
-    expect(lines().length).toBeGreaterThan(0)
-    expect(markers()).toHaveLength(2)
-  })
-
-  it('FE-COMP-RESOVERLAY-024: a transit journey without stored geometry is decluttered like any hop', () => {
-    renderOverlay({ reservations: [transitBooking([{ mode: 'BUS' }])] })
-    expect(lines()).toHaveLength(0)
   })
 })
 

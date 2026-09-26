@@ -2,10 +2,8 @@ import { splitReservationDateTime } from '../../../../utils/formatters'
 import type { Day, Reservation } from '../../../../types'
 
 /**
- * Transport view-model — the real-data counterpart to the demo's `trsSecs`
- * (spec 03 §1.4). Grouping and chronological order mirror the desktop
- * ReservationsPanel (Confirmed / Pending / Automated-Transit) so both surfaces
- * agree.
+ * Transport view-model. Grouping and chronological order mirror the desktop
+ * ReservationsPanel (Confirmed / Pending) so both surfaces agree.
  */
 
 /** Type-chip accent per transport type (from ReservationsPanel TYPE_OPTIONS). */
@@ -22,13 +20,6 @@ export const TRANSPORT_TYPE_COLOR: Record<string, string> = {
   transport_other: '#6b7280',
 }
 
-export interface TransitLeg {
-  mode?: string
-  line?: string | null
-  from?: { name?: string; time?: string | null }
-  to?: { name?: string; time?: string | null }
-}
-
 export interface TransportMeta {
   airline?: string
   flight_number?: string
@@ -43,7 +34,6 @@ export interface TransportMeta {
   check_in_time?: string
   check_in_end_time?: string
   check_out_time?: string
-  transit?: { legs?: TransitLeg[] }
 }
 
 /** Parse the reservation's JSON metadata blob, tolerant of string or object. */
@@ -65,13 +55,11 @@ export function orderedEndpoints(res: Reservation) {
 export interface TransportGroups {
   confirmed: Reservation[]
   pending: Reservation[]
-  transit: Reservation[]
 }
 
 /**
- * Chronological sort + split into the three demo sections. Undated entries sink
- * to the bottom; `transit` (automated public transport, #1065) is peeled off
- * into its own group regardless of status. Mirrors ReservationsPanel:683-711.
+ * Chronological sort + split into the two status sections. Undated entries sink
+ * to the bottom. Mirrors ReservationsPanel.
  */
 export function groupTransports(list: Reservation[], days: Day[]): TransportGroups {
   const dayDates = new Map(days.map(d => [d.id, d.date]))
@@ -94,11 +82,8 @@ export function groupTransports(list: Reservation[], days: Day[]): TransportGrou
     })
     .map(({ r }) => r)
 
-  const transit = sorted.filter(r => r.type === 'transit')
-  const nonTransit = sorted.filter(r => r.type !== 'transit')
   return {
-    confirmed: nonTransit.filter(r => r.status === 'confirmed'),
-    pending: nonTransit.filter(r => r.status !== 'confirmed'),
-    transit,
+    confirmed: sorted.filter(r => r.status === 'confirmed'),
+    pending: sorted.filter(r => r.status !== 'confirmed'),
   }
 }

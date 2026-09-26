@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': 'Kết nối',
   'map.showConnections': 'Hiển thị lộ trình đặt vé',
   'map.hideConnections': 'Ẩn lộ trình đặt chỗ',
   'poi.searchThisArea': 'Tìm kiếm khu vực này',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': 'Các hoạt động',
   'map.showAllConnections': 'Hiển thị tất cả lộ trình đặt chỗ',
   'map.hideAllConnections': 'Ẩn tất cả lộ trình đặt chỗ',
-  'map.baseLayer.default': 'Bản đồ',
-  'map.baseLayer.satellite': 'Vệ tinh',
   'map.baseLayer.switchToSatellite': 'Chuyển sang chế độ xem vệ tinh',
   'map.baseLayer.switchToDefault': 'Chuyển sang chế độ xem bản đồ',
   'map.location.denied': 'Quyền truy cập vị trí đang bị chặn. Hãy kiểm tra cài đặt thiết bị; ứng dụng đã cài đặt có quyền vị trí riêng, tách biệt với trình duyệt.',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': 'Hiện toàn bộ chuyến đi',
   'map.overview.hide': 'Ẩn toàn bộ chuyến đi',
   'map.overview.total': 'Tổng quãng đường',
-  'map.attribution': 'Nguồn bản đồ',
   'map.overview.unrouted': 'Không thể tính {count} chặng, nên khoảng cách chưa đầy đủ.',
   'map.overview.dayUnrouted': 'Không thể tính {count} chặng của ngày này',
 };

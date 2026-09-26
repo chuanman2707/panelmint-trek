@@ -111,7 +111,6 @@ function makePlanner(overrides: Record<string, unknown> = {}) {
     tripMembers: [],
     selectedDayId: 12,
     showReservationModal: true,
-    canUploadFiles: true,
     handleSaveReservation: vi.fn(async () => ({ id: 99 })),
     ...overrides,
   } as never)
@@ -246,20 +245,6 @@ describe('MReservationSheet', () => {
     expect(savedPayload(planner).assignment_id).toBe(11)
     // A create still declares the endpoint set, which is what the server expects.
     expect(savedPayload(planner).endpoints).toEqual([])
-  })
-
-  it('FE-MOB-RESSH-057: the files already on the booking are listed, not just this session\'s picks (#2217)', () => {
-    const linked = { ...DINNER, id: 71 } as unknown as Reservation
-    const files = [
-      { id: 4, trip_id: 5, reservation_id: 71, original_name: 'voucher.pdf', url: '/uploads/voucher.pdf', deleted_at: null },
-      { id: 5, trip_id: 5, reservation_id: 99, original_name: 'other.pdf', url: '/uploads/other.pdf', deleted_at: null },
-      { id: 6, trip_id: 5, linked_reservation_ids: [71], original_name: 'linked.pdf', url: '/uploads/linked.pdf', deleted_at: null },
-    ]
-    setup(makePlanner({ editingReservation: linked, files }))
-
-    expect(screen.getByText('voucher.pdf')).toBeInTheDocument()
-    expect(screen.getByText('linked.pdf')).toBeInTheDocument()
-    expect(screen.queryByText('other.pdf')).not.toBeInTheDocument()
   })
 
   it('FE-MOB-RESSH-007: the type chips switch the form between event and hotel layout', () => {
@@ -586,37 +571,7 @@ describe('MReservationSheet', () => {
     await waitFor(() => expect(setTravelers).toHaveBeenCalledWith(5, 55, []))
   })
 
-  // ── Files, costs, errors ───────────────────────────────────────────────────
-
-  it('FE-MOB-RESSH-036: attached files are uploaded against the new booking', async () => {
-    const { planner } = setup()
-    type(titleField(), 'Flight docs')
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement
-    fireEvent.change(input, { target: { files: [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')] } })
-    expect(screen.getByText('a.pdf')).toBeInTheDocument()
-    fireEvent.click(submitBtn())
-
-    await waitFor(() => expect(planner.tripActions.addFile).toHaveBeenCalledTimes(2))
-    const [tripId, fd] = vi.mocked(planner.tripActions.addFile).mock.calls[0] as [number, FormData]
-    expect(tripId).toBe(5)
-    expect(fd.get('reservation_id')).toBe('99')
-    expect(fd.get('description')).toBe('Flight docs')
-    expect((fd.get('file') as File).name).toBe('a.pdf')
-  })
-
-  it('FE-MOB-RESSH-037: files are not re-uploaded when an existing booking is edited', async () => {
-    const { planner } = setup(makePlanner({ editingReservation: DINNER }))
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement
-    fireEvent.change(input, { target: { files: [new File(['a'], 'a.pdf')] } })
-    fireEvent.click(submitBtn())
-    await waitFor(() => expect(planner.handleSaveReservation).toHaveBeenCalled())
-    expect(planner.tripActions.addFile).not.toHaveBeenCalled()
-  })
-
-  it('FE-MOB-RESSH-038: without upload permission the attachment block is gone', () => {
-    setup(makePlanner({ canUploadFiles: false }))
-    expect(screen.queryByRole('button', { name: 'files.attach' })).not.toBeInTheDocument()
-  })
+  // ── Costs, errors ───────────────────────────────────────────────────
 
   it('FE-MOB-RESSH-039: the costs shortcut saves first and then opens the expense form', async () => {
     const { planner, onOpenExpense } = setup()
@@ -668,20 +623,6 @@ describe('MReservationSheet', () => {
     fireEvent.click(submitBtn())
     await waitFor(() => expect(planner.handleSaveReservation).toHaveBeenCalled())
     expect(savedPayload(planner)).toMatchObject({ assignment_id: 42 })
-  })
-
-    it('FE-MOB-RESSH-046: a pending attachment can be dropped again before saving', async () => {
-    const { planner } = setup()
-    type(titleField(), 'Flight docs')
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement
-    fireEvent.change(input, { target: { files: [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')] } })
-    fireEvent.click(screen.getAllByRole('button', { name: 'common.delete' })[0])
-    expect(screen.queryByText('a.pdf')).not.toBeInTheDocument()
-    fireEvent.click(submitBtn())
-
-    await waitFor(() => expect(planner.tripActions.addFile).toHaveBeenCalledTimes(1))
-    const [, fd] = vi.mocked(planner.tripActions.addFile).mock.calls[0] as [number, FormData]
-    expect((fd.get('file') as File).name).toBe('b.pdf')
   })
 
   it('FE-MOB-RESSH-047: picking the date after the time keeps the time', async () => {

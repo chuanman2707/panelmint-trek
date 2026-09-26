@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': '连接',
   'map.showConnections': '显示预订路线',
   'map.hideConnections': '隐藏预订路线',
   'poi.searchThisArea': '搜索此区域',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': '活动',
   'map.showAllConnections': '显示所有预订路线',
   'map.hideAllConnections': '隐藏所有预订路线',
-  'map.baseLayer.default': '地图',
-  'map.baseLayer.satellite': '卫星',
   'map.baseLayer.switchToSatellite': '切换到卫星视图',
   'map.baseLayer.switchToDefault': '切换到地图视图',
   'map.location.denied': '定位权限已被阻止。请检查设备设置,已安装的应用拥有与浏览器分开的定位权限。',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': '显示整个行程',
   'map.overview.hide': '隐藏整个行程',
   'map.overview.total': '总距离',
-  'map.attribution': '地图来源',
   'map.overview.unrouted': '有 {count} 段无法计算路线，因此距离不完整。',
   'map.overview.dayUnrouted': '本日有 {count} 段无法计算路线',
 };

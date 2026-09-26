@@ -2878,7 +2878,7 @@ export class DexieStore
  *
  * Do NOT await non-Dexie work inside `fn` — a `FileReader`/`fetch` gap lets
  * Dexie auto-commit early. Resolve external async inputs first, then open the
- * transaction (uploadCover reads the File to a data URL before entering).
+ * transaction.
  */
 export async function withStore<T>(fn: (store: DexieStore) => T | Promise<T>): Promise<T> {
   return db.transaction('rw', db.tables, async () => {

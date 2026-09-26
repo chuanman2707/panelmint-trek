@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const map: TranslationStrings = {
-  'map.connections': '連接',
   'map.showConnections': '顯示預訂路線',
   'map.hideConnections': '隱藏預訂路線',
   'poi.searchThisArea': '搜尋此區域',
@@ -15,8 +14,6 @@ const map: TranslationStrings = {
   'poi.cat.activities': '活動',
   'map.showAllConnections': '顯示所有預訂路線',
   'map.hideAllConnections': '隱藏所有預訂路線',
-  'map.baseLayer.default': '地圖',
-  'map.baseLayer.satellite': '衛星',
   'map.baseLayer.switchToSatellite': '切換到衛星檢視',
   'map.baseLayer.switchToDefault': '切換到地圖檢視',
   'map.location.denied': '定位權限已被封鎖。請檢查裝置設定,已安裝的應用程式擁有與瀏覽器分開的定位權限。',
@@ -25,7 +22,6 @@ const map: TranslationStrings = {
   'map.overview.show': '顯示整趟行程',
   'map.overview.hide': '隱藏整趟行程',
   'map.overview.total': '總距離',
-  'map.attribution': '地圖來源',
   'map.overview.unrouted': '有 {count} 段無法計算路線，因此距離不完整。',
   'map.overview.dayUnrouted': '本日有 {count} 段無法計算路線',
 };

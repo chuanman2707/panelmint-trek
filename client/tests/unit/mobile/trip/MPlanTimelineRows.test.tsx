@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '../../../helpers/render'
 import {
-  ConnRow, HotelConnRow, NoteRow, PlaceRow, ReorderStack, TransitRow, TransportRow,
+  ConnRow, HotelConnRow, NoteRow, PlaceRow, ReorderStack, TransportRow,
 } from '../../../../src/mobile/screens/trip/plan/MPlanTimelineRows'
-import type { TransitMeta, TransportEntry } from '../../../../src/mobile/screens/trip/plan/planTimelineModel'
+import type { TransportEntry } from '../../../../src/mobile/screens/trip/plan/planTimelineModel'
 import type { Assignment, DayNote, Place, Reservation, RouteSegment, TranslationFn } from '../../../../src/types'
 
 // FE-MOB-PLROW-001 to FE-MOB-PLROW-041
@@ -258,122 +258,6 @@ describe('TransportRow', () => {
   })
 })
 
-describe('TransitRow', () => {
-  const TRANSIT_RES = {
-    id: 25, type: 'transit', title: 'Shibuya → Asakusa', day_id: 2,
-    reservation_time: '2026-05-02T10:05', reservation_end_time: '2026-05-02T10:47',
-  } as unknown as TransportEntry
-
-  const TRANSIT: TransitMeta = {
-    transfers: 1,
-    duration: 2520,
-    legs: [
-      { mode: 'WALK', duration: 240, to: { name: 'Shibuya Sta.' } },
-      {
-        mode: 'SUBWAY', line: 'G', line_color: '#FF9500', line_text_color: '#ffffff',
-        duration: 1500, stops: 9,
-        from: { name: 'Shibuya Sta.', time: '10:05', track: '3' },
-        to: { name: 'Asakusa Sta.', time: '10:30' },
-      },
-      { mode: 'WALK', duration: 30, to: { name: 'Hotel' } },
-    ],
-  }
-
-  const base = {
-    res: TRANSIT_RES, transit: TRANSIT, dayId: 2, chrome: chrome(), reorder: REORDER,
-    onToggle: vi.fn(), onOpenJourney: vi.fn(),
-  }
-
-  it('FE-MOB-PLROW-021: collapsed row shows the from → to headline and the time range', () => {
-    const { container } = render(<TransitRow {...base} open={false} />)
-
-    expect(screen.getByText('Shibuya → Asakusa')).toBeInTheDocument()
-    expect(container.textContent).toContain('10:05 – 10:47')
-  })
-
-  it('FE-MOB-PLROW-022: the strip drops sub-minute walks and keeps the line badge', () => {
-    render(<TransitRow {...base} open={false} />)
-
-    // one badge only — the collapsed strip; the 30s walk is filtered out
-    expect(screen.getAllByText('G')).toHaveLength(1)
-    expect(screen.queryByText('transit.min:1 · transit.walkTo:Hotel')).not.toBeInTheDocument()
-  })
-
-  it('FE-MOB-PLROW-041: a walk without a duration stays in the strip, like in the expanded list', () => {
-    const transit: TransitMeta = {
-      legs: [
-        { mode: 'WALK', to: { name: 'Shibuya Sta.' } },
-        { mode: 'SUBWAY', line: 'G', duration: 1500, from: { name: 'Shibuya Sta.' }, to: { name: 'Asakusa Sta.' } },
-      ],
-    }
-    const { container } = render(<TransitRow {...base} transit={transit} open={false} />)
-
-    // the strip renders both legs: the footprint chip plus the line badge
-    const strip = container.querySelector('.flex-wrap') as HTMLElement
-    expect(strip.children).toHaveLength(2)
-    expect(screen.getByText('G')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PLROW-023: expanding renders every leg with duration, stops and platform', () => {
-    render(<TransitRow {...base} open />)
-
-    expect(screen.getAllByText('G')).toHaveLength(2)
-    expect(screen.getByText('transit.min:4 · transit.walkTo:Shibuya Sta.')).toBeInTheDocument()
-    expect(screen.getByText('Shibuya Sta. → Asakusa Sta.')).toBeInTheDocument()
-    expect(screen.getByText('transit.min:25 · transit.stops:9 · transit.platform:3')).toBeInTheDocument()
-    expect(screen.getByText('transit.min:1 · transit.walkTo:Hotel')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PLROW-024: tapping the header toggles the row', () => {
-    const onToggle = vi.fn()
-    render(<TransitRow {...base} open={false} onToggle={onToggle} />)
-
-    fireEvent.click(screen.getByText('Shibuya → Asakusa'))
-
-    expect(onToggle).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-MOB-PLROW-025: an untimed single-leg journey falls back to the raw title and the mode badge', () => {
-    const res = { id: 26, type: 'transit', title: 'Airport shuttle', day_id: 2 } as unknown as TransportEntry
-    const transit: TransitMeta = { legs: [{ mode: 'BUS', line: null, duration: 0, from: {}, to: {} }] }
-    const { container } = render(<TransitRow {...base} res={res} transit={transit} open />)
-
-    expect(screen.getByText('Airport shuttle')).toBeInTheDocument()
-    expect(screen.getAllByText('BUS')).toHaveLength(2)
-    expect(container.textContent).not.toContain('10:05')
-  })
-
-  it('FE-MOB-PLROW-038: survives uncoloured lines, missing durations and unnamed stops', () => {
-    const res = {
-      id: 27, type: 'transit', title: 'Depot → Bridge', day_id: 2, reservation_time: '2026-05-02T06:00',
-    } as unknown as TransportEntry
-    const transit: TransitMeta = {
-      legs: [
-        { mode: 'TRAM', line: '17', from: { name: 'Depot' }, to: { name: 'Bridge' } },
-        { mode: 'WALK', duration: 600 },
-      ],
-    }
-    const { container } = render(<TransitRow {...base} res={res} transit={transit} open />)
-
-    expect(container.textContent).toContain('06:00')
-    // no end time — the chip stays a single value
-    expect(container.textContent).not.toContain('–')
-    // once as the row headline, once as the expanded leg
-    expect(screen.getAllByText('Depot → Bridge')).toHaveLength(2)
-    expect(screen.getByText('transit.min:10 · transit.walkTo:')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PLROW-026: edit mode opens the journey view and keeps the reorder slot', () => {
-    const onOpenJourney = vi.fn()
-    render(<TransitRow {...base} open={false} chrome={chrome(true)} onOpenJourney={onOpenJourney} />)
-
-    expect(screen.getByTestId('reorder')).toBeInTheDocument()
-    fireEvent.click(screen.getByLabelText('common.edit'))
-
-    expect(onOpenJourney).toHaveBeenCalledTimes(1)
-  })
-})
-
 describe('ConnRow', () => {
   it('FE-MOB-PLROW-027: defaults to the driving duration and the distance', () => {
     const { container } = render(<ConnRow seg={SEG} />)
@@ -389,11 +273,10 @@ describe('ConnRow', () => {
     expect(screen.getByText('1 h 5 min')).toBeInTheDocument()
   })
 
-  it('FE-MOB-PLROW-029: a plugin leg uses its own duration text and note', () => {
-    render(<ConnRow seg={{ ...SEG, mode: 'plugin:ev/fastest', durationText: '22 min', noteText: '25 min charge' }} />)
+  it('FE-MOB-PLROW-029: a leg carrying its own duration text uses it', () => {
+    render(<ConnRow seg={{ ...SEG, mode: 'driving', durationText: '22 min' }} />)
 
     expect(screen.getByText('22 min')).toBeInTheDocument()
-    expect(screen.getByText('25 min charge')).toBeInTheDocument()
   })
 
   it('FE-MOB-PLROW-030: becomes a button when the leg mode can be changed', () => {
@@ -424,11 +307,10 @@ describe('HotelConnRow', () => {
   })
 
   it('FE-MOB-PLROW-039: a bookend leg reads its travel mode like every other connector', () => {
-    const seg = { ...SEG, mode: 'plugin:ev/fastest', durationText: '22 min', noteText: '25 min charge' }
+    const seg = { ...SEG, mode: 'driving', durationText: '22 min' }
     render(<HotelConnRow seg={seg} name="Hotel Sacher" placement="top" />)
 
     expect(screen.getByText('22 min')).toBeInTheDocument()
-    expect(screen.getByText('25 min charge')).toBeInTheDocument()
     expect(screen.queryByText('1 h 5 min')).not.toBeInTheDocument()
   })
 

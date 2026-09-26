@@ -12,13 +12,7 @@ const undo: TranslationStrings = {
   'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Hely áthelyezve másik napra',
   'undo.lock': 'Hely zárolása váltva',
-  'undo.importGpx': 'GPX importálás',
-  'undo.importKeyholeMarkup': 'KMZ/KML importálás',
-  'undo.importFiles': 'Fájlimportálás',
-  'undo.importGoogleList': 'Google Maps importálás',
-  'undo.importNaverList': 'Naver Maps importálás',
   'undo.addPlace': 'Hely hozzáadva',
   'undo.done': 'Visszavonva: {action}',
-  'undo.importBooking': 'Foglalási visszaigazolás importálása',
 };
 export default undo;

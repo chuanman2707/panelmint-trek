@@ -217,6 +217,15 @@ export function formatClockTime(value: string | null | undefined, is12h: boolean
   return is12h ? to12h(h, m) : norm
 }
 
+/** "1 h 9 min" / "42 min" from seconds — e.g. the UP-NEXT countdown. */
+export function fmtDuration(seconds: number, t: (k: string, p?: Record<string, string | number>) => string): string {
+  const mins = Math.round(seconds / 60)
+  if (mins < 60) return t('transit.min', { count: mins })
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m > 0 ? `${h} h ${m} min` : `${h} h`
+}
+
 export function splitReservationDateTime(value?: string | null): { date: string | null; time: string | null } {
   if (!value) return { date: null, time: null }
   const isoDate = /^\d{4}-\d{2}-\d{2}$/

@@ -47,16 +47,12 @@ describe('MDancingTrek', () => {
   });
 
   it('FE-MOB-TREKM-005: a scene carries its own default mood', () => {
-    const { container: sleepy } = render(<MDancingTrek scene="notifications" />);
-    // sleepy = two drawn arcs, no open eyes
-    expect(sleepy.querySelectorAll('.trek-eye')).toHaveLength(0);
-
     const { container: confused } = render(<MDancingTrek scene="search" />);
     expect(confused.querySelectorAll('.trek-eye')).toHaveLength(1);
   });
 
   it('FE-MOB-TREKM-006: an explicit mood beats the scene default', () => {
-    const { container } = render(<MDancingTrek scene="notifications" mood="default" />);
+    const { container } = render(<MDancingTrek scene="search" mood="default" />);
 
     expect(container.querySelectorAll('.trek-eye')).toHaveLength(2);
   });
@@ -65,17 +61,10 @@ describe('MDancingTrek', () => {
     ['transport', '.trek-board'],
     ['guide', '.trek-guide'],
     ['packing', '.trek-suitcase'],
-    ['polls', '.trek-polls'],
-    ['collections', '.trek-pin'],
-    ['atlas', '.trek-globe-wrap'],
+    ['pin', '.trek-pin'],
     ['costs', '.trek-coins'],
-    ['chat', '.trek-chat'],
     ['bookings', '.trek-ticket'],
-    ['files', '.trek-ticket'],
-    ['notes', '.trek-note'],
-    ['journey', '.trek-journal'],
     ['dashboard', '.trek-plane'],
-    ['notifications', '.trek-zzz'],
     ['search', '.trek-magnifier'],
     ['tasks', '.trek-tasks'],
   ] as Array<[TrekScene, string]>)('FE-MOB-TREKM-007: the %s scene brings its own prop', (scene, selector) => {

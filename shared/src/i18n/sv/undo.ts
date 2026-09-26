@@ -12,12 +12,6 @@ const undo: TranslationStrings = {
   'undo.changeCategory': 'Category changed',
   'undo.moveDay': 'Plats har flyttats till en annan dag',
   'undo.lock': 'Plats lås växlad',
-  'undo.importGpx': 'GPX importering',
-  'undo.importKeyholeMarkup': 'KMZ/KML importering',
-  'undo.importFiles': 'Filimport',
-  'undo.importGoogleList': 'Google Maps importering',
-  'undo.importNaverList': 'Naver Maps importering',
-  'undo.importBooking': 'Boknings godkännande importering',
   'undo.addPlace': 'Plats tillagd',
   'undo.done': 'Återställd: {action}',
 };

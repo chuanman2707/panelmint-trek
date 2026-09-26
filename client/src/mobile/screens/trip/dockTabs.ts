@@ -1,4 +1,4 @@
-import { Map as MapIcon, TrainFront, Ticket, Wallet, PackageCheck, Route } from 'lucide-react'
+import { Map as MapIcon, TrainFront, Ticket, Wallet, PackageCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 /**
@@ -9,8 +9,7 @@ import type { LucideIcon } from 'lucide-react'
  * and every circle is 42px. Five sections plus More leave 9px between them. A sixth
  * takes that down to 3px, which is not a gap any thumb can aim at.
  *
- * Hence DOCK_CAP. Everything past it surfaces as a tile in the More sheet, which is
- * where files, collaboration and plugin tabs have always lived.
+ * Hence DOCK_CAP. Everything past it surfaces as a tile in the More sheet.
  *
  * This list is the ONE source for both sides. It used to be two hand-kept copies
  * (one here, one in MMehrSheet), and extending only one of them showed the same tab
@@ -18,7 +17,6 @@ import type { LucideIcon } from 'lucide-react'
  */
 export const DOCK_PRIORITY: { id: string; icon: LucideIcon }[] = [
   { id: 'plan', icon: MapIcon },
-  { id: 'roadtrip', icon: Route },
   { id: 'transports', icon: TrainFront },
   { id: 'buchungen', icon: Ticket },
   { id: 'finanzplan', icon: Wallet },
@@ -31,9 +29,7 @@ export const DOCK_CAP = 5
 /**
  * The dock's seats for a trip, given the tabs that are actually enabled.
  *
- * Priority order decides who is cut, not enabled order: with the road trip addon on,
- * the packing list moves into the More sheet rather than the drive never getting a
- * seat. Turning the addon off puts it straight back.
+ * Priority order decides who is cut, not enabled order.
  */
 export function pickDockTabs(enabledTabIds: ReadonlySet<string>): { id: string; icon: LucideIcon }[] {
   return DOCK_PRIORITY.filter(tab => enabledTabIds.has(tab.id)).slice(0, DOCK_CAP)

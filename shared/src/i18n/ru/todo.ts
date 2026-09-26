@@ -6,14 +6,11 @@ const todo: TranslationStrings = {
   'todo.subtab.todo': 'Задачи',
   'todo.completed': 'выполнено',
   'todo.filter.all': 'Все',
-  'todo.filter.open': 'Открытые',
   'todo.filter.done': 'Выполненные',
-  'todo.uncategorized': 'Без списка',
   'todo.namePlaceholder': 'Название задачи',
   'todo.descriptionPlaceholder': 'Описание (необязательно)',
   'todo.unassigned': 'Не назначено',
   'todo.noCategory': 'Без списка',
-  'todo.hasDescription': 'Есть описание',
   'todo.addItem': 'Новая задача',
   'todo.sidebar.sortBy': 'Сортировать по',
   'todo.priority': 'Приоритет',
@@ -36,6 +33,5 @@ const todo: TranslationStrings = {
   'todo.detail.create': 'Создать задачу',
   'todo.detail.priority': 'Приоритет',
   'todo.detail.noPriority': 'Нет',
-  'todo.sortByPrio': 'Приоритет',
 };
 export default todo;

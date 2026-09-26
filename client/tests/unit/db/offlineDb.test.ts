@@ -18,17 +18,13 @@ import {
   upsertPlaces,
   upsertBudgetItems,
   upsertReservations,
-  upsertTripFiles,
   upsertSyncMeta,
   reopenForUser,
   reopenAnonymous,
   deleteCurrentUserDb,
-  enforceBlobBudget,
-  type QueuedMutation,
   type SyncMeta,
-  type BlobCacheEntry,
 } from '../../../src/db/offlineDb';
-import type { Trip, Day, Place, BudgetItem, Reservation, TripFile } from '../../../src/types';
+import type { Trip, Day, Place, BudgetItem, Reservation } from '../../../src/types';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -82,15 +78,6 @@ const makePlace = (id: number, tripId = 1): Place => ({
   created_at: '2026-01-01T00:00:00Z',
 });
 
-const makeBlob = (url: string, tripId = 1, bytes = 10, cachedAt = 1): BlobCacheEntry => ({
-  url,
-  tripId,
-  blob: new Blob(['x'.repeat(bytes)], { type: 'application/pdf' }),
-  bytes,
-  mime: 'application/pdf',
-  cachedAt,
-});
-
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 beforeEach(async () => {
@@ -141,7 +128,7 @@ describe('offlineDb — places', () => {
   });
 });
 
-describe('offlineDb — budget / reservations / files', () => {
+describe('offlineDb — budget / reservations', () => {
   it('upserts budget items', async () => {
     const item: BudgetItem = {
       id: 1, trip_id: 1, name: 'Flight', total_price: 500,
@@ -159,15 +146,6 @@ describe('offlineDb — budget / reservations / files', () => {
     await upsertReservations([item]);
     expect(await offlineDb.reservations.count()).toBe(1);
   });
-
-  it('upserts trip files', async () => {
-    const file: TripFile = {
-      id: 1, trip_id: 1, filename: 'ticket.pdf', original_name: 'Ticket.pdf',
-      mime_type: 'application/pdf', url: '/api/trips/1/files/1/download', created_at: '2026-01-01T00:00:00Z',
-    };
-    await upsertTripFiles([file]);
-    expect(await offlineDb.tripFiles.count()).toBe(1);
-  });
 });
 
 describe('offlineDb — syncMeta', () => {
@@ -177,99 +155,11 @@ describe('offlineDb — syncMeta', () => {
       lastSyncedAt: Date.now(),
       status: 'idle',
       tilesBbox: null,
-      filesCachedCount: 0,
     };
     await upsertSyncMeta(meta);
     const stored = await offlineDb.syncMeta.get(7);
     expect(stored).toBeDefined();
     expect(stored!.status).toBe('idle');
-  });
-});
-
-describe('offlineDb — mutationQueue', () => {
-  it('stores queued mutations queryable by status', async () => {
-    const pending: QueuedMutation = {
-      id: 'uuid-1', tripId: 1, method: 'POST', url: '/api/trips/1/places',
-      body: { name: 'Eiffel Tower' }, createdAt: Date.now(),
-      status: 'pending', attempts: 0, lastError: null,
-    };
-    const failed: QueuedMutation = {
-      id: 'uuid-2', tripId: 1, method: 'PUT', url: '/api/trips/1/places/5',
-      body: { name: 'Updated' }, createdAt: Date.now(),
-      status: 'failed', attempts: 3, lastError: 'Network error',
-    };
-    await offlineDb.mutationQueue.bulkPut([pending, failed]);
-
-    const pendingRows = await offlineDb.mutationQueue.where('status').equals('pending').toArray();
-    expect(pendingRows).toHaveLength(1);
-    expect(pendingRows[0].id).toBe('uuid-1');
-
-    const failedRows = await offlineDb.mutationQueue.where('status').equals('failed').toArray();
-    expect(failedRows).toHaveLength(1);
-    expect(failedRows[0].lastError).toBe('Network error');
-  });
-});
-
-describe('offlineDb — blobCache', () => {
-  it('stores and retrieves a Blob entry', async () => {
-    const blob = new Blob(['%PDF-1.4 test'], { type: 'application/pdf' });
-    const entry: BlobCacheEntry = {
-      url: '/api/files/99/download',
-      tripId: 1,
-      blob,
-      bytes: blob.size,
-      mime: 'application/pdf',
-      cachedAt: Date.now(),
-    };
-    await offlineDb.blobCache.put(entry);
-
-    const stored = await offlineDb.blobCache.get('/api/files/99/download');
-    expect(stored).toBeDefined();
-    expect(stored!.mime).toBe('application/pdf');
-    expect(stored!.blob).toBeDefined();
-  });
-
-  it('queries blobs by tripId index', async () => {
-    await offlineDb.blobCache.bulkPut([
-      makeBlob('/api/files/1/download', 1),
-      makeBlob('/api/files/2/download', 1),
-      makeBlob('/api/files/3/download', 2),
-    ]);
-    const trip1 = await offlineDb.blobCache.where('tripId').equals(1).toArray();
-    expect(trip1).toHaveLength(2);
-  });
-});
-
-describe('offlineDb — enforceBlobBudget', () => {
-  it('evicts oldest-by-cachedAt entries past the count budget', async () => {
-    // 5 entries with strictly increasing cachedAt; cap to 3.
-    for (let i = 0; i < 5; i++) {
-      await offlineDb.blobCache.put(makeBlob(`/api/files/${i}/download`, 1, 10, i + 1));
-    }
-    await enforceBlobBudget(3, Infinity);
-
-    expect(await offlineDb.blobCache.count()).toBe(3);
-    // Oldest two (cachedAt 1 and 2) are gone; newest survive.
-    expect(await offlineDb.blobCache.get('/api/files/0/download')).toBeUndefined();
-    expect(await offlineDb.blobCache.get('/api/files/1/download')).toBeUndefined();
-    expect(await offlineDb.blobCache.get('/api/files/4/download')).toBeDefined();
-  });
-
-  it('evicts oldest entries past the byte budget', async () => {
-    // 3 entries of 100 bytes each; cap to 250 bytes → newest two (200) survive.
-    for (let i = 0; i < 3; i++) {
-      await offlineDb.blobCache.put(makeBlob(`/api/files/${i}/download`, 1, 100, i + 1));
-    }
-    await enforceBlobBudget(Infinity, 250);
-
-    expect(await offlineDb.blobCache.count()).toBe(2);
-    expect(await offlineDb.blobCache.get('/api/files/0/download')).toBeUndefined();
-  });
-
-  it('is a no-op when already within budget', async () => {
-    await offlineDb.blobCache.put(makeBlob('/api/files/1/download', 1));
-    await enforceBlobBudget(10, Infinity);
-    expect(await offlineDb.blobCache.count()).toBe(1);
   });
 });
 
@@ -279,24 +169,19 @@ describe('offlineDb — clearTripData', () => {
     await upsertDays([makeDay(1, 1), makeDay(2, 1)]);
     await upsertPlaces([makePlace(10, 1)]);
 
-    await offlineDb.blobCache.put(makeBlob('/api/files/1/download', 1));
-
     // Also add data for a different trip — should NOT be removed
     await upsertTrip(makeTrip(2));
     await upsertDays([makeDay(99, 2)]);
-    await offlineDb.blobCache.put(makeBlob('/api/files/2/download', 2));
 
     await clearTripData(1);
 
     expect(await offlineDb.trips.get(1)).toBeUndefined();
     expect(await offlineDb.days.where('trip_id').equals(1).count()).toBe(0);
     expect(await offlineDb.places.where('trip_id').equals(1).count()).toBe(0);
-    expect(await offlineDb.blobCache.where('tripId').equals(1).count()).toBe(0);
 
     // Trip 2 intact
     expect(await offlineDb.trips.get(2)).toBeDefined();
     expect(await offlineDb.days.where('trip_id').equals(2).count()).toBe(1);
-    expect(await offlineDb.blobCache.get('/api/files/2/download')).toBeDefined();
   });
 
   it('takes the trip cached area places with it, and leaves another trip its own', async () => {
@@ -320,22 +205,6 @@ describe('offlineDb — clearTripData', () => {
 
     expect(await offlineDb.areaPlaces.where('tripId').equals(1).count()).toBe(0);
     expect(await offlineDb.areaPlaces.where('tripId').equals(2).count()).toBe(1);
-  });
-
-  it('preserves unsynced (pending/conflict) writes but drops dead failed ones (#1135)', async () => {
-    await upsertTrip(makeTrip(1));
-    await offlineDb.mutationQueue.bulkPut([
-      { id: 'p1', tripId: 1, method: 'PUT', url: '/trips/1/places/10', body: { name: 'X' }, createdAt: 1, status: 'pending', attempts: 0, lastError: null, resource: 'places', entityId: 10 },
-      { id: 'c1', tripId: 1, method: 'PUT', url: '/trips/1/places/11', body: { name: 'Y' }, createdAt: 2, status: 'conflict', attempts: 1, lastError: 'conflict', resource: 'places', entityId: 11 },
-      { id: 'f1', tripId: 1, method: 'PUT', url: '/trips/1/places/12', body: { name: 'Z' }, createdAt: 3, status: 'failed', attempts: 1, lastError: 'boom', resource: 'places', entityId: 12 },
-    ]);
-
-    await clearTripData(1);
-
-    // The trip's cached read data is gone, but the unsynced work survives.
-    expect(await offlineDb.mutationQueue.get('p1')).toBeDefined();
-    expect(await offlineDb.mutationQueue.get('c1')).toBeDefined();
-    expect(await offlineDb.mutationQueue.get('f1')).toBeUndefined();
   });
 });
 

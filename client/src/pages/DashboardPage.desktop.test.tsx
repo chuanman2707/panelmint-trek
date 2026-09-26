@@ -9,7 +9,6 @@ import { buildUser, buildTrip, buildPlace, buildSettings } from '../../tests/hel
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useAddonStore } from '../store/addonStore';
-import { usePluginStore } from '../store/pluginStore';
 import DashboardPage from './DashboardPage';
 import { db, type LocalTripMember } from '../db/panelmintDb';
 import { tripsApi, dashboardApi } from '../api/client';
@@ -81,7 +80,6 @@ beforeEach(async () => {
   installMatchMedia();
   resetAllStores();
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
-  usePluginStore.setState({ plugins: [], loaded: true });
   await db.transaction('rw', db.tables, async () => {
     for (const t of db.tables) await t.clear();
   });

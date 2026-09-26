@@ -1,12 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const day: TranslationStrings = {
-  'day.precipProb': 'Regenwahrscheinlichkeit',
-  'day.precipitation': 'Niederschlag',
-  'day.wind': 'Wind',
-  'day.sunrise': 'Sonnenaufgang',
-  'day.sunset': 'Sonnenuntergang',
-  'day.hourlyForecast': 'Stündliche Vorhersage',
   'day.climateHint':
     'Historische Durchschnittswerte — echte Vorhersage verfügbar innerhalb von 16 Tagen vor diesem Datum.',
   'day.noWeather': 'Keine Wetterdaten verfügbar. Füge einen Ort mit Koordinaten hinzu.',

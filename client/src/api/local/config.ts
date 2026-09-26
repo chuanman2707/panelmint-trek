@@ -42,15 +42,11 @@ export interface AppConfig {
   places_provider: string;
   oidc_configured: boolean;
   require_mfa: boolean;
-  managed: boolean;
-  demo_mode: boolean;
   timezone: string;
   trip_reminders_enabled: boolean;
-  places_photos_enabled: boolean;
   places_autocomplete_enabled: boolean;
   places_details_enabled: boolean;
   places_enrich_enabled: boolean;
-  place_shadow_enabled: boolean;
   dev_mode: boolean;
 }
 
@@ -81,19 +77,14 @@ export const configApi = {
     places_provider: 'openstreetmap',
     oidc_configured: false,
     require_mfa: false,
-    managed: false,
-    demo_mode: false,
     // Was the server's TZ; locally the browser's clock is the truth.
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     // On — the default-false flag used to kill the reminder UI (#A7 note).
     trip_reminders_enabled: true,
-    // Photos resolved through the server's proxy — cut with it.
-    places_photos_enabled: false,
     places_autocomplete_enabled: true,
     places_details_enabled: true,
     // Wikimedia enrichment is a keyless browser-direct call — stays on.
     places_enrich_enabled: true,
-    place_shadow_enabled: false,
     dev_mode: import.meta.env.DEV === true,
   }),
 };
