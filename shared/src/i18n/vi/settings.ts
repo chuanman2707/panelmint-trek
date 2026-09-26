@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Định cấu hình cài đặt cá nhân của bạn',
   'settings.tabs.display': 'Hiển thị',
   'settings.tabs.map': 'Bản đồ',
+  'settings.tabs.data': 'Dữ liệu',
   'settings.tabs.about': 'Về',
   'settings.map': 'Bản đồ',
   'settings.mapTemplate': 'Mẫu bản đồ',
@@ -129,6 +130,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Tự động hiển thị trên bản đồ tuyến đường của mỗi chuyến bay, tàu hỏa và đặt chỗ khác, không cần bật riêng từng mục.',
 
+  'settings.data.title': 'Sao lưu & khôi phục',
+  'settings.data.exportAll': 'Xuất tất cả chuyến đi',
+  'settings.data.exportAllHint':
+    'Tải xuống mọi chuyến đi trên thiết bị này thành một tệp sao lưu .panelmint.json duy nhất.',
+  'settings.data.exportDone': 'Đã tải xuống bản sao lưu',
+  'settings.data.exportEmpty': 'Chưa có chuyến đi nào để xuất',
+  'settings.data.exportError': 'Không thể xuất các chuyến đi của bạn',
+  'settings.data.importFile': 'Nhập từ tệp',
+  'settings.data.importFileHint':
+    'Thêm chuyến đi từ tệp .panelmint.json — một chuyến đi đã xuất hoặc bản sao lưu đầy đủ.',
+  'settings.data.importDone': 'Đã nhập {count} chuyến đi',
+  'settings.data.importPartial': 'Đã dừng nhập — {count} chuyến đi được lưu trước khi lỗi',
+  'settings.data.importError': 'Không thể nhập tệp',
+  'settings.data.sample': 'Chuyến đi mẫu',
+  'settings.data.sampleHint': 'Thử trình lập kế hoạch với lịch trình có sẵn — 3 ngày ở Nha Trang, Việt Nam.',
 };
 
 export default settings;

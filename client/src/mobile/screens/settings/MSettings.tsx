@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import {
   ChevronDown,
   ChevronLeft,
+  Database,
   Info,
   Map,
   Palette,
@@ -15,6 +16,7 @@ import { useSettings } from '../../../pages/settings/useSettings'
 import MSettingsGeneral from './MSettingsGeneral'
 import MSettingsAppearance from './MSettingsAppearance'
 import MSettingsMap from './MSettingsMap'
+import MSettingsData from './MSettingsData'
 import MSettingsAbout from './MSettingsAbout'
 
 interface SectionTab {
@@ -39,6 +41,7 @@ export default function MSettings() {
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
     { id: 'appearance', label: t('settings.tabs.appearance'), icon: Palette },
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
+    { id: 'data', label: t('settings.tabs.data'), icon: Database },
     ...(appVersion ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }] : []),
   ]
 
@@ -93,6 +96,7 @@ export default function MSettings() {
       {active.id === 'display' && <MSettingsGeneral />}
       {active.id === 'appearance' && <MSettingsAppearance />}
       {active.id === 'map' && <MSettingsMap />}
+      {active.id === 'data' && <MSettingsData />}
       {active.id === 'about' && appVersion && <MSettingsAbout appVersion={appVersion} />}
     </div>
   )

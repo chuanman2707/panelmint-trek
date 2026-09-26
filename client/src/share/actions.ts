@@ -7,7 +7,8 @@
  */
 import { copyText } from '../utils/clipboard';
 import { downloadBlob } from '../utils/fileDownload';
-import { encodeToFile, encodeTrip, SHARE_URL_MAX_CHARS } from './codec';
+import { db } from '../db/panelmintDb';
+import { encodeAllToFile, encodeToFile, encodeTrip, SHARE_URL_MAX_CHARS } from './codec';
 
 /** `<title>.panelmint.json`, with the path-hostile characters folded to `-`. */
 export function tripFileName(title: string | null | undefined): string {
@@ -18,10 +19,31 @@ export function tripFileName(title: string | null | undefined): string {
   return `${base || 'trip'}.panelmint.json`;
 }
 
+/** `panelmint-backup-YYYY-MM-DD.panelmint.json` — the export-all archive. */
+export function allTripsFileName(now = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const day = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return `panelmint-backup-${day}.panelmint.json`;
+}
+
 /** Encode the trip and trigger the `.panelmint.json` download. */
 export async function downloadTripFile(tripId: number, title?: string | null): Promise<void> {
   const json = await encodeToFile(tripId);
   downloadBlob(new Blob([json], { type: 'application/json' }), tripFileName(title));
+}
+
+export type DownloadAllOutcome = 'downloaded' | 'empty';
+
+/**
+ * Settings "Export all" — every trip on the device (archived included, it's a
+ * backup) packed into one `panelmint-archive` `.panelmint.json`. With nothing
+ * to export it answers 'empty' and downloads nothing.
+ */
+export async function downloadAllTripsFile(): Promise<DownloadAllOutcome> {
+  if ((await db.trips.count()) === 0) return 'empty';
+  const json = await encodeAllToFile();
+  downloadBlob(new Blob([json], { type: 'application/json' }), allTripsFileName());
+  return 'downloaded';
 }
 
 /** Absolute `/import?d=` URL under the app's configured base path. */

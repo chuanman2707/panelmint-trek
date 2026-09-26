@@ -12,8 +12,10 @@ import type { DayRow, StoredAssignment } from '../../../src/api/local/dexieStore
 import { db, type LocalTripMember } from '../../../src/db/panelmintDb';
 import {
   buildBundle,
+  decodeBundlesFromFile,
   decodeFromFile,
   decodeTrip,
+  encodeAllToFile,
   encodeToFile,
   encodeTrip,
   SHARE_URL_MAX_CHARS,
@@ -553,5 +555,80 @@ describe('share codec', () => {
     expect(bundle.packingBags[0].members).toEqual([]);
     // The dangling user id is not in the roster either.
     expect(bundle.users.find((u) => u.id === 99)).toBeUndefined();
+  });
+});
+
+/**
+ * The export-all archive — Settings "Export all" writes one `.panelmint.json`
+ * whose envelope is `{v, kind:'panelmint-archive', exported_at, trips}` with
+ * each member exactly the bundle `encodeToFile` emits for one trip.
+ */
+describe('share archive codec', () => {
+  it('SHARE-011 — encodeAllToFile packs every trip — archived included — into one archive', async () => {
+    await db.trips.put(buildTrip({ id: 1, title: 'Live trip' }));
+    await db.trips.put(buildTrip({ id: 2, title: 'Archived trip', is_archived: 1 }));
+    await db.places.put(buildPlace({ id: 5, trip_id: 2, name: 'Ruins' }));
+
+    const json = await encodeAllToFile();
+    const raw = JSON.parse(json) as { v: number; kind: string; exported_at: unknown; trips: unknown[] };
+    expect(raw).toMatchObject({ v: 1, kind: 'panelmint-archive' });
+    expect(typeof raw.exported_at).toBe('string');
+    expect(raw.trips).toHaveLength(2);
+
+    const bundles = decodeBundlesFromFile(json);
+    expect(bundles.map((b) => b.trip.title)).toEqual(['Live trip', 'Archived trip']);
+    // The archived member rides the backup and decodes through the same schema.
+    expect(bundles[1].trip.is_archived).toBe(1);
+    expect(bundles[1].places.map((p) => p.name)).toEqual(['Ruins']);
+    // The member is exactly the bundle encodeToFile writes for the same trip.
+    expect({ ...bundles[0], exported_at: null }).toEqual({
+      ...decodeFromFile(await encodeToFile(1)),
+      exported_at: null,
+    });
+  });
+
+  it('SHARE-012 — decodeBundlesFromFile reads a single-trip file as a one-element list', async () => {
+    await db.trips.put(buildTrip({ id: 1, title: 'Solo' }));
+    const file = await encodeToFile(1);
+    const bundles = decodeBundlesFromFile(file);
+    expect(bundles).toHaveLength(1);
+    expect(bundles[0]).toEqual(decodeFromFile(file));
+  });
+
+  it('SHARE-013 — a newer format version is refused at both archive levels', async () => {
+    await db.trips.put(buildTrip({ id: 1 }));
+    const bundle = JSON.parse(await encodeToFile(1)) as Record<string, unknown>;
+    // Newer archive envelope.
+    expect(() =>
+      decodeBundlesFromFile(JSON.stringify({ v: 99, kind: 'panelmint-archive', trips: [bundle] }))
+    ).toThrow(/newer version of PanelMint/);
+    // v1 envelope carrying a newer member.
+    expect(() =>
+      decodeBundlesFromFile(JSON.stringify({ v: 1, kind: 'panelmint-archive', trips: [{ ...bundle, v: 99 }] }))
+    ).toThrow(/newer version of PanelMint/);
+  });
+
+  it('SHARE-014 — malformed archives and files answer the friendly error, empty archives decode', async () => {
+    expect(() => decodeBundlesFromFile('{nope')).toThrow(/PanelMint trip export/);
+    expect(() => decodeBundlesFromFile('{"v":1}')).toThrow(/PanelMint trip export/);
+    expect(() => decodeBundlesFromFile('42')).toThrow(/PanelMint trip export/);
+    // The archive marker demands the real envelope — no silent fall-through.
+    expect(() =>
+      decodeBundlesFromFile(JSON.stringify({ v: 1, kind: 'panelmint-archive', trips: 'yes' }))
+    ).toThrow(/PanelMint trip export/);
+    expect(() =>
+      decodeBundlesFromFile(JSON.stringify({ v: 1, kind: 'panelmint-archive', trips: [{ nope: true }] }))
+    ).toThrow(/PanelMint trip export/);
+    expect(() =>
+      decodeBundlesFromFile(JSON.stringify({ v: 1, kind: 'panelmint-archive' }))
+    ).toThrow(/PanelMint trip export/);
+    // A backup of nothing is still a valid archive.
+    expect(decodeBundlesFromFile(JSON.stringify({ v: 1, kind: 'panelmint-archive', trips: [] }))).toEqual([]);
+    // decodeFromFile stays single-bundle: an archive is not a bundle.
+    await db.trips.put(buildTrip({ id: 1 }));
+    const bundle = JSON.parse(await encodeToFile(1));
+    expect(() =>
+      decodeFromFile(JSON.stringify({ v: 1, kind: 'panelmint-archive', trips: [bundle] }))
+    ).toThrow(/PanelMint trip export/);
   });
 });

@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Configure your personal settings',
   'settings.tabs.display': 'General',
   'settings.tabs.map': 'Map',
+  'settings.tabs.data': 'Data',
   'settings.tabs.about': 'About',
   'settings.map': 'Map',
   'settings.mapTemplate': 'Map Template',
@@ -129,6 +130,19 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Automatically draw the route for every flight, train and other booking on the map — no need to switch it on per item.',
 
+  'settings.data.title': 'Backup & restore',
+  'settings.data.exportAll': 'Export all trips',
+  'settings.data.exportAllHint': 'Download every trip on this device as a single .panelmint.json backup file.',
+  'settings.data.exportDone': 'Backup downloaded',
+  'settings.data.exportEmpty': 'There are no trips to export yet',
+  'settings.data.exportError': 'Could not export your trips',
+  'settings.data.importFile': 'Import from file',
+  'settings.data.importFileHint': 'Add trips from a .panelmint.json file — a single trip export or a full backup.',
+  'settings.data.importDone': '{count} trips imported',
+  'settings.data.importPartial': 'Import stopped — {count} trips were saved before it failed',
+  'settings.data.importError': 'Could not import the file',
+  'settings.data.sample': 'Sample trip',
+  'settings.data.sampleHint': 'Try the planner with a ready-made itinerary — 3 days in Nha Trang, Vietnam.',
 };
 
 export default settings;

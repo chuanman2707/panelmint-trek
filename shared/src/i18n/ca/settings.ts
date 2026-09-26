@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Configura els teus paràmetres personals',
   'settings.tabs.display': 'Pantalla',
   'settings.tabs.map': 'Mapa',
+  'settings.tabs.data': 'Dades',
   'settings.tabs.about': 'Quant a',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Plantilla del mapa',
@@ -131,6 +132,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Dibuixa automàticament al mapa la ruta de cada vol, tren i altra reserva — no cal activar-la una per una.',
 
+  'settings.data.title': 'Còpia de seguretat i restauració',
+  'settings.data.exportAll': 'Exporta tots els viatges',
+  'settings.data.exportAllHint':
+    'Baixa tots els viatges d’aquest dispositiu en un sol fitxer de còpia de seguretat .panelmint.json.',
+  'settings.data.exportDone': 'Còpia de seguretat baixada',
+  'settings.data.exportEmpty': 'Encara no hi ha viatges per exportar',
+  'settings.data.exportError': 'No s’han pogut exportar els viatges',
+  'settings.data.importFile': 'Importa des d’un fitxer',
+  'settings.data.importFileHint':
+    'Afegeix viatges des d’un fitxer .panelmint.json: l’exportació d’un viatge o una còpia completa.',
+  'settings.data.importDone': '{count} viatges importats',
+  'settings.data.importPartial': 'S’ha aturat la importació: s’han desat {count} viatges abans de l’error',
+  'settings.data.importError': 'No s’ha pogut importar el fitxer',
+  'settings.data.sample': 'Viatge d’exemple',
+  'settings.data.sampleHint': 'Prova el planificador amb un itinerari ja fet: 3 dies a Nha Trang, Vietnam.',
 };
 
 export default settings;

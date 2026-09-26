@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Konfigurera dina personliga inställningar',
   'settings.tabs.display': 'Visning',
   'settings.tabs.map': 'Karta',
+  'settings.tabs.data': 'Data',
   'settings.tabs.about': 'Om',
   'settings.map': 'Karta',
   'settings.mapTemplate': 'Kartmall',
@@ -130,6 +131,20 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Visar automatiskt rutten för varje flyg, tåg och annan bokning på kartan, utan att du behöver aktivera det för varje bokning för sig.',
 
+  'settings.data.title': 'Säkerhetskopiera och återställ',
+  'settings.data.exportAll': 'Exportera alla resor',
+  'settings.data.exportAllHint': 'Ladda ner alla resor på den här enheten som en enda .panelmint.json-säkerhetskopia.',
+  'settings.data.exportDone': 'Säkerhetskopian har laddats ner',
+  'settings.data.exportEmpty': 'Det finns inga resor att exportera ännu',
+  'settings.data.exportError': 'Dina resor kunde inte exporteras',
+  'settings.data.importFile': 'Importera från fil',
+  'settings.data.importFileHint':
+    'Lägg till resor från en .panelmint.json-fil — en enstaka resexport eller en fullständig säkerhetskopia.',
+  'settings.data.importDone': '{count} resor importerade',
+  'settings.data.importPartial': 'Importen avbröts — {count} resor sparades innan felet',
+  'settings.data.importError': 'Filen kunde inte importeras',
+  'settings.data.sample': 'Exempelresa',
+  'settings.data.sampleHint': 'Prova planeraren med en färdig resplan — 3 dagar i Nha Trang, Vietnam.',
 };
 
 export default settings;

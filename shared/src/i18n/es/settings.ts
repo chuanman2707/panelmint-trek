@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Configura tus ajustes personales',
   'settings.tabs.display': 'Pantalla',
   'settings.tabs.map': 'Mapa',
+  'settings.tabs.data': 'Datos',
   'settings.tabs.about': 'Acerca de',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Plantilla del mapa',
@@ -130,6 +131,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Muestra automáticamente en el mapa la ruta de cada vuelo, tren y otra reserva, sin necesidad de activarla una por una.',
 
+  'settings.data.title': 'Copia de seguridad y restauración',
+  'settings.data.exportAll': 'Exportar todos los viajes',
+  'settings.data.exportAllHint':
+    'Descarga todos los viajes de este dispositivo en un solo archivo de copia de seguridad .panelmint.json.',
+  'settings.data.exportDone': 'Copia de seguridad descargada',
+  'settings.data.exportEmpty': 'Aún no hay viajes para exportar',
+  'settings.data.exportError': 'No se pudieron exportar tus viajes',
+  'settings.data.importFile': 'Importar desde un archivo',
+  'settings.data.importFileHint':
+    'Añade viajes desde un archivo .panelmint.json: la exportación de un viaje o una copia completa.',
+  'settings.data.importDone': '{count} viajes importados',
+  'settings.data.importPartial': 'La importación se detuvo: se guardaron {count} viajes antes del fallo',
+  'settings.data.importError': 'No se pudo importar el archivo',
+  'settings.data.sample': 'Viaje de ejemplo',
+  'settings.data.sampleHint': 'Prueba el planificador con un itinerario listo: 3 días en Nha Trang, Vietnam.',
 };
 
 export default settings;

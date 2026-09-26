@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'ضبط إعداداتك الشخصية',
   'settings.tabs.display': 'العرض',
   'settings.tabs.map': 'الخريطة',
+  'settings.tabs.data': 'البيانات',
   'settings.tabs.about': 'حول',
   'settings.map': 'الخريطة',
   'settings.mapTemplate': 'قالب الخريطة',
@@ -129,6 +130,19 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'يعرض تلقائيًا مسار كل رحلة طيران وقطار وحجز آخر على الخريطة، دون الحاجة إلى تفعيله لكل عنصر على حدة.',
 
+  'settings.data.title': 'النسخ الاحتياطي والاستعادة',
+  'settings.data.exportAll': 'تصدير جميع الرحلات',
+  'settings.data.exportAllHint': 'نزّل كل الرحلات على هذا الجهاز في ملف نسخة احتياطية واحد بصيغة .panelmint.json.',
+  'settings.data.exportDone': 'تم تنزيل النسخة الاحتياطية',
+  'settings.data.exportEmpty': 'لا توجد رحلات لتصديرها بعد',
+  'settings.data.exportError': 'تعذر تصدير رحلاتك',
+  'settings.data.importFile': 'استيراد من ملف',
+  'settings.data.importFileHint': 'أضف رحلات من ملف .panelmint.json — تصدير رحلة واحدة أو نسخة احتياطية كاملة.',
+  'settings.data.importDone': 'تم استيراد {count} من الرحلات',
+  'settings.data.importPartial': 'توقف الاستيراد — تم حفظ {count} من الرحلات قبل التعطل',
+  'settings.data.importError': 'تعذر استيراد الملف',
+  'settings.data.sample': 'رحلة نموذجية',
+  'settings.data.sampleHint': 'جرّب المخطط بمسار جاهز — 3 أيام في نها ترانغ، فيتنام.',
 };
 
 export default settings;

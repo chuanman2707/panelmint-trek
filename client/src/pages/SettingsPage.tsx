@@ -1,11 +1,12 @@
 import React from 'react'
-import { Settings, SlidersHorizontal, Paintbrush, Map, Info } from 'lucide-react'
+import { Settings, SlidersHorizontal, Paintbrush, Map, Database, Info } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
 import DisplaySettingsTab from '../components/Settings/DisplaySettingsTab'
 import AppearanceSettingsTab from '../components/Settings/AppearanceSettingsTab'
 import MapSettingsTab from '../components/Settings/MapSettingsTab'
+import DataSettingsTab from '../components/Settings/DataSettingsTab'
 import AboutTab from '../components/Settings/AboutTab'
 import { useSettings } from './settings/useSettings'
 
@@ -24,6 +25,7 @@ function SettingsPageDesktop(): React.ReactElement {
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
     { id: 'appearance', label: t('settings.tabs.appearance'), icon: Paintbrush },
     { id: 'map', label: t('settings.tabs.map'), icon: Map },
+    { id: 'data', label: t('settings.tabs.data'), icon: Database },
     ...(appVersion
       ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }]
       : []),
@@ -54,6 +56,7 @@ function SettingsPageDesktop(): React.ReactElement {
             {activeTab === 'display' && <DisplaySettingsTab />}
             {activeTab === 'appearance' && <AppearanceSettingsTab />}
             {activeTab === 'map' && <MapSettingsTab />}
+            {activeTab === 'data' && <DataSettingsTab />}
             {activeTab === 'about' && appVersion && <AboutTab appVersion={appVersion} />}
           </PageSidebar>
         </div>

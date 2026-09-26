@@ -1,0 +1,292 @@
+{
+  "v": 1,
+  "exported_at": "2025-05-01T08:00:00.000Z",
+  "trip": {
+    "id": 1,
+    "user_id": 1,
+    "title": "Nha Trang 3N2Đ",
+    "description": "Three days, two nights on Vietnam's south-central coast — the Cham towers of Po Nagar, Long Sơn Pagoda, the cathedral, Đầm Market and the Trần Phú beach promenade.",
+    "start_date": "2025-06-06",
+    "end_date": "2025-06-08",
+    "currency": "VND",
+    "cover_image": null,
+    "is_archived": 0,
+    "reminder_days": 7,
+    "created_at": "2025-05-01T08:00:00.000Z",
+    "updated_at": "2025-05-01T08:00:00.000Z"
+  },
+  "days": [
+    {
+      "id": 1,
+      "trip_id": 1,
+      "day_number": 1,
+      "date": "2025-06-06",
+      "title": "Arrival — cathedral & market",
+      "notes": "Check in from 14:00, then wander the centre.",
+      "assignments": [
+        {
+          "id": 10,
+          "day_id": 1,
+          "place_id": 2,
+          "order_index": 0,
+          "notes": "Gothic revival on a hill — quietest before the tour buses.",
+          "assignment_time": "09:30",
+          "assignment_end_time": "10:30",
+          "end_day": 0,
+          "created_at": "2025-05-01T08:00:00.000Z"
+        },
+        {
+          "id": 11,
+          "day_id": 1,
+          "place_id": 3,
+          "order_index": 1,
+          "notes": "Lunch at the food stalls inside the market.",
+          "assignment_time": "11:30",
+          "assignment_end_time": "13:00",
+          "end_day": 0,
+          "created_at": "2025-05-01T08:00:00.000Z"
+        },
+        {
+          "id": 12,
+          "day_id": 1,
+          "place_id": 4,
+          "order_index": 2,
+          "notes": "Sunset walk along the promenade.",
+          "assignment_time": "16:30",
+          "assignment_end_time": "18:00",
+          "end_day": 0,
+          "created_at": "2025-05-01T08:00:00.000Z"
+        }
+      ],
+      "notes_items": []
+    },
+    {
+      "id": 2,
+      "trip_id": 1,
+      "day_number": 2,
+      "date": "2025-06-07",
+      "title": "Cham towers & pagodas",
+      "notes": "North of the Cái river in the morning, back west for the afternoon.",
+      "assignments": [
+        {
+          "id": 13,
+          "day_id": 2,
+          "place_id": 5,
+          "order_index": 0,
+          "assignment_time": "08:30",
+          "assignment_end_time": "10:00",
+          "end_day": 0,
+          "created_at": "2025-05-01T08:00:00.000Z"
+        },
+        {
+          "id": 14,
+          "day_id": 2,
+          "place_id": 6,
+          "order_index": 1,
+          "notes": "Short hop from Po Nagar — rocks over the water.",
+          "assignment_time": "10:30",
+          "assignment_end_time": "11:30",
+          "end_day": 0,
+          "created_at": "2025-05-01T08:00:00.000Z"
+        },
+        {
+          "id": 15,
+          "day_id": 2,
+          "place_id": 7,
+          "order_index": 2,
+          "notes": "The white Buddha sits above the pagoda — steps, worth it.",
+          "assignment_time": "15:00",
+          "assignment_end_time": "16:30",
+          "end_day": 0,
+          "created_at": "2025-05-01T08:00:00.000Z"
+        }
+      ],
+      "notes_items": []
+    },
+    {
+      "id": 3,
+      "trip_id": 1,
+      "day_number": 3,
+      "date": "2025-06-08",
+      "title": "Beach morning & checkout",
+      "notes": "Last swim, then out by noon.",
+      "assignments": [
+        {
+          "id": 16,
+          "day_id": 3,
+          "place_id": 8,
+          "order_index": 0,
+          "assignment_time": "08:00",
+          "assignment_end_time": "08:30",
+          "end_day": 0,
+          "created_at": "2025-05-01T08:00:00.000Z"
+        },
+        {
+          "id": 17,
+          "day_id": 3,
+          "place_id": 4,
+          "order_index": 1,
+          "notes": "One more swim before checkout.",
+          "assignment_time": "09:00",
+          "assignment_end_time": "10:30",
+          "end_day": 0,
+          "created_at": "2025-05-01T08:00:00.000Z"
+        }
+      ],
+      "notes_items": []
+    }
+  ],
+  "places": [
+    {
+      "id": 1,
+      "trip_id": 1,
+      "name": "Bình An Hotel",
+      "description": "Base for the trip — Lộc Thọ tourist quarter, five minutes from the promenade.",
+      "lat": 12.2422,
+      "lng": 109.1925,
+      "address": "Lộc Thọ, Nha Trang, Khánh Hòa",
+      "category_id": 1,
+      "price": 650000,
+      "currency": "VND",
+      "duration_minutes": null,
+      "notes": "Deluxe double, breakfast included.",
+      "image_url": null,
+      "transport_mode": "walking",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "trip_id": 1,
+      "name": "Nha Trang Cathedral",
+      "description": "Christ the King Cathedral — 1928 Gothic revival on Mot Hill, stained glass and a view over the city.",
+      "lat": 12.2467,
+      "lng": 109.1879,
+      "address": "1 Thái Nguyên, Phước Tân, Nha Trang",
+      "category_id": 2,
+      "price": 0,
+      "currency": "VND",
+      "duration_minutes": 60,
+      "image_url": null,
+      "transport_mode": "walking",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "trip_id": 1,
+      "name": "Đầm Market",
+      "description": "Chợ Đầm — the city's central market: dried seafood, fruit, clothes and a proper noodle hall.",
+      "lat": 12.241,
+      "lng": 109.1898,
+      "address": "Bến Chợ, Vạn Thạnh, Nha Trang",
+      "category_id": 3,
+      "price": null,
+      "currency": null,
+      "duration_minutes": 90,
+      "image_url": null,
+      "transport_mode": "walking",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "trip_id": 1,
+      "name": "Nha Trang Beach",
+      "description": "Trần Phú promenade — the six-kilometre city beach, calmest early morning.",
+      "lat": 12.2381,
+      "lng": 109.1967,
+      "address": "Trần Phú, Lộc Thọ, Nha Trang",
+      "category_id": 4,
+      "price": 0,
+      "currency": "VND",
+      "duration_minutes": 90,
+      "image_url": null,
+      "transport_mode": "walking",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "trip_id": 1,
+      "name": "Po Nagar Cham Towers",
+      "description": "Tháp Bà Po Nagar — 8th-century Cham temple complex above the Cái river mouth, still in active worship.",
+      "lat": 12.2655,
+      "lng": 109.1951,
+      "address": "2 Tháng 4, Vĩnh Phước, Nha Trang",
+      "category_id": 2,
+      "price": 30000,
+      "currency": "VND",
+      "duration_minutes": 90,
+      "image_url": null,
+      "transport_mode": "taxi",
+      "website": "https://vi.wikipedia.org/wiki/Th%C3%A1p_B%C3%A0_Po_Nagar",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "trip_id": 1,
+      "name": "Hòn Chồng Promontory",
+      "description": "Granite boulder point north of the river — views back over the bay and up to the mountains.",
+      "lat": 12.2702,
+      "lng": 109.2004,
+      "address": "Vĩnh Phước, Nha Trang",
+      "category_id": 2,
+      "price": 30000,
+      "currency": "VND",
+      "duration_minutes": 60,
+      "image_url": null,
+      "transport_mode": "walking",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    },
+    {
+      "id": 7,
+      "trip_id": 1,
+      "name": "Long Sơn Pagoda",
+      "description": "Chùa Long Sơn — 1886 pagoda below a 24-metre white Buddha on Trại Thủy hill.",
+      "lat": 12.2507,
+      "lng": 109.1804,
+      "address": "22 Tháng 10, Phương Sơn, Nha Trang",
+      "category_id": 2,
+      "price": 0,
+      "currency": "VND",
+      "duration_minutes": 90,
+      "image_url": null,
+      "transport_mode": "taxi",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    },
+    {
+      "id": 8,
+      "trip_id": 1,
+      "name": "Trầm Hương Tower",
+      "description": "The agarwood-bud landmark on 2/4 Square, mid-promenade — an easy meeting point.",
+      "lat": 12.2389,
+      "lng": 109.1968,
+      "address": "Quảng trường 2/4, Trần Phú, Nha Trang",
+      "category_id": 2,
+      "price": 0,
+      "currency": "VND",
+      "duration_minutes": 30,
+      "image_url": null,
+      "transport_mode": "walking",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    }
+  ],
+  "accommodations": [
+    {
+      "id": 1,
+      "trip_id": 1,
+      "place_id": 1,
+      "start_day_id": 1,
+      "end_day_id": 3,
+      "check_in": "14:00",
+      "check_out": "12:00",
+      "confirmation": "BINHAN-3N2D",
+      "notes": "Late checkout may be possible — ask at reception.",
+      "created_at": "2025-05-01T08:00:00.000Z"
+    }
+  ],
+  "categories": [
+    { "id": 1, "name": "Hotel", "color": "#3b82f6", "icon": "🏨", "user_id": null },
+    { "id": 2, "name": "Attraction", "color": "#8b5cf6", "icon": "🏛️", "user_id": null },
+    { "id": 3, "name": "Shopping", "color": "#f59e0b", "icon": "🛍️", "user_id": null },
+    { "id": 4, "name": "Beach", "color": "#06b6d4", "icon": "🏖️", "user_id": null }
+  ],
+  "users": [{ "id": 1, "name": "Me", "is_self": 1 }]
+}

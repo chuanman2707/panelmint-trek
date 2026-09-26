@@ -176,8 +176,26 @@ export const shareBundleSchema = z.object({
   users: z.array(bundleUserSchema).default([]),
 });
 
-/** The decoded v1 envelope — the importer (Task 22 `saveBundle`) consumes it. */
+/** The decoded v1 envelope — the importer (`saveBundle` in remap.ts) consumes it. */
 export type ShareBundle = z.infer<typeof shareBundleSchema>;
+
+/**
+ * `kind` marker of the export-all archive — one `.panelmint.json` carrying
+ * every trip on the device. The elements are exactly what {@link encodeToFile}
+ * writes for one trip, so the per-trip codec stays the single source of truth
+ * (spec §9: same codec, different transport).
+ */
+export const SHARE_ARCHIVE_KIND = 'panelmint-archive';
+
+export const shareArchiveSchema = z.object({
+  v: z.literal(SHARE_FORMAT_VERSION),
+  kind: z.literal(SHARE_ARCHIVE_KIND),
+  exported_at: z.string().optional(),
+  trips: z.array(shareBundleSchema),
+});
+
+/** The decoded archive envelope — the export-all backup file. */
+export type ShareArchive = z.infer<typeof shareArchiveSchema>;
 
 // ── Server-URL stripping ─────────────────────────────────────────────────────
 
@@ -482,9 +500,53 @@ export async function encodeToFile(tripId: number | string): Promise<string> {
   return JSON.stringify(await buildBundle(tripId), null, 2);
 }
 
+/**
+ * Every trip on the device → the pretty JSON of one {@link ShareArchive}
+ * (Settings "Export all"). Archived trips ride along — a backup covers them
+ * too. Each element of `trips` is the same bundle {@link encodeToFile} emits.
+ */
+export async function encodeAllToFile(): Promise<string> {
+  const trips = await db.trips.toArray();
+  const bundles: ShareBundle[] = [];
+  for (const trip of trips) {
+    bundles.push(await buildBundle(trip.id));
+  }
+  const archive: ShareArchive = {
+    v: SHARE_FORMAT_VERSION,
+    kind: SHARE_ARCHIVE_KIND,
+    exported_at: new Date().toISOString(),
+    trips: bundles,
+  };
+  return JSON.stringify(archive, null, 2);
+}
+
 /** `.panelmint.json` contents → the decoded bundle (same checks as the URL). */
 export function decodeFromFile(json: string): ShareBundle {
   return parseBundleJson(json, ERR_BAD_FILE);
+}
+
+/**
+ * `.panelmint.json` contents → every bundle it carries: one for a single-trip
+ * export, N for a `panelmint-archive` backup (Settings "Import"). A `v` newer
+ * than this build — on the envelope or on any bundled trip — answers the
+ * specific "newer PanelMint" error, not the generic malformed one.
+ */
+export function decodeBundlesFromFile(json: string): ShareBundle[] {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(json);
+  } catch {
+    throw new Error(ERR_BAD_FILE);
+  }
+  checkFormatVersion(raw);
+  if (raw !== null && typeof raw === 'object' && (raw as { kind?: unknown }).kind === SHARE_ARCHIVE_KIND) {
+    const trips = (raw as { trips?: unknown }).trips;
+    if (Array.isArray(trips)) for (const entry of trips) checkFormatVersion(entry);
+    const parsed = shareArchiveSchema.safeParse(raw);
+    if (!parsed.success) throw new Error(ERR_BAD_FILE);
+    return parsed.data.trips;
+  }
+  return [parseBundleValue(raw, ERR_BAD_FILE)];
 }
 
 function parseBundleJson(json: string, malformedMessage: string): ShareBundle {
@@ -494,13 +556,21 @@ function parseBundleJson(json: string, malformedMessage: string): ShareBundle {
   } catch {
     throw new Error(malformedMessage);
   }
+  return parseBundleValue(raw, malformedMessage);
+}
+
+function parseBundleValue(raw: unknown, malformedMessage: string): ShareBundle {
   // Peek at `v` before the shape parse so a future bundle gets the specific
   // "newer PanelMint" error instead of the generic malformed one.
+  checkFormatVersion(raw);
+  const parsed = shareBundleSchema.safeParse(raw);
+  if (!parsed.success) throw new Error(malformedMessage);
+  return parsed.data;
+}
+
+function checkFormatVersion(raw: unknown): void {
   if (raw !== null && typeof raw === 'object') {
     const v = (raw as { v?: unknown }).v;
     if (typeof v === 'number' && v > SHARE_FORMAT_VERSION) throw new Error(ERR_NEWER);
   }
-  const parsed = shareBundleSchema.safeParse(raw);
-  if (!parsed.success) throw new Error(malformedMessage);
-  return parsed.data;
 }

@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Налаштуйте свої персональні параметри',
   'settings.tabs.display': 'Відображення',
   'settings.tabs.map': 'Карта',
+  'settings.tabs.data': 'Дані',
   'settings.tabs.about': 'Про застосунок',
   'settings.map': 'Карта',
   'settings.mapTemplate': 'Шаблон карти',
@@ -130,6 +131,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Автоматично показує на карті маршрут для кожного рейсу, поїзда та іншого бронювання — без потреби вмикати це окремо для кожного елемента.',
 
+  'settings.data.title': 'Резервне копіювання та відновлення',
+  'settings.data.exportAll': 'Експортувати всі подорожі',
+  'settings.data.exportAllHint':
+    'Завантажте всі подорожі на цьому пристрої одним файлом резервної копії .panelmint.json.',
+  'settings.data.exportDone': 'Резервну копію завантажено',
+  'settings.data.exportEmpty': 'Поки що немає подорожей для експорту',
+  'settings.data.exportError': 'Не вдалося експортувати подорожі',
+  'settings.data.importFile': 'Імпортувати з файлу',
+  'settings.data.importFileHint':
+    'Додайте подорожі з файлу .panelmint.json — експорт однієї подорожі або повна резервна копія.',
+  'settings.data.importDone': 'Імпортовано подорожей: {count}',
+  'settings.data.importPartial': 'Імпорт перервано — збережено подорожей: {count}',
+  'settings.data.importError': 'Не вдалося імпортувати файл',
+  'settings.data.sample': 'Приклад подорожі',
+  'settings.data.sampleHint': 'Спробуйте планувальник із готовим маршрутом — 3 дні в Нячанзі, В’єтнам.',
 };
 
 export default settings;

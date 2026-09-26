@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Настройте свои персональные параметры',
   'settings.tabs.display': 'Основные',
   'settings.tabs.map': 'Карта',
+  'settings.tabs.data': 'Данные',
   'settings.tabs.about': 'О приложении',
   'settings.map': 'Карта',
   'settings.mapTemplate': 'Шаблон карты',
@@ -132,6 +133,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Автоматически показывает на карте маршрут для каждого рейса, поезда и другого бронирования — без необходимости включать это отдельно для каждого элемента.',
 
+  'settings.data.title': 'Резервное копирование и восстановление',
+  'settings.data.exportAll': 'Экспортировать все поездки',
+  'settings.data.exportAllHint':
+    'Скачайте все поездки на этом устройстве одним файлом резервной копии .panelmint.json.',
+  'settings.data.exportDone': 'Резервная копия скачана',
+  'settings.data.exportEmpty': 'Пока нет поездок для экспорта',
+  'settings.data.exportError': 'Не удалось экспортировать поездки',
+  'settings.data.importFile': 'Импортировать из файла',
+  'settings.data.importFileHint':
+    'Добавьте поездки из файла .panelmint.json — экспорт одной поездки или полная резервная копия.',
+  'settings.data.importDone': 'Импортировано поездок: {count}',
+  'settings.data.importPartial': 'Импорт прерван — сохранено поездок: {count}',
+  'settings.data.importError': 'Не удалось импортировать файл',
+  'settings.data.sample': 'Пример поездки',
+  'settings.data.sampleHint': 'Попробуйте планировщик с готовым маршрутом — 3 дня в Нячанге, Вьетнам.',
 };
 
 export default settings;

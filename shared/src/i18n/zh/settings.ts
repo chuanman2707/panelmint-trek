@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': '配置你的个人设置',
   'settings.tabs.display': '显示',
   'settings.tabs.map': '地图',
+  'settings.tabs.data': '数据',
   'settings.tabs.about': '关于',
   'settings.map': '地图',
   'settings.mapTemplate': '地图模板',
@@ -13,7 +14,8 @@ const settings: TranslationStrings = {
   'settings.mapCartoKey': 'CARTO API 密钥',
   'settings.mapCartoKeyHint': '没有密钥时 CARTO 底图会显示水印。免费且无需账户，来自',
   'settings.mapCartoKeyLink': 'carto.com 底图 API 密钥',
-  'settings.mapCartoKeyMissing': '此模板是 CARTO 底图。没有密钥时，CARTO 会在每个瓦片上打上 "API KEY REQUIRED"。 在输入密钥之前，PanelMint 会显示默认底图。',
+  'settings.mapCartoKeyMissing':
+    '此模板是 CARTO 底图。没有密钥时，CARTO 会在每个瓦片上打上 "API KEY REQUIRED"。 在输入密钥之前，PanelMint 会显示默认底图。',
   'settings.saveMap': '保存地图',
   'settings.colorMode': '颜色模式',
   'settings.light': '浅色',
@@ -120,6 +122,19 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': '始终显示预订路线',
   'settings.alwaysShowRoutesHint': '自动在地图上显示每个航班、火车和其他预订的路线,无需逐个手动开启。',
 
+  'settings.data.title': '备份与恢复',
+  'settings.data.exportAll': '导出所有行程',
+  'settings.data.exportAllHint': '将此设备上的所有行程下载为一个 .panelmint.json 备份文件。',
+  'settings.data.exportDone': '备份已下载',
+  'settings.data.exportEmpty': '还没有可导出的行程',
+  'settings.data.exportError': '无法导出您的行程',
+  'settings.data.importFile': '从文件导入',
+  'settings.data.importFileHint': '从 .panelmint.json 文件添加行程 —— 单个行程导出或完整备份均可。',
+  'settings.data.importDone': '已导入 {count} 个行程',
+  'settings.data.importPartial': '导入中断 —— 失败前已保存 {count} 个行程',
+  'settings.data.importError': '无法导入该文件',
+  'settings.data.sample': '示例行程',
+  'settings.data.sampleHint': '用现成的行程体验规划器 —— 越南芽庄 3 日游。',
 };
 
 export default settings;

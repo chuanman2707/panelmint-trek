@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Skonfiguruj swoje ustawienia',
   'settings.tabs.display': 'Wygląd',
   'settings.tabs.map': 'Mapa',
+  'settings.tabs.data': 'Dane',
   'settings.tabs.about': 'O aplikacji',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Szablon mapy',
@@ -130,6 +131,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Automatycznie pokazuje na mapie trasę każdego lotu, pociągu i innej rezerwacji, bez konieczności włączania jej pojedynczo.',
 
+  'settings.data.title': 'Kopia zapasowa i przywracanie',
+  'settings.data.exportAll': 'Eksportuj wszystkie podróże',
+  'settings.data.exportAllHint':
+    'Pobierz wszystkie podróże z tego urządzenia w jednym pliku kopii zapasowej .panelmint.json.',
+  'settings.data.exportDone': 'Pobrano kopię zapasową',
+  'settings.data.exportEmpty': 'Nie ma jeszcze podróży do wyeksportowania',
+  'settings.data.exportError': 'Nie udało się wyeksportować podróży',
+  'settings.data.importFile': 'Importuj z pliku',
+  'settings.data.importFileHint':
+    'Dodaj podróże z pliku .panelmint.json — eksport jednej podróży lub pełną kopię zapasową.',
+  'settings.data.importDone': 'Zaimportowano podróży: {count}',
+  'settings.data.importPartial': 'Import przerwany — przed błędem zapisano podróży: {count}',
+  'settings.data.importError': 'Nie udało się zaimportować pliku',
+  'settings.data.sample': 'Przykładowa podróż',
+  'settings.data.sampleHint': 'Wypróbuj planer z gotowym planem — 3 dni w Nha Trang w Wietnamie.',
 };
 
 export default settings;

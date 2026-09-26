@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Konfigurieren Sie Ihre persönlichen Einstellungen',
   'settings.tabs.display': 'Allgemein',
   'settings.tabs.map': 'Karte',
+  'settings.tabs.data': 'Daten',
   'settings.tabs.about': 'Über',
   'settings.map': 'Karte',
   'settings.mapTemplate': 'Karten-Vorlage',
@@ -128,6 +129,20 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Zeigt die Route für jeden Flug, jede Zugfahrt und jede andere Buchung automatisch auf der Karte an – ohne sie einzeln aktivieren zu müssen.',
 
+  'settings.data.title': 'Sichern & wiederherstellen',
+  'settings.data.exportAll': 'Alle Reisen exportieren',
+  'settings.data.exportAllHint': 'Lade alle Reisen auf diesem Gerät als eine .panelmint.json-Sicherungsdatei herunter.',
+  'settings.data.exportDone': 'Sicherung heruntergeladen',
+  'settings.data.exportEmpty': 'Es gibt noch keine Reisen zu exportieren',
+  'settings.data.exportError': 'Deine Reisen konnten nicht exportiert werden',
+  'settings.data.importFile': 'Aus Datei importieren',
+  'settings.data.importFileHint':
+    'Füge Reisen aus einer .panelmint.json-Datei hinzu — ein einzelner Reiseexport oder ein vollständiges Backup.',
+  'settings.data.importDone': '{count} Reisen importiert',
+  'settings.data.importPartial': 'Import abgebrochen — {count} Reisen wurden vorher gespeichert',
+  'settings.data.importError': 'Die Datei konnte nicht importiert werden',
+  'settings.data.sample': 'Beispielreise',
+  'settings.data.sampleHint': 'Probiere den Planer mit einer fertigen Reiseroute aus — 3 Tage in Nha Trang, Vietnam.',
 };
 
 export default settings;

@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Ajuste suas preferências pessoais',
   'settings.tabs.display': 'Exibição',
   'settings.tabs.map': 'Mapa',
+  'settings.tabs.data': 'Dados',
   'settings.tabs.about': 'Sobre',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Modelo de mapa',
@@ -129,6 +130,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Mostra automaticamente no mapa a rota de cada voo, trem e outra reserva, sem precisar ativar item por item.',
 
+  'settings.data.title': 'Backup e restauração',
+  'settings.data.exportAll': 'Exportar todas as viagens',
+  'settings.data.exportAllHint':
+    'Baixe todas as viagens deste dispositivo em um único arquivo de backup .panelmint.json.',
+  'settings.data.exportDone': 'Backup baixado',
+  'settings.data.exportEmpty': 'Ainda não há viagens para exportar',
+  'settings.data.exportError': 'Não foi possível exportar suas viagens',
+  'settings.data.importFile': 'Importar de arquivo',
+  'settings.data.importFileHint':
+    'Adicione viagens de um arquivo .panelmint.json — a exportação de uma viagem ou um backup completo.',
+  'settings.data.importDone': '{count} viagens importadas',
+  'settings.data.importPartial': 'A importação parou — {count} viagens foram salvas antes da falha',
+  'settings.data.importError': 'Não foi possível importar o arquivo',
+  'settings.data.sample': 'Viagem de exemplo',
+  'settings.data.sampleHint': 'Experimente o planejador com um roteiro pronto — 3 dias em Nha Trang, Vietnã.',
 };
 
 export default settings;

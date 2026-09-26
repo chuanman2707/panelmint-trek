@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Atur pengaturan pribadimu',
   'settings.tabs.display': 'Tampilan',
   'settings.tabs.map': 'Peta',
+  'settings.tabs.data': 'Data',
   'settings.tabs.about': 'Tentang',
   'settings.map': 'Peta',
   'settings.mapTemplate': 'Template Peta',
@@ -129,6 +130,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Menampilkan rute setiap penerbangan, kereta, dan pemesanan lainnya di peta secara otomatis, tanpa perlu mengaktifkannya satu per satu.',
 
+  'settings.data.title': 'Cadangkan & pulihkan',
+  'settings.data.exportAll': 'Ekspor semua perjalanan',
+  'settings.data.exportAllHint':
+    'Unduh semua perjalanan di perangkat ini sebagai satu berkas cadangan .panelmint.json.',
+  'settings.data.exportDone': 'Cadangan diunduh',
+  'settings.data.exportEmpty': 'Belum ada perjalanan untuk diekspor',
+  'settings.data.exportError': 'Perjalanan Anda tidak dapat diekspor',
+  'settings.data.importFile': 'Impor dari berkas',
+  'settings.data.importFileHint':
+    'Tambahkan perjalanan dari berkas .panelmint.json — ekspor satu perjalanan atau cadangan lengkap.',
+  'settings.data.importDone': '{count} perjalanan diimpor',
+  'settings.data.importPartial': 'Impor berhenti — {count} perjalanan tersimpan sebelum gagal',
+  'settings.data.importError': 'Berkas tidak dapat diimpor',
+  'settings.data.sample': 'Perjalanan contoh',
+  'settings.data.sampleHint': 'Coba perencana dengan rencana perjalanan siap pakai — 3 hari di Nha Trang, Vietnam.',
 };
 
 export default settings;

@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Διαμορφώστε τις προσωπικές σας ρυθμίσεις',
   'settings.tabs.display': 'Εμφάνιση',
   'settings.tabs.map': 'Χάρτης',
+  'settings.tabs.data': 'Δεδομένα',
   'settings.tabs.about': 'Σχετικά',
   'settings.map': 'Χάρτης',
   'settings.mapTemplate': 'Πρότυπο Χάρτη',
@@ -131,6 +132,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Εμφανίζει αυτόματα στον χάρτη τη διαδρομή κάθε πτήσης, τρένου και άλλης κράτησης, χωρίς να χρειάζεται να την ενεργοποιείτε μία προς μία.',
 
+  'settings.data.title': 'Αντίγραφο ασφαλείας και επαναφορά',
+  'settings.data.exportAll': 'Εξαγωγή όλων των ταξιδιών',
+  'settings.data.exportAllHint':
+    'Κατεβάστε όλα τα ταξίδια αυτής της συσκευής σε ένα αρχείο αντιγράφου ασφαλείας .panelmint.json.',
+  'settings.data.exportDone': 'Το αντίγραφο ασφαλείας κατέβηκε',
+  'settings.data.exportEmpty': 'Δεν υπάρχουν ακόμη ταξίδια για εξαγωγή',
+  'settings.data.exportError': 'Δεν ήταν δυνατή η εξαγωγή των ταξιδιών σας',
+  'settings.data.importFile': 'Εισαγωγή από αρχείο',
+  'settings.data.importFileHint':
+    'Προσθέστε ταξίδια από αρχείο .panelmint.json — εξαγωγή ενός ταξιδιού ή πλήρες αντίγραφο ασφαλείας.',
+  'settings.data.importDone': 'Εισήχθησαν {count} ταξίδια',
+  'settings.data.importPartial': 'Η εισαγωγή σταμάτησε — αποθηκεύτηκαν {count} ταξίδια πριν από την αποτυχία',
+  'settings.data.importError': 'Δεν ήταν δυνατή η εισαγωγή του αρχείου',
+  'settings.data.sample': 'Δείγμα ταξιδιού',
+  'settings.data.sampleHint': 'Δοκιμάστε τον προγραμματιστή με έτοιμο δρομολόγιο — 3 ημέρες στο Να Τρανγκ του Βιετνάμ.',
 };
 
 export default settings;

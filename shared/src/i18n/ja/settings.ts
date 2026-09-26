@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': '個人設定を管理',
   'settings.tabs.display': '表示',
   'settings.tabs.map': '地図',
+  'settings.tabs.data': 'データ',
   'settings.tabs.about': '情報',
   'settings.map': '地図',
   'settings.mapTemplate': '地図テンプレート',
@@ -126,6 +127,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'フライトや電車などすべての予約のルートを、個別にオンにしなくても地図上に自動的に表示します。',
 
+  'settings.data.title': 'バックアップと復元',
+  'settings.data.exportAll': 'すべての旅行をエクスポート',
+  'settings.data.exportAllHint':
+    'このデバイス上のすべての旅行を 1 つの .panelmint.json バックアップファイルとしてダウンロードします。',
+  'settings.data.exportDone': 'バックアップをダウンロードしました',
+  'settings.data.exportEmpty': 'エクスポートする旅行がまだありません',
+  'settings.data.exportError': '旅行をエクスポートできませんでした',
+  'settings.data.importFile': 'ファイルからインポート',
+  'settings.data.importFileHint':
+    '.panelmint.json ファイルから旅行を追加します。単一の旅行エクスポートまたは完全なバックアップに対応。',
+  'settings.data.importDone': '{count} 件の旅行をインポートしました',
+  'settings.data.importPartial': 'インポートが中断されました。失敗する前に {count} 件が保存されました',
+  'settings.data.importError': 'ファイルをインポートできませんでした',
+  'settings.data.sample': 'サンプル旅行',
+  'settings.data.sampleHint': '完成済みの旅程でプランナーをお試しください — ベトナム・ニャチャンでの 3 日間。',
 };
 
 export default settings;

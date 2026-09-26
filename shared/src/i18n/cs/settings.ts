@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Upravte své osobní nastavení',
   'settings.tabs.display': 'Zobrazení',
   'settings.tabs.map': 'Mapa',
+  'settings.tabs.data': 'Data',
   'settings.tabs.about': 'O aplikaci',
   'settings.map': 'Mapy',
   'settings.mapTemplate': 'Šablona mapy',
@@ -129,6 +130,19 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Automaticky zobrazí na mapě trasu každého letu, vlaku a jiné rezervace, aniž byste ji museli zapínat jednotlivě.',
 
+  'settings.data.title': 'Zálohování a obnovení',
+  'settings.data.exportAll': 'Exportovat všechny cesty',
+  'settings.data.exportAllHint': 'Stáhněte všechny cesty na tomto zařízení jako jeden záložní soubor .panelmint.json.',
+  'settings.data.exportDone': 'Záloha stažena',
+  'settings.data.exportEmpty': 'Zatím tu nejsou žádné cesty k exportu',
+  'settings.data.exportError': 'Cesty se nepodařilo exportovat',
+  'settings.data.importFile': 'Importovat ze souboru',
+  'settings.data.importFileHint': 'Přidejte cesty ze souboru .panelmint.json — export jedné cesty nebo úplnou zálohu.',
+  'settings.data.importDone': 'Importováno cest: {count}',
+  'settings.data.importPartial': 'Import se zastavil — před selháním se uložilo cest: {count}',
+  'settings.data.importError': 'Soubor se nepodařilo importovat',
+  'settings.data.sample': 'Ukázková cesta',
+  'settings.data.sampleHint': 'Vyzkoušejte plánovač s připraveným itinerářem — 3 dny v Nha Trangu ve Vietnamu.',
 };
 
 export default settings;

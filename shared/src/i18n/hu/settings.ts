@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Személyes beállítások konfigurálása',
   'settings.tabs.display': 'Megjelenés',
   'settings.tabs.map': 'Térkép',
+  'settings.tabs.data': 'Adatok',
   'settings.tabs.about': 'Névjegy',
   'settings.map': 'Térkép',
   'settings.mapTemplate': 'Térkép sablon',
@@ -131,6 +132,21 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Automatikusan megjeleníti minden repülőjárat, vonat és egyéb foglalás útvonalát a térképen, nincs szükség egyenkénti bekapcsolásra.',
 
+  'settings.data.title': 'Biztonsági mentés és visszaállítás',
+  'settings.data.exportAll': 'Összes utazás exportálása',
+  'settings.data.exportAllHint':
+    'Töltse le az eszközön tárolt összes utazást egyetlen .panelmint.json mentési fájlként.',
+  'settings.data.exportDone': 'Mentés letöltve',
+  'settings.data.exportEmpty': 'Még nincs exportálható utazás',
+  'settings.data.exportError': 'Az utazások exportálása nem sikerült',
+  'settings.data.importFile': 'Importálás fájlból',
+  'settings.data.importFileHint':
+    'Adjon hozzá utazásokat .panelmint.json fájlból — egyetlen utazás exportja vagy teljes mentés.',
+  'settings.data.importDone': '{count} utazás importálva',
+  'settings.data.importPartial': 'Az importálás leállt — {count} utazás mentése sikerült a hiba előtt',
+  'settings.data.importError': 'A fájl importálása nem sikerült',
+  'settings.data.sample': 'Minta utazás',
+  'settings.data.sampleHint': 'Próbálja ki a tervezőt egy kész útitervvel — 3 nap Nha Trangban, Vietnamban.',
 };
 
 export default settings;

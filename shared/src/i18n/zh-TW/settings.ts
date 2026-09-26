@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': '配置你的個人設定',
   'settings.tabs.display': '顯示',
   'settings.tabs.map': '地圖',
+  'settings.tabs.data': '資料',
   'settings.tabs.about': '關於',
   'settings.map': '地圖',
   'settings.mapTemplate': '地圖模板',
@@ -13,7 +14,8 @@ const settings: TranslationStrings = {
   'settings.mapCartoKey': 'CARTO API 金鑰',
   'settings.mapCartoKeyHint': '沒有金鑰時 CARTO 底圖會顯示浮水印。免費且無需帳戶，來自',
   'settings.mapCartoKeyLink': 'carto.com 底圖 API 金鑰',
-  'settings.mapCartoKeyMissing': '此範本是 CARTO 底圖。沒有金鑰時，CARTO 會在每個圖磚上印上 "API KEY REQUIRED"。 在輸入金鑰之前，PanelMint 會顯示預設底圖。',
+  'settings.mapCartoKeyMissing':
+    '此範本是 CARTO 底圖。沒有金鑰時，CARTO 會在每個圖磚上印上 "API KEY REQUIRED"。 在輸入金鑰之前，PanelMint 會顯示預設底圖。',
   'settings.saveMap': '儲存地圖',
   'settings.colorMode': '顏色模式',
   'settings.light': '淺色',
@@ -113,7 +115,8 @@ const settings: TranslationStrings = {
   'settings.startPage': '啟動頁面',
   'settings.startPageDashboard': '儀表板',
   'settings.startPageActiveTrip': '進行中的旅行',
-  'settings.startPageHint': 'PanelMint 會直接開啟正在進行的旅行，沒有則開啟最近要開始的那次。與儀表板突顯的是同一次旅行。',
+  'settings.startPageHint':
+    'PanelMint 會直接開啟正在進行的旅行，沒有則開啟最近要開始的那次。與儀表板突顯的是同一次旅行。',
   'settings.startTripTab': '啟動分頁',
   'settings.startTripTabHint': '旅行開啟時所在的分頁。如果該分頁屬於已關閉的附加元件，則改為開啟計劃檢視。',
 
@@ -122,6 +125,19 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutes': '一律顯示訂票路線',
   'settings.alwaysShowRoutesHint': '自動在地圖上顯示每個航班、火車及其他預訂的路線,不需要逐一手動開啟。',
 
+  'settings.data.title': '備份與還原',
+  'settings.data.exportAll': '匯出所有旅程',
+  'settings.data.exportAllHint': '將此裝置上的所有旅程下載為一個 .panelmint.json 備份檔案。',
+  'settings.data.exportDone': '備份已下載',
+  'settings.data.exportEmpty': '尚無可匯出的旅程',
+  'settings.data.exportError': '無法匯出您的旅程',
+  'settings.data.importFile': '從檔案匯入',
+  'settings.data.importFileHint': '從 .panelmint.json 檔案加入旅程 —— 單一旅程匯出或完整備份均可。',
+  'settings.data.importDone': '已匯入 {count} 個旅程',
+  'settings.data.importPartial': '匯入中斷 —— 失敗前已儲存 {count} 個旅程',
+  'settings.data.importError': '無法匯入該檔案',
+  'settings.data.sample': '範例旅程',
+  'settings.data.sampleHint': '用現成的行程體驗規劃工具 —— 越南芽莊 3 日遊。',
 };
 
 export default settings;

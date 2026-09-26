@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': '개인 설정을 구성하세요',
   'settings.tabs.display': '화면',
   'settings.tabs.map': '지도',
+  'settings.tabs.data': '데이터',
   'settings.tabs.about': '정보',
   'settings.map': '지도',
   'settings.mapTemplate': '지도 템플릿',
@@ -127,6 +128,20 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     '항공편, 기차 등 모든 예약의 경로를 개별적으로 켤 필요 없이 지도에 자동으로 표시합니다.',
 
+  'settings.data.title': '백업 및 복원',
+  'settings.data.exportAll': '모든 여행보내기',
+  'settings.data.exportAllHint': '이 기기의 모든 여행을 하나의 .panelmint.json 백업 파일로 다운로드합니다.',
+  'settings.data.exportDone': '백업이 다운로드되었습니다',
+  'settings.data.exportEmpty': '아직보낼 여행이 없습니다',
+  'settings.data.exportError': '여행을보낼 수 없습니다',
+  'settings.data.importFile': '파일에서 가져오기',
+  'settings.data.importFileHint':
+    '.panelmint.json 파일에서 여행을 추가하세요. 단일 여행보내기 또는 전체 백업을 지원합니다.',
+  'settings.data.importDone': '여행 {count}개를 가져왔습니다',
+  'settings.data.importPartial': '가져오기가 중단되었습니다. 실패 전에 여행 {count}개가 저장되었습니다',
+  'settings.data.importError': '파일을 가져올 수 없습니다',
+  'settings.data.sample': '샘플 여행',
+  'settings.data.sampleHint': '완성된 일정으로 플래너를 사용해 보세요. 베트남 나트랑 3일 여행입니다.',
 };
 
 export default settings;

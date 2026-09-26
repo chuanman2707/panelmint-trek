@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Kişisel ayarlarınızı yapılandırın',
   'settings.tabs.display': 'Görünüm',
   'settings.tabs.map': 'Harita',
+  'settings.tabs.data': 'Veri',
   'settings.tabs.about': 'Hakkında',
   'settings.map': 'Harita',
   'settings.mapTemplate': 'Harita Şablonu',
@@ -130,6 +131,20 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Haritada her uçuş, tren ve diğer rezervasyonun rotasını, tek tek açmaya gerek kalmadan otomatik olarak gösterir.',
 
+  'settings.data.title': 'Yedekleme ve geri yükleme',
+  'settings.data.exportAll': 'Tüm gezileri dışa aktar',
+  'settings.data.exportAllHint': 'Bu cihazdaki tüm gezileri tek bir .panelmint.json yedek dosyası olarak indirin.',
+  'settings.data.exportDone': 'Yedek indirildi',
+  'settings.data.exportEmpty': 'Henüz dışa aktarılacak gezi yok',
+  'settings.data.exportError': 'Gezileriniz dışa aktarılamadı',
+  'settings.data.importFile': 'Dosyadan içe aktar',
+  'settings.data.importFileHint':
+    '.panelmint.json dosyasından geziler ekleyin — tek bir gezi dışa aktarımı veya tam yedek.',
+  'settings.data.importDone': '{count} gezi içe aktarıldı',
+  'settings.data.importPartial': 'İçe aktarma durdu — hata öncesinde {count} gezi kaydedildi',
+  'settings.data.importError': 'Dosya içe aktarılamadı',
+  'settings.data.sample': 'Örnek gezi',
+  'settings.data.sampleHint': 'Hazır bir rotayla planlayıcıyı deneyin — Vietnam Nha Trang’da 3 gün.',
 };
 
 export default settings;

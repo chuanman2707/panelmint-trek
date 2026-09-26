@@ -5,6 +5,7 @@ const settings: TranslationStrings = {
   'settings.subtitle': 'Configureer je persoonlijke instellingen',
   'settings.tabs.display': 'Weergave',
   'settings.tabs.map': 'Kaart',
+  'settings.tabs.data': 'Gegevens',
   'settings.tabs.about': 'Over',
   'settings.map': 'Kaart',
   'settings.mapTemplate': 'Kaartsjabloon',
@@ -129,6 +130,20 @@ const settings: TranslationStrings = {
   'settings.alwaysShowRoutesHint':
     'Toont automatisch de route van elke vlucht, trein en andere boeking op de kaart, zonder dat u dit per boeking hoeft in te schakelen.',
 
+  'settings.data.title': 'Back-up en herstel',
+  'settings.data.exportAll': 'Alle reizen exporteren',
+  'settings.data.exportAllHint': 'Download alle reizen op dit apparaat als één .panelmint.json-back-upbestand.',
+  'settings.data.exportDone': 'Back-up gedownload',
+  'settings.data.exportEmpty': 'Er zijn nog geen reizen om te exporteren',
+  'settings.data.exportError': 'Je reizen konden niet worden geëxporteerd',
+  'settings.data.importFile': 'Importeren uit bestand',
+  'settings.data.importFileHint':
+    'Voeg reizen toe uit een .panelmint.json-bestand — een enkele reisexport of een volledige back-up.',
+  'settings.data.importDone': '{count} reizen geïmporteerd',
+  'settings.data.importPartial': 'Import gestopt — {count} reizen zijn opgeslagen voordat het mislukte',
+  'settings.data.importError': 'Het bestand kon niet worden geïmporteerd',
+  'settings.data.sample': 'Voorbeeldreis',
+  'settings.data.sampleHint': 'Probeer de planner met een kant-en-klaar reisschema — 3 dagen in Nha Trang, Vietnam.',
 };
 
 export default settings;
