@@ -14,6 +14,7 @@ import type { DayRow, StoredAssignment } from '../../../src/api/local/dexieStore
 import { db, type LocalTripMember } from '../../../src/db/panelmintDb';
 import { buildBundle, decodeFromFile, type ShareBundle } from '../../../src/share/codec';
 import { saveBundle } from '../../../src/share/remap';
+import { expandFlightLegsForDay } from '../../../src/utils/dayMerge';
 import type { LocalUser, Reservation } from '../../../src/types';
 import {
   buildBudgetItem,
@@ -685,5 +686,115 @@ describe('saveBundle', () => {
     expect(await db.tripMembers.count()).toBe(0);
     expect((await db.localUsers.toArray()).map((u) => u.id)).toEqual([1]);
     expect(await db.categories.count()).toBe(0);
+  });
+
+  it('IMPORT-007 — JSON-string embeds (metadata legs, ticket parts) and external_* linkage are remapped or nulled', async () => {
+    const bundle = craftBundle({
+      users: [
+        { id: 55, name: 'Owner', is_self: 1 },
+        { id: 56, name: 'Ana', is_self: 0 },
+      ],
+      days: [
+        { id: 1, trip_id: 900, day_number: 1, date: '2025-06-01' },
+        { id: 2, trip_id: 900, day_number: 2, date: '2025-06-02' },
+      ],
+      reservations: [
+        {
+          id: 20,
+          trip_id: 900,
+          title: 'FRA→JFK→SFO',
+          status: 'confirmed',
+          type: 'flight',
+          day_id: 1,
+          end_day_id: 2,
+          // Two legs spanning the source days, plus a leg whose day is absent
+          // from the bundle — and a live AirTrail linkage that must not
+          // survive the import.
+          metadata: JSON.stringify({
+            legs: [
+              { dep_day_id: 1, arr_day_id: 1, dep_time: '10:00', arr_time: '11:00', from: 'FRA', to: 'JFK', day_positions: { '1': 2, '9': 7 } },
+              { dep_day_id: 2, arr_day_id: 2, dep_time: '13:00', arr_time: '15:00', from: 'JFK', to: 'SFO' },
+              { dep_day_id: 999, dep_time: '16:00', arr_time: '18:00', from: 'SFO', to: 'HNL' },
+            ],
+          }),
+          external_source: 'airtrail',
+          external_id: 'at-123',
+          external_owner_user_id: 999, // foreign — must not alias a local user
+          external_synced_at: '2025-01-01T00:00:00.000Z',
+          sync_enabled: 1,
+        },
+      ],
+      budgetItems: [
+        {
+          id: 40,
+          trip_id: 900,
+          category: 'food',
+          name: 'Dinner',
+          total_price: 40,
+          ticket_json: JSON.stringify({
+            items: [
+              { name: 'Salad', price: 12, parts: [55, 56, 999] }, // 999 dangles
+              { name: 'Steak', price: 28, parts: [56] },
+            ],
+          }),
+        },
+        {
+          id: 41,
+          trip_id: 900,
+          category: 'food',
+          name: 'Lunch',
+          total_price: 10,
+          // The pre-migration smuggle: the split hides in `note`.
+          note: 'TICKETJSON:{"items":[{"name":"Soup","price":10,"parts":[56]}]}',
+        },
+      ],
+    });
+
+    const newId = await saveBundle(bundle);
+    const days = await db.days.where('trip_id').equals(newId).sortBy('day_number');
+    const [nd1, nd2] = days as [DayRow, DayRow];
+
+    const res = (await db.reservations.where('trip_id').equals(newId).first())!;
+
+    // The hosted-sync linkage is dead — nulled like the trip-copy path.
+    expect(res.external_source).toBeNull();
+    expect(res.external_id).toBeNull();
+    expect(res.external_owner_user_id).toBeNull();
+    expect(res.external_synced_at).toBeNull();
+    expect(res.sync_enabled).toBe(0);
+
+    // Leg day ids + day_positions keys rode the day map; the dangling leg's
+    // dep_day_id is null (expandFlightLegsForDay falls back to the booking's
+    // own span rather than dropping it).
+    const meta = JSON.parse(res.metadata!) as {
+      legs: { dep_day_id: number | null; arr_day_id: number | null; day_positions?: Record<string, number> | null }[];
+    };
+    expect(meta.legs).toHaveLength(3);
+    expect(meta.legs[0].dep_day_id).toBe(nd1.id);
+    expect(meta.legs[0].arr_day_id).toBe(nd1.id);
+    expect(Object.keys(meta.legs[0].day_positions ?? {})).toEqual([String(nd1.id)]);
+    expect(meta.legs[1].dep_day_id).toBe(nd2.id);
+    expect(meta.legs[2].dep_day_id).toBeNull();
+
+    // The real reader: both mapped legs expand onto their days — nothing is
+    // filtered out by a foreign id ordering to 0.
+    const getOrder = (id: number) => days.find((d) => d.id === id)?.day_number ?? 0;
+    const legsOnDay1 = expandFlightLegsForDay(res, nd1.id, getOrder, days);
+    // Leg 0 (dep=nd1) + leg 2 (dangling dep → falls back to res.day_id=nd1).
+    expect(legsOnDay1.filter((l) => l.__leg)).toHaveLength(2);
+    const legsOnDay2 = expandFlightLegsForDay(res, nd2.id, getOrder, days);
+    expect(legsOnDay2.filter((l) => l.__leg)).toHaveLength(1);
+
+    // ticket_json parts remapped — 55→1 (self), 56→Ana's guest row, 999 dropped.
+    const dinner = (await db.budgetItems.where('trip_id').equals(newId).toArray()).find((b) => b.name === 'Dinner')!;
+    const ana = (await db.localUsers.toArray()).find((u) => u.name === 'Ana')!;
+    const ticket = JSON.parse(dinner.ticket_json!) as { items: { name: string; parts: number[] }[] };
+    expect(ticket.items[0].parts.sort()).toEqual([1, ana.id].sort());
+    expect(ticket.items[1].parts).toEqual([ana.id]);
+
+    // Same remap inside the TICKETJSON: note smuggle.
+    const lunch = (await db.budgetItems.where('trip_id').equals(newId).toArray()).find((b) => b.name === 'Lunch')!;
+    const noteTicket = JSON.parse(lunch.note!.slice('TICKETJSON:'.length)) as { items: { parts: number[] }[] };
+    expect(noteTicket.items[0].parts).toEqual([ana.id]);
   });
 });

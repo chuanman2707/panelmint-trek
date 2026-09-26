@@ -16,6 +16,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Link de compartilhamento copiado — quem o tiver pode importar uma cópia desta viagem',
   'share.tooBigForLink': 'Esta viagem é grande demais para um link — um arquivo .panelmint.json foi baixado em vez disso',
   'share.copyFailed': 'Não foi possível criar o link de compartilhamento',
+  'share.link': 'Link de compartilhamento',
+  'share.linkSub': 'Copie um link que importa uma cópia desta viagem',
   'import.title': 'Importar viagem',
   'import.subtitle': 'Uma cópia da viagem compartilhada é salva neste dispositivo — sua própria versão, totalmente editável.',
   'import.loading': 'Lendo a viagem compartilhada…',

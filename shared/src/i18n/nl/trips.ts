@@ -16,6 +16,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Deellink gekopieerd — iedereen met de link kan een kopie van deze reis importeren',
   'share.tooBigForLink': 'Deze reis is te groot voor een link — er is een .panelmint.json-bestand gedownload',
   'share.copyFailed': 'De deellink kon niet worden gemaakt',
+  'share.link': 'Deellink',
+  'share.linkSub': 'Kopieer een link die een kopie van deze reis importeert',
   'import.title': 'Reis importeren',
   'import.subtitle': 'Een kopie van de gedeelde reis wordt op dit apparaat opgeslagen — je eigen versie, volledig aanpasbaar.',
   'import.loading': 'Gedeelde reis wordt gelezen…',

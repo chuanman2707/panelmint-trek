@@ -16,6 +16,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Delningslänken har kopierats — alla som har den kan importera en kopia av resan',
   'share.tooBigForLink': 'Resan är för stor för en länk — en .panelmint.json-fil laddades ner i stället',
   'share.copyFailed': 'Det gick inte att skapa delningslänken',
+  'share.link': 'Delningslänk',
+  'share.linkSub': 'Kopiera en länk som importerar en kopia av resan',
   'import.title': 'Importera resa',
   'import.subtitle': 'En kopia av den delade resan sparas på den här enheten — din egen version, helt redigerbar.',
   'import.loading': 'Läser den delade resan…',

@@ -15,6 +15,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Paylaşım bağlantısı kopyalandı — bağlantıya sahip olan herkes bu seyahatin bir kopyasını içe aktarabilir',
   'share.tooBigForLink': 'Bu seyahat bir bağlantı için çok büyük — bunun yerine bir .panelmint.json dosyası indirildi',
   'share.copyFailed': 'Paylaşım bağlantısı oluşturulamadı',
+  'share.link': 'Paylaşım bağlantısı',
+  'share.linkSub': 'Bu gezinin bir kopyasını içe aktaran bir bağlantı kopyalayın',
   'import.title': 'Seyahat içe aktar',
   'import.subtitle': 'Paylaşılan seyahatin bir kopyası bu cihaza kaydedilir — tamamen düzenlenebilir kendi sürümünüz.',
   'import.loading': 'Paylaşılan seyahat okunuyor…',

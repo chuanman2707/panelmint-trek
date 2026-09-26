@@ -101,6 +101,93 @@ function pushTo<K>(map: Map<K, Set<number>>, key: K, value: number): void {
   set.add(value);
 }
 
+// ── JSON-string embeds ─────────────────────────────────────────────────────
+// Two columns smuggle structured data inside a JSON string. Their inner ids
+// are foreign too — carrying them verbatim would either dangle or, worse,
+// alias an unrelated local row.
+
+/** `reservations.metadata.legs[]` carry `dep_day_id`/`arr_day_id` and per-leg
+ *  `day_positions` keys — foreign day ids. `expandFlightLegsForDay` looks them
+ *  up against the imported trip's days; a foreign id orders to 0, which drops
+ *  every leg — a shared multi-leg booking would vanish from every day. Remap
+ *  each id (dangling → null, so the leg falls back to the reservation's own
+ *  remapped `day_id`/`end_day_id` span instead of disappearing). */
+function remapReservationMetadata(raw: string | null | undefined, maps: IdMaps): string | null | undefined {
+  if (raw == null) return raw;
+  let meta: unknown;
+  try {
+    meta = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  // The readers already heal a double-encoded metadata string — decode it so
+  // the legs are reachable, then the write-back stores the clean single
+  // encoding.
+  if (typeof meta === 'string') {
+    try {
+      meta = JSON.parse(meta);
+    } catch {
+      return raw;
+    }
+  }
+  if (!meta || typeof meta !== 'object' || !Array.isArray((meta as { legs?: unknown }).legs)) return raw;
+  const legs = (meta as { legs: unknown[] }).legs.map((leg) => {
+    if (!leg || typeof leg !== 'object') return leg;
+    const l = leg as Record<string, unknown>;
+    const next: Record<string, unknown> = {
+      ...l,
+      dep_day_id: mapId(maps.days, l.dep_day_id as number | null | undefined),
+      arr_day_id: mapId(maps.days, l.arr_day_id as number | null | undefined),
+    };
+    if (l.day_positions && typeof l.day_positions === 'object') {
+      const positions: Record<string, number> = {};
+      for (const [dayId, position] of Object.entries(l.day_positions)) {
+        const mapped = maps.days.get(Number(dayId));
+        if (mapped !== undefined && typeof position === 'number') positions[String(mapped)] = position;
+      }
+      next.day_positions = Object.keys(positions).length > 0 ? positions : null;
+    }
+    return next;
+  });
+  return JSON.stringify({ ...(meta as Record<string, unknown>), legs });
+}
+
+/** `budget_items.ticket_json` (and the legacy `note` prefix) serializes the
+ *  receipt split as `{items: [{name, price, parts: [user_id…]}]}` — the parts
+ *  are foreign user ids that readers compare against member `user_id`s.
+ *  Remap them; dangling ids drop out of the split rather than pointing at a
+ *  stranger. */
+function remapTicketJson(raw: string | null | undefined, maps: IdMaps): string | null | undefined {
+  if (raw == null) return raw;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray((parsed as { items?: unknown }).items)) return raw;
+  const items = (parsed as { items: unknown[] }).items.map((line) => {
+    if (!line || typeof line !== 'object') return line;
+    const l = line as Record<string, unknown>;
+    if (!Array.isArray(l.parts)) return l;
+    const parts = new Set<number>();
+    for (const uid of l.parts) {
+      const mapped = typeof uid === 'number' ? maps.users.get(uid) : undefined;
+      if (mapped !== undefined) parts.add(mapped);
+    }
+    return { ...l, parts: [...parts] };
+  });
+  return JSON.stringify({ ...(parsed as Record<string, unknown>), items });
+}
+
+/** The pre-migration-186 smuggle: `note` carries the ticket split as a
+ *  `TICKETJSON:`-prefixed JSON string. */
+const TICKET_NOTE_PREFIX = 'TICKETJSON:';
+function remapTicketNote(raw: string | null | undefined, maps: IdMaps): string | null | undefined {
+  if (raw == null || !raw.startsWith(TICKET_NOTE_PREFIX)) return raw;
+  return TICKET_NOTE_PREFIX + (remapTicketJson(raw.slice(TICKET_NOTE_PREFIX.length), maps) ?? '');
+}
+
 // ── Roster ─────────────────────────────────────────────────────────────────
 
 /**
@@ -477,6 +564,18 @@ function importReservations(store: DexieStore, bundle: ShareBundle, maps: IdMaps
       // keys are the day ids: remapped, dangling entries dropped; an emptied
       // map stores null, the shape the writers always use.
       day_positions: Object.keys(dayPositions).length > 0 ? dayPositions : null,
+      // metadata.legs carry foreign dep/arr day ids — remapped inside the
+      // JSON string.
+      metadata: remapReservationMetadata(r.metadata, maps),
+      // The external_*/sync columns mark linkage to a hosted sync account that
+      // cannot exist on this device — a foreign external_owner_user_id would
+      // alias a real local user. Nulled, the same columns the trip-copy path
+      // drops (api/local/trips.ts).
+      external_id: null,
+      external_source: null,
+      external_owner_user_id: null,
+      external_synced_at: null,
+      sync_enabled: 0,
       endpoints,
       // The travelers embed is not persisted — reservationWire rebuilds it
       // from the junction rows written above (same as the participants embed
@@ -538,6 +637,11 @@ function importBudget(store: DexieStore, bundle: ShareBundle, maps: IdMaps, trip
       reservation_id: mapId(maps.reservations, b.reservation_id),
       place_id: mapId(maps.places, b.place_id),
       paid_by_user_id: mapId(maps.users, b.paid_by_user_id),
+      // The receipt split embeds foreign user ids — remap inside the JSON
+      // string (and its pre-migration `TICKETJSON:` note smuggle) or an
+      // itemized share lands on whoever holds that id locally.
+      ticket_json: remapTicketJson(b.ticket_json, maps),
+      note: remapTicketNote(b.note, maps),
       members,
       payers,
     } as BudgetItem);

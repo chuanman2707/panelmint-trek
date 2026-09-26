@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
-import { ChevronRight, FileDown } from 'lucide-react'
+import { ChevronRight, FileDown, Link2 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useTranslation } from '../../../../i18n'
-import { downloadTripFile } from '../../../../share/actions'
+import { downloadTripFile, shareTripLink } from '../../../../share/actions'
 import { INNER_CLS, TileHeader } from './MTripSheetUi'
 import type { MTripSheetsProps } from '../MTripShell'
 import type { LucideIcon } from 'lucide-react'
@@ -10,12 +10,32 @@ import type { LucideIcon } from 'lucide-react'
 /**
  * Export sheet ('export', opened from the Mehr sheet). The hosted formats — ICS
  * download/subscribe, GPX, the server-rendered PDF — are cut in the local build.
- * The remaining row is the file export: the share codec (`src/share/codec.ts`)
- * packs the trip into a `.panelmint.json` the /import page can read back.
+ * What remains are the two ways a trip leaves the device: the share link
+ * (`/import?d=`, clipboard-copied, falling back to the file past the URL cap)
+ * and the `.panelmint.json` download — both pack the trip through the share
+ * codec (`src/share/codec.ts`).
  */
 export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const { t } = useTranslation()
   const open = shell.sheet?.id === 'export'
+
+  const shareLink = async () => {
+    if (!planner.trip) return
+    try {
+      const outcome = await shareTripLink(planner.trip.id, planner.trip.title)
+      // The sheet mirrors the desktop toast dispatch — a refused copy keeps it
+      // open so the row can be retried.
+      if (outcome === 'copied') planner.toast.success(t('share.copied'))
+      else if (outcome === 'file') planner.toast.info(t('share.tooBigForLink'))
+      else {
+        planner.toast.error(t('share.copyFailed'))
+        return
+      }
+      shell.closeSheet()
+    } catch (err: unknown) {
+      planner.toast.error(err instanceof Error ? err.message : t('share.copyFailed'))
+    }
+  }
 
   const exportFile = async () => {
     if (!planner.trip) return
@@ -41,6 +61,12 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-3">
         <div className="flex flex-col gap-2">
+          <ExportRow
+            icon={Link2}
+            title={t('share.link')}
+            sub={t('share.linkSub')}
+            onClick={shareLink}
+          />
           <ExportRow
             icon={FileDown}
             title={t('dayplan.exportFile')}

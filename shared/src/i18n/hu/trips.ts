@@ -16,6 +16,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Megosztási link másolva — akinek megvan, importálhatja az utazás egy példányát',
   'share.tooBigForLink': 'Ez az utazás túl nagy egy linkhez — helyette egy .panelmint.json fájl lett letöltve',
   'share.copyFailed': 'A megosztási link nem hozható létre',
+  'share.link': 'Megosztási link',
+  'share.linkSub': 'Másolja a linket, amely importálja az utazás egy példányát',
   'import.title': 'Utazás importálása',
   'import.subtitle': 'A megosztott utazás egy példánya mentődik erre az eszközre — a saját, teljesen szerkeszthető változata.',
   'import.loading': 'A megosztott utazás beolvasása…',

@@ -15,6 +15,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Tautan berbagi tersalin — siapa pun yang memilikinya dapat mengimpor salinan perjalanan ini',
   'share.tooBigForLink': 'Perjalanan ini terlalu besar untuk tautan — file .panelmint.json telah diunduh sebagai gantinya',
   'share.copyFailed': 'Tautan berbagi tidak dapat dibuat',
+  'share.link': 'Tautan berbagi',
+  'share.linkSub': 'Salin tautan yang mengimpor salinan perjalanan ini',
   'import.title': 'Impor perjalanan',
   'import.subtitle': 'Salinan perjalanan yang dibagikan disimpan ke perangkat ini — versi milikmu sendiri, dapat diedit sepenuhnya.',
   'import.loading': 'Membaca perjalanan yang dibagikan…',

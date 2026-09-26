@@ -15,6 +15,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Đã sao chép liên kết chia sẻ — bất kỳ ai có nó đều có thể nhập một bản sao của chuyến đi này',
   'share.tooBigForLink': 'Chuyến đi này quá lớn cho một liên kết — đã tải xuống tệp .panelmint.json thay thế',
   'share.copyFailed': 'Không thể tạo liên kết chia sẻ',
+  'share.link': 'Liên kết chia sẻ',
+  'share.linkSub': 'Sao chép liên kết nhập một bản sao của chuyến đi này',
   'import.title': 'Nhập chuyến đi',
   'import.subtitle': 'Một bản sao của chuyến đi được chia sẻ sẽ lưu vào thiết bị này — phiên bản riêng của bạn, chỉnh sửa thoải mái.',
   'import.loading': 'Đang đọc chuyến đi được chia sẻ…',

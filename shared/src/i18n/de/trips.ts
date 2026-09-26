@@ -16,6 +16,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Freigabelink kopiert — alle, die ihn haben, können eine Kopie dieser Reise importieren',
   'share.tooBigForLink': 'Diese Reise ist zu groß für einen Freigabelink — stattdessen wurde eine .panelmint.json-Datei heruntergeladen',
   'share.copyFailed': 'Der Freigabelink konnte nicht erstellt werden',
+  'share.link': 'Freigabelink',
+  'share.linkSub': 'Link kopieren — wer ihn hat, kann eine Kopie dieser Reise importieren',
   'import.title': 'Reise importieren',
   'import.subtitle': 'Eine Kopie der geteilten Reise wird auf diesem Gerät gespeichert — deine eigene, frei bearbeitbare Version.',
   'import.loading': 'Geteilte Reise wird gelesen…',

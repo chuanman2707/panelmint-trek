@@ -15,6 +15,8 @@ const trips: TranslationStrings = {
   'share.copied': '分享連結已複製——任何持有該連結的人都可以匯入此行程的副本',
   'share.tooBigForLink': '此行程太大，無法放入連結——已改為下載 .panelmint.json 檔案',
   'share.copyFailed': '無法建立分享連結',
+  'share.link': '分享連結',
+  'share.linkSub': '複製可匯入此行程副本的連結',
   'import.title': '匯入行程',
   'import.subtitle': '共享行程的副本將儲存到這台裝置——屬於你自己的、可完全編輯的版本。',
   'import.loading': '正在讀取共享的行程…',

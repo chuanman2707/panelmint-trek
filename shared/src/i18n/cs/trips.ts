@@ -15,6 +15,8 @@ const trips: TranslationStrings = {
   'share.copied': 'Odkaz pro sdílení zkopírován — každý, kdo ho má, může importovat kopii této cesty',
   'share.tooBigForLink': 'Tato cesta je pro odkaz příliš velká — místo toho byl stažen soubor .panelmint.json',
   'share.copyFailed': 'Odkaz pro sdílení se nepodařilo vytvořit',
+  'share.link': 'Odkaz ke sdílení',
+  'share.linkSub': 'Zkopírujte odkaz, který importuje kopii tohoto výletu',
   'import.title': 'Importovat cestu',
   'import.subtitle': 'Kopie sdílené cesty se uloží do tohoto zařízení — vaše vlastní, plně upravitelná verze.',
   'import.loading': 'Načítání sdílené cesty…',
