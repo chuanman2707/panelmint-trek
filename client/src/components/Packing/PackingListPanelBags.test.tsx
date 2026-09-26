@@ -6,10 +6,11 @@
  * The numbers used to be summed in the browser over the privacy-filtered item
  * list, so a bag shared with someone whose personal items you cannot see read
  * lighter than it was — and that figure is what gets measured against an
- * airline's weight limit. The server now sends the real total; these tests pin
- * that the panels show it, that the "no bag" pile and the grand total follow
- * the same rule, and that offline they fall back to the honest partial sum
- * rather than a frozen absolute one.
+ * airline's weight limit. The local adapter computes the real total over every
+ * row on the trip and sends it on the bag; these tests pin that the panels
+ * show it, that the "no bag" pile and the grand total follow the same rule,
+ * and that a missing field falls back to the local sum while a real 0 does
+ * not.
  */
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within } from '../../../tests/helpers/render'
@@ -33,7 +34,6 @@ function buildState(over: Partial<PackingState> = {}): PackingState {
     canEdit: false,
     currentUserId: 1,
     unassignedWeightGrams: 500,
-    serverWeightsFresh: true,
     handleDeleteBag: vi.fn(),
     handleUpdateBag: vi.fn(),
     handleSetBagMembers: vi.fn(),
@@ -67,12 +67,14 @@ describe('bag weights on the packing panels (#2191)', () => {
     expect(screen.getByText('1.0 kg')).toBeInTheDocument()
   })
 
-  it('FE-COMP-BAGWEIGHT-004: offline it falls back to summing what is visible', () => {
-    // The server totals are frozen at the last online read and blind to the
-    // mutation queue, so an honest partial number beats a stale absolute one.
-    render(<BagSidebar {...buildState({ serverWeightsFresh: false })} />)
-    expect(screen.getByText('300 g')).toBeInTheDocument()
-    expect(screen.queryByText('1.0 kg')).not.toBeInTheDocument()
+  it('FE-COMP-BAGWEIGHT-004: an empty bag reads 0 g rather than the visible sum', () => {
+    // There is no offline fallback branch anymore — the adapter total is
+    // always fresh. The remaining edge is the explicit null check: a real
+    // total_weight_grams of 0 must not fall through to summing visible items.
+    const bags = [{ ...buildState().bags[0], total_weight_grams: 0 }]
+    render(<BagSidebar {...buildState({ bags })} />)
+    expect(screen.getByText('0 g')).toBeInTheDocument()
+    expect(screen.queryByText('300 g')).not.toBeInTheDocument()
   })
 
   it('FE-COMP-BAGWEIGHT-005: a bag from before the field falls back to the local sum', () => {

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, Copy, HandHelping, Share2, UserRound, Users } from 'lucide-react'
+import { Copy } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
-import { avatarSrc } from '../../../../utils/avatarSrc'
-import type { PackingItem, TripMember } from '../../../../types'
+import type { PackingItem } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { isPackingPlaceholder } from './listsModel'
 
@@ -13,21 +12,18 @@ export interface MPackItemSheetProps {
   /** The row re-derives the live item by id each render (WebSocket-safe), like MTransportSheet. */
   itemId: number | null
   bagTrackingEnabled: boolean
-  tripMembers: TripMember[]
-  currentUserId: number | null
   onClose: () => void
 }
 
 /**
  * Item editor (spec 03 §4.4 `r.edit`): name, quantity, weight (bag-tracking
- * only) and the three-tier sharing control (#858) — Common / Personal /
- * Shared-with-picker for the owner, a "bring it too" pledge + clone for a
- * non-owner viewing a Common item, or a read-only note for a recipient.
+ * only) and a duplicate action. The three-tier sharing control went away with
+ * the hosted collaboration model — a local list has nobody to share with.
  * Category and bag stay on the row itself (colour dot / bag picker), not
  * duplicated here.
  */
 export default function MPackItemSheet({
-  planner, open, itemId, bagTrackingEnabled, tripMembers, currentUserId, onClose,
+  planner, open, itemId, bagTrackingEnabled, onClose,
 }: MPackItemSheetProps) {
   const { t, toast, tripId, tripActions } = planner
 
@@ -42,7 +38,7 @@ export default function MPackItemSheet({
   const [saving, setSaving] = useState(false)
 
   // Keyed on the item id, not the object: packingSlice swaps the object on every
-  // update, and a WebSocket refresh must not overwrite what is being typed.
+  // update, and a refresh must not overwrite what is being typed.
   const heldId = item?.id
   useEffect(() => {
     if (!open || !item) return
@@ -57,27 +53,7 @@ export default function MPackItemSheet({
   }
 
   const isPlaceholder = isPackingPlaceholder(item)
-  const isCommon = !item.is_private
-  const isOwner = item.owner_id == null || item.owner_id === currentUserId
-  const recipientIds = (item.recipients || []).map(r => r.user_id)
-  const visibility: 'common' | 'personal' | 'shared' = isCommon ? 'common' : recipientIds.length > 0 ? 'shared' : 'personal'
-  const iAmContributor = (item.contributors || []).some(c => c.user_id === currentUserId)
-  const others = tripMembers.filter(m => m.id !== item.owner_id && m.id !== currentUserId)
 
-  const setSharing = (nextVisibility: 'common' | 'personal' | 'shared', nextRecipients: number[]) => {
-    tripActions.setPackingItemSharing(tripId, item.id, nextVisibility, nextRecipients)
-  }
-  const toggleRecipient = (userId: number) => {
-    const next = recipientIds.includes(userId) ? recipientIds.filter(id => id !== userId) : [...recipientIds, userId]
-    setSharing('shared', next)
-  }
-  const toggleContribute = () => {
-    if (iAmContributor) {
-      if (currentUserId != null) tripActions.removePackingContributor(tripId, item.id, currentUserId)
-    } else {
-      tripActions.addPackingContributor(tripId, item.id)
-    }
-  }
   const cloneItem = () => {
     tripActions.clonePackingItem(tripId, item.id)
     onClose()
@@ -101,11 +77,6 @@ export default function MPackItemSheet({
       setSaving(false)
     }
   }
-
-  const pillCls = (active: boolean) =>
-    `flex flex-1 items-center justify-center gap-[6px] rounded-full px-3 py-[9px] text-[0.75rem] font-semibold ${
-      active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
-    }`
 
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={t('packing.editItem')}>
@@ -153,79 +124,14 @@ export default function MPackItemSheet({
         </div>
 
         {!isPlaceholder && (
-          <>
-            <Eyebrow className="mb-[6px] mt-4 uppercase">{t('packing.share')}</Eyebrow>
-
-            {!isOwner && isCommon && (
-              <div className="rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
-                {item.owner_username && (
-                  <div className="mb-[9px] font-geist text-[0.6875rem] text-m-muted">
-                    {t('packing.broughtBy', { name: item.owner_username })}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <button type="button" onClick={toggleContribute} className={pillCls(iAmContributor)}>
-                    <HandHelping size={13} strokeWidth={2} />
-                    {iAmContributor ? t('packing.alsoBringingStop') : t('packing.alsoBring')}
-                  </button>
-                  <button type="button" onClick={cloneItem} className={pillCls(false)}>
-                    <Copy size={13} strokeWidth={2} />
-                    {t('packing.cloneToMine')}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {!isOwner && !isCommon && (
-              <div className="rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.6875rem] text-m-muted">
-                {item.owner_username ? t('packing.takenCareOf', { name: item.owner_username }) : t('packing.tierPersonalHint')}
-              </div>
-            )}
-
-            {isOwner && (
-              <div className="flex flex-col gap-[6px]">
-                <div className="flex gap-[6px]">
-                  <button type="button" onClick={() => setSharing('common', [])} className={pillCls(visibility === 'common')}>
-                    <Users size={13} strokeWidth={2} />
-                    {t('packing.viewCommon')}
-                  </button>
-                  <button type="button" onClick={() => setSharing('personal', [])} className={pillCls(visibility === 'personal')}>
-                    <UserRound size={13} strokeWidth={2} />
-                    {t('packing.tierPersonal')}
-                  </button>
-                </div>
-
-                <div className="mt-1 flex items-center gap-[5px] font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">
-                  <Share2 size={11} strokeWidth={2.2} />
-                  {t('packing.tierShared')}
-                </div>
-                <div className="flex flex-col gap-1 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[6px]">
-                  {others.length === 0 ? (
-                    <div className="px-2 py-1 font-geist text-[0.6875rem] text-m-faint">{t('packing.noOneToShare')}</div>
-                  ) : (
-                    others.map(m => {
-                      const on = recipientIds.includes(m.id)
-                      const src = m.avatar_url || avatarSrc(m.avatar)
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => toggleRecipient(m.id)}
-                          className="flex items-center gap-[8px] rounded-[9px] px-[8px] py-[7px] text-left"
-                        >
-                          <span className="flex h-[22px] w-[22px] flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.625rem] font-bold text-m-actfg">
-                            {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : m.username[0]?.toUpperCase()}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{m.username}</span>
-                          {on && <Check size={14} strokeWidth={2.4} className="flex-none text-m-ink" />}
-                        </button>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </>
+          <button
+            type="button"
+            onClick={cloneItem}
+            className="mt-4 flex w-full items-center justify-center gap-[6px] rounded-full bg-[color:var(--m-ic)] px-3 py-[9px] text-[0.75rem] font-semibold text-m-muted"
+          >
+            <Copy size={13} strokeWidth={2} />
+            {t('packing.cloneToMine')}
+          </button>
         )}
       </div>
 

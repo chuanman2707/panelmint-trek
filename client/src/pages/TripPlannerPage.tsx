@@ -18,7 +18,6 @@ import TripFormModal from '../components/Trips/TripFormModal'
 import SlidingTabs from '../components/shared/SlidingTabs'
 import { ReservationModal } from '../components/Planner/ReservationModal'
 // MemoriesPanel moved to Journey addon
-import ApplyTemplateButton from '../components/Packing/ApplyTemplateButton'
 import type { ExpensePrefill } from '../components/Budget/CostsPanel'
 import type { BookingExpenseRequest } from '../components/Planner/BookingCostsSection.types'
 import type { BudgetItem } from '../types'
@@ -37,7 +36,7 @@ import { useRouteCalculation } from '../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../hooks/usePlannerHistory'
 import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
-import { ListTodo, Download, Plus, Trash2, FolderPlus } from 'lucide-react'
+import { ListTodo, Plus, Trash2 } from 'lucide-react'
 import { useTripPlanner } from './tripPlanner/useTripPlanner'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import { useMergedMapPois } from '../components/Map/useMergedMapPois'
@@ -104,13 +103,9 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
     return (sessionStorage.getItem(`trip-lists-subtab-${tripId}`) as 'packing' | 'todo') || 'packing'
   })
   const setSubTabPersist = (tab: 'packing' | 'todo') => { setSubTab(tab); sessionStorage.setItem(`trip-lists-subtab-${tripId}`, tab) }
-  const [importPackingSignal, setImportPackingSignal] = useState(0)
   const [clearCheckedSignal, setClearCheckedSignal] = useState(0)
-  const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [addTodoSignal, setAddTodoSignal] = useState(0)
-  const [packingView, setPackingView] = useState<'common' | 'personal'>('common')
   const { t } = useTranslation()
-  const isAdmin = useAuthStore(s => s.user?.role === 'admin')
 
   const tabs = [
     { id: 'packing' as const, label: t('todo.subtab.packing'), icon: PackageCheck, count: packingItems.length },
@@ -174,28 +169,6 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                     <span>{t('packing.clearChecked', { count: packingAbgehakt })}</span>
                   </button>
                 )}
-                <ApplyTemplateButton
-                  tripId={tripId}
-                  visibility={packingView}
-                  className={`${sharedBtnClass} bg-accent text-accent-text`}
-                  style={sharedBtnStyle}
-                />
-                {isAdmin && packingItems.length > 0 && (
-                  <button type="button" onClick={() => setSaveTemplateSignal(s => s + 1)}
-                    className={`${sharedBtnClass} bg-accent text-accent-text`}
-                    style={sharedBtnStyle}
-                  >
-                    <FolderPlus size={14} strokeWidth={2.5} />
-                    <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
-                  </button>
-                )}
-                <button type="button" onClick={() => setImportPackingSignal(s => s + 1)}
-                  className={`${sharedBtnClass} bg-accent text-accent-text`}
-                  style={sharedBtnStyle}
-                >
-                  <Download size={14} strokeWidth={2.5} />
-                  <span className="hidden sm:inline">{t('packing.import')}</span>
-                </button>
               </div>
             )
           })()}
@@ -219,7 +192,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
       <div style={{ padding: '16px 28px 0' }} className="max-md:!px-4">
         {subTab === 'packing' && (
           <LazyPanel id="packing">
-            <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />
+            <PackingListPanel tripId={tripId} items={packingItems} clearCheckedSignal={clearCheckedSignal} inlineHeader={false} />
           </LazyPanel>
         )}
         {subTab === 'todo' && (

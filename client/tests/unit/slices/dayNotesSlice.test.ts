@@ -1,61 +1,64 @@
 import 'fake-indexeddb/auto';
-import { describe, it, expect, beforeEach } from 'vitest';
-import { http, HttpResponse } from 'msw';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useTripStore } from '../../../src/store/tripStore';
-import { resetAllStores, seedStore } from '../../helpers/store';
+import { seedStore } from '../../helpers/store';
 import { buildDay, buildDayNote, buildTrip } from '../../helpers/factories';
-import { server } from '../../helpers/msw/server';
 import { db } from '../../../src/db/panelmintDb';
+import { dayNotesApi } from '../../../src/api/client';
+import { LocalApiError } from '../../../src/api/local/helpers';
 import type { DayRow } from '../../../src/api/local/dexieStore';
+import type { DayNote } from '../../../src/types';
 
-beforeEach(async () => {
-  resetAllStores();
+/** Clean panelmint db + the self roster row. */
+async function resetDb() {
   await db.transaction('rw', db.tables, async () => {
     for (const t of db.tables) await t.clear();
   });
   await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+}
+
+/** Trip 1 plus day rows (ids given), each embedding the given notes. */
+async function seedTripWithDays(dayIds: number[], notesByDay: Record<number, DayNote[]> = {}) {
+  await db.trips.put(buildTrip({ id: 1 }));
+  await db.days.bulkPut(dayIds.map((id) => ({
+    ...buildDay({ id, trip_id: 1 }),
+    notes_items: notesByDay[id] ?? [],
+    vias: [],
+  })) as DayRow[]);
+}
+
+beforeEach(resetDb);
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('dayNotesSlice', () => {
   describe('addDayNote', () => {
-    it('FE-DAYNOTES-001: addDayNote inserts temp note immediately, replaces on success', async () => {
+    it('FE-DAYNOTES-001: addDayNote inserts a temp note and replaces it with the stored one', async () => {
       seedStore(useTripStore, { dayNotes: { '1': [] } });
-
-      let tempAdded = false;
-      const realNote = buildDayNote({ id: 500, day_id: 1, text: 'New note' });
-
-      server.use(
-        http.post('/api/trips/1/days/1/notes', async () => {
-          const state = useTripStore.getState();
-          const notes = state.dayNotes['1'];
-          if (notes.some(n => n.id < 0)) {
-            tempAdded = true;
-          }
-          return HttpResponse.json({ note: realNote });
-        }),
-      );
+      await seedTripWithDays([1]);
 
       const result = await useTripStore.getState().addDayNote(1, 1, { text: 'New note', sort_order: 0 });
 
-      expect(tempAdded).toBe(true);
-      expect(result.id).toBe(500);
+      // The local adapter allocates the real id from the days.notes counter.
+      expect(result.id).toBeGreaterThan(0);
+      expect(result.text).toBe('New note');
       const notes = useTripStore.getState().dayNotes['1'];
       expect(notes).toHaveLength(1);
-      expect(notes[0].id).toBe(500);
+      expect(notes[0].id).toBe(result.id);
+      // And it landed embedded on the day row.
+      const day = (await db.days.get(1)) as DayRow;
+      expect(day.notes_items).toEqual([expect.objectContaining({ id: result.id })]);
     });
 
     it('FE-DAYNOTES-002: addDayNote on failure rolls back — temp note removed', async () => {
       seedStore(useTripStore, { dayNotes: { '1': [] } });
-
-      server.use(
-        http.post('/api/trips/1/days/1/notes', () =>
-          HttpResponse.json({ message: 'Error' }, { status: 500 })
-        ),
-      );
+      await seedTripWithDays([2]); // day 1 does not exist — create 404s 'Day not found'
 
       await expect(
         useTripStore.getState().addDayNote(1, 1, { text: 'Fail note', sort_order: 0 })
-      ).rejects.toThrow();
+      ).rejects.toThrow('Day not found');
 
       expect(useTripStore.getState().dayNotes['1']).toHaveLength(0);
     });
@@ -65,18 +68,14 @@ describe('dayNotesSlice', () => {
     it('FE-DAYNOTES-003: updateDayNote replaces note in map by id', async () => {
       const note = buildDayNote({ id: 10, day_id: 1, text: 'Old text' });
       seedStore(useTripStore, { dayNotes: { '1': [note] } });
-
-      const updated = { ...note, text: 'Updated text' };
-      server.use(
-        http.put('/api/trips/1/days/1/notes/10', () =>
-          HttpResponse.json({ note: updated })
-        ),
-      );
+      await seedTripWithDays([1], { 1: [note] });
 
       const result = await useTripStore.getState().updateDayNote(1, 1, 10, { text: 'Updated text' });
 
       expect(result.text).toBe('Updated text');
       expect(useTripStore.getState().dayNotes['1'][0].text).toBe('Updated text');
+      const day = (await db.days.get(1)) as DayRow;
+      expect(day.notes_items?.[0].text).toBe('Updated text');
     });
   });
 
@@ -84,14 +83,10 @@ describe('dayNotesSlice', () => {
     it('FE-DAYNOTES-004: deleteDayNote optimistically removes note, restores on failure', async () => {
       const note = buildDayNote({ id: 10, day_id: 1 });
       seedStore(useTripStore, { dayNotes: { '1': [note] } });
+      // Trip + day exist but the note does not — 'Note not found' rejects.
+      await seedTripWithDays([1]);
 
-      server.use(
-        http.delete('/api/trips/1/days/1/notes/10', () =>
-          HttpResponse.json({ message: 'Error' }, { status: 500 })
-        ),
-      );
-
-      await expect(useTripStore.getState().deleteDayNote(1, 1, 10)).rejects.toThrow();
+      await expect(useTripStore.getState().deleteDayNote(1, 1, 10)).rejects.toThrow('Note not found');
 
       // Rolled back
       expect(useTripStore.getState().dayNotes['1']).toHaveLength(1);
@@ -102,77 +97,78 @@ describe('dayNotesSlice', () => {
       const note1 = buildDayNote({ id: 10, day_id: 1 });
       const note2 = buildDayNote({ id: 20, day_id: 1 });
       seedStore(useTripStore, { dayNotes: { '1': [note1, note2] } });
+      await seedTripWithDays([1], { 1: [note1, note2] });
 
       await useTripStore.getState().deleteDayNote(1, 1, 10);
 
       const notes = useTripStore.getState().dayNotes['1'];
       expect(notes).toHaveLength(1);
       expect(notes[0].id).toBe(20);
+      const day = (await db.days.get(1)) as DayRow;
+      expect(day.notes_items?.map((n) => n.id)).toEqual([20]);
     });
   });
 
   describe('moveDayNote', () => {
-    it('FE-DAYNOTES-005: moveDayNote removes from source, adds to target (delete+create)', async () => {
+    it('FE-DAYNOTES-005: moveDayNote removes from source, adds to target (create+delete)', async () => {
       const note = buildDayNote({ id: 10, day_id: 1, text: 'Move me' });
-      const newNote = buildDayNote({ id: 99, day_id: 2, text: 'Move me' });
       seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });
-
-      server.use(
-        http.delete('/api/trips/1/days/1/notes/10', () => HttpResponse.json({ success: true })),
-        http.post('/api/trips/1/days/2/notes', () => HttpResponse.json({ note: newNote })),
-      );
+      await seedTripWithDays([1, 2], { 1: [note] });
 
       await useTripStore.getState().moveDayNote(1, 1, 2, 10);
 
       expect(useTripStore.getState().dayNotes['1']).toHaveLength(0);
-      expect(useTripStore.getState().dayNotes['2']).toHaveLength(1);
-      expect(useTripStore.getState().dayNotes['2'][0].id).toBe(99);
+      const moved = useTripStore.getState().dayNotes['2'];
+      expect(moved).toHaveLength(1);
+      expect(moved[0].text).toBe('Move me');
+      expect(moved[0].day_id).toBe(2);
+      // The embedded rows moved too — no copy left on the source day.
+      const day1 = (await db.days.get(1)) as DayRow;
+      const day2 = (await db.days.get(2)) as DayRow;
+      expect(day1.notes_items).toEqual([]);
+      expect(day2.notes_items).toEqual([expect.objectContaining({ text: 'Move me' })]);
     });
 
     it('FE-DAYNOTES-006: moveDayNote rolls back to source day on failure', async () => {
       const note = buildDayNote({ id: 10, day_id: 1, text: 'Move me' });
       seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });
+      // No day 2 — the create half of the move 404s before anything deletes.
+      await seedTripWithDays([1], { 1: [note] });
 
-      let deleted = false;
-      server.use(
-        http.post('/api/trips/1/days/2/notes', () =>
-          HttpResponse.json({ message: 'Error' }, { status: 500 })
-        ),
-        http.delete('/api/trips/1/days/1/notes/10', () => {
-          deleted = true;
-          return HttpResponse.json({ success: true });
-        }),
-      );
-
-      await expect(useTripStore.getState().moveDayNote(1, 1, 2, 10)).rejects.toThrow();
+      await expect(useTripStore.getState().moveDayNote(1, 1, 2, 10)).rejects.toThrow('Day not found');
 
       // The create is the first half of the move, so a failure there must leave
       // the note where it was instead of deleting it out from under the user.
-      expect(deleted).toBe(false);
       expect(useTripStore.getState().dayNotes['1']).toHaveLength(1);
       expect(useTripStore.getState().dayNotes['1'][0].id).toBe(10);
+      const day1 = (await db.days.get(1)) as DayRow;
+      expect(day1.notes_items).toHaveLength(1);
     });
 
     it('FE-DAYNOTES-006b: moveDayNote removes the copy again when the source delete fails', async () => {
       const note = buildDayNote({ id: 10, day_id: 1, text: 'Move me' });
-      const newNote = buildDayNote({ id: 99, day_id: 2, text: 'Move me' });
       seedStore(useTripStore, { dayNotes: { '1': [note], '2': [] } });
+      await seedTripWithDays([1, 2], { 1: [note] });
 
+      // The first delete call (the source) fails; the cleanup delete on the
+      // target passes through to the real adapter and must drop the copy.
+      const orig = dayNotesApi.delete.bind(dayNotesApi);
       const deletedFromTarget: number[] = [];
-      server.use(
-        http.post('/api/trips/1/days/2/notes', () => HttpResponse.json({ note: newNote })),
-        http.delete('/api/trips/1/days/1/notes/10', () =>
-          HttpResponse.json({ message: 'Error' }, { status: 500 })
-        ),
-        http.delete('/api/trips/1/days/2/notes/:noteId', ({ params }) => {
-          deletedFromTarget.push(Number(params.noteId));
-          return HttpResponse.json({ success: true });
-        }),
-      );
+      let calls = 0;
+      vi.spyOn(dayNotesApi, 'delete').mockImplementation((tripId, dayId, id) => {
+        calls += 1;
+        if (calls === 1) return Promise.reject(new LocalApiError(500, 'Source delete failed'));
+        deletedFromTarget.push(Number(id));
+        return orig(tripId, dayId, id);
+      });
 
-      await expect(useTripStore.getState().moveDayNote(1, 1, 2, 10)).rejects.toThrow();
+      await expect(useTripStore.getState().moveDayNote(1, 1, 2, 10)).rejects.toThrow('Source delete failed');
 
-      expect(deletedFromTarget).toEqual([99]);
+      const day1 = (await db.days.get(1)) as DayRow;
+      const day2 = (await db.days.get(2)) as DayRow;
+      expect(deletedFromTarget).toHaveLength(1);
+      expect(day1.notes_items).toHaveLength(1); // source note survives
+      expect(day2.notes_items).toEqual([]); // the copy was cleaned up
       expect(useTripStore.getState().dayNotes['1']).toHaveLength(1);
       expect(useTripStore.getState().dayNotes['2']).toHaveLength(0);
     });

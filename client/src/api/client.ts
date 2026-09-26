@@ -2,22 +2,6 @@ import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
 import { randomId } from '../utils/randomId'
 import {
-  type PackingReorderRequest,
-  type PackingCreateBagRequest,
-  type TodoReorderRequest,
-  type PackingCreateItemRequest,
-  type PackingUpdateItemRequest,
-  type PackingSetSharingRequest,
-  type TodoCreateItemRequest,
-  type TodoUpdateItemRequest,
-  type DayNoteCreateRequest,
-  type DayNoteUpdateRequest,
-  type PackingImportRequest,
-  type PackingBagMembersRequest,
-  type PackingUpdateBagRequest,
-  type PackingCategoryAssigneesRequest,
-  type PackingApplyTemplateRequest,
-  type TodoCategoryAssigneesRequest,
   type FileUpdateRequest,
   type FileLinkRequest,
   RoadtripDayTrack,
@@ -165,40 +149,7 @@ export function postMultipart<T = any>(url: string, formData: FormData, opts?: U
 
 // Local adapters (api/local/*) — each domain's axios object was deleted when
 // its adapter landed (README.md barrel strategy, step 3).
-export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi, assignmentsApi, accommodationsApi, budgetApi, usersApi } from './local'
-
-export const packingApi = {
-  list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing`).then(r => r.data),
-  create: (tripId: number | string, data: PackingCreateItemRequest) => apiClient.post(`/trips/${tripId}/packing`, data).then(r => r.data),
-  bulkImport: (tripId: number | string, items: { name: string; category?: string; quantity?: number }[]) => apiClient.post(`/trips/${tripId}/packing/import`, { items } satisfies PackingImportRequest).then(r => r.data),
-  update: (tripId: number | string, id: number, data: PackingUpdateItemRequest) => apiClient.put(`/trips/${tripId}/packing/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/packing/${id}`).then(r => r.data),
-  reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/packing/reorder`, { orderedIds } satisfies PackingReorderRequest).then(r => r.data),
-  setSharing: (tripId: number | string, id: number, data: PackingSetSharingRequest) => apiClient.put(`/trips/${tripId}/packing/${id}/sharing`, data).then(r => r.data),
-  clone: (tripId: number | string, id: number) => apiClient.post(`/trips/${tripId}/packing/${id}/clone`).then(r => r.data),
-  addContributor: (tripId: number | string, id: number) => apiClient.post(`/trips/${tripId}/packing/${id}/contributors`).then(r => r.data),
-  removeContributor: (tripId: number | string, id: number, userId: number) => apiClient.delete(`/trips/${tripId}/packing/${id}/contributors/${userId}`).then(r => r.data),
-  getCategoryAssignees: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing/category-assignees`).then(r => r.data),
-  setCategoryAssignees: (tripId: number | string, categoryName: string, userIds: number[]) => apiClient.put(`/trips/${tripId}/packing/category-assignees/${encodeURIComponent(categoryName)}`, { user_ids: userIds } satisfies PackingCategoryAssigneesRequest).then(r => r.data),
-  listTemplates: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing/templates`).then(r => r.data),
-  applyTemplate: (tripId: number | string, templateId: number, visibility: 'common' | 'personal' = 'common') => apiClient.post(`/trips/${tripId}/packing/apply-template/${templateId}`, { visibility } satisfies PackingApplyTemplateRequest).then(r => r.data),
-  saveAsTemplate: (tripId: number | string, name: string) => apiClient.post(`/trips/${tripId}/packing/save-as-template`, { name }).then(r => r.data),
-  setBagMembers: (tripId: number | string, bagId: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/packing/bags/${bagId}/members`, { user_ids: userIds } satisfies PackingBagMembersRequest).then(r => r.data),
-  listBags: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing/bags`).then(r => r.data),
-  createBag: (tripId: number | string, data: PackingCreateBagRequest) => apiClient.post(`/trips/${tripId}/packing/bags`, data).then(r => r.data),
-  updateBag: (tripId: number | string, bagId: number, data: PackingUpdateBagRequest) => apiClient.put(`/trips/${tripId}/packing/bags/${bagId}`, data).then(r => r.data),
-  deleteBag: (tripId: number | string, bagId: number) => apiClient.delete(`/trips/${tripId}/packing/bags/${bagId}`).then(r => r.data),
-}
-
-export const todoApi = {
-  list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/todo`).then(r => r.data),
-  create: (tripId: number | string, data: TodoCreateItemRequest) => apiClient.post(`/trips/${tripId}/todo`, data).then(r => r.data),
-  update: (tripId: number | string, id: number, data: TodoUpdateItemRequest) => apiClient.put(`/trips/${tripId}/todo/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/todo/${id}`).then(r => r.data),
-  reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/todo/reorder`, { orderedIds } satisfies TodoReorderRequest).then(r => r.data),
-  getCategoryAssignees: (tripId: number | string) => apiClient.get(`/trips/${tripId}/todo/category-assignees`).then(r => r.data),
-  setCategoryAssignees: (tripId: number | string, categoryName: string, userIds: number[]) => apiClient.put(`/trips/${tripId}/todo/category-assignees/${encodeURIComponent(categoryName)}`, { user_ids: userIds } satisfies TodoCategoryAssigneesRequest).then(r => r.data),
-}
+export { tripsApi, daysApi, dashboardApi, weatherApi, airportsApi, tagsApi, tripMembersApi, shareApi, configApi, placesApi, categoriesApi, mapsApi, assignmentsApi, accommodationsApi, budgetApi, usersApi, packingApi, todoApi, dayNotesApi } from './local'
 
 /**
  * Road-trip via points (#1797): the places a day's drive is routed through without
@@ -246,13 +197,6 @@ export const filesApi = {
 }
 
 export { reservationsApi } from './local'
-
-export const dayNotesApi = {
-  list: (tripId: number | string, dayId: number | string) => apiClient.get(`/trips/${tripId}/days/${dayId}/notes`).then(r => r.data),
-  create: (tripId: number | string, dayId: number | string, data: DayNoteCreateRequest) => apiClient.post(`/trips/${tripId}/days/${dayId}/notes`, data).then(r => r.data),
-  update: (tripId: number | string, dayId: number | string, id: number, data: DayNoteUpdateRequest) => apiClient.put(`/trips/${tripId}/days/${dayId}/notes/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, dayId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/days/${dayId}/notes/${id}`).then(r => r.data),
-}
 
 // The hosted transit router (`/api/transit/*`) and notification-channel
 // endpoints (`/api/notifications/*`) went away with the server — their api

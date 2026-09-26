@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import type { ChangeEvent } from 'react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useAuthStore } from '../../store/authStore'
@@ -7,10 +6,8 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { packingApi, tripsApi } from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
-import { useNetworkMode } from '../../hooks/useNetworkMode'
 import type { PackingItem, PackingBag } from '../../types'
 import { BAG_COLORS, PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants'
-import { parseImportLines } from './packingListPanel.helpers'
 
 export interface TripMember {
   id: number
@@ -30,37 +27,28 @@ export interface CategoryAssignee {
 export interface PackingListPanelProps {
   tripId: number
   items: PackingItem[]
-  openImportSignal?: number
   clearCheckedSignal?: number
-  saveTemplateSignal?: number
   inlineHeader?: boolean
-  // Lifted so an out-of-panel Apply Template button knows the active view (#1565).
-  view?: 'common' | 'personal'
-  onViewChange?: (view: 'common' | 'personal') => void
 }
 
 /**
  * Packing list state: trip members + per-category assignees, category grouping
- * and progress, item/category CRUD, bag tracking (weights + members) and the
- * template apply/save + bulk CSV import flows (driven by signal props). The
- * sections below render header, filters, the grouped list, the bag sidebar/
- * modal and the import dialog.
+ * and progress, item/category CRUD and bag tracking (weights + members). The
+ * sections below render header, filters, the grouped list and the bag
+ * sidebar/modal.
  */
-export function usePackingList({ tripId, items, openImportSignal = 0, clearCheckedSignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
+export function usePackingList({ tripId, items, clearCheckedSignal = 0, inlineHeader = true }: PackingListPanelProps) {
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
-  // Three-tier sharing (#858): 'common' = the group pool (where existing items
-  // live — non-breaking), 'personal' = my own list (private + shared-to-me).
-  const [ownView, setOwnView] = useState<'common' | 'personal'>('common')
-  const view = viewProp ?? ownView
-  const setView = onViewChange ?? setOwnView
+  // Common vs personal list (#858): 'common' = the group pool, 'personal' =
+  // the viewer's private items. A local, single-user app still has both.
+  const [view, setView] = useState<'common' | 'personal'>('common')
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const { addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem, reorderPackingItems,
-    setPackingItemSharing, clonePackingItem, addPackingContributor, removePackingContributor } = useTripStore()
+    clonePackingItem } = useTripStore()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('packing_edit', trip)
-  const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
   const currentUserId = useAuthStore((s) => s.user?.id)
   const toast = useToast()
   const { t } = useTranslation()
@@ -70,15 +58,24 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const [categoryAssignees, setCategoryAssignees] = useState<Record<string, CategoryAssignee[]>>({})
 
   useEffect(() => {
+    let cancelled = false
     tripsApi.getMembers(tripId).then(data => {
+      if (cancelled) return
       const all: TripMember[] = []
       if (data.owner) all.push({ id: data.owner.id, username: data.owner.username, avatar: data.owner.avatar_url, is_guest: false })
-      if (data.members) all.push(...data.members.map((m: any) => ({ id: m.id, username: m.username, avatar: m.avatar_url, is_guest: !!m.is_guest })))
+      if (data.members) all.push(...data.members.map((m) => ({ id: m.id, username: m.username, avatar: m.avatar_url, is_guest: !!m.is_guest })))
       setTripMembers(all)
-    }).catch(() => {})
+    }).catch(() => {
+      // A failed roster read leaves the assignee pickers empty — the rest of
+      // the panel still works, so this degrades instead of toasting on mount.
+      if (!cancelled) setTripMembers([])
+    })
     packingApi.getCategoryAssignees(tripId).then(data => {
-      setCategoryAssignees(data.assignees || {})
-    }).catch(() => {})
+      if (!cancelled) setCategoryAssignees(data.assignees || {})
+    }).catch(() => {
+      if (!cancelled) setCategoryAssignees({})
+    })
+    return () => { cancelled = true }
   }, [tripId])
 
   const handleSetAssignees = async (category: string, userIds: number[]) => {
@@ -90,8 +87,8 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     }
   }
 
-  // Split by the active view (#858): Common = group pool (is_private 0), Personal =
-  // my own + shared-to-me (is_private 1, already filtered to me by the server).
+  // Split by the active view: Common = group pool (is_private 0), Personal =
+  // the viewer's private items (is_private 1).
   const viewItems = useMemo(
     () => items.filter(i => (view === 'common' ? !i.is_private : !!i.is_private)),
     [items, view],
@@ -195,23 +192,22 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     if (failed) toast.error(t('packing.toast.deleteError'))
   }
 
-  const handleClearChecked = async () => {
+  const handleClearChecked = useCallback(async () => {
     if (!confirm(t('packing.confirm.clearChecked', { count: abgehakt }))) return
     let failed = false
     for (const item of items.filter(i => i.checked)) {
       try { await deletePackingItem(tripId, item.id) } catch { failed = true }
     }
     if (failed) toast.error(t('packing.toast.deleteError'))
-  }
+  }, [t, abgehakt, items, deletePackingItem, tripId, toast])
 
-  // Bag tracking — the global toggle is a packing sub-flag surfaced to every
-  // authenticated user via the addon store (loaded on app start), not the
-  // admin-only endpoint, so non-admin members see weights/bags too.
+  // Bag tracking — the global toggle is a packing sub-flag surfaced via the
+  // addon store (loaded on app start).
   const bagTrackingEnabled = useAddonStore(s => s.bagTracking)
   const addonsLoaded = useAddonStore(s => s.loaded)
   const loadAddons = useAddonStore(s => s.loadAddons)
   const [bags, setBags] = useState<PackingBag[]>([])
-  /** Server-summed weight of everything in no bag (#2191); null until the first load. */
+  /** Adapter-summed weight of everything in no bag (#2191); null until the first load. */
   const [unassignedWeightGrams, setUnassignedWeightGrams] = useState<number | null>(null)
   const [newBagName, setNewBagName] = useState('')
   const [showAddBag, setShowAddBag] = useState(false)
@@ -228,22 +224,12 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
       setBags(r.bags || [])
       setUnassignedWeightGrams(r.unassigned_weight_grams ?? null)
     } catch {
-      // Offline or a failed read: the surfaces fall back to the local sum
-      // (see `serverWeightsFresh` below), so there is nothing to roll back.
+      // A failed read leaves the previous totals on screen; the surfaces fall
+      // back to the local sum for any bag missing them.
     }
   }, [tripId, bagTrackingEnabled])
 
   useEffect(() => { void reloadBags() }, [reloadBags])
-
-  // Bag weights are summed server-side across every member (#2191), so an item
-
-  // Bags are not part of the offline cache (no repo, no Dexie table), so while
-  // offline the server totals are frozen at the last online read and cannot see
-  // the optimistic item writes the mutation queue is holding. A stale absolute
-  // number measured against an airline limit is worse than an honest partial
-  // one, so offline the surfaces sum what they can see instead (#2191).
-  const { offline } = useNetworkMode()
-  const serverWeightsFresh = !offline
 
   const handleCreateBag = async () => {
     if (!newBagName.trim()) return
@@ -283,125 +269,29 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
     } catch { toast.error(t('common.error')) }
   }
 
-  // Templates
-  const [availableTemplates, setAvailableTemplates] = useState<{ id: number; name: string; item_count: number }[]>([])
-  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false)
-  const [applyingTemplate, setApplyingTemplate] = useState(false)
-  const [showSaveTemplate, setShowSaveTemplate] = useState(false)
-  const [saveTemplateName, setSaveTemplateName] = useState('')
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [importText, setImportText] = useState('')
-  const lastHandledImportSignal = useRef(openImportSignal)
+  // The page-level "clear checked" button bumps this signal.
   const lastHandledClearSignal = useRef(clearCheckedSignal)
-  const lastHandledSaveSignal = useRef(saveTemplateSignal)
-
-  useEffect(() => {
-    if (openImportSignal !== lastHandledImportSignal.current && openImportSignal > 0) {
-      setShowImportModal(true)
-    }
-    lastHandledImportSignal.current = openImportSignal
-  }, [openImportSignal])
 
   useEffect(() => {
     if (clearCheckedSignal !== lastHandledClearSignal.current && clearCheckedSignal > 0) {
-      handleClearChecked()
+      void handleClearChecked()
     }
     lastHandledClearSignal.current = clearCheckedSignal
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearCheckedSignal])
-
-  useEffect(() => {
-    if (saveTemplateSignal !== lastHandledSaveSignal.current && saveTemplateSignal > 0) {
-      setShowSaveTemplate(true)
-    }
-    lastHandledSaveSignal.current = saveTemplateSignal
-  }, [saveTemplateSignal])
-  const csvInputRef = useRef<HTMLInputElement>(null)
-  const templateDropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    packingApi.listTemplates(tripId).then(d => setAvailableTemplates(d.templates || [])).catch(() => {})
-  }, [tripId])
-
-  useEffect(() => {
-    if (!showTemplateDropdown) return
-    const handler = (e: MouseEvent) => {
-      if (templateDropdownRef.current && !templateDropdownRef.current.contains(e.target as Node)) setShowTemplateDropdown(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showTemplateDropdown])
-
-  const handleApplyTemplate = async (templateId: number) => {
-    setApplyingTemplate(true)
-    try {
-      const data = await packingApi.applyTemplate(tripId, templateId, view)
-      useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(data.items || [])] }))
-      toast.success(t('packing.templateApplied', { count: data.count }))
-      setShowTemplateDropdown(false)
-    } catch {
-      toast.error(t('packing.templateError'))
-    } finally {
-      setApplyingTemplate(false)
-    }
-  }
-
-  const handleSaveAsTemplate = async () => {
-    if (!saveTemplateName.trim()) return
-    try {
-      await packingApi.saveAsTemplate(tripId, saveTemplateName.trim())
-      toast.success(t('packing.templateSaved'))
-      setShowSaveTemplate(false)
-      setSaveTemplateName('')
-      packingApi.listTemplates(tripId).then(d => setAvailableTemplates(d.templates || [])).catch(() => {})
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }
-
-  const handleBulkImport = async () => {
-    const parsed = parseImportLines(importText)
-    if (parsed.length === 0) { toast.error(t('packing.importEmpty')); return }
-    try {
-      const result = await packingApi.bulkImport(tripId, parsed)
-      useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(result.items || [])] }))
-      toast.success(t('packing.importSuccess', { count: result.count }))
-      setImportText('')
-      setShowImportModal(false)
-    } catch { toast.error(t('packing.importError')) }
-  }
-
-  const handleCsvFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    const reader = new FileReader()
-    reader.onload = () => { if (typeof reader.result === 'string') setImportText(reader.result) }
-    reader.readAsText(file)
-  }
+  }, [clearCheckedSignal, handleClearChecked])
 
   const font = { fontFamily: "var(--font-system)" }
 
-  // ── Three-tier sharing handlers (#858) ──────────────────────────────────────
-  const handleSetSharing = (id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) =>
-    setPackingItemSharing(tripId, id, visibility, recipientIds)
   const handleCloneItem = (id: number) => clonePackingItem(tripId, id)
-  const handleJoinItem = (id: number) => addPackingContributor(tripId, id)
-  const handleLeaveItem = (id: number, userId: number) => removePackingContributor(tripId, id, userId)
 
   return {
     view, setView, currentUserId,
-    handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem,
-    tripId, items, inlineHeader, t, canEdit, isAdmin, font, reorderPackingItems,
+    handleCloneItem,
+    tripId, items, inlineHeader, t, canEdit, font, reorderPackingItems,
     filter, setFilter, addingCategory, setAddingCategory, newCatName, setNewCatName,
     tripMembers, categoryAssignees, handleSetAssignees, allCategories, gruppiert, abgehakt, fortschritt,
     handleAddItemToCategory, handleAddNewCategory, handleRenameCategory, handleDeleteCategory, handleDeleteItem, handleClearChecked,
-    bagTrackingEnabled, bags, unassignedWeightGrams, serverWeightsFresh, newBagName, setNewBagName, showAddBag, setShowAddBag, showBagModal, setShowBagModal,
+    bagTrackingEnabled, bags, unassignedWeightGrams, newBagName, setNewBagName, showAddBag, setShowAddBag, showBagModal, setShowBagModal,
     handleCreateBag, handleCreateBagByName, handleDeleteBag, handleUpdateBag, handleSetBagMembers,
-    availableTemplates, showTemplateDropdown, setShowTemplateDropdown, applyingTemplate,
-    showSaveTemplate, setShowSaveTemplate, saveTemplateName, setSaveTemplateName,
-    showImportModal, setShowImportModal, importText, setImportText,
-    csvInputRef, templateDropdownRef, handleApplyTemplate, handleSaveAsTemplate, parseImportLines, handleBulkImport, handleCsvFile,
   }
 }
 

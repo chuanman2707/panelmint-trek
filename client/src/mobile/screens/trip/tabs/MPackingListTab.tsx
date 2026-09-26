@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
-  Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping,
-  Download, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Save as SaveIcon, Trash2, UserPlus, UserRound,
+  Briefcase, Check, CheckCheck, ChevronDown, ChevronUp,
+  MoreHorizontal, Pencil, Plus, RotateCcw, Trash2, UserPlus,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
-import { useAuthStore } from '../../../../store/authStore'
 import { useAddonStore } from '../../../../store/addonStore'
-import { useTripStore } from '../../../../store/tripStore'
 import { packingApi } from '../../../../api/client'
-import { useNetworkMode } from '../../../../hooks/useNetworkMode'
 import type { PackingUpdateBagRequest } from '@trek/shared'
 import type { PackingBag, PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
@@ -25,24 +22,19 @@ import {
 } from './listsModel'
 import MBagsSheet from './MBagsSheet'
 import MPackItemSheet from './MPackItemSheet'
-import MPackingImportSheet from './MPackingImportSheet'
 
-type ActionView = 'menu' | 'apply' | 'save'
 interface CategoryAssignee { user_id: number; username: string }
-interface PackingTemplate { id: number; name: string; item_count: number }
 
 /**
  * Packing sub-tab (spec 03 §4.1-4.4): progress card, action menu (remove
- * checked / apply+save template / import), Shared|My-list + All|Open|Done
- * filters, and the category cards. Category-level state (rename/menu/assign/
- * add-item, bag picker) lives inside the row components below, mirroring how
- * the desktop `KategorieGruppe`/`ArtikelZeile` keep it local too.
+ * checked), Shared|My-list + All|Open|Done filters, and the category cards.
+ * Category-level state (rename/menu/assign/add-item, bag picker) lives inside
+ * the row components below, mirroring how the desktop
+ * `KategorieGruppe`/`ArtikelZeile` keep it local too.
  */
 export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const { t, toast, tripId, packingItems: items, tripActions } = planner
   const canEdit = planner.can('packing_edit', planner.trip)
-  const isAdmin = useAuthStore(s => s.user?.role === 'admin')
-  const currentUserId = useAuthStore(s => s.user?.id) ?? null
   // Bag-tracking is a global addon flag, NOT part of planner.enabledAddons (§6.4).
   const bagTrackingEnabled = useAddonStore(s => s.bagTracking)
   const tripMembers = planner.tripMembers
@@ -51,21 +43,17 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const [statusFilter, setStatusFilter] = useState<PackingStatusFilter>('all')
   const [editMode, setEditMode] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
-  const [actionView, setActionView] = useState<ActionView>('menu')
-  const [saveTemplateName, setSaveTemplateName] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [showBagsSheet, setShowBagsSheet] = useState(false)
-  const [showImportSheet, setShowImportSheet] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<{ name: string; items: PackingItem[] } | null>(null)
 
   const [bags, setBags] = useState<PackingBag[]>([])
-  /** Server-summed weight of everything in no bag (#2191); null until first load. */
+  /** Adapter-summed weight of everything in no bag (#2191); null until first load. */
   const [unassignedWeightGrams, setUnassignedWeightGrams] = useState<number | null>(null)
-  const [templates, setTemplates] = useState<PackingTemplate[]>([])
   const [categoryAssignees, setCategoryAssignees] = useState<Record<string, CategoryAssignee[]>>({})
 
   const reloadBags = useCallback(async () => {
@@ -75,22 +63,20 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       setBags(r.bags || [])
       setUnassignedWeightGrams(r.unassigned_weight_grams ?? null)
     } catch {
-      // Offline or a failed read: the sheet falls back to the local sum.
+      // A failed read leaves the sheet on its previous totals — it falls back
+      // to the local sum for anything missing them.
+      setUnassignedWeightGrams(null)
     }
   }, [tripId, bagTrackingEnabled])
 
   useEffect(() => { void reloadBags() }, [reloadBags])
 
-  // Bags have no offline cache, so their totals go stale the moment the device
-  // does; offline the sheet sums what it can see instead (#2191).
-  const { offline } = useNetworkMode()
-
   useEffect(() => {
-    packingApi.listTemplates(tripId).then(r => setTemplates(r.templates || [])).catch(() => {})
-  }, [tripId])
-
-  useEffect(() => {
-    packingApi.getCategoryAssignees(tripId).then(r => setCategoryAssignees(r.assignees || {})).catch(() => {})
+    let cancelled = false
+    packingApi.getCategoryAssignees(tripId)
+      .then(r => { if (!cancelled) setCategoryAssignees(r.assignees || {}) })
+      .catch(() => { if (!cancelled) setCategoryAssignees({}) })
+    return () => { cancelled = true }
   }, [tripId])
 
   const defaultCategory = t('packing.defaultCategory')
@@ -234,34 +220,6 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
     }
   }
 
-  const applyTemplate = async (templateId: number) => {
-    try {
-      // Land the items in the list the user is looking at — without the
-      // visibility the API defaults to 'common' and they vanish from My list.
-      const data = await packingApi.applyTemplate(tripId, templateId, view)
-      useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(data.items || [])] }))
-      toast.success(t('packing.templateApplied', { count: data.count }))
-      setActionsOpen(false)
-      setActionView('menu')
-    } catch {
-      toast.error(t('packing.templateError'))
-    }
-  }
-
-  const saveAsTemplate = async () => {
-    if (!saveTemplateName.trim()) return
-    try {
-      await packingApi.saveAsTemplate(tripId, saveTemplateName.trim())
-      toast.success(t('packing.templateSaved'))
-      setSaveTemplateName('')
-      setActionsOpen(false)
-      setActionView('menu')
-      packingApi.listTemplates(tripId).then(r => setTemplates(r.templates || [])).catch(() => {})
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }
-
   const filterPillCls = (active: boolean) =>
     `flex-1 whitespace-nowrap rounded-full px-2 py-[6px] text-center text-[0.71875rem] font-semibold ${
       active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
@@ -322,64 +280,13 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       {/* ── Action menu (spec §4.2) ── */}
       {actionsOpen && canEdit && (
         <div className="mt-[6px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
-          {actionView === 'menu' && (
-            <>
-              {checkedCount > 0 && (
-                <ActionRow
-                  icon={Trash2}
-                  label={t('packing.clearChecked', { count: checkedCount })}
-                  danger
-                  onClick={() => { setActionsOpen(false); setConfirmClear(true) }}
-                />
-              )}
-              {templates.length > 0 && (
-                <ActionRow icon={LayoutTemplate} label={t('packing.applyTemplate')} onClick={() => setActionView('apply')} />
-              )}
-              {isAdmin && items.length > 0 && (
-                <ActionRow icon={SaveIcon} label={t('packing.saveAsTemplate')} onClick={() => setActionView('save')} />
-              )}
-              <ActionRow icon={Download} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
-            </>
-          )}
-          {actionView === 'apply' && (
-            <div className="p-[6px]">
-              {templates.map(tmpl => (
-                <button
-                  key={tmpl.id}
-                  type="button"
-                  onClick={() => applyTemplate(tmpl.id)}
-                  className="flex w-full items-center gap-[9px] rounded-[10px] px-[10px] py-[9px] text-left"
-                >
-                  <Package size={14} strokeWidth={2} className="flex-none text-m-muted" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[0.78125rem] font-semibold text-m-ink">{tmpl.name}</span>
-                    <span className="block font-geist text-[0.625rem] text-m-faint">{tmpl.item_count} {t('admin.packingTemplates.items')}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          {actionView === 'save' && (
-            <div className="flex items-center gap-2 p-[10px]">
-              <input
-                type="text"
-                autoFocus
-                value={saveTemplateName}
-                onChange={e => setSaveTemplateName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') saveAsTemplate() }}
-                placeholder={t('packing.templateName')}
-                className={`${FIELD_CLS} flex-1`}
-              />
-              <button
-                type="button"
-                onClick={saveAsTemplate}
-                disabled={!saveTemplateName.trim()}
-                aria-label={t('common.save')}
-                className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-m-act text-m-actfg disabled:opacity-40"
-              >
-                <Check size={15} strokeWidth={2.4} />
-              </button>
-            </div>
+          {checkedCount > 0 && (
+            <ActionRow
+              icon={Trash2}
+              label={t('packing.clearChecked', { count: checkedCount })}
+              danger
+              onClick={() => { setActionsOpen(false); setConfirmClear(true) }}
+            />
           )}
         </div>
       )}
@@ -461,7 +368,6 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
             editMode={editMode}
             canEdit={canEdit}
             planner={planner}
-            currentUserId={currentUserId}
             assignees={categoryAssignees[group.category] || []}
             tripMembers={tripMembers}
             onSetAssignees={userIds => setCategoryAssigneesFor(group.category, userIds)}
@@ -486,10 +392,8 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         bags={bags}
         items={items}
         unassignedWeightGrams={unassignedWeightGrams}
-        serverWeightsFresh={!offline}
         tripMembers={tripMembers}
         canEdit={canEdit}
-        currentUserId={currentUserId}
         onCreateBag={createBag}
         onUpdateBag={updateBag}
         onDeleteBag={deleteBag}
@@ -501,12 +405,8 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         open={editingItemId != null}
         itemId={editingItemId}
         bagTrackingEnabled={bagTrackingEnabled}
-        tripMembers={tripMembers}
-        currentUserId={currentUserId}
         onClose={() => setEditingItemId(null)}
       />
-
-      <MPackingImportSheet planner={planner} open={showImportSheet} onClose={() => setShowImportSheet(false)} />
 
       <MConfirmSheet
         open={confirmClear}
@@ -562,7 +462,7 @@ function ActionRow({ icon: Icon, label, onClick, danger = false }: {
 // ── Category card ───────────────────────────────────────────────────────
 
 function PackingCategoryCard({
-  group, categoryOrder, open, onToggle, editMode, canEdit, planner, currentUserId, assignees, tripMembers,
+  group, categoryOrder, open, onToggle, editMode, canEdit, planner, assignees, tripMembers,
   onSetAssignees, onRename, onCheckAll, onUncheckAll, onDeleteCategory, onAddItem, onEditItem, onDeleteItem,
   bagTrackingEnabled, bags, onCreateBag,
 }: {
@@ -573,7 +473,6 @@ function PackingCategoryCard({
   editMode: boolean
   canEdit: boolean
   planner: TripPlanner
-  currentUserId: number | null
   assignees: CategoryAssignee[]
   tripMembers: TripMember[]
   onSetAssignees: (userIds: number[]) => void
@@ -715,7 +614,6 @@ function PackingCategoryCard({
               key={item.id}
               item={item}
               planner={planner}
-              currentUserId={currentUserId}
               editMode={editMode}
               canEdit={canEdit}
               bagTrackingEnabled={bagTrackingEnabled}
@@ -770,10 +668,9 @@ function PackingCategoryCard({
 
 // ── Item row ────────────────────────────────────────────────────────────
 
-function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTrackingEnabled, bags, onCreateBag, onEdit, onDelete }: {
+function PackingItemRow({ item, planner, editMode, canEdit, bagTrackingEnabled, bags, onCreateBag, onEdit, onDelete }: {
   item: PackingItem
   planner: TripPlanner
-  currentUserId: number | null
   editMode: boolean
   canEdit: boolean
   bagTrackingEnabled: boolean
@@ -790,20 +687,6 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
 
   const isPlaceholder = isPackingPlaceholder(item)
   const bag = item.bag_id != null ? bags.find(b => b.id === item.bag_id) : undefined
-
-  // Sharing badges (#858) mirror ArtikelZeile: is_private + ownership split the
-  // three states, so exactly one (or none) ever applies.
-  const recipients = item.recipients || []
-  const contributors = item.contributors || []
-  const badgeSharedToMe = !!item.is_private && item.owner_id != null && item.owner_id !== currentUserId
-  const badgeSharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0
-  const badgeBroughtBy = !item.is_private && item.owner_username ? item.owner_username : null
-  // Owner is shown as a compact avatar instead of the full username (saves space
-  // on the row). Resolve the picture from the trip members, falling back to the
-  // signed-in user for their own items, then to initials.
-  const me = useAuthStore(s => s.user)
-  const ownerMember = planner.tripMembers.find(m => m.id === item.owner_id)
-  const ownerAvatarUrl = ownerMember?.avatar_url ?? (item.owner_id === me?.id ? me?.avatar_url ?? null : null)
 
   const toggle = () => tripActions.togglePackingItem(tripId, item.id, !item.checked)
 
@@ -838,39 +721,6 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
         <span className={`min-w-0 flex-1 truncate text-[0.8125rem] font-medium ${item.checked ? 'text-m-faint line-through opacity-45' : 'text-m-ink'}`}>
           {isPlaceholder ? t('packing.addItemPlaceholder') : item.name}
         </span>
-
-        {/* Sharing state is an icon, not a sentence (#1525): "Taken care of by
-            Alexander" spelled out took a third of the row away from the item
-            name. The full wording lives on the pill as its label. */}
-        {badgeSharedToMe && (
-          <span
-            className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
-            title={t('packing.takenCareOf', { name: item.owner_username || '' })}
-            aria-label={t('packing.takenCareOf', { name: item.owner_username || '' })}
-          >
-            <HandHelping size={11} strokeWidth={2.2} />
-          </span>
-        )}
-        {!badgeSharedToMe && badgeSharedByMe && (
-          <span
-            className="flex flex-none items-center gap-[2px] rounded-full bg-[color:var(--m-ic)] px-[5px] py-[3px] font-geist text-[0.59375rem] font-bold text-m-muted"
-            title={t('packing.sharedWithCount', { count: recipients.length })}
-            aria-label={t('packing.sharedWithCount', { count: recipients.length })}
-          >
-            <UserRound size={10} strokeWidth={2.2} />
-            {recipients.length}
-          </span>
-        )}
-        {!badgeSharedToMe && !badgeSharedByMe && badgeBroughtBy && (
-          <span className="flex flex-none items-center gap-[3px]" title={item.owner_username || undefined}>
-            {ownerAvatarUrl
-              ? <img src={ownerAvatarUrl} alt={item.owner_username || ''} className="h-5 w-5 flex-none rounded-full object-cover" />
-              : <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] font-geist text-[0.5625rem] font-bold text-m-muted">{(item.owner_username || '?')[0]?.toUpperCase()}</span>}
-            {contributors.length > 0 && (
-              <span className="font-geist text-[0.59375rem] font-bold text-m-faint">+{contributors.length}</span>
-            )}
-          </span>
-        )}
 
         {(item.quantity || 1) > 1 && (
           <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.625rem] font-bold tabular-nums text-m-muted">

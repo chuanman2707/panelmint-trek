@@ -5,14 +5,18 @@ import MPackingListTab from '../../../../src/mobile/screens/trip/tabs/MPackingLi
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { useAddonStore } from '../../../../src/store/addonStore'
 import { useAuthStore } from '../../../../src/store/authStore'
-import { useTripStore } from '../../../../src/store/tripStore'
 import type { PackingBag, PackingItem, TripMember } from '../../../../src/types'
 import { buildUser } from '../../../helpers/factories'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-PACKTAB-001 to FE-MOB-PACKTAB-046 (plus 060-062)
+// FE-MOB-PACKTAB-001 to FE-MOB-PACKTAB-064
+//
+// The hosted action-menu entries — apply/save-as template, bulk import — are
+// gone with the local adapter, and so is the sharing chrome on the row (owner
+// avatar, contributor count, taken-care-of badge). The remaining tests cover
+// progress, filters, categories, items, assignees and bags.
 
 const ME = 7
 const ANNA = { id: 11, username: 'anna', avatar: null, avatar_url: 'https://cdn.example/anna.png' } as unknown as TripMember
@@ -38,20 +42,17 @@ const BAGS: PackingBag[] = [
   { id: 71, trip_id: 3, name: 'Backpack', color: '#6366f1', sort_order: 0, members: [] } as PackingBag,
 ]
 
-const TEMPLATES = [{ id: 91, name: 'Beach trip', item_count: 12 }]
-
 /** The tab appends this zero-width space to keep a duplicate category name distinguishable. */
 const ZERO_WIDTH = '​'
 
 interface SetupOptions {
   items?: PackingItem[]
   planner?: Partial<TripPlanner>
-  admin?: boolean
   bagTracking?: boolean
 }
 
 async function setup(opts: SetupOptions = {}) {
-  seedStore(useAuthStore, { user: buildUser({ id: ME, role: opts.admin ? 'admin' : 'user' }) })
+  seedStore(useAuthStore, { user: buildUser({ id: ME }) })
   // bagTracking defaults on in the static addon store — seed it explicitly so
   // tests that want it off are not at the mercy of the default.
   seedStore(useAddonStore, { bagTracking: opts.bagTracking === true })
@@ -90,9 +91,7 @@ function asMock(fn: unknown): ReturnType<typeof vi.fn> {
 describe('MPackingListTab', () => {
   beforeEach(() => {
     resetAllStores()
-    seedStore(useTripStore, { packingItems: [] })
-    vi.spyOn(packingApi, 'listBags').mockResolvedValue({ bags: BAGS })
-    vi.spyOn(packingApi, 'listTemplates').mockResolvedValue({ templates: TEMPLATES })
+    vi.spyOn(packingApi, 'listBags').mockResolvedValue({ bags: BAGS, unassigned_weight_grams: 0 })
     vi.spyOn(packingApi, 'getCategoryAssignees').mockResolvedValue({ assignees: {} })
   })
 
@@ -144,43 +143,33 @@ describe('MPackingListTab', () => {
 
   it('FE-MOB-PACKTAB-006: survives failing mount requests', async () => {
     vi.mocked(packingApi.listBags).mockRejectedValue(new Error('x'))
-    vi.mocked(packingApi.listTemplates).mockRejectedValue(new Error('x'))
     vi.mocked(packingApi.getCategoryAssignees).mockRejectedValue(new Error('x'))
 
     await setup({ bagTracking: true })
     openActions()
 
     expect(screen.getByText('2/4')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'packing.import' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'packing.applyTemplate' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'packing.clearChecked:2' })).toBeInTheDocument()
   })
 
   // ── Action menu ───────────────────────────────────────────────────────
 
-  it('FE-MOB-PACKTAB-007: the action menu offers clear/apply/import to a non-admin', async () => {
+  it('FE-MOB-PACKTAB-007: the action menu offers only the local clear-checked row', async () => {
     await setup()
     openActions()
 
     expect(screen.getByRole('button', { name: 'packing.clearChecked:2' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'packing.applyTemplate' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'packing.import' })).toBeInTheDocument()
+    // The hosted entries are gone — no template library and no bulk import.
+    expect(screen.queryByRole('button', { name: 'packing.applyTemplate' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'packing.import' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'packing.saveAsTemplate' })).toBeNull()
   })
 
-  it('FE-MOB-PACKTAB-008: admins additionally get save-as-template', async () => {
-    await setup({ admin: true })
-    openActions()
-    expect(screen.getByRole('button', { name: 'packing.saveAsTemplate' })).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PACKTAB-009: hides clear + apply when nothing is checked and no template exists', async () => {
-    vi.mocked(packingApi.listTemplates).mockResolvedValue({ templates: [] })
+  it('FE-MOB-PACKTAB-009: the menu renders no rows when nothing is checked', async () => {
     await setup({ items: [packItem({ id: 1, name: 'Visa' })] })
     openActions()
 
     expect(screen.queryByRole('button', { name: /packing.clearChecked/ })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'packing.applyTemplate' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'packing.import' })).toBeInTheDocument()
   })
 
   it('FE-MOB-PACKTAB-010: clearing checked items deletes each of them after confirmation', async () => {
@@ -216,88 +205,6 @@ describe('MPackingListTab', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'common.cancel' }))
 
     expect(planner.tripActions.deletePackingItem).not.toHaveBeenCalled()
-  })
-
-  it('FE-MOB-PACKTAB-013: applies a template and appends its items to the store', async () => {
-    const applied = [packItem({ id: 30, name: 'Towel', category: 'Beach' })]
-    vi.spyOn(packingApi, 'applyTemplate').mockResolvedValue({ items: applied, count: 1 })
-    const { planner } = await setup()
-
-    openActions()
-    fireEvent.click(screen.getByRole('button', { name: 'packing.applyTemplate' }))
-    expect(screen.getByText('12 admin.packingTemplates.items')).toBeInTheDocument()
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Beach trip/ })) })
-
-    // The visibility follows the Shared|My-list toggle so the items land where
-    // the user can see them.
-    expect(packingApi.applyTemplate).toHaveBeenCalledWith(3, 91, 'common')
-    expect(planner.toast.success).toHaveBeenCalledWith('packing.templateApplied:1')
-    expect(useTripStore.getState().packingItems.map(i => i.id)).toEqual([30])
-    expect(screen.queryByRole('button', { name: /Beach trip/ })).toBeNull()
-  })
-
-  it('FE-MOB-PACKTAB-014: reports a failing template', async () => {
-    vi.spyOn(packingApi, 'applyTemplate').mockRejectedValue(new Error('x'))
-    const { planner } = await setup()
-
-    openActions()
-    fireEvent.click(screen.getByRole('button', { name: 'packing.applyTemplate' }))
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Beach trip/ })) })
-
-    expect(planner.toast.error).toHaveBeenCalledWith('packing.templateError')
-  })
-
-  it('FE-MOB-PACKTAB-015: saves the list as a template and reloads the template list', async () => {
-    vi.spyOn(packingApi, 'saveAsTemplate').mockResolvedValue({ ok: true })
-    const { planner } = await setup({ admin: true })
-
-    openActions()
-    fireEvent.click(screen.getByRole('button', { name: 'packing.saveAsTemplate' }))
-    expect(screen.getByRole('button', { name: 'common.save' })).toBeDisabled()
-
-    fireEvent.change(screen.getByPlaceholderText('packing.templateName'), { target: { value: '  Summer  ' } })
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.save' })) })
-
-    expect(packingApi.saveAsTemplate).toHaveBeenCalledWith(3, 'Summer')
-    expect(planner.toast.success).toHaveBeenCalledWith('packing.templateSaved')
-    expect(packingApi.listTemplates).toHaveBeenCalledTimes(2)
-  })
-
-  it('FE-MOB-PACKTAB-016: Enter submits the template name, blank input does nothing', async () => {
-    vi.spyOn(packingApi, 'saveAsTemplate').mockResolvedValue({ ok: true })
-    await setup({ admin: true })
-
-    openActions()
-    fireEvent.click(screen.getByRole('button', { name: 'packing.saveAsTemplate' }))
-    const input = screen.getByPlaceholderText('packing.templateName')
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(packingApi.saveAsTemplate).not.toHaveBeenCalled()
-
-    fireEvent.change(input, { target: { value: 'Winter' } })
-    await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }) })
-
-    expect(packingApi.saveAsTemplate).toHaveBeenCalledWith(3, 'Winter')
-  })
-
-  it('FE-MOB-PACKTAB-017: reports a failing template save', async () => {
-    vi.spyOn(packingApi, 'saveAsTemplate').mockRejectedValue(new Error('x'))
-    const { planner } = await setup({ admin: true })
-
-    openActions()
-    fireEvent.click(screen.getByRole('button', { name: 'packing.saveAsTemplate' }))
-    fireEvent.change(screen.getByPlaceholderText('packing.templateName'), { target: { value: 'Summer' } })
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'common.save' })) })
-
-    expect(planner.toast.error).toHaveBeenCalledWith('common.error')
-  })
-
-  it('FE-MOB-PACKTAB-018: the import row opens the import sheet', async () => {
-    await setup()
-    openActions()
-
-    fireEvent.click(screen.getByRole('button', { name: 'packing.import' }))
-
-    expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'packing.importTitle')
   })
 
   // ── Filters + empty states ────────────────────────────────────────────
@@ -544,7 +451,7 @@ describe('MPackingListTab', () => {
   // ── Category assignees ────────────────────────────────────────────────
 
   it('FE-MOB-PACKTAB-037: assigns and unassigns members of a category', async () => {
-    const both = [{ user_id: 11, username: 'anna' }, { user_id: 12, username: 'ben' }]
+    const both = [{ user_id: 11, username: 'anna', avatar: null }, { user_id: 12, username: 'ben', avatar: null }]
     vi.mocked(packingApi.getCategoryAssignees).mockResolvedValue({ assignees: { Documents: [both[0]] } })
     const setAssignees = vi.spyOn(packingApi, 'setCategoryAssignees').mockResolvedValue({ assignees: both })
     await setup({ planner: { tripMembers: [ANNA, BEN] } as Partial<TripPlanner> })
@@ -705,46 +612,23 @@ describe('MPackingListTab', () => {
     expect(planner.toast.error).toHaveBeenCalledWith('packing.toast.deleteError')
   })
 
-  // ── Sharing badges ────────────────────────────────────────────────────
+  // ── Sharing badges — gone with the hosted collaboration model ─────────
 
-  it('FE-MOB-PACKTAB-050: badges an item somebody else takes care of', async () => {
-    const items = [packItem({ id: 1, name: 'Tent', is_private: 1, owner_id: 21, owner_username: 'owner' })]
-    await setup({ items })
-
-    fireEvent.click(screen.getByRole('button', { name: 'packing.viewPersonal' }))
-
-    expect(screen.getByLabelText('packing.takenCareOf:owner')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PACKTAB-051: badges how many people my shared item covers', async () => {
+  it('FE-MOB-PACKTAB-050: a shared-to-me row renders without any share badge', async () => {
     const items = [packItem({
-      id: 1, name: 'Tent', is_private: 1, owner_id: ME, owner_username: 'me',
+      id: 1, name: 'Tent', is_private: 1, owner_id: 21, owner_username: 'owner',
       recipients: [{ user_id: 11, username: 'anna' }, { user_id: 12, username: 'ben' }],
-    })]
-    await setup({ items })
-
-    fireEvent.click(screen.getByRole('button', { name: 'packing.viewPersonal' }))
-
-    expect(screen.getByLabelText('packing.sharedWithCount:2')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PACKTAB-052: shows the owner avatar and the contributor count on a common item', async () => {
-    const items = [packItem({
-      id: 1, name: 'Tent', owner_id: 11, owner_username: 'anna',
       contributors: [{ user_id: 12, username: 'ben', status: 'pledged' }],
     })]
-    const member = { ...ANNA, avatar_url: 'https://cdn.example/anna.png' } as unknown as TripMember
-    await setup({ items, planner: { tripMembers: [member] } as Partial<TripPlanner> })
-
-    expect(within(itemRow('Tent')).getByAltText('anna')).toHaveAttribute('src', 'https://cdn.example/anna.png')
-    expect(within(itemRow('Tent')).getByText('+1')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PACKTAB-053: falls back to the owner initial when there is no avatar', async () => {
-    const items = [packItem({ id: 1, name: 'Tent', owner_id: 99, owner_username: 'zoe' })]
     await setup({ items })
 
-    expect(within(itemRow('Tent')).getByText('Z')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'packing.viewPersonal' }))
+
+    // The item still lists — it just no longer narrates who covers it.
+    expect(screen.getByText('Tent')).toBeInTheDocument()
+    expect(screen.queryByLabelText('packing.takenCareOf:owner')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('packing.sharedWithCount:2')).not.toBeInTheDocument()
+    expect(within(itemRow('Tent')).queryByText('+1')).not.toBeInTheDocument()
   })
 
   // ── Bag picker on the row ─────────────────────────────────────────────
@@ -818,7 +702,7 @@ describe('MPackingListTab', () => {
   it('FE-MOB-PACKTAB-059: renames, deletes and re-crews a bag through the sheet', async () => {
     vi.spyOn(packingApi, 'updateBag').mockResolvedValue({ bag: { ...BAGS[0], name: 'Daypack' } })
     vi.spyOn(packingApi, 'setBagMembers').mockResolvedValue({ members: [{ user_id: 11, username: 'anna', avatar: null }] })
-    vi.spyOn(packingApi, 'deleteBag').mockResolvedValue({ ok: true })
+    vi.spyOn(packingApi, 'deleteBag').mockResolvedValue({ success: true })
     await setup({ bagTracking: true, planner: { tripMembers: [ANNA] } as Partial<TripPlanner> })
 
     fireEvent.click(screen.getAllByRole('button', { name: 'packing.bags' })[0])
@@ -887,11 +771,6 @@ describe('MPackingListTab', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'common.close' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 
-    openActions()
-    fireEvent.click(screen.getByRole('button', { name: 'packing.import' }))
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'common.cancel' }))
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-
     enterEditMode()
     fireEvent.click(within(itemRow('Socks')).getByRole('button', { name: 'mobileTrip.more' }))
     fireEvent.click(screen.getByRole('button', { name: 'common.edit' }))
@@ -925,15 +804,5 @@ describe('MPackingListTab', () => {
     fireEvent.click(within(itemRow('Socks')).getAllByRole('button', { name: 'packing.bags' })[0])
     expect(screen.queryByRole('button', { name: 'common.edit' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /packing.noBag/ })).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PACKTAB-065: the sharing state is an icon on the row, not a sentence', async () => {
-    const items = [packItem({ id: 1, name: 'Tent', is_private: 1, owner_id: 21, owner_username: 'owner' })]
-    await setup({ items })
-    fireEvent.click(screen.getByRole('button', { name: 'packing.viewPersonal' }))
-
-    // The wording is still reachable — it just does not eat the row any more.
-    expect(screen.queryByText('packing.takenCareOf:owner')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('packing.takenCareOf:owner')).toBeInTheDocument()
   })
 })

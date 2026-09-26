@@ -109,17 +109,15 @@ describe('API client interceptors', () => {
     expect(await db.places.get(result.place.id)).toMatchObject({ name: 'Paris' });
   });
 
-  it('FE-API-018: packingApi.bulkImport posts correct payload', async () => {
-    let receivedBody: unknown;
-    server.use(
-      http.post('/api/trips/1/packing/import', async ({ request }) => {
-        receivedBody = await request.json();
-        return HttpResponse.json({ imported: 1 });
-      })
-    );
+  it('FE-API-018: packingApi.create writes the item to Dexie', async () => {
+    // packingApi is a local adapter now — create lands on panelmintDb with
+    // no /api traffic; bulkImport is gone with the hosted template library.
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
 
-    await packingApi.bulkImport(1, [{ name: 'Sunscreen' }]);
-    expect(receivedBody).toMatchObject({ items: [{ name: 'Sunscreen' }] });
+    const { item } = await packingApi.create(1, { name: 'Sunscreen' });
+    expect(item).toMatchObject({ name: 'Sunscreen', trip_id: 1 });
+    expect(await db.packingItems.get(item.id)).toMatchObject({ name: 'Sunscreen' });
   });
 
   it('FE-API-007: non-401 errors are passed through as rejections', async () => {
@@ -132,10 +130,10 @@ describe('API client interceptors', () => {
 });
 
 // ── API namespace smoke tests ────────────────────────────────────────────────
-// (tripsApi/daysApi/tagsApi/weatherApi/placesApi/categoriesApi/mapsApi and now
-// assignmentsApi/accommodationsApi are local adapters — api/local/* — so there
-// is no matching /api traffic left to smoke-test here; their coverage lives in
-// tests/unit/local/*.test.ts.)
+// (tripsApi/daysApi/tagsApi/weatherApi/placesApi/categoriesApi/mapsApi,
+// assignmentsApi/accommodationsApi and now packingApi/todoApi/dayNotesApi are
+// local adapters — api/local/* — so there is no matching /api traffic left to
+// smoke-test here; their coverage lives in tests/unit/local/*.test.ts.)
 
 describe('API namespace smoke tests', () => {
   it('categoriesApi.list returns the seeded palette envelope', async () => {
@@ -176,9 +174,11 @@ describe('API namespace smoke tests', () => {
     await expect(accommodationsApi.list(1)).resolves.toEqual({ accommodations: [] });
   });
 
-  it('dayNotesApi.list fetches day notes', async () => {
-    server.use(http.get('/api/trips/1/days/1/notes', () => HttpResponse.json([])));
-    await expect(dayNotesApi.list(1, 1)).resolves.toEqual([]);
+  it('dayNotesApi.list reads embedded notes from Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.days.put({ ...buildDay({ id: 1, trip_id: 1 }), vias: [] } as DayRow);
+    await expect(dayNotesApi.list(1, 1)).resolves.toEqual({ notes: [] });
   });
 
   it('placesApi.list returns the trip places from Dexie', async () => {
@@ -218,20 +218,21 @@ describe('API namespace smoke tests', () => {
   });
 
   // ── packingApi additional methods ────────────────────────────────────────────
+  // (packingApi is a local adapter — Dexie-backed; its full parity coverage
+  // lives in tests/unit/local/packing.test.ts.)
 
-  it('packingApi.list fetches packing items', async () => {
-    server.use(http.get('/api/trips/1/packing', () => HttpResponse.json([])));
-    await expect(packingApi.list(1)).resolves.toEqual([]);
+  it('packingApi.list returns the trip items from Dexie', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await expect(packingApi.list(1)).resolves.toEqual({ items: [] });
   });
 
-  it('packingApi.create creates a packing item', async () => {
-    server.use(http.post('/api/trips/1/packing', () => HttpResponse.json({ id: 1, name: 'Towel' })));
-    await expect(packingApi.create(1, { name: 'Towel' })).resolves.toMatchObject({ id: 1 });
-  });
-
-  it('packingApi.delete deletes a packing item', async () => {
-    server.use(http.delete('/api/trips/1/packing/1', () => HttpResponse.json({ ok: true })));
-    await expect(packingApi.delete(1, 1)).resolves.toMatchObject({ ok: true });
+  it('packingApi.delete removes the item row', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    const { item } = await packingApi.create(1, { name: 'Towel' });
+    await expect(packingApi.delete(1, item.id)).resolves.toEqual({ success: true });
+    expect(await db.packingItems.get(item.id)).toBeUndefined();
   });
 
   // ── categoriesApi additional methods ────────────────────────────────────────
@@ -322,15 +323,29 @@ describe('API namespace smoke tests', () => {
   });
 
   // ── dayNotesApi additional methods ───────────────────────────────────────────
+  // (dayNotesApi is a local adapter — notes embed on days.notes_items; its
+  // full parity coverage lives in tests/unit/local/notes.test.ts.)
 
-  it('dayNotesApi.create creates a day note', async () => {
-    server.use(http.post('/api/trips/1/days/1/notes', () => HttpResponse.json({ id: 1 })));
-    await expect(dayNotesApi.create(1, 1, { text: 'Hello' })).resolves.toMatchObject({ id: 1 });
+  it('dayNotesApi.create embeds the note on the day row', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.days.put({ ...buildDay({ id: 1, trip_id: 1 }), vias: [] } as DayRow);
+
+    const { note } = await dayNotesApi.create(1, 1, { text: 'Hello' });
+    expect(note).toMatchObject({ text: 'Hello', day_id: 1 });
+    const day = (await db.days.get(1)) as DayRow;
+    expect(day.notes_items).toEqual([expect.objectContaining({ id: note.id, text: 'Hello' })]);
   });
 
-  it('dayNotesApi.delete deletes a day note', async () => {
-    server.use(http.delete('/api/trips/1/days/1/notes/1', () => HttpResponse.json({ ok: true })));
-    await expect(dayNotesApi.delete(1, 1, 1)).resolves.toMatchObject({ ok: true });
+  it('dayNotesApi.delete removes the embedded note', async () => {
+    await resetDb();
+    await db.trips.put(buildTrip({ id: 1 }));
+    await db.days.put({ ...buildDay({ id: 1, trip_id: 1 }), vias: [] } as DayRow);
+    const { note } = await dayNotesApi.create(1, 1, { text: 'Hello' });
+
+    await expect(dayNotesApi.delete(1, 1, note.id)).resolves.toEqual({ success: true });
+    const day = (await db.days.get(1)) as DayRow;
+    expect(day.notes_items).toEqual([]);
   });
 
   // ── mapsApi additional methods ──────────────────────────────────────────────

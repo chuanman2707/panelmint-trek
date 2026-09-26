@@ -6,7 +6,7 @@ import { BagCard } from './PackingListPanelBagCard'
 export function BagModal(S: PackingState) {
   const {
     setShowBagModal, t, bags, items, tripId, tripMembers, canEdit, currentUserId, handleDeleteBag, handleUpdateBag, handleSetBagMembers,
-    showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag, unassignedWeightGrams, serverWeightsFresh,
+    showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag, unassignedWeightGrams
   } = S
   // The ITEM LISTS still describe what you are carrying — an item someone shared
   // with you stays in your list, but they are the one bringing it (#1767).
@@ -14,7 +14,7 @@ export function BagModal(S: PackingState) {
   // The WEIGHTS no longer do. A bag's load is the bag's, whoever packed it and
   // whether or not you may see the items, so it comes from the server (#2191).
   const bagWeightOf = (bag: typeof bags[number]) =>
-    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id), serverWeightsFresh)
+    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id))
   // Reference for bags without a limit of their own — computed once instead of per bag.
   const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
   return (
@@ -44,7 +44,7 @@ export function BagModal(S: PackingState) {
         {/* Unassigned */}
         {(() => {
           const unassigned = myItems.filter(i => !i.bag_id)
-          const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh)
+          const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned)
           // Shown whenever there is weight to account for, even with no visible
           // items: the grand total counts it, and a total nothing adds up to is
           // the confusion this issue was about (#2191).
@@ -71,7 +71,7 @@ export function BagModal(S: PackingState) {
               // Same rule as the rows above it: a grand total mixing true bag
               // weights with a per-viewer remainder would be worse than either.
               const w = bags.reduce((s, b) => s + bagWeightOf(b), 0)
-                + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id), serverWeightsFresh)
+                + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id))
               return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g`
             })()}</span>
           </div>

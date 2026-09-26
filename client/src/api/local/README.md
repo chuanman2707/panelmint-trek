@@ -126,7 +126,7 @@ Local impls must match these method lists name-for-name:
 - `daysApi`: `list, create, update, updateTransport, delete, reorder`
 - `placesApi`: `list, create, get, update, delete, rate, bulkDelete, bulkUpdate` — `searchImage`, `uploadImage`, `importGpx`, `importMapFile`, `importGoogleList` and `importNaverList` were server-only and are gone; the local adapter does not stub them
 - `assignmentsApi`: `list, create, delete, reorder, move, update, getParticipants, setParticipants, updateTime, updateNotes, updateTransport` + `setEndDay` (the route `api/assignmentEndDay.ts` used to PUT itself; `updateTime` also answers the socket's `reordered`/`vias` side channels in-band)
-- `packingApi`: `list, create, bulkImport, update, delete, reorder, setSharing, clone, addContributor, removeContributor, getCategoryAssignees, setCategoryAssignees, listTemplates, applyTemplate, saveAsTemplate, setBagMembers, listBags, createBag, updateBag, deleteBag`
+- `packingApi`: `list, create, update, delete, reorder, clone, getCategoryAssignees, setCategoryAssignees, setBagMembers, listBags, createBag, updateBag, deleteBag` — `bulkImport`, `setSharing`, `addContributor`, `removeContributor`, `listTemplates`, `applyTemplate` and `saveAsTemplate` were server-only (shared items, template packs, CSV import) and are gone; the local adapter does not stub them
 - `todoApi`: `list, create, update, delete, reorder, getCategoryAssignees, setCategoryAssignees`
 - `tagsApi`: `list, create, update, delete`
 - `categoriesApi`: `list, get` — the palette is seeded and frozen; `create`, `update` and `delete` answer a local 403 rather than mutating it

@@ -74,7 +74,6 @@ vi.mock('../components/Planner/ReservationsPanel', () => ({ default: stub('reser
 
 vi.mock('../components/Trips/TripFormModal', () => ({ default: stub('tripForm') }))
 vi.mock('../components/Packing/PackingListPanel', () => ({ default: stub('packingPanel', 'packing-list-panel') }))
-vi.mock('../components/Packing/ApplyTemplateButton', () => ({ default: stub('applyTemplate', 'apply-template') }))
 vi.mock('../components/Todo/TodoListPanel', () => ({ default: stub('todoPanel', 'todo-list-panel') }))
 vi.mock('../components/Budget/CostsPanel', () => ({
   default: stub('costsPanel', 'costs-panel'),
@@ -926,31 +925,17 @@ describe('TripPlannerPage — lists tab', () => {
     expect(props('packingPanel').clearCheckedSignal).toBe(1)
   })
 
-  it('FE-PAGE-TPW-042: an admin can save the current list as a template', async () => {
+  it('FE-PAGE-TPW-044: the hosted template and import chrome is gone from the lists header', async () => {
+    // The packing surface is a local list now — server-owned templates and the
+    // bulk import flow did not come over, so neither button may render.
     seedStore(useAuthStore, { user: buildUser({ id: 5, role: 'admin' }) })
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
     await screen.findByTestId('packing-list-panel')
 
-    fireEvent.click(screen.getByRole('button', { name: /Save as template/i }))
-    expect(props('packingPanel').saveTemplateSignal).toBe(1)
-  })
-
-  it('FE-PAGE-TPW-043: a non-admin sees import but no save-as-template', async () => {
-    renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
-    await screen.findByTestId('packing-list-panel')
-
     expect(screen.queryByRole('button', { name: /Save as template/i })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Import/i }))
-    expect(props('packingPanel').openImportSignal).toBe(1)
-  })
-
-  it('FE-PAGE-TPW-044: switching the packing visibility is forwarded to the template button', async () => {
-    renderPage({ activeTab: 'listen', packingItems: [] })
-    await screen.findByTestId('packing-list-panel')
-
-    expect(props('applyTemplate').visibility).toBe('common')
-    act(() => { props('packingPanel').onViewChange('personal') })
-    expect(props('applyTemplate').visibility).toBe('personal')
+    expect(screen.queryByRole('button', { name: /Import/i })).not.toBeInTheDocument()
+    expect(props('packingPanel').saveTemplateSignal).toBeUndefined()
+    expect(props('packingPanel').openImportSignal).toBeUndefined()
   })
 })
 

@@ -1,13 +1,18 @@
 // FE-W5CAT-001 to FE-W5CAT-040
+//
+// Packing writes run on the Dexie-backed local adapter — no HTTP to mock.
+// Bulk-toggle tests spy on `packingRepo` for the calls the PUTs used to carry
+// and let the writes land in `panelmintDb`.
+import 'fake-indexeddb/auto'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { ComponentProps } from 'react'
-import { http, HttpResponse } from 'msw'
 import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render'
-import { server } from '../../../tests/helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildPackingItem } from '../../../tests/helpers/factories'
 import { useAuthStore } from '../../store/authStore'
 import { useTripStore } from '../../store/tripStore'
+import { db } from '../../db/panelmintDb'
+import { packingRepo } from '../../repo/packingRepo'
 import { KategorieGruppe } from './PackingListPanelCategoryGroup'
 import type { TripMember } from './usePackingListPanel'
 
@@ -42,6 +47,11 @@ function setup(overrides: Partial<Props> = {}) {
     onReorder: vi.fn((_ids: number[]) => {}),
     ...overrides,
   }
+  // The adapter 404s on items that are not in Dexie. Issued synchronously, the
+  // bulkPut's implicit transaction is queued before any transaction the bulk
+  // toggles start later — IndexedDB runs overlapping transactions in creation
+  // order, so the seed always lands first.
+  void db.packingItems.bulkPut(props.allItems)
   const utils = render(<KategorieGruppe {...props} />)
   return { ...utils, props }
 }
@@ -61,13 +71,16 @@ function grip(row: HTMLElement) {
   return row.querySelector<HTMLElement>('div[draggable="true"]')!
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   resetAllStores()
   toastSpy.mockClear()
   window.__addToast = toastSpy
-  server.use(
-    http.get('/api/view-contributions/:view/:tripId', () => HttpResponse.json({ contributions: [] })),
-  )
+  // Self (id 1) owns trip 1 — the roster the local adapters scope access by.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  await db.localUsers.put({ id: 1, name: 'owner', is_self: 1 })
+  await db.trips.put(buildTrip({ id: 1, user_id: 1 }))
   seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true })
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) })
 })
@@ -188,13 +201,7 @@ describe('KategorieGruppe — rename', () => {
 
 describe('KategorieGruppe — bulk actions', () => {
   it('FE-W5CAT-010: Check All only touches the unchecked items', async () => {
-    const puts: number[] = []
-    server.use(
-      http.put('/api/trips/1/packing/:itemId', ({ params }) => {
-        puts.push(Number(params.itemId))
-        return HttpResponse.json({ item: buildPackingItem({ id: Number(params.itemId) }) })
-      }),
-    )
+    const update = vi.spyOn(packingRepo, 'update')
     const { container } = setup({
       items: [
         buildPackingItem({ id: 1, name: 'Tent', checked: 1 }),
@@ -205,17 +212,12 @@ describe('KategorieGruppe — bulk actions', () => {
 
     fireEvent.click(screen.getByText('Check All'))
 
-    await waitFor(() => expect(puts).toEqual([2]))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, 2, { checked: true }))
+    expect(update).toHaveBeenCalledTimes(1)
   })
 
   it('FE-W5CAT-011: Uncheck All only touches the checked items', async () => {
-    const puts: number[] = []
-    server.use(
-      http.put('/api/trips/1/packing/:itemId', ({ params }) => {
-        puts.push(Number(params.itemId))
-        return HttpResponse.json({ item: buildPackingItem({ id: Number(params.itemId) }) })
-      }),
-    )
+    const update = vi.spyOn(packingRepo, 'update')
     const { container } = setup({
       items: [
         buildPackingItem({ id: 1, name: 'Tent', checked: 1 }),
@@ -226,22 +228,21 @@ describe('KategorieGruppe — bulk actions', () => {
 
     fireEvent.click(screen.getByText('Uncheck All'))
 
-    await waitFor(() => expect(puts).toEqual([1]))
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, 1, { checked: false }))
+    expect(update).toHaveBeenCalledTimes(1)
   })
 
   it('FE-W5CAT-011a: Check All sends the items together, not one round trip after another', async () => {
     const started: number[] = []
     let release = () => {}
     const gate = new Promise<void>(resolve => { release = resolve })
-    server.use(
-      http.put('/api/trips/1/packing/:itemId', async ({ params }) => {
-        started.push(Number(params.itemId))
-        // The first item only answers once the second one has been sent, so a
-        // serialised loop would never get its second request out.
-        if (started.length === 1) await gate
-        return HttpResponse.json({ item: buildPackingItem({ id: Number(params.itemId) }) })
-      }),
-    )
+    // The first item only answers once the second one has been sent, so a
+    // serialised loop would never get its second call out.
+    vi.spyOn(packingRepo, 'update').mockImplementation(async (_tripId, id) => {
+      started.push(Number(id))
+      if (started.length === 1) await gate
+      return { item: buildPackingItem({ id: Number(id) }) }
+    })
     const { container } = setup({
       items: [
         buildPackingItem({ id: 1, name: 'Tent', checked: 0 }),
@@ -256,27 +257,28 @@ describe('KategorieGruppe — bulk actions', () => {
     release()
   })
 
-  it('FE-W5CAT-012: a failing PUT during Check All is reported by the store, once', async () => {
-    server.use(http.put('/api/trips/1/packing/:itemId', () => new HttpResponse(null, { status: 500 })))
+  it('FE-W5CAT-012: a failing write during Check All is reported by the store, once', async () => {
+    vi.spyOn(packingRepo, 'update').mockRejectedValue(new Error('boom'))
     seedStore(useTripStore, { packingItems: [buildPackingItem({ id: 1, name: 'Tent', checked: 0 })] })
     const { container } = setup({ items: [buildPackingItem({ id: 1, name: 'Tent', checked: 0 })] })
     openCategoryMenu(container)
 
     fireEvent.click(screen.getByText('Check All'))
 
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Error updating item', 'error', undefined))
+    // LocalApiError-style rejections surface their own message downstream.
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('boom', 'error', undefined))
     expect(toastSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-W5CAT-013: a failing PUT during Uncheck All is reported by the store, once', async () => {
-    server.use(http.put('/api/trips/1/packing/:itemId', () => new HttpResponse(null, { status: 500 })))
+  it('FE-W5CAT-013: a failing write during Uncheck All is reported by the store, once', async () => {
+    vi.spyOn(packingRepo, 'update').mockRejectedValue(new Error('boom'))
     seedStore(useTripStore, { packingItems: [buildPackingItem({ id: 1, name: 'Tent', checked: 1 })] })
     const { container } = setup({ items: [buildPackingItem({ id: 1, name: 'Tent', checked: 1 })] })
     openCategoryMenu(container)
 
     fireEvent.click(screen.getByText('Uncheck All'))
 
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Error updating item', 'error', undefined))
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('boom', 'error', undefined))
     expect(toastSpy).toHaveBeenCalledTimes(1)
   })
 

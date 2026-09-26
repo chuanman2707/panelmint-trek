@@ -15,13 +15,13 @@ import { buildTrip } from './factories';
 /** Mirrors useTripStore's action surface as spies. */
 export function buildTripActions(): Record<string, ReturnType<typeof vi.fn>> {
   const names = [
-    'addCategory', 'addDayNote', 'addFile', 'addPackingContributor', 'addPackingItem',
+    'addCategory', 'addDayNote', 'addFile', 'addPackingItem',
     'addPlace', 'addReservation', 'addTodoItem', 'assignPlaceToDay', 'clonePackingItem',
     'deleteBudgetItem', 'deleteDayNote', 'deleteFile', 'deletePackingItem', 'deletePlace',
     'deletePlacesMany', 'deleteReservation', 'deleteTodoItem', 'insertDay', 'loadBudgetItems',
     'loadFiles', 'loadReservations', 'loadTrip', 'moveAssignment', 'moveDayNote', 'ratePlace',
-    'refreshDays', 'removeAssignment', 'removePackingContributor', 'reorderAssignments',
-    'reorderDays', 'setAssignments', 'setPackingItemSharing', 'setSelectedDay',
+    'refreshDays', 'removeAssignment', 'reorderAssignments',
+    'reorderDays', 'setAssignments', 'setSelectedDay',
     'toggleBudgetMemberPaid', 'togglePackingItem', 'toggleReservationStatus', 'toggleTodoItem',
     'updateDayNote', 'updateDayTitle', 'updatePackingItem', 'updatePlace', 'updatePlacesMany',
     'updateReservation', 'updateTodoItem', 'updateTrip',

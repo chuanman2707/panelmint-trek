@@ -3,9 +3,9 @@ import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
-import apiClient from '../../api/client'
+import { tripsApi } from '../../api/client'
 import { formatDate as fmtDate } from '../../utils/formatters'
-import type { TodoItem } from '../../types'
+import type { TodoItem, TripMember } from '../../types'
 import { localToday } from '../Planner/today'
 import type { FilterType, Member } from './todoListModel'
 
@@ -52,13 +52,25 @@ export function useTodoList(tripId: number, items: TodoItem[], addItemSignal: nu
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
   useEffect(() => {
-    apiClient.get(`/trips/${tripId}/members`).then(r => {
-      const owner = r.data?.owner
-      const mems = r.data?.members || []
-      const all = owner ? [owner, ...mems] : mems
-      setMembers(all)
-      setCurrentUserId(r.data?.current_user_id || null)
-    }).catch(() => {})
+    let cancelled = false
+    tripsApi.getMembers(tripId).then(data => {
+      if (cancelled) return
+      // The wire row carries avatar/avatar_url as optional — Member wants the
+      // definite null the pickers render.
+      const toMember = (m: TripMember): Member => ({
+        id: m.id, username: m.username, avatar: m.avatar ?? m.avatar_url ?? null, is_guest: m.is_guest,
+      })
+      const all = data.owner ? [data.owner, ...(data.members || [])] : (data.members || [])
+      setMembers(all.map(toMember))
+      setCurrentUserId(data.current_user_id || null)
+    }).catch(() => {
+      // A failed roster read leaves the assignee pickers empty — the rest of
+      // the panel still works, so this degrades instead of toasting on mount.
+      if (cancelled) return
+      setMembers([])
+      setCurrentUserId(null)
+    })
+    return () => { cancelled = true }
   }, [tripId])
 
   const categories = useMemo(() => {

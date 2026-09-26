@@ -1,6 +1,6 @@
 import type { RoadtripPreferences } from '@trek/shared';
 import Dexie, { type Table } from 'dexie';
-import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember, Tag, Category } from '../types';
+import type { Trip, Day, Place, BudgetItem, Reservation, TripFile, Accommodation, TripMember, Tag, Category } from '../types';
 
 /** TripMember enriched with tripId so we can index by trip. */
 export interface CachedTripMember extends TripMember {
@@ -156,8 +156,6 @@ class TrekOfflineDb extends Dexie {
   trips!: Table<Trip, number>;
   days!: Table<Day, number>;
   places!: Table<Place, number>;
-  packingItems!: Table<PackingItem, number>;
-  todoItems!: Table<TodoItem, number>;
   budgetItems!: Table<BudgetItem, number>;
   reservations!: Table<Reservation, number>;
   tripFiles!: Table<TripFile, number>;
@@ -177,8 +175,6 @@ class TrekOfflineDb extends Dexie {
       trips:        'id',
       days:         'id, trip_id',
       places:       'id, trip_id',
-      packingItems: 'id, trip_id',
-      todoItems:    'id, trip_id',
       budgetItems:  'id, trip_id',
       reservations: 'id, trip_id',
       tripFiles:    'id, trip_id',
@@ -241,11 +237,15 @@ class TrekOfflineDb extends Dexie {
     // endpoint to feed the files to), so its durable source-file store goes
     // with it.
     this.version(9).stores({ importFiles: null });
+
+    // v10: packing and todo items live in panelmintDb now — the local
+    // adapters are the write path, so this read-through cache went dead.
+    this.version(10).stores({ packingItems: null, todoItems: null });
   }
 }
 
 // Monotonic counter for optimistic (negative) ids on locally-created rows —
-// same-millisecond creates must not collide (bulk import, rapid tapping).
+// same-millisecond creates must not collide (rapid tapping, bulk writes).
 let _lastTempId = 0;
 
 /**
@@ -322,14 +322,6 @@ export async function upsertDays(days: Day[]): Promise<void> {
 
 export async function upsertPlaces(places: Place[]): Promise<void> {
   await offlineDb.places.bulkPut(places);
-}
-
-export async function upsertPackingItems(items: PackingItem[]): Promise<void> {
-  await offlineDb.packingItems.bulkPut(items);
-}
-
-export async function upsertTodoItems(items: TodoItem[]): Promise<void> {
-  await offlineDb.todoItems.bulkPut(items);
 }
 
 export async function upsertBudgetItems(items: BudgetItem[]): Promise<void> {
@@ -435,8 +427,6 @@ export async function clearTripData(tripId: number): Promise<void> {
     [
       offlineDb.days,
       offlineDb.places,
-      offlineDb.packingItems,
-      offlineDb.todoItems,
       offlineDb.budgetItems,
       offlineDb.reservations,
       offlineDb.tripFiles,
@@ -452,8 +442,6 @@ export async function clearTripData(tripId: number): Promise<void> {
       await offlineDb.roadtripPreferences.delete(tripId);
       await offlineDb.days.where('trip_id').equals(tripId).delete();
       await offlineDb.places.where('trip_id').equals(tripId).delete();
-      await offlineDb.packingItems.where('trip_id').equals(tripId).delete();
-      await offlineDb.todoItems.where('trip_id').equals(tripId).delete();
       await offlineDb.budgetItems.where('trip_id').equals(tripId).delete();
       await offlineDb.reservations.where('trip_id').equals(tripId).delete();
       await offlineDb.tripFiles.where('trip_id').equals(tripId).delete();

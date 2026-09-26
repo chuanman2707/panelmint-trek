@@ -1,30 +1,48 @@
 // FE-COMP-TODO-001 to FE-COMP-TODO-079
+//
+// The todo surface runs on the Dexie-backed local adapter — there is no HTTP
+// layer to intercept. Write-path tests seed the rows they act on into
+// `panelmintDb` and spy on `todoRepo` for the call arguments (the same data
+// the request body used to carry) instead of capturing MSW requests.
+import 'fake-indexeddb/auto';
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildTodoItem } from '../../../tests/helpers/factories';
+import { db, type LocalTripMember } from '../../db/panelmintDb';
+import { todoRepo } from '../../repo/todoRepo';
+import { apiError } from '../../api/local/helpers';
+import type { TodoItem } from '../../types';
 import TodoListPanel from './TodoListPanel';
 
-beforeEach(() => {
+/** The write path goes store → todoRepo → adapter, and the adapter 404s on an
+ *  item that is not in Dexie — seed the row a mutation test acts on. */
+async function seedTodoItems(items: TodoItem[]): Promise<void> {
+  await db.todoItems.bulkPut(items);
+}
+
+beforeEach(async () => {
   resetAllStores();
   // Simulate desktop width so sidebar labels are rendered (not mobile icon-only mode)
   Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true, configurable: true });
-  server.use(
-    http.get('/api/trips/:id/members', () =>
-      HttpResponse.json({ owner: null, members: [], current_user_id: 1 })
-    ),
-  );
+  // The roster and items live in Dexie now: self (id 1) owns trip 1 — that is
+  // what tripsApi.getMembers answers `current_user_id` with.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'alice', is_self: 1 });
+  await db.trips.put(buildTrip({ id: 1, user_id: 1 }));
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
+  delete window.__addToast;
   Object.defineProperty(window, 'innerWidth', { value: 0, writable: true, configurable: true });
 });
 
@@ -130,14 +148,9 @@ describe('TodoListPanel', () => {
 
   it('FE-COMP-TODO-012: toggling item calls toggleTodoItem action', async () => {
     const user = userEvent.setup();
-    let putCalled = false;
-    server.use(
-      http.put('/api/trips/1/todo/:id', () => {
-        putCalled = true;
-        return HttpResponse.json({ success: true });
-      })
-    );
+    const update = vi.spyOn(todoRepo, 'update');
     const items = [buildTodoItem({ id: 5, name: 'Toggle Me', checked: 0 })];
+    await seedTodoItems(items);
     render(<TodoListPanel tripId={1} items={items} />);
     // The checkbox is the row's own <button>; the row around it is a button role.
     const row = screen.getByText('Toggle Me').closest('[role="button"]') as HTMLElement;
@@ -145,7 +158,8 @@ describe('TodoListPanel', () => {
 
     await user.click(checkboxBtn);
 
-    await waitFor(() => expect(putCalled).toBe(true));
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, 5, { checked: true }));
+    expect((await db.todoItems.get(5))!.checked).toBe(1);
   });
 
   it('FE-COMP-TODO-013: clicking a task row opens its detail pane', async () => {
@@ -225,7 +239,7 @@ describe('TodoListPanel', () => {
       buildTodoItem({ name: 'Others', assigned_user_id: 9, checked: 0 }),
     ];
     render(<TodoListPanel tripId={1} items={items} />);
-    // Wait for members API to resolve and set currentUserId=1 (My Tasks count badge shows 1)
+    // Wait for the local getMembers to resolve and set currentUserId=1 (My Tasks count badge shows 1)
     await waitFor(() => {
       const btns = screen.getAllByRole('button');
       const btn = btns.find(b => b.textContent?.includes('My Tasks'));
@@ -286,16 +300,10 @@ describe('TodoListPanel', () => {
     });
   });
 
-  it('FE-COMP-TODO-020: Saving task name in detail pane calls PUT API', async () => {
+  it('FE-COMP-TODO-020: Saving task name in detail pane persists the rename', async () => {
     const user = userEvent.setup();
-    let putCalled = false;
-    server.use(
-      http.put('/api/trips/1/todo/11', () => {
-        putCalled = true;
-        return HttpResponse.json({ item: buildTodoItem({ id: 11, name: 'Renamed' }) });
-      }),
-    );
     const items = [buildTodoItem({ id: 11, name: 'Edit Me', checked: 0 })];
+    await seedTodoItems(items);
     render(<TodoListPanel tripId={1} items={items} />);
     await user.click(screen.getByText('Edit Me'));
     // Wait for detail pane to open
@@ -308,7 +316,7 @@ describe('TodoListPanel', () => {
     );
     if (saveBtn) {
       await user.click(saveBtn);
-      await waitFor(() => expect(putCalled).toBe(true));
+      await waitFor(async () => expect((await db.todoItems.get(11))!.name).toBe('Renamed'));
     }
   });
 
@@ -318,26 +326,22 @@ describe('TodoListPanel', () => {
     expect(screen.getByText('P3')).toBeInTheDocument();
   });
 
-  it('FE-COMP-TODO-022: Deleting a task from the detail pane calls delete API and closes pane', async () => {
+  it('FE-COMP-TODO-022: Deleting a task from the detail pane removes the row and closes pane', async () => {
     const user = userEvent.setup();
-    let deleteCalled = false;
-    server.use(
-      http.delete('/api/trips/1/todo/20', () => {
-        deleteCalled = true;
-        return HttpResponse.json({ success: true });
-      }),
-    );
+    const del = vi.spyOn(todoRepo, 'delete');
     const items = [buildTodoItem({ id: 20, name: 'Delete Me', checked: 0 })];
+    await seedTodoItems(items);
     render(<TodoListPanel tripId={1} items={items} />);
     await user.click(screen.getByText('Delete Me'));
     // Wait for detail pane to open
     const deleteBtn = await screen.findByText('Delete');
     await user.click(deleteBtn);
-    // API was called and detail pane closed (Save changes button disappears)
+    // The delete went through and the detail pane closed (Save changes disappears)
     await waitFor(() => {
-      expect(deleteCalled).toBe(true);
+      expect(del).toHaveBeenCalledWith(1, 20);
       expect(screen.queryByText('Save changes')).not.toBeInTheDocument();
     });
+    expect(await db.todoItems.get(20)).toBeUndefined();
   });
 
   it('FE-COMP-TODO-023: Due date is shown in task list row when set', () => {
@@ -391,11 +395,7 @@ describe('TodoListPanel', () => {
 
   it('FE-COMP-TODO-026: Adding a new list creates a filter button for it', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/trips/1/todo', () =>
-        HttpResponse.json({ item: buildTodoItem({ category: 'Errands', name: 'New Item' }) })
-      ),
-    );
+    const create = vi.spyOn(todoRepo, 'create');
     render(<TodoListPanel tripId={1} items={[]} />);
     const addCatBtn = screen.getAllByRole('button').find(
       b => b.textContent?.includes('Add list') || b.getAttribute('title') === 'Add list'
@@ -404,11 +404,12 @@ describe('TodoListPanel', () => {
     const categoryInput = await screen.findByPlaceholderText('List name');
     await user.type(categoryInput, 'Errands');
     await user.keyboard('{Enter}');
-    // The Errands filter button should appear after the API call
+    // The list is created through the local adapter and becomes the active filter.
     await waitFor(() => {
       const errands = screen.queryAllByText('Errands');
       expect(errands.length).toBeGreaterThan(0);
     });
+    expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ category: 'Errands' }));
   });
 
   it('FE-COMP-TODO-027: Overdue count badge appears on Overdue filter for overdue items', () => {
@@ -423,15 +424,8 @@ describe('TodoListPanel', () => {
     expect(overdueArea!.textContent).toMatch(/1/);
   });
 
-  it('FE-COMP-TODO-028: Creating a new task via NewTaskPane calls POST API', async () => {
+  it('FE-COMP-TODO-028: Creating a new task via NewTaskPane persists it', async () => {
     const user = userEvent.setup();
-    let postCalled = false;
-    server.use(
-      http.post('/api/trips/1/todo', () => {
-        postCalled = true;
-        return HttpResponse.json({ item: buildTodoItem({ id: 99, name: 'Brand New Task' }) });
-      }),
-    );
     const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
     // Raising the signal opens the new task pane (simulates the toolbar button click)
     rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
@@ -439,7 +433,10 @@ describe('TodoListPanel', () => {
     const nameInput = screen.getByPlaceholderText('Task name');
     await user.type(nameInput, 'Brand New Task');
     await user.click(screen.getByText('Create task'));
-    await waitFor(() => expect(postCalled).toBe(true));
+    await waitFor(async () => {
+      const rows = await db.todoItems.where('trip_id').equals(1).toArray();
+      expect(rows.some(r => r.name === 'Brand New Task')).toBe(true);
+    });
   });
 
   it('FE-COMP-TODO-029: Task with description shows description preview in list', () => {
@@ -453,18 +450,19 @@ describe('TodoListPanel', () => {
   });
 });
 
-// ── Members served to the detail/new panes (owner + a member + a guest) ────────
-const MEMBERS_RESPONSE = {
-  owner: { id: 1, username: 'alice', avatar: null },
-  members: [
-    { id: 2, username: 'bob', avatar: 'bob.png' },
-    { id: 3, username: 'gus', avatar: null, is_guest: true },
-  ],
-  current_user_id: 1,
-};
-
-function withMembers() {
-  server.use(http.get('/api/trips/:id/members', () => HttpResponse.json(MEMBERS_RESPONSE)));
+// ── Members served to the detail/new panes ────────────────────────────────────
+// tripsApi.getMembers is local: the owner comes off trips.user_id (alice, id 1,
+// seeded in beforeEach) and every other member is a trip_membership link to a
+// localUsers roster entry. Non-self roster rows all read as guests — an
+// offline install has no second "real" account.
+async function withMembers(): Promise<void> {
+  for (const m of [{ id: 2, username: 'bob' }, { id: 3, username: 'gus' }]) {
+    await db.tripMembers.put({
+      tripId: 1, id: m.id, username: m.username, role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'alice', is_guest: true,
+    } as LocalTripMember);
+    await db.localUsers.put({ id: m.id, name: m.username, is_self: 0 });
+  }
 }
 
 function dragOverRow(row: Element) {
@@ -547,8 +545,7 @@ describe('TodoListPanel — sidebar', () => {
 
   it('FE-COMP-TODO-034: confirming a list that already exists just closes the input', async () => {
     const user = userEvent.setup();
-    let posted = false;
-    server.use(http.post('/api/trips/1/todo', () => { posted = true; return HttpResponse.json({ item: buildTodoItem() }); }));
+    const create = vi.spyOn(todoRepo, 'create');
     render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Task', category: 'Errands', checked: 0 })]} />);
 
     await user.click(screen.getByRole('button', { name: 'Add list' }));
@@ -556,7 +553,7 @@ describe('TodoListPanel — sidebar', () => {
     await user.type(input, 'Errands');
     fireEvent.click(input.nextElementSibling as HTMLElement);
 
-    expect(posted).toBe(false);
+    expect(create).not.toHaveBeenCalled();
     expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
   });
 
@@ -580,19 +577,14 @@ describe('TodoListPanel — drag to reorder', () => {
   const rows = () => Array.from(document.querySelectorAll('[draggable="true"]')).map(h => h.parentElement!);
 
   it('FE-COMP-TODO-037: dropping a task onto another persists the new global order', async () => {
-    let ordered: number[] | null = null;
-    server.use(
-      http.put('/api/trips/1/todo/reorder', async ({ request }) => {
-        ordered = ((await request.json()) as { orderedIds: number[] }).orderedIds;
-        return HttpResponse.json({ success: true });
-      }),
-    );
+    const reorder = vi.spyOn(todoRepo, 'reorder');
     const items = [
       buildTodoItem({ id: 1, name: 'First', checked: 0 }),
       buildTodoItem({ id: 2, name: 'Second', checked: 0 }),
       buildTodoItem({ id: 3, name: 'Done one', checked: 1 }),
       buildTodoItem({ id: 4, name: 'Third', checked: 0 }),
     ];
+    await seedTodoItems(items);
     render(<TodoListPanel tripId={1} items={items} />);
 
     const [first, , third] = rows();
@@ -601,13 +593,12 @@ describe('TodoListPanel — drag to reorder', () => {
     fireEvent.drop(third);
 
     // The checked task is filtered out of the view but keeps its slot in the payload.
-    await waitFor(() => expect(ordered).toEqual([2, 4, 3, 1]));
+    await waitFor(() => expect(reorder).toHaveBeenCalledWith(1, [2, 4, 3, 1]));
     expect(first).toBeTruthy();
   });
 
   it('FE-COMP-TODO-038: dropping a task on itself changes nothing', async () => {
-    let called = false;
-    server.use(http.put('/api/trips/1/todo/reorder', () => { called = true; return HttpResponse.json({ success: true }); }));
+    const reorder = vi.spyOn(todoRepo, 'reorder');
     const items = [buildTodoItem({ id: 1, name: 'First', checked: 0 }), buildTodoItem({ id: 2, name: 'Second', checked: 0 })];
     render(<TodoListPanel tripId={1} items={items} />);
 
@@ -615,7 +606,7 @@ describe('TodoListPanel — drag to reorder', () => {
     fireEvent.dragStart(handles[0], { dataTransfer: { effectAllowed: '' } });
     fireEvent.drop(handles[0].parentElement!);
 
-    expect(called).toBe(false);
+    expect(reorder).not.toHaveBeenCalled();
   });
 
   it('FE-COMP-TODO-039: ending a drag without a drop clears the drag state', () => {
@@ -646,6 +637,7 @@ describe('TodoListPanel — drag to reorder', () => {
 
 describe('TodoListPanel — detail pane', () => {
   const openDetail = async (user: ReturnType<typeof userEvent.setup>, item = buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })) => {
+    await seedTodoItems([item]);
     render(<TodoListPanel tripId={1} items={[item]} />);
     await user.click(screen.getByText(item.name));
     await screen.findByText('Task');
@@ -653,14 +645,8 @@ describe('TodoListPanel — detail pane', () => {
 
   it('FE-COMP-TODO-041: description, priority and due date are saved together', async () => {
     const user = userEvent.setup();
-    withMembers();
-    let put: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/todo/40', async ({ request }) => {
-        put = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
-      }),
-    );
+    await withMembers();
+    const update = vi.spyOn(todoRepo, 'update');
     await openDetail(user);
 
     await user.type(screen.getByPlaceholderText('Description (optional)'), 'via the coast');
@@ -669,22 +655,17 @@ describe('TodoListPanel — detail pane', () => {
     await user.click(screen.getAllByRole('button').find(b => b.textContent?.trim() === '12')!);
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    await waitFor(() => expect(put).toBeTruthy());
-    expect(put!.description).toBe('via the coast');
-    expect(put!.priority).toBe(2);
-    expect(String(put!.due_date)).toMatch(/^\d{4}-\d{2}-12$/);
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, 40, expect.objectContaining({
+      description: 'via the coast',
+      priority: 2,
+      due_date: expect.stringMatching(/^\d{4}-\d{2}-12$/),
+    })));
   });
 
   it('FE-COMP-TODO-042: the + button swaps the list select for a free-text field', async () => {
     const user = userEvent.setup();
-    withMembers();
-    let put: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/todo/40', async ({ request }) => {
-        put = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
-      }),
-    );
+    await withMembers();
+    const update = vi.spyOn(todoRepo, 'update');
     await openDetail(user);
 
     await user.click(screen.getByRole('button', { name: 'List name' }));
@@ -696,13 +677,12 @@ describe('TodoListPanel — detail pane', () => {
     expect(screen.getByText(/^Logistics/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
-    await waitFor(() => expect(put).toBeTruthy());
-    expect(put!.category).toBe('Logistics');
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, 40, expect.objectContaining({ category: 'Logistics' })));
   });
 
   it('FE-COMP-TODO-043: Escape in the inline list editor clears the typed list', async () => {
     const user = userEvent.setup();
-    withMembers();
+    await withMembers();
     await openDetail(user);
 
     await user.click(screen.getByRole('button', { name: 'List name' }));
@@ -717,7 +697,7 @@ describe('TodoListPanel — detail pane', () => {
 
   it('FE-COMP-TODO-044: picking an existing list from the dropdown marks the task changed', async () => {
     const user = userEvent.setup();
-    withMembers();
+    await withMembers();
     render(<TodoListPanel tripId={1} items={[
       buildTodoItem({ id: 40, name: 'Plan route', checked: 0 }),
       buildTodoItem({ id: 41, name: 'Other', category: 'Errands', checked: 0 }),
@@ -734,14 +714,8 @@ describe('TodoListPanel — detail pane', () => {
 
   it('FE-COMP-TODO-045: a guest assignee is labelled as a guest and persisted', async () => {
     const user = userEvent.setup();
-    withMembers();
-    let put: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/todo/40', async ({ request }) => {
-        put = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
-      }),
-    );
+    await withMembers();
+    const update = vi.spyOn(todoRepo, 'update');
     await openDetail(user);
     await screen.findByRole('button', { name: 'Unassigned' });
 
@@ -749,15 +723,15 @@ describe('TodoListPanel — detail pane', () => {
     await user.click(await screen.findByRole('button', { name: /gus · Guest/ }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    await waitFor(() => expect(put).toBeTruthy());
-    expect(put!.assigned_user_id).toBe(3);
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, 40, expect.objectContaining({ assigned_user_id: 3 })));
+    expect((await db.todoItems.get(40))!.assigned_user_id).toBe(3);
   });
 
   it('FE-COMP-TODO-046: a failing save surfaces the error as a toast', async () => {
     const user = userEvent.setup();
     const addToast = vi.fn();
     window.__addToast = addToast as unknown as typeof window.__addToast;
-    server.use(http.put('/api/trips/1/todo/40', () => HttpResponse.json({ error: 'Nope' }, { status: 500 })));
+    vi.spyOn(todoRepo, 'update').mockRejectedValue(apiError(500, 'Nope'));
     await openDetail(user);
 
     const nameInput = screen.getByDisplayValue('Plan route');
@@ -773,7 +747,7 @@ describe('TodoListPanel — detail pane', () => {
     const user = userEvent.setup();
     const addToast = vi.fn();
     window.__addToast = addToast as unknown as typeof window.__addToast;
-    server.use(http.delete('/api/trips/1/todo/40', () => HttpResponse.json({ error: 'Locked' }, { status: 409 })));
+    vi.spyOn(todoRepo, 'delete').mockRejectedValue(apiError(409, 'Locked'));
     await openDetail(user);
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
@@ -795,7 +769,7 @@ describe('TodoListPanel — detail pane', () => {
 
   it('FE-COMP-TODO-049: switching the selected task reloads the pane fields', async () => {
     const user = userEvent.setup();
-    withMembers();
+    await withMembers();
     render(<TodoListPanel tripId={1} items={[
       buildTodoItem({ id: 40, name: 'Plan route', description: 'coast', checked: 0 }),
       buildTodoItem({ id: 41, name: 'Book ferry', description: null, checked: 0 }),
@@ -812,6 +786,7 @@ describe('TodoListPanel — detail pane', () => {
 
 describe('TodoListPanel — new task pane', () => {
   const openNew = async (items = [] as ReturnType<typeof buildTodoItem>[]) => {
+    await seedTodoItems(items);
     const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
     rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
     await screen.findByText('Create task');
@@ -820,45 +795,31 @@ describe('TodoListPanel — new task pane', () => {
 
   it('FE-COMP-TODO-050: Enter in the name field creates the task', async () => {
     const user = userEvent.setup();
-    let posted: Record<string, unknown> | null = null;
-    server.use(
-      http.post('/api/trips/1/todo', async ({ request }) => {
-        posted = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 77, name: 'Pack bags' }) });
-      }),
-    );
+    const create = vi.spyOn(todoRepo, 'create');
     await openNew();
 
     await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags{Enter}');
 
-    await waitFor(() => expect(posted).toBeTruthy());
-    expect(posted!.name).toBe('Pack bags');
+    await waitFor(() => expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Pack bags' })));
     // A created task closes the pane and becomes the selection.
     await waitFor(() => expect(screen.queryByText('Create task')).not.toBeInTheDocument());
   });
 
   it('FE-COMP-TODO-051: an empty name neither posts nor enables the button', async () => {
     const user = userEvent.setup();
-    let posted = false;
-    server.use(http.post('/api/trips/1/todo', () => { posted = true; return HttpResponse.json({ item: buildTodoItem() }); }));
+    const create = vi.spyOn(todoRepo, 'create');
     await openNew();
 
     await user.type(screen.getByPlaceholderText('Task name'), '{Enter}');
 
     expect(screen.getByRole('button', { name: 'Create task' })).toBeDisabled();
-    expect(posted).toBe(false);
+    expect(create).not.toHaveBeenCalled();
   });
 
-  it('FE-COMP-TODO-052: description, list, priority, due date and assignee are all posted', async () => {
+  it('FE-COMP-TODO-052: description, list, priority, due date and assignee are all saved', async () => {
     const user = userEvent.setup();
-    withMembers();
-    let posted: Record<string, unknown> | null = null;
-    server.use(
-      http.post('/api/trips/1/todo', async ({ request }) => {
-        posted = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 78, name: 'Pack bags' }) });
-      }),
-    );
+    await withMembers();
+    const create = vi.spyOn(todoRepo, 'create');
     await openNew();
     await screen.findByRole('button', { name: 'Unassigned' });
 
@@ -871,15 +832,16 @@ describe('TodoListPanel — new task pane', () => {
     await user.click(screen.getByRole('button', { name: 'Date' }));
     await user.click(screen.getAllByRole('button').find(b => b.textContent?.trim() === '9')!);
     await user.click(screen.getByRole('button', { name: 'Unassigned' }));
-    pickOption('bob');
+    pickOption(/bob/); // the avatar initial joins the accessible name — "B bob"
     await user.click(screen.getByRole('button', { name: 'Create task' }));
 
-    await waitFor(() => expect(posted).toBeTruthy());
-    expect(posted!.description).toBe('rain gear');
-    expect(posted!.category).toBe('Prep'); // trimmed
-    expect(posted!.priority).toBe(1);
-    expect(posted!.assigned_user_id).toBe(2);
-    expect(String(posted!.due_date)).toMatch(/^\d{4}-\d{2}-09$/);
+    await waitFor(() => expect(create).toHaveBeenCalledWith(1, expect.objectContaining({
+      description: 'rain gear',
+      category: 'Prep', // trimmed
+      priority: 1,
+      assigned_user_id: 2,
+      due_date: expect.stringMatching(/^\d{4}-\d{2}-09$/),
+    })));
   });
 
   it('FE-COMP-TODO-053: Escape in the inline list editor drops the typed list', async () => {
@@ -909,7 +871,7 @@ describe('TodoListPanel — new task pane', () => {
     const user = userEvent.setup();
     const addToast = vi.fn();
     window.__addToast = addToast as unknown as typeof window.__addToast;
-    server.use(http.post('/api/trips/1/todo', () => HttpResponse.json({ error: 'Rejected' }, { status: 400 })));
+    vi.spyOn(todoRepo, 'create').mockRejectedValue(apiError(400, 'Rejected'));
     await openNew();
 
     await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags');
@@ -1005,7 +967,9 @@ describe('TodoListPanel — mobile layout', () => {
 
   it('FE-COMP-TODO-076: creating from the mobile sheet closes it and selects the new task', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/trips/1/todo', () => HttpResponse.json({ item: buildTodoItem({ id: 90, name: 'Pack bags' }) })));
+    // The pane selects the created item's id — pin it to the prop row so the
+    // detail sheet has something to open on.
+    vi.spyOn(todoRepo, 'create').mockResolvedValue({ item: buildTodoItem({ id: 90, name: 'Pack bags' }) });
     const items = [buildTodoItem({ id: 90, name: 'Pack bags', checked: 0 })];
     const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
     rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
@@ -1047,24 +1011,20 @@ describe('TodoListPanel — mobile layout', () => {
 
 describe('TodoListPanel — remaining paths', () => {
   it('FE-COMP-TODO-062: ticking a task writes the new checked state back', async () => {
-    let put: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/todo/5', async ({ request }) => {
-        put = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 5, name: 'Toggle', checked: 1 }) });
-      }),
-    );
-    render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 5, name: 'Toggle', checked: 0 })]} />);
+    const update = vi.spyOn(todoRepo, 'update');
+    const items = [buildTodoItem({ id: 5, name: 'Toggle', checked: 0 })];
+    await seedTodoItems(items);
+    render(<TodoListPanel tripId={1} items={items} />);
 
     const row = screen.getByText('Toggle').closest('div[style*="cursor: pointer"]') as HTMLElement;
     fireEvent.click(within(row).getAllByRole('button')[0]);
 
-    await waitFor(() => expect(put).toEqual({ checked: true }));
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, 5, { checked: true }));
+    expect((await db.todoItems.get(5))!.checked).toBe(1);
   });
 
   it('FE-COMP-TODO-063: a task dragged out of the current view is not reordered', () => {
-    let called = false;
-    server.use(http.put('/api/trips/1/todo/reorder', () => { called = true; return HttpResponse.json({ success: true }); }));
+    const reorder = vi.spyOn(todoRepo, 'reorder');
     render(<TodoListPanel tripId={1} items={[
       buildTodoItem({ id: 1, name: 'Loose', checked: 0 }),
       buildTodoItem({ id: 2, name: 'Filed', category: 'Errands', checked: 0 }),
@@ -1074,7 +1034,7 @@ describe('TodoListPanel — remaining paths', () => {
     clickFilter(/Errands/);
     fireEvent.drop(document.querySelectorAll('[draggable="true"]')[0].parentElement!);
 
-    expect(called).toBe(false);
+    expect(reorder).not.toHaveBeenCalled();
   });
 
   it('FE-COMP-TODO-064: hovering the active filter and the active sort leaves them styled', async () => {
@@ -1093,15 +1053,14 @@ describe('TodoListPanel — remaining paths', () => {
 
   it('FE-COMP-TODO-065: clearing the task name blocks the save', async () => {
     const user = userEvent.setup();
-    let put = false;
-    server.use(http.put('/api/trips/1/todo/40', () => { put = true; return HttpResponse.json({ item: buildTodoItem({ id: 40 }) }); }));
+    const update = vi.spyOn(todoRepo, 'update');
     render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} />);
     await user.click(screen.getByText('Plan route'));
 
     await user.clear(await screen.findByDisplayValue('Plan route'));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(put).toBe(false);
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('FE-COMP-TODO-066: the check button closes the inline list editor in both panes', async () => {
@@ -1128,13 +1087,7 @@ describe('TodoListPanel — remaining paths', () => {
 
   it('FE-COMP-TODO-067: the new task pane can pick an existing list from the dropdown', async () => {
     const user = userEvent.setup();
-    let posted: Record<string, unknown> | null = null;
-    server.use(
-      http.post('/api/trips/1/todo', async ({ request }) => {
-        posted = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 80 }) });
-      }),
-    );
+    const create = vi.spyOn(todoRepo, 'create');
     const items = [buildTodoItem({ id: 60, name: 'Task', category: 'Errands', checked: 0 })];
     const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
     rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
@@ -1146,47 +1099,37 @@ describe('TodoListPanel — remaining paths', () => {
     pickOption('Errands');
     await user.click(screen.getByRole('button', { name: 'Create task' }));
 
-    await waitFor(() => expect(posted).toBeTruthy());
-    expect(posted!.category).toBe('Errands');
+    await waitFor(() => expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ category: 'Errands' })));
   });
 
   it('FE-COMP-TODO-068: clearing the assignee stores null in both panes', async () => {
     const user = userEvent.setup();
-    withMembers();
-    let put: Record<string, unknown> | null = null;
-    let posted: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/todo/40', async ({ request }) => {
-        put = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
-      }),
-      http.post('/api/trips/1/todo', async ({ request }) => {
-        posted = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ item: buildTodoItem({ id: 81 }) });
-      }),
-    );
+    await withMembers();
+    const update = vi.spyOn(todoRepo, 'update');
+    const create = vi.spyOn(todoRepo, 'create');
     const items = [buildTodoItem({ id: 40, name: 'Plan route', assigned_user_id: 2, checked: 0 })];
+    await seedTodoItems(items);
     const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
 
     await user.click(screen.getByText('Plan route'));
-    await user.click(await screen.findByRole('button', { name: 'bob' }));
+    // Roster members all read as guests locally, and the avatar initial joins
+    // the accessible name — bob's trigger reads "B bob · Guest".
+    await user.click(await screen.findByRole('button', { name: /bob · Guest/ }));
     pickOption('Unassigned');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
-    await waitFor(() => expect(put).toBeTruthy());
-    expect(put!.assigned_user_id).toBeNull();
+    await waitFor(() => expect(update).toHaveBeenCalledWith(1, 40, expect.objectContaining({ assigned_user_id: null })));
 
     rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
     await screen.findByText('Create task');
     const pane = document.querySelector('.trek-modal-backdrop') as HTMLElement;
     await user.type(within(pane).getByPlaceholderText('Task name'), 'Buy stamps');
     await user.click(within(pane).getByRole('button', { name: 'Unassigned' }));
-    pickOption('bob');
-    await user.click(within(pane).getByRole('button', { name: 'bob' }));
+    pickOption(/bob/);
+    await user.click(within(pane).getByRole('button', { name: /bob/ }));
     pickOption('Unassigned');
     await user.click(screen.getByRole('button', { name: 'Create task' }));
 
-    await waitFor(() => expect(posted).toBeTruthy());
-    expect(posted!.assigned_user_id).toBeNull();
+    await waitFor(() => expect(create).toHaveBeenCalledWith(1, expect.objectContaining({ assigned_user_id: null })));
   });
 
   it('FE-COMP-TODO-069: a rejection that is not an Error falls back to the generic message', async () => {
@@ -1232,7 +1175,10 @@ describe('TodoListPanel — remaining paths', () => {
 
   it('FE-COMP-TODO-073: a create that yields no id keeps the pane open', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/trips/1/todo', () => HttpResponse.json({ item: {} })));
+    // The adapter always allocates an id; a missing one can only come from a
+    // repo-level envelope that lost its item — the pane must not pretend a
+    // selection happened.
+    vi.spyOn(todoRepo, 'create').mockResolvedValue({ item: {} as TodoItem });
     const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
     rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
     await screen.findByText('Create task');

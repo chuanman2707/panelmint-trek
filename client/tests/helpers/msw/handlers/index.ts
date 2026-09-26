@@ -6,11 +6,8 @@ import { vacayHandlers } from './vacay';
 import { tripsHandlers } from './trips';
 import { placesHandlers } from './places';
 import { pluginSearchHandlers } from './pluginSearch';
-import { packingHandlers } from './packing';
-import { todoHandlers } from './todo';
 import { filesHandlers } from './files';
 import { tagsHandlers } from './tags';
-import { dayNotesHandlers } from './dayNotes';
 import { adminHandlers } from './admin';
 import { sharedHandlers } from './shared';
 import { externalHandlers } from './external';
@@ -24,11 +21,8 @@ export const defaultHandlers = [
   ...tripsHandlers,
   ...placesHandlers,
   ...pluginSearchHandlers,
-  ...packingHandlers,
-  ...todoHandlers,
   ...filesHandlers,
   ...tagsHandlers,
-  ...dayNotesHandlers,
   ...adminHandlers,
   ...sharedHandlers,
   ...externalHandlers,

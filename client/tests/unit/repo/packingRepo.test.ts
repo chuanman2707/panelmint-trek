@@ -1,119 +1,88 @@
 /**
  * packingRepo unit tests.
  *
- * Online path:  calls REST via MSW, writes result to Dexie.
- * Offline path: returns Dexie cache, skips REST.
+ * The repo is a thin pass-through to the Dexie-backed `packingApi` adapter —
+ * there is no REST layer and no offlineDb cache left to mediate. These tests
+ * pin the delegation seam end-to-end over real IndexedDB; the adapter's full
+ * parity coverage lives in tests/unit/local/packing.test.ts.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
-import { server } from '../../helpers/msw/server';
-import { http, HttpResponse } from 'msw';
 import { packingRepo } from '../../../src/repo/packingRepo';
-import { offlineDb, clearAll } from '../../../src/db/offlineDb';
-import { buildPackingItem } from '../../helpers/factories';
+import { packingApi } from '../../../src/api/client';
+import { db } from '../../../src/db/panelmintDb';
+import { buildPackingItem, buildTrip } from '../../helpers/factories';
 
-beforeEach(async () => {
-  await clearAll();
-  Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
-});
+async function resetDb() {
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  await db.trips.put(buildTrip({ id: 1 }));
+}
+
+beforeEach(resetDb);
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('packingRepo.list', () => {
-  it('online — fetches from REST and caches in Dexie', async () => {
+describe('packingRepo', () => {
+  it('list delegates to the local adapter and returns the trip items', async () => {
+    const spy = vi.spyOn(packingApi, 'list');
     const item = buildPackingItem({ trip_id: 1 });
-    server.use(
-      http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [item] })),
-    );
+    await db.packingItems.put(item);
 
     const result = await packingRepo.list(1);
+
+    expect(spy).toHaveBeenCalledWith(1);
     expect(result.items).toHaveLength(1);
     expect(result.items[0].id).toBe(item.id);
-
-    await new Promise(r => setTimeout(r, 0));
-    const cached = await offlineDb.packingItems.where('trip_id').equals(1).toArray();
-    expect(cached).toHaveLength(1);
-    expect(cached[0].id).toBe(item.id);
   });
 
-  it('offline — returns Dexie cache without REST call', async () => {
-    Object.defineProperty(navigator, 'onLine', { value: false });
-
-    const item = buildPackingItem({ trip_id: 1 });
-    await offlineDb.packingItems.put(item);
-
-    let restCalled = false;
-    server.use(
-      http.get('/api/trips/1/packing', () => {
-        restCalled = true;
-        return HttpResponse.json({ items: [] });
-      }),
-    );
-
-    const result = await packingRepo.list(1);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].id).toBe(item.id);
-    expect(restCalled).toBe(false);
-  });
-
-  it('offline — returns empty array when nothing cached', async () => {
-    Object.defineProperty(navigator, 'onLine', { value: false });
-    const result = await packingRepo.list(99);
-    expect(result.items).toHaveLength(0);
-  });
-});
-
-describe('packingRepo.create', () => {
-  it('calls REST and caches created item in Dexie', async () => {
-    const item = buildPackingItem({ trip_id: 1, name: 'Sunscreen' });
-    server.use(
-      http.post('/api/trips/1/packing', () => HttpResponse.json({ item })),
-    );
-
+  it('create writes the item through to Dexie', async () => {
     const result = await packingRepo.create(1, { name: 'Sunscreen' });
     expect(result.item.name).toBe('Sunscreen');
-
-    await new Promise(r => setTimeout(r, 0));
-    const cached = await offlineDb.packingItems.get(item.id);
-    expect(cached).toBeDefined();
-    expect(cached!.name).toBe('Sunscreen');
+    expect(await db.packingItems.get(result.item.id)).toMatchObject({ name: 'Sunscreen' });
   });
-});
 
-describe('packingRepo.update', () => {
-  it('calls REST and updates Dexie cache', async () => {
-    const original = buildPackingItem({ trip_id: 1, name: 'Jacket', checked: 0 });
-    await offlineDb.packingItems.put(original);
+  it('update writes the change through to Dexie', async () => {
+    const original = buildPackingItem({ id: 7, trip_id: 1, name: 'Jacket', checked: 0 });
+    await db.packingItems.put(original);
 
-    const updated = { ...original, checked: 1 };
-    server.use(
-      http.put(`/api/trips/1/packing/${original.id}`, () => HttpResponse.json({ item: updated })),
-    );
-
-    const result = await packingRepo.update(1, original.id, { checked: true });
+    const result = await packingRepo.update(1, 7, { checked: true });
     expect(result.item.checked).toBe(1);
-
-    await new Promise(r => setTimeout(r, 0));
-    const cached = await offlineDb.packingItems.get(original.id);
-    expect(cached!.checked).toBe(1);
+    expect((await db.packingItems.get(7))!.checked).toBe(1);
   });
-});
 
-describe('packingRepo.delete', () => {
-  it('calls REST and removes from Dexie', async () => {
-    const item = buildPackingItem({ trip_id: 1 });
-    await offlineDb.packingItems.put(item);
+  it('delete removes the row from Dexie', async () => {
+    const item = buildPackingItem({ id: 7, trip_id: 1 });
+    await db.packingItems.put(item);
 
-    server.use(
-      http.delete(`/api/trips/1/packing/${item.id}`, () => HttpResponse.json({ success: true })),
-    );
+    await expect(packingRepo.delete(1, 7)).resolves.toEqual({ success: true });
+    expect(await db.packingItems.get(7)).toBeUndefined();
+  });
 
-    await packingRepo.delete(1, item.id);
+  it('reorder persists the new sort_order sequence', async () => {
+    await db.packingItems.bulkPut([
+      buildPackingItem({ id: 1, trip_id: 1, sort_order: 0 }),
+      buildPackingItem({ id: 2, trip_id: 1, sort_order: 1 }),
+    ]);
 
-    await new Promise(r => setTimeout(r, 0));
-    const cached = await offlineDb.packingItems.get(item.id);
-    expect(cached).toBeUndefined();
+    await expect(packingRepo.reorder(1, [2, 1])).resolves.toEqual({ success: true });
+    expect((await db.packingItems.get(2))!.sort_order).toBe(0);
+    expect((await db.packingItems.get(1))!.sort_order).toBe(1);
+  });
+
+  it('clone appends a personal copy through the adapter', async () => {
+    await db.packingItems.put(buildPackingItem({ id: 1, trip_id: 1, name: 'Powerbank' }));
+
+    const result = await packingRepo.clone(1, 1);
+    expect(result.item).toMatchObject({ name: 'Powerbank', is_private: 1, checked: 0 });
+    expect(result.item.id).not.toBe(1);
+  });
+
+  it('propagates the adapter error shape (Trip not found on a foreign trip)', async () => {
+    await expect(packingRepo.list(99)).rejects.toMatchObject({ status: 404 });
   });
 });

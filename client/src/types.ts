@@ -82,6 +82,9 @@ export interface TodoItem {
   description: string | null
   assigned_user_id: number | null
   priority: number
+  /** The server's created_at column — `SELECT *` carried it and the list
+   *  orders by it; older local rows may lack it. */
+  created_at?: string
 }
 
 export interface TripFile {

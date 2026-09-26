@@ -6,7 +6,6 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import 'fake-indexeddb/auto';
-import Dexie from 'dexie';
 
 // Re-import after fake-indexeddb is set up so Dexie picks up the shim.
 // We re-open a clean db in each test to isolate state.
@@ -17,8 +16,6 @@ import {
   upsertTrip,
   upsertDays,
   upsertPlaces,
-  upsertPackingItems,
-  upsertTodoItems,
   upsertBudgetItems,
   upsertReservations,
   upsertTripFiles,
@@ -31,7 +28,7 @@ import {
   type SyncMeta,
   type BlobCacheEntry,
 } from '../../../src/db/offlineDb';
-import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile } from '../../../src/types';
+import type { Trip, Day, Place, BudgetItem, Reservation, TripFile } from '../../../src/types';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -144,22 +141,7 @@ describe('offlineDb — places', () => {
   });
 });
 
-describe('offlineDb — packing / todo / budget / reservations / files', () => {
-  it('upserts packing items', async () => {
-    const item: PackingItem = { id: 1, trip_id: 1, name: 'Passport', category: null, checked: 0, sort_order: 0, quantity: 1 };
-    await upsertPackingItems([item]);
-    expect(await offlineDb.packingItems.count()).toBe(1);
-  });
-
-  it('upserts todo items', async () => {
-    const item: TodoItem = {
-      id: 1, trip_id: 1, name: 'Book hotel', category: null, checked: 0,
-      sort_order: 0, due_date: null, description: null, assigned_user_id: null, priority: 0,
-    };
-    await upsertTodoItems([item]);
-    expect(await offlineDb.todoItems.count()).toBe(1);
-  });
-
+describe('offlineDb — budget / reservations / files', () => {
   it('upserts budget items', async () => {
     const item: BudgetItem = {
       id: 1, trip_id: 1, name: 'Flight', total_price: 500,
@@ -296,8 +278,6 @@ describe('offlineDb — clearTripData', () => {
     await upsertTrip(makeTrip(1));
     await upsertDays([makeDay(1, 1), makeDay(2, 1)]);
     await upsertPlaces([makePlace(10, 1)]);
-    const item: PackingItem = { id: 5, trip_id: 1, name: 'Towel', category: null, checked: 0, sort_order: 0, quantity: 1 };
-    await upsertPackingItems([item]);
 
     await offlineDb.blobCache.put(makeBlob('/api/files/1/download', 1));
 
@@ -311,7 +291,6 @@ describe('offlineDb — clearTripData', () => {
     expect(await offlineDb.trips.get(1)).toBeUndefined();
     expect(await offlineDb.days.where('trip_id').equals(1).count()).toBe(0);
     expect(await offlineDb.places.where('trip_id').equals(1).count()).toBe(0);
-    expect(await offlineDb.packingItems.where('trip_id').equals(1).count()).toBe(0);
     expect(await offlineDb.blobCache.where('tripId').equals(1).count()).toBe(0);
 
     // Trip 2 intact

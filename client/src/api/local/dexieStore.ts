@@ -56,11 +56,13 @@ import type {
   LocalUser,
   PackingBag,
   PackingBagMemberRow,
+  PackingCategoryAssigneeRow,
   PackingItem,
   Reservation,
   ReservationEndpoint,
   ReservationTravelerRow,
   Tag,
+  TodoCategoryAssigneeRow,
   TodoItem,
   Trip,
 } from '../../types';
@@ -2582,6 +2584,220 @@ export class DexieStore
     return [...(this.map('packingBagMembers') as Map<string, PackingBagMemberRow>).values()].filter(
       (m) => m.bag_id === bagId,
     );
+  }
+
+  // ==================================================================
+  // Packing / todo adapter seam (local/packing.ts, local/todos.ts) — the
+  // seam reads/writes the REST surface runs on, not a ported store iface.
+  // ==================================================================
+
+  /** The mutable stored packing row — the adapter's CASE-WHEN update writes on
+   *  it, then `put` marks the key dirty (same contract as `budgetItemRaw`). */
+  packingItemRaw(id: number): PackingItem | undefined {
+    return (this.map('packingItems') as Map<number, PackingItem>).get(id);
+  }
+
+  todoItemRaw(id: number): TodoItem | undefined {
+    return (this.map('todoItems') as Map<number, TodoItem>).get(id);
+  }
+
+  packingBagRaw(id: number): PackingBag | undefined {
+    return (this.map('packingBags') as Map<number, PackingBag>).get(id);
+  }
+
+  /** The server's VISIBLE_TO_ACTOR fragment (#858): a Common row is everyone's;
+   *  a restricted item is only its owner's and its recipients'. */
+  packingItemVisibleTo(item: PackingItem, viewerId: number): boolean {
+    return (
+      !item.is_private ||
+      item.owner_id === viewerId ||
+      (item.recipients ?? []).some((r) => r.user_id === viewerId)
+    );
+  }
+
+  /** `enrichItems` — owner_username plus recipients/contributors re-resolved
+   *  against the users table, the way the server's JOINs produced them. A
+   *  member whose user row is gone drops out, matching the INNER JOIN. */
+  packingItemWire(item: PackingItem): PackingItem {
+    const owner = item.owner_id != null ? this.user(item.owner_id) : undefined;
+    const recipients = (item.recipients ?? [])
+      .map((r) => {
+        const u = this.user(r.user_id);
+        return u ? { user_id: r.user_id, username: u.name } : null;
+      })
+      .filter((r): r is { user_id: number; username: string } => r !== null);
+    const contributors = (item.contributors ?? [])
+      .map((c) => {
+        const u = this.user(c.user_id);
+        return u ? { user_id: c.user_id, username: u.name, status: c.status } : null;
+      })
+      .filter((c): c is { user_id: number; username: string; status: string } => c !== null);
+    return detached({
+      ...item,
+      owner_username: item.owner_id != null ? (owner?.name ?? null) : null,
+      recipients,
+      contributors,
+    });
+  }
+
+  /** The server's listItems for a viewer: trip scope + the visibility fragment,
+   *  `ORDER BY sort_order ASC, created_at ASC` — then the enrich joins. */
+  listPackingItemsWire(tripId: number, viewerId: number): PackingItem[] {
+    return this.packingItemsOfTrip(tripId)
+      .filter((i) => this.packingItemVisibleTo(i, viewerId))
+      .sort(
+        (a, b) =>
+          (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+          (a.created_at ?? '').localeCompare(b.created_at ?? ''),
+      )
+      .map((i) => this.packingItemWire(i));
+  }
+
+  /** The server's todo listItems — `SELECT *` (no joins) with the same
+   *  `ORDER BY sort_order ASC, created_at ASC`. */
+  listTodoItemsWire(tripId: number): TodoItem[] {
+    return this.todoItemsOfTrip(tripId)
+      .sort(
+        (a, b) =>
+          (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+          (a.created_at ?? '').localeCompare(b.created_at ?? ''),
+      )
+      .map((t) => detached(t));
+  }
+
+  /** `bagWeightTotals` — `SUM(COALESCE(weight_grams,0) * COALESCE(quantity,1))
+   *  GROUP BY bag_id` over EVERY row of the trip (#2191 is deliberately
+   *  privacy-blind: a bag's true weight is an absolute limit, not a per-viewer
+   *  sum). The unassigned pile sits under the null key. */
+  bagWeightTotals(tripId: number): Map<number | null, number> {
+    const totals = new Map<number | null, number>();
+    for (const i of this.packingItemsOfTrip(tripId)) {
+      const key = i.bag_id ?? null;
+      totals.set(key, (totals.get(key) ?? 0) + (i.weight_grams ?? 0) * (i.quantity ?? 1));
+    }
+    return totals;
+  }
+
+  /** `decorateBags`' member join — `{bag_id, user_id, username, avatar}` rows;
+   *  a member whose user row is gone drops like the INNER JOIN. Local users
+   *  carry no avatar, so the column is null. */
+  private bagMemberJoinRows(bagId: number): { bag_id: number; user_id: number; username: string; avatar: null }[] {
+    const out: { bag_id: number; user_id: number; username: string; avatar: null }[] = [];
+    for (const m of this.packingBagMembersOf(bagId)) {
+      const u = this.user(m.user_id);
+      if (u) out.push({ bag_id: m.bag_id, user_id: m.user_id, username: u.name, avatar: null });
+    }
+    return out;
+  }
+
+  /** `listBagsWithWeights` — bags `ORDER BY sort_order, id`, each carrying its
+   *  member rows and `total_weight_grams`; the unassigned pile rides along. */
+  listBagsWire(tripId: number): { bags: PackingBag[]; unassigned_weight_grams: number } {
+    const totals = this.bagWeightTotals(tripId);
+    const bags = this.packingBagsOfTrip(tripId)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id)
+      .map(
+        (b) =>
+          detached({
+            ...b,
+            members: this.bagMemberJoinRows(b.id),
+            total_weight_grams: totals.get(b.id) ?? 0,
+          }) as PackingBag,
+      );
+    return { bags, unassigned_weight_grams: totals.get(null) ?? 0 };
+  }
+
+  /** The setBagMembers re-select — `{user_id, username, avatar}` rows for one
+   *  bag (no bag_id in this projection, matching the server's column list). */
+  bagMembersWire(bagId: number): { user_id: number; username: string; avatar: null }[] {
+    const out: { user_id: number; username: string; avatar: null }[] = [];
+    for (const m of this.packingBagMembersOf(bagId)) {
+      const u = this.user(m.user_id);
+      if (u) out.push({ user_id: m.user_id, username: u.name, avatar: null });
+    }
+    return out;
+  }
+
+  /** The junction rewrite — DELETE every member row of the bag, then
+   *  INSERT OR IGNORE each id (the Set is what the unique compound key
+   *  collapsed). Caller passes the roster-filtered ids. */
+  setBagMemberRows(bagId: number, userIds: number[]): void {
+    for (const m of this.packingBagMembersOf(bagId)) this.delete('packingBagMembers', m);
+    for (const uid of new Set(userIds)) {
+      this.put('packingBagMembers', { bag_id: bagId, user_id: uid });
+    }
+  }
+
+  /** The FK legs `DELETE FROM packing_bags` owes: members CASCADE, and
+   *  packing_items.bag_id SET NULL — everything in the bag lands in the
+   *  unassigned pile. bag_id is globally unique, so no trip scope is needed. */
+  deleteBagCascade(bagId: number): void {
+    for (const m of this.packingBagMembersOf(bagId)) this.delete('packingBagMembers', m);
+    for (const i of (this.map('packingItems') as Map<number, PackingItem>).values()) {
+      if (i.bag_id === bagId) {
+        i.bag_id = null;
+        this.put('packingItems', i);
+      }
+    }
+    this.delete('packingBags', bagId);
+  }
+
+  /** The server's category-assignee junction rows for a table/trip — the
+   *  backing rows getCategoryAssignees groups and updateCategoryAssignees
+   *  rewrites. */
+  private categoryAssigneeRows(
+    table: 'packingCategoryAssignees' | 'todoCategoryAssignees',
+    tripId: number,
+  ): (PackingCategoryAssigneeRow | TodoCategoryAssigneeRow)[] {
+    return [...(this.map(table) as Map<number, PackingCategoryAssigneeRow>).values()].filter(
+      (r) => r.trip_id === tripId,
+    );
+  }
+
+  /** `getCategoryAssignees` — the JOIN'd rows grouped by category:
+   *  `{category: [{user_id, username, avatar}]}`. A dead user id drops out
+   *  (INNER JOIN); avatar is null locally. */
+  categoryAssigneesWire(
+    table: 'packingCategoryAssignees' | 'todoCategoryAssignees',
+    tripId: number,
+  ): Record<string, { user_id: number; username: string; avatar: null }[]> {
+    const assignees: Record<string, { user_id: number; username: string; avatar: null }[]> = {};
+    for (const row of this.categoryAssigneeRows(table, tripId)) {
+      const u = this.user(row.user_id);
+      if (!u) continue;
+      (assignees[row.category_name] ??= []).push({ user_id: row.user_id, username: u.name, avatar: null });
+    }
+    return assignees;
+  }
+
+  /** `updateCategoryAssignees` — DELETE the category's rows, INSERT OR IGNORE
+   *  each roster-scoped id (the Set is the UNIQUE collapse), then return the
+   *  re-selected flat array the route answered with. */
+  setCategoryAssigneeRows(
+    table: 'packingCategoryAssignees' | 'todoCategoryAssignees',
+    tripId: number,
+    categoryName: string,
+    userIds: number[],
+  ): { user_id: number; username: string; avatar: null }[] {
+    const rows = this.map(table) as Map<number, PackingCategoryAssigneeRow>;
+    for (const [k, row] of [...rows]) {
+      if (row.trip_id === tripId && row.category_name === categoryName) this.delete(table, k);
+    }
+    for (const uid of new Set(userIds)) {
+      this.put(table, {
+        id: this.allocId(table),
+        trip_id: tripId,
+        category_name: categoryName,
+        user_id: uid,
+      } as PackingCategoryAssigneeRow);
+    }
+    const out: { user_id: number; username: string; avatar: null }[] = [];
+    for (const row of this.categoryAssigneeRows(table, tripId)) {
+      if (row.category_name !== categoryName) continue;
+      const u = this.user(row.user_id);
+      if (u) out.push({ user_id: row.user_id, username: u.name, avatar: null });
+    }
+    return out;
   }
 
   tagRows(): Map<number, Tag> {

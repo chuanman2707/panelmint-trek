@@ -12,8 +12,6 @@ import {
   upsertTrip,
   upsertDays,
   upsertPlaces,
-  upsertPackingItems,
-  upsertTodoItems,
   upsertBudgetItems,
   upsertReservations,
   upsertTripFiles,
@@ -33,8 +31,6 @@ import {
   buildTrip,
   buildDay,
   buildPlace,
-  buildPackingItem,
-  buildTodoItem,
   buildBudgetItem,
   buildReservation,
   buildTripFile,
@@ -64,8 +60,6 @@ describe('offlineDb — bulk upsert helpers', () => {
     await upsertTrip(buildTrip({ id: 1 }))
     await upsertDays([buildDay({ id: 1, trip_id: 1 })])
     await upsertPlaces([buildPlace({ id: 1, trip_id: 1 })])
-    await upsertPackingItems([buildPackingItem({ id: 1, trip_id: 1 })])
-    await upsertTodoItems([buildTodoItem({ id: 1, trip_id: 1 })])
     await upsertBudgetItems([buildBudgetItem({ id: 1, trip_id: 1 })])
     await upsertReservations([buildReservation({ id: 1, trip_id: 1 })])
     await upsertTripFiles([buildTripFile({ id: 1, trip_id: 1 })])
@@ -76,8 +70,6 @@ describe('offlineDb — bulk upsert helpers', () => {
     expect(await offlineDb.trips.count()).toBe(1)
     expect(await offlineDb.days.count()).toBe(1)
     expect(await offlineDb.places.count()).toBe(1)
-    expect(await offlineDb.packingItems.count()).toBe(1)
-    expect(await offlineDb.todoItems.count()).toBe(1)
     expect(await offlineDb.budgetItems.count()).toBe(1)
     expect(await offlineDb.reservations.count()).toBe(1)
     expect(await offlineDb.tripFiles.count()).toBe(1)
@@ -184,8 +176,6 @@ describe('offlineDb — clearTripData', () => {
     await upsertTrip(buildTrip({ id: 2 }))
     await upsertDays([buildDay({ id: 1, trip_id: 1 }), buildDay({ id: 2, trip_id: 2 })])
     await upsertPlaces([buildPlace({ id: 1, trip_id: 1 }), buildPlace({ id: 2, trip_id: 2 })])
-    await upsertPackingItems([buildPackingItem({ id: 1, trip_id: 1 })])
-    await upsertTodoItems([buildTodoItem({ id: 1, trip_id: 1 })])
     await upsertBudgetItems([buildBudgetItem({ id: 1, trip_id: 1 })])
     await upsertReservations([buildReservation({ id: 1, trip_id: 1 })])
     await upsertTripFiles([buildTripFile({ id: 1, trip_id: 1 })])
@@ -200,8 +190,6 @@ describe('offlineDb — clearTripData', () => {
     expect(await offlineDb.trips.get(1)).toBeUndefined()
     expect(await offlineDb.days.where('trip_id').equals(1).count()).toBe(0)
     expect(await offlineDb.places.where('trip_id').equals(1).count()).toBe(0)
-    expect(await offlineDb.packingItems.count()).toBe(0)
-    expect(await offlineDb.todoItems.count()).toBe(0)
     expect(await offlineDb.budgetItems.count()).toBe(0)
     expect(await offlineDb.reservations.count()).toBe(0)
     expect(await offlineDb.tripFiles.count()).toBe(0)

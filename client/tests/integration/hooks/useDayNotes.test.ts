@@ -1,13 +1,22 @@
+// FE-HOOK-DAYNOTES-001 to -020 — useDayNotes against the local dayNotesApi.
+//
+// dayNotesApi is the Dexie-backed adapter — there is no HTTP layer to mock.
+// Notes embed on `days.notes_items`: the tests seed the trip + day rows into
+// `panelmintDb`, spy on the adapter to prove calls (or their absence), and
+// read the stored rows back where a request body used to be asserted.
+import 'fake-indexeddb/auto';
 import React from 'react';
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { http, HttpResponse } from 'msw';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useDayNotes } from '../../../src/hooks/useDayNotes';
 import { useTripStore } from '../../../src/store/tripStore';
 import { TranslationProvider } from '../../../src/i18n/TranslationContext';
-import { server } from '../../helpers/msw/server';
-import { buildDayNote } from '../../helpers/factories';
+import { buildDay, buildDayNote, buildTrip } from '../../helpers/factories';
 import { resetAllStores } from '../../helpers/store';
+import { dayNotesApi } from '../../../src/api/client';
+import { db } from '../../../src/db/panelmintDb';
+import type { DayRow } from '../../../src/api/local/dexieStore';
+import type { DayNote } from '../../../src/types';
 
 const wrapper = ({ children }: { children: React.ReactNode }) =>
   React.createElement(TranslationProvider, null, children);
@@ -15,26 +24,54 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
 const TRIP_ID = 1;
 const DAY_ID = 10;
 
+/**
+ * Clean db + trip 1 + day DAY_ID (embedding `notes` in `notes_items`), plus the
+ * store-side dayNotes map the slice keeps in sync. Call with `seed: false` to
+ * leave the db empty for the adapter-failure paths.
+ */
+async function seedDay(notes: DayNote[] = [], opts: { seed?: boolean } = {}) {
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear();
+  });
+  await db.localUsers.put({ id: 1, name: 'Me', is_self: 1 });
+  if (opts.seed === false) return;
+  await db.trips.put(buildTrip({ id: TRIP_ID }));
+  await db.days.put({ ...buildDay({ id: DAY_ID, trip_id: TRIP_ID }), notes_items: notes, vias: [] } as DayRow);
+  useTripStore.setState({ dayNotes: { [String(DAY_ID)]: notes } });
+}
+
+/** The stored notes_items of day DAY_ID. */
+async function storedNotes(): Promise<DayNote[]> {
+  return (((await db.days.get(DAY_ID))?.notes_items) ?? []) as DayNote[];
+}
+
 describe('useDayNotes', () => {
   beforeEach(() => {
     resetAllStores();
     vi.clearAllMocks();
   });
 
-  it('FE-HOOK-DAYNOTES-001: initial noteUi state is empty', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete window.__addToast;
+  });
+
+  it('FE-HOOK-DAYNOTES-001: initial noteUi state is empty', async () => {
+    await seedDay();
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
     expect(result.current.noteUi).toEqual({});
   });
 
-  it('FE-HOOK-DAYNOTES-002: initial dayNotes comes from tripStore', () => {
+  it('FE-HOOK-DAYNOTES-002: initial dayNotes comes from tripStore', async () => {
     const note = buildDayNote({ day_id: DAY_ID });
-    useTripStore.setState({ dayNotes: { [String(DAY_ID)]: [note] } });
+    await seedDay([note]);
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
     expect(result.current.dayNotes[String(DAY_ID)]).toEqual([note]);
   });
 
-  it('FE-HOOK-DAYNOTES-003: openAddNote sets mode=add and default sort order', () => {
+  it('FE-HOOK-DAYNOTES-003: openAddNote sets mode=add and default sort order', async () => {
+    await seedDay();
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     act(() => {
@@ -48,7 +85,8 @@ describe('useDayNotes', () => {
     });
   });
 
-  it('FE-HOOK-DAYNOTES-004: openAddNote calculates sortOrder as max(sortKey) + 1 from merged items', () => {
+  it('FE-HOOK-DAYNOTES-004: openAddNote calculates sortOrder as max(sortKey) + 1 from merged items', async () => {
+    await seedDay();
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     const getMergedItems = () => [
@@ -66,7 +104,8 @@ describe('useDayNotes', () => {
     });
   });
 
-  it('FE-HOOK-DAYNOTES-005: openEditNote sets mode=edit with note data', () => {
+  it('FE-HOOK-DAYNOTES-005: openEditNote sets mode=edit with note data', async () => {
+    await seedDay();
     const note = buildDayNote({ id: 99, text: 'Hello', time: '10:00', icon: 'Star' });
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
@@ -83,7 +122,8 @@ describe('useDayNotes', () => {
     });
   });
 
-  it('FE-HOOK-DAYNOTES-006: cancelNote removes the UI entry for that day', () => {
+  it('FE-HOOK-DAYNOTES-006: cancelNote removes the UI entry for that day', async () => {
+    await seedDay();
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     act(() => {
@@ -98,13 +138,8 @@ describe('useDayNotes', () => {
   });
 
   it('FE-HOOK-DAYNOTES-007: saveNote with empty text is a no-op', async () => {
-    const spy = vi.fn();
-    server.use(
-      http.post('/api/trips/:id/days/:dayId/notes', () => {
-        spy();
-        return HttpResponse.json({ note: buildDayNote() });
-      })
-    );
+    await seedDay();
+    const createSpy = vi.spyOn(dayNotesApi, 'create');
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
@@ -116,18 +151,13 @@ describe('useDayNotes', () => {
       await result.current.saveNote(DAY_ID);
     });
 
-    expect(spy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
     // noteUi remains set (no cancelNote was called)
     expect(result.current.noteUi[DAY_ID]).toBeDefined();
   });
 
   it('FE-HOOK-DAYNOTES-008: saveNote in add mode calls addDayNote and clears UI', async () => {
-    const createdNote = buildDayNote({ day_id: DAY_ID, text: 'New note' });
-    server.use(
-      http.post('/api/trips/:id/days/:dayId/notes', async () => {
-        return HttpResponse.json({ note: createdNote });
-      })
-    );
+    await seedDay();
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
@@ -143,16 +173,13 @@ describe('useDayNotes', () => {
 
     // UI should be cleared after successful save
     expect(result.current.noteUi[DAY_ID]).toBeUndefined();
+    // The note is a row on the day's embedded notes_items now.
+    expect((await storedNotes()).map(n => n.text)).toEqual(['New note']);
   });
 
   it('FE-HOOK-DAYNOTES-009: saveNote in edit mode calls updateDayNote and clears UI', async () => {
     const noteId = 55;
-    const updatedNote = buildDayNote({ id: noteId, day_id: DAY_ID, text: 'Updated' });
-    server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', async () => {
-        return HttpResponse.json({ note: updatedNote });
-      })
-    );
+    await seedDay([buildDayNote({ id: noteId, day_id: DAY_ID, text: 'Before' })]);
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
@@ -167,17 +194,12 @@ describe('useDayNotes', () => {
     });
 
     expect(result.current.noteUi[DAY_ID]).toBeUndefined();
+    expect((await storedNotes()).find(n => n.id === noteId)?.text).toBe('Updated');
   });
 
   it('FE-HOOK-DAYNOTES-010: deleteNote calls deleteDayNote on the store', async () => {
     const note = buildDayNote({ id: 77, day_id: DAY_ID });
-    useTripStore.setState({ dayNotes: { [String(DAY_ID)]: [note] } });
-
-    server.use(
-      http.delete('/api/trips/:id/days/:dayId/notes/:noteId', () => {
-        return HttpResponse.json({ success: true });
-      })
-    );
+    await seedDay([note]);
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
@@ -185,20 +207,16 @@ describe('useDayNotes', () => {
       await result.current.deleteNote(DAY_ID, 77);
     });
 
-    // Note should be removed from the store
+    // Note is removed from the store and from the day's embedded rows.
     const dayNotes = useTripStore.getState().dayNotes[String(DAY_ID)] || [];
     expect(dayNotes.find((n) => n.id === 77)).toBeUndefined();
+    expect((await storedNotes()).find(n => n.id === 77)).toBeUndefined();
   });
 
-  it('FE-HOOK-DAYNOTES-011: saveNote on API error shows toast', async () => {
+  it('FE-HOOK-DAYNOTES-011: saveNote on adapter error shows toast', async () => {
     const toastSpy = vi.fn();
     window.__addToast = toastSpy;
-
-    server.use(
-      http.post('/api/trips/:id/days/:dayId/notes', () => {
-        return HttpResponse.json({ error: 'Server error' }, { status: 500 });
-      })
-    );
+    await seedDay([], { seed: false }); // no trip — the create rejects
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
@@ -213,21 +231,13 @@ describe('useDayNotes', () => {
     });
 
     expect(toastSpy).toHaveBeenCalledWith(expect.any(String), 'error', undefined);
-    delete window.__addToast;
   });
 
-  it('FE-HOOK-DAYNOTES-012: deleteNote on API error shows toast', async () => {
+  it('FE-HOOK-DAYNOTES-012: deleteNote on adapter error shows toast', async () => {
     const toastSpy = vi.fn();
     window.__addToast = toastSpy;
-
-    const note = buildDayNote({ id: 88, day_id: DAY_ID });
-    useTripStore.setState({ dayNotes: { [String(DAY_ID)]: [note] } });
-
-    server.use(
-      http.delete('/api/trips/:id/days/:dayId/notes/:noteId', () => {
-        return HttpResponse.json({ error: 'Server error' }, { status: 500 });
-      })
-    );
+    // Day without the note — delete rejects 'Note not found'.
+    await seedDay();
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
@@ -236,23 +246,15 @@ describe('useDayNotes', () => {
     });
 
     expect(toastSpy).toHaveBeenCalledWith(expect.any(String), 'error', undefined);
-    delete window.__addToast;
   });
 
   it('FE-HOOK-DAYNOTES-013: moveNote up calculates midpoint sort order', async () => {
-    let capturedBody: Record<string, unknown> = {};
-    server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', async ({ request }) => {
-        capturedBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ note: buildDayNote() });
-      })
-    );
-
-    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
-
     const noteA = buildDayNote({ id: 1 });
     const noteB = buildDayNote({ id: 2 });
     const noteC = buildDayNote({ id: 3 });
+    await seedDay([noteA, noteB, noteC]);
+
+    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     // merged items with sortKeys 0, 2, 4
     const getMergedItems = () => [
@@ -266,23 +268,16 @@ describe('useDayNotes', () => {
       await result.current.moveNote(DAY_ID, noteC.id, 'up', getMergedItems);
     });
 
-    expect(capturedBody.sort_order).toBe(1); // (sortKey[0] + sortKey[1]) / 2 = (0+2)/2
+    expect((await storedNotes()).find(n => n.id === noteC.id)?.sort_order).toBe(1);
   });
 
   it('FE-HOOK-DAYNOTES-014: moveNote down calculates midpoint sort order', async () => {
-    let capturedBody: Record<string, unknown> = {};
-    server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', async ({ request }) => {
-        capturedBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ note: buildDayNote() });
-      })
-    );
-
-    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
-
     const noteA = buildDayNote({ id: 1 });
     const noteB = buildDayNote({ id: 2 });
     const noteC = buildDayNote({ id: 3 });
+    await seedDay([noteA, noteB, noteC]);
+
+    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     const getMergedItems = () => [
       { type: 'note' as const, sortKey: 0, data: noteA },
@@ -295,21 +290,16 @@ describe('useDayNotes', () => {
       await result.current.moveNote(DAY_ID, noteA.id, 'down', getMergedItems);
     });
 
-    expect(capturedBody.sort_order).toBe(3); // (sortKey[1] + sortKey[2]) / 2 = (2+4)/2
+    expect((await storedNotes()).find(n => n.id === noteA.id)?.sort_order).toBe(3);
   });
 
   it('FE-HOOK-DAYNOTES-015: moveNote up at index 0 is a no-op', async () => {
-    const spy = vi.fn();
-    server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', () => {
-        spy();
-        return HttpResponse.json({ note: buildDayNote() });
-      })
-    );
+    const updateSpy = vi.spyOn(dayNotesApi, 'update');
+    const noteA = buildDayNote({ id: 1 });
+    await seedDay([noteA]);
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
-    const noteA = buildDayNote({ id: 1 });
     const getMergedItems = () => [
       { type: 'note' as const, sortKey: 0, data: noteA },
     ];
@@ -318,21 +308,16 @@ describe('useDayNotes', () => {
       await result.current.moveNote(DAY_ID, noteA.id, 'up', getMergedItems);
     });
 
-    expect(spy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 
   it('FE-HOOK-DAYNOTES-016: moveNote down at last index is a no-op', async () => {
-    const spy = vi.fn();
-    server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', () => {
-        spy();
-        return HttpResponse.json({ note: buildDayNote() });
-      })
-    );
+    const updateSpy = vi.spyOn(dayNotesApi, 'update');
+    const noteA = buildDayNote({ id: 1 });
+    await seedDay([noteA]);
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
-    const noteA = buildDayNote({ id: 1 });
     const getMergedItems = () => [
       { type: 'note' as const, sortKey: 0, data: noteA },
     ];
@@ -341,22 +326,15 @@ describe('useDayNotes', () => {
       await result.current.moveNote(DAY_ID, noteA.id, 'down', getMergedItems);
     });
 
-    expect(spy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 
   it('FE-HOOK-DAYNOTES-017: moveNote down at last item uses sortKey + 1', async () => {
-    let capturedBody: Record<string, unknown> = {};
-    server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', async ({ request }) => {
-        capturedBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ note: buildDayNote() });
-      })
-    );
-
-    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
-
     const noteA = buildDayNote({ id: 1 });
     const noteB = buildDayNote({ id: 2 });
+    await seedDay([noteA, noteB]);
+
+    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     const getMergedItems = () => [
       { type: 'note' as const, sortKey: 5, data: noteA },
@@ -369,18 +347,14 @@ describe('useDayNotes', () => {
       await result.current.moveNote(DAY_ID, noteA.id, 'down', getMergedItems);
     });
 
-    expect(capturedBody.sort_order).toBe(11); // sortKey[idx+1] + 1 = 10 + 1
+    expect((await storedNotes()).find(n => n.id === noteA.id)?.sort_order).toBe(11);
   });
 
-  it('FE-HOOK-DAYNOTES-018: moveNote on error shows toast', async () => {
+  it('FE-HOOK-DAYNOTES-018: moveNote on adapter error shows toast', async () => {
     const toastSpy = vi.fn();
     window.__addToast = toastSpy;
-
-    server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', () => {
-        return HttpResponse.json({ error: 'Server error' }, { status: 500 });
-      })
-    );
+    // Day without the moved note — update rejects 'Note not found'.
+    await seedDay();
 
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
@@ -397,22 +371,14 @@ describe('useDayNotes', () => {
     });
 
     expect(toastSpy).toHaveBeenCalledWith(expect.any(String), 'error', undefined);
-    delete window.__addToast;
   });
 
   it('FE-HOOK-DAYNOTES-019: moveNote up with only 1 item before uses sortKey - 1', async () => {
-    let capturedBody: Record<string, unknown> = {};
-    server.use(
-      http.put('/api/trips/:id/days/:dayId/notes/:noteId', async ({ request }) => {
-        capturedBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ note: buildDayNote() });
-      })
-    );
-
-    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
-
     const noteA = buildDayNote({ id: 1 });
     const noteB = buildDayNote({ id: 2 });
+    await seedDay([noteA, noteB]);
+
+    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 
     const getMergedItems = () => [
       { type: 'note' as const, sortKey: 5, data: noteA },
@@ -424,10 +390,11 @@ describe('useDayNotes', () => {
       await result.current.moveNote(DAY_ID, noteB.id, 'up', getMergedItems);
     });
 
-    expect(capturedBody.sort_order).toBe(4); // sortKey[0] - 1 = 5 - 1
+    expect((await storedNotes()).find(n => n.id === noteB.id)?.sort_order).toBe(4);
   });
 
-  it('FE-HOOK-DAYNOTES-020: openAddNote calls expandDay if provided', () => {
+  it('FE-HOOK-DAYNOTES-020: openAddNote calls expandDay if provided', async () => {
+    await seedDay();
     const expandDay = vi.fn();
     const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
 

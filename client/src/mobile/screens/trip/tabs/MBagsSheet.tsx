@@ -14,10 +14,8 @@ export interface MBagsSheetProps {
   open: boolean
   onClose: () => void
   bags: PackingBag[]
-  /** Server-summed weight of everything in no bag (#2191); null when unknown. */
+  /** Adapter-summed weight of everything in no bag (#2191); null when unknown. */
   unassignedWeightGrams?: number | null
-  /** False while offline, when the server totals are frozen and blind to queued writes. */
-  serverWeightsFresh?: boolean
   items: PackingItem[]
   tripMembers: TripMember[]
   canEdit: boolean
@@ -35,20 +33,20 @@ export interface MBagsSheetProps {
  * is the caller's business — this sheet just renders whatever bags it's given.
  */
 export default function MBagsSheet({
-  planner, open, onClose, bags, items, unassignedWeightGrams, serverWeightsFresh = true, tripMembers, canEdit, currentUserId, onCreateBag, onUpdateBag, onDeleteBag, onSetBagMembers,
+  planner, open, onClose, bags, items, unassignedWeightGrams, tripMembers, canEdit, currentUserId, onCreateBag, onUpdateBag, onDeleteBag, onSetBagMembers,
 }: MBagsSheetProps) {
   const { t } = planner
   const [addingBag, setAddingBag] = useState(false)
   const [newBagName, setNewBagName] = useState('')
 
-  // The ITEM LISTS still describe what you are carrying — an item someone shared
-  // with you stays in your list, but they are the one bringing it (#1767).
+  // The ITEM LISTS still describe what you are carrying — a personal item owned
+  // by the viewer counts, one owned by somebody else does not (#1767).
   const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
   // The WEIGHTS no longer do: a bag's load is the bag's, whoever packed it (#2191).
   const bagWeightOf = (bag: PackingBag) =>
-    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id), serverWeightsFresh)
+    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id))
   const unassigned = myItems.filter(i => !i.bag_id)
-  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh)
+  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned)
   const totalWeight = bags.reduce((s, b) => s + bagWeightOf(b), 0) + unassignedWeight
   // Reference for bags without a limit of their own — computed once instead of per bag.
   const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)

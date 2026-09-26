@@ -38,7 +38,7 @@ export const tripsHandlers = [
     return HttpResponse.json({ trip });
   }),
 
-  http.get('/api/trips/:id/members', ({ params }) => {
+  http.get('/api/trips/:id/members', () => {
     const owner = buildUser();
     return HttpResponse.json({ owner, members: [] });
   }),

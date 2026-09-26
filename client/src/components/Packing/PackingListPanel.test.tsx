@@ -1,17 +1,22 @@
-// FE-COMP-PACKING-001 to FE-COMP-PACKING-020
+// FE-COMP-PACKING-001 to FE-COMP-PACKING-081
+//
+// The packing surface runs on the Dexie-backed local adapter — there is no
+// HTTP layer to intercept. Mutation tests seed the rows they act on into
+// `panelmintDb` and assert the persisted state (or the rendered result)
+// instead of a request body. The hosted-only chrome is gone with it:
+// bulk import, packing templates and the sharing/contributor actions.
 import 'fake-indexeddb/auto';
 import { vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useAddonStore } from '../../store/addonStore';
 import { useTripStore } from '../../store/tripStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildAdmin, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
+import { buildUser, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
 import PackingListPanel, { itemWeight } from './PackingListPanel';
 import { db, type LocalTripMember } from '../../db/panelmintDb';
+import type { PackingBag, PackingItem } from '../../types';
 
 /** getMembers is local: a member is a trip_membership row (the roster falls
  *  back to the row's username when no localUsers entry exists). */
@@ -21,7 +26,27 @@ async function withMembers(members: { id: number; username: string }[]): Promise
       tripId: 1, id: m.id, username: m.username, role: 'member',
       added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'owner', is_guest: false,
     } as LocalTripMember);
+    await db.localUsers.put({ id: m.id, name: m.username, is_self: 0 });
   }
+}
+
+/** Item CRUD/clone runs on the packingItems table — seed the rows a mutation
+ *  test acts on (the prop list drives the render, Dexie drives the write). */
+async function seedItems(items: PackingItem[]): Promise<void> {
+  await db.packingItems.bulkPut(items);
+}
+
+function buildBag(overrides: Partial<PackingBag> = {}): PackingBag {
+  return {
+    id: 1,
+    trip_id: 1,
+    name: 'Bag',
+    color: '#6366f1',
+    weight_limit_grams: null,
+    sort_order: 0,
+    created_at: '2025-01-01T00:00:00.000Z',
+    ...overrides,
+  };
 }
 
 describe('itemWeight (bag total weight calc)', () => {
@@ -46,18 +71,6 @@ beforeEach(async () => {
   });
   await db.localUsers.put({ id: 1, name: 'owner', is_self: 1 });
   await db.trips.put(buildTrip({ id: 1, user_id: 1 }));
-  // Side-effect APIs PackingListPanel calls on mount
-  server.use(
-    http.get('/api/trips/:id/packing/category-assignees', () =>
-      HttpResponse.json({ assignees: {} })
-    ),
-    http.get('/api/addons', () =>
-      HttpResponse.json({ bagTracking: false, addons: [] })
-    ),
-    http.get('/api/trips/:id/packing/templates', () =>
-      HttpResponse.json({ templates: [] })
-    ),
-  );
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
 });
@@ -137,23 +150,17 @@ describe('PackingListPanel', () => {
     expect(screen.getByPlaceholderText('Item name...')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-010: typing in add item input and pressing Enter calls POST', async () => {
+  it('FE-COMP-PACKING-010: typing in add item input and pressing Enter stores the item', async () => {
     const user = userEvent.setup();
     const existingItem = buildPackingItem({ name: 'Existing', category: 'Clothing' });
-    let postCalled = false;
-    server.use(
-      http.post('/api/trips/1/packing', async ({ request }) => {
-        postCalled = true;
-        const body = await request.json() as Record<string, unknown>;
-        const item = buildPackingItem({ name: String(body.name), category: String(body.category) });
-        return HttpResponse.json({ item });
-      })
-    );
     render(<PackingListPanel tripId={1} items={[existingItem]} />);
     await user.click(screen.getByText('Add item'));
     const addInput = screen.getByPlaceholderText('Item name...');
     await user.type(addInput, 'T-Shirt{Enter}');
-    await waitFor(() => expect(postCalled).toBe(true));
+    await waitFor(async () => {
+      const rows = await db.packingItems.toArray();
+      expect(rows.some(r => r.name === 'T-Shirt' && r.category === 'Clothing')).toBe(true);
+    });
   });
 
   it('FE-COMP-PACKING-011: checked item has checked state visually (1=checked)', () => {
@@ -191,24 +198,20 @@ describe('PackingListPanel', () => {
     expect(await screen.findByPlaceholderText('List name (e.g. Clothing)')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-016: delete item button exists and triggers API call', async () => {
+  it('FE-COMP-PACKING-016: delete item button exists and removes the row', async () => {
     const user = userEvent.setup();
-    // Uncategorized item: deleting it is a plain DELETE (a custom category's last
+    // Uncategorized item: deleting it is a plain delete (a custom category's last
     // item is instead converted to a placeholder — see FE-COMP-PACKING-070).
     const item = buildPackingItem({ id: 99, name: 'To Remove', category: null });
-    let deleteCalled = false;
-    server.use(
-      http.delete('/api/trips/1/packing/99', () => {
-        deleteCalled = true;
-        return HttpResponse.json({ success: true });
-      })
-    );
+    await seedItems([item]);
     render(<PackingListPanel tripId={1} items={[item]} />);
     expect(screen.getByText('To Remove')).toBeInTheDocument();
     // Delete button is in the DOM (opacity 0 on desktop but exists)
     const deleteBtn = screen.getByTitle('Delete');
     await user.click(deleteBtn);
-    await waitFor(() => expect(deleteCalled).toBe(true));
+    await waitFor(async () => {
+      expect(await db.packingItems.get(99)).toBeUndefined();
+    });
   });
 
   it('FE-COMP-PACKING-017: shows filter buttons (All, Open, Done) when items exist', () => {
@@ -253,16 +256,10 @@ describe('PackingListPanel', () => {
     expect(screen.getByText('No items match this filter')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-023: inline edit item name via pencil icon calls PUT', async () => {
+  it('FE-COMP-PACKING-023: inline edit item name via pencil icon persists the rename', async () => {
     const user = userEvent.setup();
     const item = buildPackingItem({ id: 42, name: 'Sunscreen', category: 'Toiletries' });
-    let patchBody: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/packing/42', async ({ request }) => {
-        patchBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: 42, name: 'Sunblock', category: 'Toiletries' }) });
-      })
-    );
+    await seedItems([item]);
     render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Click the rename (pencil) button
@@ -277,19 +274,15 @@ describe('PackingListPanel', () => {
     await user.type(input, 'Sunblock');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(patchBody).toMatchObject({ name: 'Sunblock' }));
+    await waitFor(async () => {
+      expect((await db.packingItems.get(42))!.name).toBe('Sunblock');
+    });
   });
 
-  it('FE-COMP-PACKING-024: toggle item checked state calls PUT', async () => {
+  it('FE-COMP-PACKING-024: toggle item checked state persists', async () => {
     const user = userEvent.setup();
     const item = buildPackingItem({ id: 50, name: 'Shorts', checked: 0, category: 'Clothing' });
-    let patchBody: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/packing/50', async ({ request }) => {
-        patchBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: 50, checked: 1 }) });
-      })
-    );
+    await seedItems([item]);
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
     // The toggle button contains the Square icon for unchecked items
@@ -297,20 +290,16 @@ describe('PackingListPanel', () => {
     expect(toggleBtn).toBeTruthy();
     await user.click(toggleBtn!);
 
-    await waitFor(() => expect(patchBody).toMatchObject({ checked: true }));
+    await waitFor(async () => {
+      expect((await db.packingItems.get(50))!.checked).toBe(1);
+    });
   });
 
-  it('FE-COMP-PACKING-025: "Check all" bulk action calls PUT for all unchecked items', async () => {
+  it('FE-COMP-PACKING-025: "Check all" bulk action checks all unchecked items', async () => {
     const user = userEvent.setup();
     const item1 = buildPackingItem({ id: 60, name: 'Item1', checked: 0, category: 'TestCat' });
     const item2 = buildPackingItem({ id: 61, name: 'Item2', checked: 0, category: 'TestCat' });
-    const patchedIds: number[] = [];
-    server.use(
-      http.put('/api/trips/1/packing/:itemId', ({ params }) => {
-        patchedIds.push(Number(params.itemId));
-        return HttpResponse.json({ item: buildPackingItem() });
-      })
-    );
+    await seedItems([item1, item2]);
     const { container } = render(<PackingListPanel tripId={1} items={[item1, item2]} />);
 
     // Open the MoreHorizontal context menu
@@ -321,22 +310,16 @@ describe('PackingListPanel', () => {
     // Click "Check All"
     await user.click(await screen.findByText('Check All'));
 
-    await waitFor(() => {
-      expect(patchedIds).toContain(60);
-      expect(patchedIds).toContain(61);
+    await waitFor(async () => {
+      expect((await db.packingItems.get(60))!.checked).toBe(1);
+      expect((await db.packingItems.get(61))!.checked).toBe(1);
     });
   });
 
-  it('FE-COMP-PACKING-026: quantity input change calls PUT with new quantity', async () => {
+  it('FE-COMP-PACKING-026: quantity input change persists the new quantity', async () => {
     const user = userEvent.setup();
     const item = buildPackingItem({ id: 70, name: 'T-Shirts', quantity: 2, category: 'Clothing' });
-    let patchBody: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/packing/70', async ({ request }) => {
-        patchBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: 70, quantity: 5 }) });
-      })
-    );
+    await seedItems([item]);
     render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Find the quantity input showing '2'
@@ -345,18 +328,13 @@ describe('PackingListPanel', () => {
     await user.type(qtyInput, '5');
     await user.tab(); // blur triggers commit
 
-    await waitFor(() => expect(patchBody).toMatchObject({ quantity: 5 }));
+    await waitFor(async () => {
+      expect((await db.packingItems.get(70))!.quantity).toBe(5);
+    });
   });
 
-  it('FE-COMP-PACKING-027: add new category via form calls POST', async () => {
+  it('FE-COMP-PACKING-027: add new category via form stores a row in it', async () => {
     const user = userEvent.setup();
-    let postBody: Record<string, unknown> | null = null;
-    server.use(
-      http.post('/api/trips/1/packing', async ({ request }) => {
-        postBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ name: '...', category: 'Valuables' }) });
-      })
-    );
     render(<PackingListPanel tripId={1} items={[]} />);
 
     await user.click(screen.getByText('Add list'));
@@ -364,7 +342,10 @@ describe('PackingListPanel', () => {
     await user.type(input, 'Valuables');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(postBody).toMatchObject({ category: 'Valuables' }));
+    await waitFor(async () => {
+      const rows = await db.packingItems.toArray();
+      expect(rows.some(r => r.category === 'Valuables')).toBe(true);
+    });
   });
 
   it('FE-COMP-PACKING-028: category group collapse hides items, expand shows them', async () => {
@@ -402,29 +383,11 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-030: packing template button present when templates available', async () => {
-    server.use(
-      http.get('/api/trips/:id/packing/templates', () =>
-        HttpResponse.json({ templates: [{ id: 1, name: 'Beach Trip', item_count: 5 }] })
-      )
-    );
-    render(<PackingListPanel tripId={1} items={[]} />);
-
-    // "Apply template" button appears when templates are available
-    expect(await screen.findByText('Apply template')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-PACKING-031: "Uncheck All" bulk action calls PUT to uncheck checked items', async () => {
+  it('FE-COMP-PACKING-031: "Uncheck All" bulk action unchecks checked items', async () => {
     const user = userEvent.setup();
     const item1 = buildPackingItem({ id: 80, name: 'ItemA', checked: 1, category: 'Gear' });
     const item2 = buildPackingItem({ id: 81, name: 'ItemB', checked: 1, category: 'Gear' });
-    const patchedIds: number[] = [];
-    server.use(
-      http.put('/api/trips/1/packing/:itemId', ({ params }) => {
-        patchedIds.push(Number(params.itemId));
-        return HttpResponse.json({ item: buildPackingItem() });
-      })
-    );
+    await seedItems([item1, item2]);
     const { container } = render(<PackingListPanel tripId={1} items={[item1, item2]} />);
 
     // Open the MoreHorizontal context menu
@@ -435,9 +398,9 @@ describe('PackingListPanel', () => {
     // Click "Uncheck All"
     await user.click(await screen.findByText('Uncheck All'));
 
-    await waitFor(() => {
-      expect(patchedIds).toContain(80);
-      expect(patchedIds).toContain(81);
+    await waitFor(async () => {
+      expect((await db.packingItems.get(80))!.checked).toBe(0);
+      expect((await db.packingItems.get(81))!.checked).toBe(0);
     });
   });
 
@@ -453,32 +416,8 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-033: import modal opens and closes', async () => {
-    const user = userEvent.setup();
-    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Click the Import button (Upload icon in the header)
-    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
-    expect(importBtn).toBeTruthy();
-    await user.click(importBtn!);
-
-    // Import modal title appears
-    expect(await screen.findByText('Import Packing List')).toBeInTheDocument();
-
-    // Cancel closes modal
-    await user.click(screen.getByText('Cancel'));
-    await waitFor(() => expect(screen.queryByText('Import Packing List')).not.toBeInTheDocument());
-  });
-
   it('FE-COMP-PACKING-034: bag tracking enabled shows Bags button and bag sidebar', async () => {
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 1, name: 'Carry-on', color: '#6366f1', weight_limit_grams: null, members: [] }] })
-      )
-    );
+    await db.packingBags.put(buildBag({ id: 1, name: 'Carry-on' }));
     const items = [buildPackingItem({ name: 'Laptop', category: 'Electronics' })];
     render(<PackingListPanel tripId={1} items={items} />);
 
@@ -489,16 +428,10 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-035: category rename via context menu calls PUT', async () => {
+  it('FE-COMP-PACKING-035: category rename via context menu persists the new name', async () => {
     const user = userEvent.setup();
     const item = buildPackingItem({ id: 90, name: 'Shirt', category: 'Clothing' });
-    let putBody: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/packing/90', async ({ request }) => {
-        putBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: 90, name: 'Shirt', category: 'Apparel' }) });
-      })
-    );
+    await seedItems([item]);
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Open the category context menu
@@ -515,7 +448,9 @@ describe('PackingListPanel', () => {
     await user.type(catInput, 'Apparel');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(putBody).toMatchObject({ category: 'Apparel' }));
+    await waitFor(async () => {
+      expect((await db.packingItems.get(90))!.category).toBe('Apparel');
+    });
   });
 
   it('FE-COMP-PACKING-036: assignee dropdown opens and lists members when clicked', async () => {
@@ -536,40 +471,9 @@ describe('PackingListPanel', () => {
     expect(screen.getByText('alice')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-038: import modal - typing text updates import count', async () => {
-    const user = userEvent.setup();
-    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Open import modal
-    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
-    await user.click(importBtn!);
-    await screen.findByText('Import Packing List');
-
-    // Textarea is present
-    const textarea = screen.getByPlaceholderText(/Hygiene, Toothbrush/);
-    expect(textarea).toBeInTheDocument();
-
-    // "Load CSV/TXT" button is present inside the modal
-    expect(screen.getByText('Load CSV/TXT')).toBeInTheDocument();
-
-    // Close by clicking backdrop (covers the onClick on the backdrop div)
-    const modalTitle = screen.getByText('Import Packing List');
-    const modalContent = modalTitle.closest('div[style*="width: 420"]');
-    // Dismiss via Cancel button
-    await user.click(screen.getByText('Cancel'));
-    await waitFor(() => expect(screen.queryByText('Import Packing List')).not.toBeInTheDocument());
-  });
-
   it('FE-COMP-PACKING-039: bag modal opens when Bags button clicked with bag tracking enabled', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 1, name: 'Main Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
-      )
-    );
+    await db.packingBags.put(buildBag({ id: 1, name: 'Main Bag' }));
     const items = [buildPackingItem({ name: 'Charger', category: 'Electronics' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
@@ -591,14 +495,7 @@ describe('PackingListPanel', () => {
   });
 
   it('FE-COMP-PACKING-040: bag sidebar renders BagCard with bag name when enabled and bags exist', async () => {
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 5, name: 'Backpack', color: '#10b981', weight_limit_grams: 10000, members: [] }] })
-      )
-    );
+    await db.packingBags.put(buildBag({ id: 5, name: 'Backpack', color: '#10b981', weight_limit_grams: 10000 }));
     const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
     render(<PackingListPanel tripId={1} items={items} />);
 
@@ -608,80 +505,7 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-041: save-as-template button present for admins when items exist', async () => {
-    seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
-    const user = userEvent.setup();
-    const items = [buildPackingItem({ name: 'Sunscreen', category: 'Toiletries' })];
-    render(<PackingListPanel tripId={1} items={items} />);
-
-    // Save-as-template button shows its label "Save as template"
-    const saveBtn = screen.getByText('Save as template').closest('button');
-    expect(saveBtn).toBeTruthy();
-
-    // Click to show the name input
-    await user.click(saveBtn!);
-
-    // Template name input appears
-    expect(await screen.findByPlaceholderText('Template name')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-PACKING-041b: save-as-template button hidden for non-admins', () => {
-    // Default seeded user (beforeEach) is a non-admin trip owner with edit rights.
-    const items = [buildPackingItem({ name: 'Sunscreen', category: 'Toiletries' })];
-    render(<PackingListPanel tripId={1} items={items} />);
-
-    // The "Save as template" action must not be available to normal users.
-    expect(screen.queryByText('Save as template')).not.toBeInTheDocument();
-  });
-
-  it('FE-COMP-PACKING-042: apply template dropdown opens when template button clicked', async () => {
-    const user = userEvent.setup();
-    server.use(
-      http.get('/api/trips/:id/packing/templates', () =>
-        HttpResponse.json({ templates: [{ id: 2, name: 'Summer Packing', item_count: 10 }] })
-      )
-    );
-    render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Wait for template button
-    const templateBtn = await screen.findByText('Apply template');
-
-    // Click to open dropdown
-    await user.click(templateBtn);
-
-    // Template name appears in the dropdown
-    expect(await screen.findByText('Summer Packing')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-PACKING-043: import modal textarea change updates text', async () => {
-    const user = userEvent.setup();
-    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Open import modal
-    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
-    await user.click(importBtn!);
-    await screen.findByText('Import Packing List');
-
-    // Type in textarea
-    const textarea = screen.getByPlaceholderText(/Hygiene, Toothbrush/);
-    await user.type(textarea, 'Clothing, T-Shirt');
-
-    // The textarea value reflects the typed text
-    expect(textarea).toHaveValue('Clothing, T-Shirt');
-
-    // Import button count updates to 1
-    expect(screen.getByText(/Import 1/)).toBeInTheDocument();
-  });
-
   it('FE-COMP-PACKING-044: bag item row shows weight input and bag button when bag tracking enabled', async () => {
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [] })
-      )
-    );
     const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
@@ -700,9 +524,7 @@ describe('PackingListPanel', () => {
       buildPackingItem({ name: 'Done1', checked: 1, category: 'Test' }),
       buildPackingItem({ name: 'Done2', checked: 1, category: 'Test' }),
     ];
-    server.use(
-      http.delete('/api/trips/1/packing/:itemId', () => HttpResponse.json({ success: true }))
-    );
+    await seedItems(items);
     // Mock window.confirm to return true
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
@@ -718,49 +540,17 @@ describe('PackingListPanel', () => {
     await user.click(removeBtn);
     // confirm was called
     expect(window.confirm).toHaveBeenCalled();
+    // and the checked rows are gone from Dexie
+    await waitFor(async () => {
+      expect(await db.packingItems.toArray()).toHaveLength(0);
+    });
 
     vi.restoreAllMocks();
   });
 
-  it('FE-COMP-PACKING-046: save-as-template form submission calls saveAsTemplate API', async () => {
-    seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
-    const user = userEvent.setup();
-    let savedTemplateName = '';
-    server.use(
-      http.post('/api/trips/1/packing/save-as-template', async ({ request }) => {
-        const body = await request.json() as Record<string, unknown>;
-        savedTemplateName = String(body.name);
-        return HttpResponse.json({ success: true });
-      }),
-      http.get('/api/trips/:id/packing/templates', () =>
-        HttpResponse.json({ templates: [] })
-      )
-    );
-    const items = [buildPackingItem({ name: 'Item', category: 'Test' })];
-    render(<PackingListPanel tripId={1} items={items} />);
-
-    // Click the "Save as template" button
-    const saveBtn = screen.getByText('Save as template').closest('button');
-    await user.click(saveBtn!);
-
-    // Type template name
-    const nameInput = await screen.findByPlaceholderText('Template name');
-    await user.type(nameInput, 'My Template');
-    await user.keyboard('{Enter}');
-
-    await waitFor(() => expect(savedTemplateName).toBe('My Template'));
-  });
-
   it('FE-COMP-PACKING-047: bag picker in item row opens when clicked with bag tracking enabled', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 3, name: 'Carry-on', color: '#ec4899', weight_limit_grams: null, members: [] }] })
-      )
-    );
+    await db.packingBags.put(buildBag({ id: 3, name: 'Carry-on', color: '#ec4899' }));
     const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
@@ -782,14 +572,7 @@ describe('PackingListPanel', () => {
 
   it('FE-COMP-PACKING-048: add bag in bag modal opens form when "Add bag" clicked', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 1, name: 'Main Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
-      )
-    );
+    await db.packingBags.put(buildBag({ id: 1, name: 'Main Bag' }));
     const items = [buildPackingItem({ name: 'Jacket', category: 'Clothing' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
@@ -818,23 +601,10 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-049: weight input change with bag tracking enabled calls PUT', async () => {
-    const user = userEvent.setup();
-    let putBody: Record<string, unknown> | null = null;
+  it('FE-COMP-PACKING-049: weight input change persists weight_grams', async () => {
     const itemId = 120;
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [] })
-      ),
-      http.put(`/api/trips/1/packing/${itemId}`, async ({ request }) => {
-        putBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: itemId }) });
-      })
-    );
     const items = [buildPackingItem({ id: itemId, name: 'Camera', category: 'Electronics' })];
+    await seedItems(items);
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for weight input to appear (bag tracking enabled)
@@ -842,14 +612,12 @@ describe('PackingListPanel', () => {
       expect(container.querySelector('input[placeholder="—"]')).toBeTruthy();
     });
 
-    // Change the weight input value
+    // The NumericInput commits on every change event — one change, one write.
     const weightInput = container.querySelector('input[placeholder="—"]') as HTMLInputElement;
-    await user.clear(weightInput);
-    await user.type(weightInput, '500');
-    await user.tab(); // blur to trigger change
+    fireEvent.change(weightInput, { target: { value: '500' } });
 
-    await waitFor(() => {
-      expect(putBody).toBeTruthy();
+    await waitFor(async () => {
+      expect((await db.packingItems.get(itemId))!.weight_grams).toBe(500);
     });
   });
 
@@ -857,12 +625,11 @@ describe('PackingListPanel', () => {
     const user = userEvent.setup();
     const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
     const item2 = buildPackingItem({ name: 'Passport', category: 'Documents' });
-    const { container } = render(<PackingListPanel tripId={1} items={[item, item2]} />);
+    render(<PackingListPanel tripId={1} items={[item, item2]} />);
 
     // The category change picker is triggered by a small dot button (no title)
     // It's rendered inside the action buttons group (sm:opacity-0 sm:group-hover:opacity-100)
     // In jsdom, CSS classes don't apply so the buttons are accessible
-    // The dot button has a circle span inside with category color
     // Find all buttons with the 'Move to List' title
     const catChangeBtn = screen.getAllByTitle('Move to List');
     expect(catChangeBtn.length).toBeGreaterThan(0);
@@ -874,23 +641,12 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-051: bag assignment from picker calls PUT with bag_id', async () => {
+  it('FE-COMP-PACKING-051: bag assignment from picker persists bag_id', async () => {
     const user = userEvent.setup();
     const itemId = 130;
-    let putBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 7, name: 'Trolley', color: '#10b981', weight_limit_grams: null, members: [] }] })
-      ),
-      http.put(`/api/trips/1/packing/${itemId}`, async ({ request }) => {
-        putBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: itemId }) });
-      })
-    );
+    await db.packingBags.put(buildBag({ id: 7, name: 'Trolley', color: '#10b981' }));
     const items = [buildPackingItem({ id: itemId, name: 'Shoes', category: 'Clothing' })];
+    await seedItems(items);
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for bag tracking to enable (Package icon appears)
@@ -908,59 +664,31 @@ describe('PackingListPanel', () => {
     const trolleyBtn = await within(packageBtn!.parentElement!).findByRole('button', { name: /Trolley/ });
     fireEvent.click(trolleyBtn);
 
-    await waitFor(() => expect(putBody).toMatchObject({ bag_id: 7 }));
+    await waitFor(async () => {
+      expect((await db.packingItems.get(itemId))!.bag_id).toBe(7);
+    });
   });
 
   it('FE-COMP-PACKING-052: category assignee chip renders when assignees exist', async () => {
-    server.use(
-      http.get('/api/trips/:id/packing/category-assignees', () =>
-        HttpResponse.json({ assignees: { Electronics: [{ user_id: 2, username: 'alice', avatar: null }] } })
-      )
-    );
+    await withMembers([{ id: 2, username: 'alice' }]);
+    await db.packingCategoryAssignees.put({
+      id: 1, trip_id: 1, category_name: 'Electronics', user_id: 2,
+    });
     const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
     render(<PackingListPanel tripId={1} items={[item]} />);
 
     // The assignee chip shows the first letter of username
     await waitFor(() => {
-      // The chip shows 'A' (first letter of 'alice')
       const chips = document.querySelectorAll('.assignee-chip');
       expect(chips.length).toBeGreaterThan(0);
     });
   });
 
-  it('FE-COMP-PACKING-053: import modal closes when backdrop is clicked', async () => {
-    const user = userEvent.setup();
-    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Open import modal
-    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
-    await user.click(importBtn!);
-    await screen.findByText('Import Packing List');
-
-    // Click on the backdrop (the outer div that closes the modal)
-    // The backdrop div has no specific identifier so we use the document.body portal
-    const backdrop = document.querySelector('[style*="backdrop-filter"]') as HTMLElement;
-    expect(backdrop).toBeTruthy();
-    fireEvent.click(backdrop!);
-
-    await waitFor(() => expect(screen.queryByText('Import Packing List')).not.toBeInTheDocument());
-  });
-
-  it('FE-COMP-PACKING-054: item with assigned bag shows "Unassigned" option in bag picker', async () => {
+  it('FE-COMP-PACKING-054: item with assigned bag shows the bag dot instead of the Package icon', async () => {
     const itemId = 140;
-    server.use(
-      http.get('/api/addons', () =>
-        HttpResponse.json({ bagTracking: true, addons: [] })
-      ),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 5, name: 'MyBag', color: '#ec4899', weight_limit_grams: null, members: [] }] })
-      ),
-      http.put(`/api/trips/1/packing/${itemId}`, async () =>
-        HttpResponse.json({ item: buildPackingItem({ id: itemId }) })
-      )
-    );
+    await db.packingBags.put(buildBag({ id: 5, name: 'MyBag', color: '#ec4899' }));
     // Item that already has a bag assigned
-    const items = [buildPackingItem({ id: itemId, name: 'Jacket', category: 'Clothing', bag_id: 5 } as any)];
+    const items = [buildPackingItem({ id: itemId, name: 'Jacket', category: 'Clothing', bag_id: 5 })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
     // Wait for bag tracking to enable
@@ -973,36 +701,11 @@ describe('PackingListPanel', () => {
     await screen.findByText('MyBag');
   });
 
-  it('FE-COMP-PACKING-055: apply template button click opens template dropdown and shows template', async () => {
-    const user = userEvent.setup();
-    server.use(
-      http.get('/api/trips/:id/packing/templates', () =>
-        HttpResponse.json({ templates: [{ id: 3, name: 'Weekend Pack', item_count: 8 }] })
-      )
-    );
-    render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Wait for and click template button
-    const templateBtn = await screen.findByText('Apply template');
-    await user.click(templateBtn);
-
-    // Template name appears in dropdown
-    expect(await screen.findByText('Weekend Pack')).toBeInTheDocument();
-    // Item count appears too
-    expect(screen.getByText('8 items')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-PACKING-037: delete category via context menu calls DELETE for all items', async () => {
+  it('FE-COMP-PACKING-037: delete category via context menu removes all its items', async () => {
     const user = userEvent.setup();
     const item1 = buildPackingItem({ id: 100, name: 'Rope', category: 'Gear' });
     const item2 = buildPackingItem({ id: 101, name: 'Map', category: 'Gear' });
-    const deletedIds: number[] = [];
-    server.use(
-      http.delete('/api/trips/1/packing/:itemId', ({ params }) => {
-        deletedIds.push(Number(params.itemId));
-        return HttpResponse.json({ success: true });
-      })
-    );
+    await seedItems([item1, item2]);
     const { container } = render(<PackingListPanel tripId={1} items={[item1, item2]} />);
 
     // Open context menu and click Delete List
@@ -1010,22 +713,16 @@ describe('PackingListPanel', () => {
     await user.click(moreBtn!);
     await user.click(await screen.findByText('Delete List'));
 
-    await waitFor(() => {
-      expect(deletedIds).toContain(100);
-      expect(deletedIds).toContain(101);
+    await waitFor(async () => {
+      expect(await db.packingItems.get(100)).toBeUndefined();
+      expect(await db.packingItems.get(101)).toBeUndefined();
     });
   });
 
   it('FE-COMP-PACKING-056: pressing Enter in quantity input commits value', async () => {
     const user = userEvent.setup();
     const item = buildPackingItem({ id: 71, name: 'Socks', quantity: 3, category: 'Clothing' });
-    let putBody: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/packing/71', async ({ request }) => {
-        putBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: 71, quantity: 7 }) });
-      })
-    );
+    await seedItems([item]);
     render(<PackingListPanel tripId={1} items={[item]} />);
 
     const qtyInput = screen.getByDisplayValue('3');
@@ -1033,7 +730,9 @@ describe('PackingListPanel', () => {
     await user.type(qtyInput, '7');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(putBody).toMatchObject({ quantity: 7 }));
+    await waitFor(async () => {
+      expect((await db.packingItems.get(71))!.quantity).toBe(7);
+    });
   });
 
   it('FE-COMP-PACKING-057: clicking unchecked item name enters inline edit mode', async () => {
@@ -1052,16 +751,10 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-058: selecting a different category in picker calls PUT with new category', async () => {
+  it('FE-COMP-PACKING-058: selecting a different category in picker persists the category', async () => {
     const itemA = buildPackingItem({ id: 74, name: 'Camera', category: 'Electronics' });
     const itemB = buildPackingItem({ id: 75, name: 'Passport', category: 'Documents' });
-    let putBody: Record<string, unknown> | null = null;
-    server.use(
-      http.put('/api/trips/1/packing/74', async ({ request }) => {
-        putBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: 74, category: 'Documents' }) });
-      })
-    );
+    await seedItems([itemA, itemB]);
     render(<PackingListPanel tripId={1} items={[itemA, itemB]} />);
 
     // Use fireEvent (no pointer events) to open the category picker — avoids mouseLeave closing picker
@@ -1072,18 +765,13 @@ describe('PackingListPanel', () => {
     const docBtn = await screen.findByRole('button', { name: 'Documents' });
     fireEvent.click(docBtn);
 
-    await waitFor(() => expect(putBody).toMatchObject({ category: 'Documents' }));
+    await waitFor(async () => {
+      expect((await db.packingItems.get(74))!.category).toBe('Documents');
+    });
   });
 
-  it('FE-COMP-PACKING-059: clicking member in UserPlus dropdown calls setCategoryAssignees', async () => {
-    let assignBody: Record<string, unknown> | null = null;
+  it('FE-COMP-PACKING-059: clicking member in UserPlus dropdown stores the category assignee', async () => {
     await withMembers([{ id: 2, username: 'alice' }]);
-    server.use(
-      http.put('/api/trips/1/packing/category-assignees/:cat', async ({ request }) => {
-        assignBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ assignees: [{ user_id: 2, username: 'alice', avatar: null }] });
-      })
-    );
     const item = buildPackingItem({ name: 'Tripod', category: 'Electronics' });
     const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
@@ -1098,21 +786,19 @@ describe('PackingListPanel', () => {
     const aliceBtn = await screen.findByRole('button', { name: /alice/i });
     await userEvent.setup().click(aliceBtn);
 
-    await waitFor(() => expect(assignBody).toMatchObject({ user_ids: [2] }));
+    await waitFor(async () => {
+      const rows = await db.packingCategoryAssignees.toArray();
+      expect(rows).toEqual([
+        expect.objectContaining({ trip_id: 1, category_name: 'Electronics', user_id: 2 }),
+      ]);
+    });
   });
 
-  it('FE-COMP-PACKING-060: clicking assignee chip removes assignee via setCategoryAssignees', async () => {
-    let putBody: Record<string, unknown> | null = null;
+  it('FE-COMP-PACKING-060: clicking assignee chip removes the assignee row', async () => {
     await withMembers([{ id: 2, username: 'alice' }]);
-    server.use(
-      http.get('/api/trips/:id/packing/category-assignees', () =>
-        HttpResponse.json({ assignees: { Electronics: [{ user_id: 2, username: 'alice', avatar: null }] } })
-      ),
-      http.put('/api/trips/1/packing/category-assignees/:cat', async ({ request }) => {
-        putBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ assignees: [] });
-      })
-    );
+    await db.packingCategoryAssignees.put({
+      id: 1, trip_id: 1, category_name: 'Electronics', user_id: 2,
+    });
     const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
     render(<PackingListPanel tripId={1} items={[item]} />);
 
@@ -1123,119 +809,15 @@ describe('PackingListPanel', () => {
     const chip = document.querySelector('.assignee-chip')!.parentElement!;
     fireEvent.click(chip);
 
-    // setCategoryAssignees called with empty user_ids (removing alice)
-    await waitFor(() => expect(putBody).toMatchObject({ user_ids: [] }));
+    await waitFor(async () => {
+      expect(await db.packingCategoryAssignees.toArray()).toEqual([]);
+    });
   });
 
-  it('FE-COMP-PACKING-061: applying a template calls applyTemplate API', async () => {
+  it('FE-COMP-PACKING-063: creating a bag via sidebar form stores the bag', async () => {
     const user = userEvent.setup();
-    let applyCalled = false;
-    server.use(
-      http.get('/api/trips/:id/packing/templates', () =>
-        HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
-      ),
-      http.post('/api/trips/1/packing/apply-template/5', () => {
-        applyCalled = true;
-        return HttpResponse.json({ count: 12 });
-      })
-    );
-    // jsdom window.location.reload is not configurable; it just emits a "not implemented" warning
-    render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Wait for template button and open dropdown
-    const templateBtn = await screen.findByText('Apply template');
-    await user.click(templateBtn);
-
-    // Click the template in the dropdown
-    const tmplBtn = await screen.findByText('Beach Trip');
-    await user.click(tmplBtn);
-
-    await waitFor(() => expect(applyCalled).toBe(true));
-  });
-
-  // #1565: the template used to always land in the shared pool, whichever tab was open.
-  it('FE-COMP-PACKING-061a: applying a template from "My List" sends the personal view', async () => {
-    const user = userEvent.setup();
-    let applyBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/trips/:id/packing/templates', () =>
-        HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
-      ),
-      http.post('/api/trips/1/packing/apply-template/5', async ({ request }) => {
-        applyBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ items: [], count: 12 });
-      })
-    );
-    render(<PackingListPanel tripId={1} items={[]} />);
-
-    await user.click(await screen.findByText('My list'));
-    await user.click(await screen.findByText('Apply template'));
-    await user.click(await screen.findByText('Beach Trip'));
-
-    await waitFor(() => expect(applyBody).toEqual({ visibility: 'personal' }));
-  });
-
-  it('FE-COMP-PACKING-061b: applying a template from the shared tab sends the common view', async () => {
-    const user = userEvent.setup();
-    let applyBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/trips/:id/packing/templates', () =>
-        HttpResponse.json({ templates: [{ id: 5, name: 'Beach Trip', item_count: 12 }] })
-      ),
-      http.post('/api/trips/1/packing/apply-template/5', async ({ request }) => {
-        applyBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ items: [], count: 12 });
-      })
-    );
-    render(<PackingListPanel tripId={1} items={[]} />);
-
-    await user.click(await screen.findByText('Apply template'));
-    await user.click(await screen.findByText('Beach Trip'));
-
-    await waitFor(() => expect(applyBody).toEqual({ visibility: 'common' }));
-  });
-
-  it('FE-COMP-PACKING-062: handleBulkImport calls import API and closes modal', async () => {
-    const user = userEvent.setup();
-    let importBody: Record<string, unknown> | null = null;
-    server.use(
-      http.post('/api/trips/1/packing/import', async ({ request }) => {
-        importBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ count: 2 });
-      })
-    );
-    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Open import modal
-    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
-    await user.click(importBtn!);
-    await screen.findByText('Import Packing List');
-
-    // Type two lines in the textarea
-    const textarea = screen.getByPlaceholderText(/Hygiene, Toothbrush/);
-    await user.type(textarea, 'Clothing, Shirt\nDocuments, Passport');
-
-    // Click Import button
-    const importActionBtn = await screen.findByText(/Import 2/);
-    await user.click(importActionBtn);
-
-    await waitFor(() => expect(importBody).toBeTruthy());
-  });
-
-  it('FE-COMP-PACKING-063: creating a bag via sidebar form calls createBag API', async () => {
-    const user = userEvent.setup();
-    let createBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
-      // Start with one bag so the sidebar renders (sidebar requires bags.length > 0)
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 1, name: 'Existing Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
-      ),
-      http.post('/api/trips/1/packing/bags', async ({ request }) => {
-        createBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ bag: { id: 10, name: 'Hiking Pack', color: '#ec4899', weight_limit_grams: null, members: [] } });
-      })
-    );
+    // Start with one bag so the sidebar renders (sidebar requires bags.length > 0)
+    await db.packingBags.put(buildBag({ id: 1, name: 'Existing Bag' }));
     const items = [buildPackingItem({ name: 'Boots', category: 'Clothing' })];
     render(<PackingListPanel tripId={1} items={items} />);
 
@@ -1249,22 +831,15 @@ describe('PackingListPanel', () => {
     await user.type(bagInput, 'Hiking Pack');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(createBody).toMatchObject({ name: 'Hiking Pack' }));
+    await waitFor(async () => {
+      const bags = await db.packingBags.toArray();
+      expect(bags.some(b => b.name === 'Hiking Pack')).toBe(true);
+    });
   });
 
-  it('FE-COMP-PACKING-064: deleting a bag from sidebar calls deleteBag API', async () => {
+  it('FE-COMP-PACKING-064: deleting a bag from sidebar removes it', async () => {
     const user = userEvent.setup();
-    let deleteCalled = false;
-    server.use(
-      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 9, name: 'Old Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
-      ),
-      http.delete('/api/trips/1/packing/bags/9', () => {
-        deleteCalled = true;
-        return HttpResponse.json({ success: true });
-      })
-    );
+    await db.packingBags.put(buildBag({ id: 9, name: 'Old Bag' }));
     const items = [buildPackingItem({ name: 'Shirt', category: 'Clothing' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
@@ -1272,27 +847,18 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(screen.getAllByText('Old Bag').length).toBeGreaterThan(0));
 
     // Click the X (delete) button on the BagCard in the sidebar
-    // The X button is in BagCard: <button onClick={onDelete}><X size={...} /></button>
     const xBtns = container.querySelectorAll('svg.lucide-x');
     expect(xBtns.length).toBeGreaterThan(0);
     await user.click(xBtns[0].closest('button')!);
 
-    await waitFor(() => expect(deleteCalled).toBe(true));
+    await waitFor(async () => {
+      expect(await db.packingBags.get(9)).toBeUndefined();
+    });
   });
 
   it('FE-COMP-PACKING-065: clicking bag name in sidebar enters edit mode and saves', async () => {
     const user = userEvent.setup();
-    let updateBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 11, name: 'Carry-on', color: '#10b981', weight_limit_grams: null, members: [] }] })
-      ),
-      http.put('/api/trips/1/packing/bags/11', async ({ request }) => {
-        updateBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ bag: { id: 11, name: 'Luggage', color: '#10b981', weight_limit_grams: null, members: [] } });
-      })
-    );
+    await db.packingBags.put(buildBag({ id: 11, name: 'Carry-on', color: '#10b981' }));
     const items = [buildPackingItem({ name: 'Shoes', category: 'Clothing' })];
     render(<PackingListPanel tripId={1} items={items} />);
 
@@ -1309,24 +875,16 @@ describe('PackingListPanel', () => {
     await user.type(bagNameInput, 'Luggage');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(updateBody).toMatchObject({ name: 'Luggage' }));
+    await waitFor(async () => {
+      expect((await db.packingBags.get(11))!.name).toBe('Luggage');
+    });
   });
 
   // #207: the column, the contract and the API have existed since v2.9.0 — there was
   // simply no way to type a limit in, so users encoded it in the bag name instead.
   it('FE-COMP-PACKING-065b: a bag without a limit offers to set one, in kg', async () => {
     const user = userEvent.setup();
-    let updateBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 12, name: 'Cabin bag', color: '#10b981', weight_limit_grams: null, members: [] }] })
-      ),
-      http.put('/api/trips/1/packing/bags/12', async ({ request }) => {
-        updateBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ bag: { id: 12, name: 'Cabin bag', color: '#10b981', weight_limit_grams: 8000, members: [] } });
-      })
-    );
+    await db.packingBags.put(buildBag({ id: 12, name: 'Cabin bag', color: '#10b981' }));
     render(<PackingListPanel tripId={1} items={[buildPackingItem({ name: 'Jacket', category: 'Clothing' })]} />);
 
     await waitFor(() => expect(screen.getAllByText('Set limit').length).toBeGreaterThan(0));
@@ -1337,22 +895,14 @@ describe('PackingListPanel', () => {
     await user.keyboard('{Enter}');
 
     // Entered in kilograms, stored in grams.
-    await waitFor(() => expect(updateBody).toMatchObject({ weight_limit_grams: 8000 }));
+    await waitFor(async () => {
+      expect((await db.packingBags.get(12))!.weight_limit_grams).toBe(8000);
+    });
   });
 
   it('FE-COMP-PACKING-065c: an existing limit is shown next to the packed weight and can be cleared', async () => {
     const user = userEvent.setup();
-    let updateBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 13, name: 'Hold bag', color: '#6366f1', weight_limit_grams: 20000, members: [] }] })
-      ),
-      http.put('/api/trips/1/packing/bags/13', async ({ request }) => {
-        updateBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ bag: { id: 13, name: 'Hold bag', color: '#6366f1', weight_limit_grams: null, members: [] } });
-      })
-    );
+    await db.packingBags.put(buildBag({ id: 13, name: 'Hold bag', weight_limit_grams: 20000 }));
     render(<PackingListPanel tripId={1} items={[buildPackingItem({ name: 'Boots', category: 'Clothing' })]} />);
 
     await waitFor(() => expect(screen.getAllByText(/\/ 20\.0 kg/).length).toBeGreaterThan(0));
@@ -1363,18 +913,15 @@ describe('PackingListPanel', () => {
     await user.keyboard('{Enter}');
 
     // An emptied field clears the limit rather than writing 0.
-    await waitFor(() => expect(updateBody).toMatchObject({ weight_limit_grams: null }));
+    await waitFor(async () => {
+      expect((await db.packingBags.get(13))!.weight_limit_grams).toBeNull();
+    });
   });
 
   it('FE-COMP-PACKING-066: BagCard Plus button opens user picker with trip members', async () => {
     const user = userEvent.setup();
     await withMembers([{ id: 2, username: 'bob' }]);
-    server.use(
-      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 12, name: 'Day Pack', color: '#ec4899', weight_limit_grams: null, members: [] }] })
-      )
-    );
+    await db.packingBags.put(buildBag({ id: 12, name: 'Day Pack', color: '#ec4899' }));
     const items = [buildPackingItem({ name: 'Camera', category: 'Electronics' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
@@ -1401,19 +948,9 @@ describe('PackingListPanel', () => {
     expect(screen.getByText('owner')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-067: BagCard user picker member click calls setBagMembers', async () => {
-    let membersBody: Record<string, unknown> | null = null;
+  it('FE-COMP-PACKING-067: BagCard user picker member click stores the bag member', async () => {
     await withMembers([{ id: 3, username: 'carol' }]);
-    server.use(
-      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
-      http.get('/api/trips/:id/packing/bags', () =>
-        HttpResponse.json({ bags: [{ id: 13, name: 'Weekend Bag', color: '#f97316', weight_limit_grams: null, members: [] }] })
-      ),
-      http.put('/api/trips/1/packing/bags/13/members', async ({ request }) => {
-        membersBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ members: [{ user_id: 3, username: 'carol', avatar: null }] });
-      })
-    );
+    await db.packingBags.put(buildBag({ id: 13, name: 'Weekend Bag', color: '#f97316' }));
     const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
@@ -1437,24 +974,16 @@ describe('PackingListPanel', () => {
     const carolBtn = await screen.findByText('carol');
     fireEvent.click(carolBtn.closest('button')!);
 
-    await waitFor(() => expect(membersBody).toMatchObject({ user_ids: [3] }));
+    await waitFor(async () => {
+      const rows = await db.packingBagMembers.toArray();
+      expect(rows).toEqual([expect.objectContaining({ bag_id: 13, user_id: 3 })]);
+    });
   });
 
   it('FE-COMP-PACKING-068: inline bag create in item row picker creates bag and assigns it', async () => {
-    let createBody: Record<string, unknown> | null = null;
-    server.use(
-      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
-      http.get('/api/trips/:id/packing/bags', () => HttpResponse.json({ bags: [] })),
-      http.post('/api/trips/1/packing/bags', async ({ request }) => {
-        createBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ bag: { id: 20, name: 'New Bag', color: '#6366f1', weight_limit_grams: null, members: [] } });
-      }),
-      http.put('/api/trips/1/packing/150', async () =>
-        HttpResponse.json({ item: buildPackingItem({ id: 150 }) })
-      )
-    );
-    const items = [buildPackingItem({ id: 150, name: 'Sunglasses', category: 'Accessories' })];
-    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+    const item = buildPackingItem({ id: 150, name: 'Sunglasses', category: 'Accessories' });
+    await seedItems([item]);
+    const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
 
     // Wait for Package icon (bag button in item row)
     await waitFor(() => expect(container.querySelector('svg.lucide-package')).toBeTruthy());
@@ -1472,28 +1001,11 @@ describe('PackingListPanel', () => {
     fireEvent.change(inlineInput, { target: { value: 'New Bag' } });
     fireEvent.keyDown(inlineInput, { key: 'Enter' });
 
-    await waitFor(() => expect(createBody).toMatchObject({ name: 'New Bag' }));
-  });
-
-  it('FE-COMP-PACKING-069: Load CSV/TXT button clicks the hidden file input', async () => {
-    const user = userEvent.setup();
-    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
-
-    // Open import modal
-    const importBtn = container.querySelector('svg.lucide-download')?.closest('button');
-    await user.click(importBtn!);
-    await screen.findByText('Import Packing List');
-
-    // Spy on the hidden file input's click method
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput).toBeTruthy();
-    const clickSpy = vi.spyOn(fileInput, 'click').mockImplementation(() => {});
-
-    // Click the "Load CSV/TXT" button
-    await user.click(screen.getByText('Load CSV/TXT'));
-
-    expect(clickSpy).toHaveBeenCalled();
-    clickSpy.mockRestore();
+    await waitFor(async () => {
+      const bag = (await db.packingBags.toArray()).find(b => b.name === 'New Bag');
+      expect(bag).toBeTruthy();
+      expect((await db.packingItems.get(150))!.bag_id).toBe(bag!.id);
+    });
   });
 
   it('FE-COMP-PACKING-070: deleting the last item of a custom category converts the row to a placeholder so the category persists in place (#1289)', async () => {
@@ -1501,68 +1013,38 @@ describe('PackingListPanel', () => {
     const item = buildPackingItem({ id: 99, name: 'Tent', category: 'Camping Gear' });
     // handleDeleteItem decides "last in category" from the rendered list.
     seedStore(useTripStore, { packingItems: [item] });
-    let deleted = false;
-    let putBody: Record<string, unknown> | null = null;
-    server.use(
-      http.delete('/api/trips/1/packing/99', () => {
-        deleted = true;
-        return HttpResponse.json({ success: true });
-      }),
-      http.put('/api/trips/1/packing/99', async ({ request }) => {
-        putBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: 99, name: '...', category: 'Camping Gear' }) });
-      })
-    );
+    await seedItems([item]);
     render(<PackingListPanel tripId={1} items={[item]} />);
 
     await user.click(screen.getByTitle('Delete'));
 
     // The row is updated in place (same id) rather than deleted, so colour/position hold.
-    await waitFor(() => expect(putBody).toMatchObject({ name: '...' }));
-    expect(deleted).toBe(false);
+    await waitFor(async () => {
+      expect((await db.packingItems.get(99))!.name).toBe('...');
+    });
+    expect(await db.packingItems.get(99)).toBeTruthy();
   });
 
   it('FE-COMP-PACKING-071: deleting the placeholder row deletes it, dismissing the empty category (#1289)', async () => {
     const user = userEvent.setup();
     const placeholder = buildPackingItem({ id: 5, name: '...', category: 'Camping Gear' });
     seedStore(useTripStore, { packingItems: [placeholder] });
-    let deleted = false;
-    let converted = false;
-    server.use(
-      http.delete('/api/trips/1/packing/5', () => {
-        deleted = true;
-        return HttpResponse.json({ success: true });
-      }),
-      http.put('/api/trips/1/packing/5', () => {
-        converted = true;
-        return HttpResponse.json({ item: placeholder });
-      })
-    );
+    await seedItems([placeholder]);
     render(<PackingListPanel tripId={1} items={[placeholder]} />);
 
     await user.click(screen.getByTitle('Delete'));
 
-    await waitFor(() => expect(deleted).toBe(true));
     // It is the placeholder itself — it must be removed, not re-converted.
-    expect(converted).toBe(false);
+    await waitFor(async () => {
+      expect(await db.packingItems.get(5)).toBeUndefined();
+    });
   });
 
   it('FE-COMP-PACKING-072: adding an item to an empty category reuses the placeholder row instead of appending (#1289)', async () => {
     const user = userEvent.setup();
     const placeholder = buildPackingItem({ id: 5, name: '...', category: 'Camping Gear' });
     seedStore(useTripStore, { packingItems: [placeholder] });
-    let posted = false;
-    let putBody: Record<string, unknown> | null = null;
-    server.use(
-      http.post('/api/trips/1/packing', () => {
-        posted = true;
-        return HttpResponse.json({ item: buildPackingItem({ id: 6 }) });
-      }),
-      http.put('/api/trips/1/packing/5', async ({ request }) => {
-        putBody = await request.json() as Record<string, unknown>;
-        return HttpResponse.json({ item: buildPackingItem({ id: 5, name: 'Tent', category: 'Camping Gear' }) });
-      })
-    );
+    await seedItems([placeholder]);
     render(<PackingListPanel tripId={1} items={[placeholder]} />);
 
     // Open the category's inline "Add item" and add a real entry.
@@ -1571,8 +1053,11 @@ describe('PackingListPanel', () => {
     await user.type(input, 'Tent');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(putBody).toMatchObject({ name: 'Tent' }));
-    expect(posted).toBe(false);
+    // The placeholder row is updated in place — no new row is created.
+    await waitFor(async () => {
+      expect((await db.packingItems.get(5))!.name).toBe('Tent');
+    });
+    expect(await db.packingItems.toArray()).toHaveLength(1);
   });
 
   // ── Three-tier sharing (#858) ──────────────────────────────────────────────
@@ -1594,15 +1079,16 @@ describe('PackingListPanel', () => {
     expect(screen.queryByText('Group tent')).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-081: a shared-to-me item shows the "by <bringer>" badge in My list', async () => {
+  it('FE-COMP-PACKING-081: a shared-to-me item lists in My list without a bringer badge', async () => {
     seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
     const items = [
       buildPackingItem({ name: 'Power bank', is_private: 1, owner_id: 2, owner_username: 'Bob', recipients: [{ user_id: 1, username: 'me' }] }),
     ];
     render(<PackingListPanel tripId={1} items={items} />);
     await userEvent.click(screen.getByText('My list'));
+    // The item stays visible — it just no longer narrates who covers it
+    // (the "by Bob" badge went away with the hosted sharing chrome).
     await screen.findByText('Power bank');
-    // "by Bob" — taken care of by the bringer.
-    expect(screen.getByText('by Bob')).toBeInTheDocument();
+    expect(screen.queryByText('by Bob')).not.toBeInTheDocument();
   });
 });

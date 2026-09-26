@@ -21,6 +21,7 @@ import { offlineDb } from '../db/offlineDb';
 import { db } from '../db/panelmintDb';
 import { tripsApi, daysApi, tagsApi, placesApi, categoriesApi } from '../api/client';
 import { budgetRepo } from '../repo/budgetRepo';
+import { packingRepo } from '../repo/packingRepo';
 import { reservationRepo } from '../repo/reservationRepo';
 import { LocalApiError } from '../api/local/helpers';
 import type { DayRow } from '../api/local/dexieStore';
@@ -33,8 +34,6 @@ async function clearCache(): Promise<void> {
     offlineDb.trips.clear(),
     offlineDb.days.clear(),
     offlineDb.places.clear(),
-    offlineDb.packingItems.clear(),
-    offlineDb.todoItems.clear(),
     offlineDb.reservations.clear(),
     offlineDb.tripFiles.clear(),
     offlineDb.tags.clear(),
@@ -153,13 +152,13 @@ describe('tripStore', () => {
     it('FE-TSTORE-003: fills every slice and builds the assignments/dayNotes maps', async () => {
       await seedLocalTrip(buildTrip({ id: 1, title: 'Paris' }));
       server.use(
-        http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [buildPackingItem({ id: 60, trip_id: 1 })] })),
-        http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 70, trip_id: 1 })] })),
         http.get('/api/trips/1/files', () => HttpResponse.json({ files: [buildTripFile({ id: 95, trip_id: 1 })] })),
       );
-      // places/tags/categories/reservations/budget are local — the "endpoint
-      // answers" are rows in `panelmintDb` (place 500 arrived via
-      // seedLocalTrip's assignment join).
+      // packing/todo are local — the "endpoint answers" are rows in
+      // `panelmintDb`, same as places/tags/categories/reservations/budget
+      // (place 500 arrived via seedLocalTrip's assignment join).
+      await db.packingItems.put(buildPackingItem({ id: 60, trip_id: 1 }));
+      await db.todoItems.put(buildTodoItem({ id: 70, trip_id: 1 }));
       await db.budgetItems.put(buildBudgetItem({ id: 80, trip_id: 1 }));
       await db.reservations.put(buildReservation({ id: 90, trip_id: 1 }));
       await db.tags.put(buildTag({ id: 11, name: 'Loaded tag' }));
@@ -250,12 +249,13 @@ describe('tripStore', () => {
       await offlineDb.trips.put(buildTrip({ id: 1, title: 'Cached trip' }));
       await offlineDb.days.bulkPut([buildDay({ id: 1, trip_id: 1, day_number: 1 })]);
       await offlineDb.places.bulkPut([buildPlace({ id: 502, trip_id: 1 })]);
-      await offlineDb.packingItems.bulkPut([buildPackingItem({ id: 62, trip_id: 1 })]);
-      await offlineDb.todoItems.bulkPut([buildTodoItem({ id: 73, trip_id: 1 })]);
       await offlineDb.tripFiles.bulkPut([buildTripFile({ id: 97, trip_id: 1 })]);
-      // Reservations/budget live in panelmintDb now — forced offline only gates
-      // the network, the local adapter reads the system of record either way.
+      // Packing/todo/reservations/budget live in panelmintDb now — forced
+      // offline only gates the network, the local adapter reads the system of
+      // record either way.
       await db.trips.put(buildTrip({ id: 1 }));
+      await db.packingItems.put(buildPackingItem({ id: 62, trip_id: 1 }));
+      await db.todoItems.put(buildTodoItem({ id: 73, trip_id: 1 }));
       await db.budgetItems.put(buildBudgetItem({ id: 82, trip_id: 1 }));
       await db.reservations.put(buildReservation({ id: 93, trip_id: 1 }));
       await offlineDb.tags.put(buildTag({ id: 41, name: 'Offline tag' }));
@@ -321,10 +321,10 @@ describe('tripStore', () => {
       await db.places.put(buildPlace({ id: 501, trip_id: 1 }));
 
       server.use(
-        http.get('/api/trips/1/packing', () => HttpResponse.json({ items: [buildPackingItem({ id: 61, trip_id: 1 })] })),
-        http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 71, trip_id: 1 })] })),
         http.get('/api/trips/1/files', () => HttpResponse.json({ files: [buildTripFile({ id: 96, trip_id: 1 })] })),
       );
+      await db.packingItems.put(buildPackingItem({ id: 61, trip_id: 1 }));
+      await db.todoItems.put(buildTodoItem({ id: 71, trip_id: 1 }));
       await db.budgetItems.put(buildBudgetItem({ id: 81, trip_id: 1 }));
       await db.reservations.put(buildReservation({ id: 91, trip_id: 1 }));
 
@@ -352,12 +352,11 @@ describe('tripStore', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       await db.trips.put(buildTrip({ id: 1 }));
 
-      // placeRepo.list is local now — its failure is a rejected adapter call.
+      // placeRepo.list/packingRepo.list are local now — their failure is a
+      // rejected adapter call, which hydrateActiveTrip treats as non-fatal.
       vi.spyOn(placesApi, 'list').mockRejectedValue(new LocalApiError(500, 'nope'));
-      server.use(
-        http.get('/api/trips/1/packing', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-        http.get('/api/trips/1/todo', () => HttpResponse.json({ items: [buildTodoItem({ id: 72, trip_id: 1 })] })),
-      );
+      vi.spyOn(packingRepo, 'list').mockRejectedValue(new LocalApiError(500, 'nope'));
+      await db.todoItems.put(buildTodoItem({ id: 72, trip_id: 1 }));
 
       await expect(useTripStore.getState().hydrateActiveTrip(1)).resolves.toBeUndefined();
 

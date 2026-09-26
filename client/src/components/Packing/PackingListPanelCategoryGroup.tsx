@@ -32,15 +32,10 @@ interface KategorieGruppeProps {
   // order is global, so a within-category drag is mapped back onto the full list.
   allItems: PackingItem[]
   onReorder: (orderedIds: number[]) => void
-  // Three-tier sharing (#858) — threaded down to each item's share control.
-  currentUserId?: number
-  onSetSharing?: (id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) => void
   onClone?: (id: number) => void
-  onJoin?: (id: number) => void
-  onLeave?: (id: number, userId: number) => void
 }
 
-export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, currentUserId, onSetSharing, onClone, onJoin, onLeave }: KategorieGruppeProps) {
+export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, onClone }: KategorieGruppeProps) {
   const [offen, setOffen] = useState(true)
   const [dragId, setDragId] = useState<number | null>(null)
   const [overId, setOverId] = useState<number | null>(null)
@@ -275,7 +270,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
             return (
               <React.Fragment key={item.id}>
                 <ArtikelZeile item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit}
-                  tripMembers={tripMembers} currentUserId={currentUserId} onSetSharing={onSetSharing} onClone={onClone} onJoin={onJoin} onLeave={onLeave}
+                  onClone={onClone}
                   drag={canEdit ? {
                     isDragging: dragId === item.id,
                     isOver: overId === item.id && dragId !== null && dragId !== item.id,

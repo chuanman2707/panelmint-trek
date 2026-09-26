@@ -5,7 +5,7 @@ import type { AxiosResponse } from 'axios'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import { db } from '../db/panelmintDb'
-import { buildDay, buildBudgetItem, buildPlace, buildReservation, buildTag, buildTrip } from '../../tests/helpers/factories'
+import { buildDay, buildBudgetItem, buildPackingItem, buildPlace, buildReservation, buildTag, buildTodoItem, buildTrip } from '../../tests/helpers/factories'
 import type { DayRow, StoredAssignment } from './local/dexieStore'
 import type { LocalTripMember } from '../db/panelmintDb'
 import { clearWeatherCache } from './ext/openmeteo'
@@ -61,6 +61,11 @@ beforeEach(async () => {
 async function seedTripAndDays() {
   await db.trips.put(buildTrip({ id: 3 }))
   await db.trips.put(buildTrip({ id: 1 }))
+  // Callers run this once per endpoint inside a single test, and a prior
+  // create/reorder may have renumbered day_numbers — a second bulkPut of the
+  // fixed 1..3 then collides on &[trip_id+day_number]. Reset trip 1's days so
+  // every call sees the same three rows.
+  await db.days.where('trip_id').equals(1).delete()
   await db.days.bulkPut([1, 2, 3].map((i) => ({
     ...buildDay({ id: i, trip_id: 1, day_number: i, date: `2025-06-0${i}` }),
     vias: [],
@@ -173,10 +178,27 @@ describe('client > endpoint wiring', () => {
         },
         e: 'local',
       },
-      { n: 'dayNotes.list', r: () => dayNotesApi.list(1, 2), e: 'GET /api/trips/1/days/2/notes' },
-      { n: 'dayNotes.create', r: () => dayNotesApi.create(1, 2, { text: 'note' }), e: 'POST /api/trips/1/days/2/notes' },
-      { n: 'dayNotes.update', r: () => dayNotesApi.update(1, 2, 5, { text: 'edit' }), e: 'PUT /api/trips/1/days/2/notes/5' },
-      { n: 'dayNotes.delete', r: () => dayNotesApi.delete(1, 2, 5), e: 'DELETE /api/trips/1/days/2/notes/5' },
+      // dayNotesApi is local too — notes embed on the day's notes_items.
+      { n: 'dayNotes.list', r: async () => { await seedTripAndDays(); return dayNotesApi.list(1, 2) }, e: 'local' },
+      { n: 'dayNotes.create', r: async () => { await seedTripAndDays(); return dayNotesApi.create(1, 2, { text: 'note' }) }, e: 'local' },
+      {
+        n: 'dayNotes.update',
+        r: async () => {
+          await seedTripAndDays()
+          const { note } = await dayNotesApi.create(1, 2, { text: 'note' })
+          return dayNotesApi.update(1, 2, note.id, { text: 'edit' })
+        },
+        e: 'local',
+      },
+      {
+        n: 'dayNotes.delete',
+        r: async () => {
+          await seedTripAndDays()
+          const { note } = await dayNotesApi.create(1, 2, { text: 'note' })
+          return dayNotesApi.delete(1, 2, note.id)
+        },
+        e: 'local',
+      },
     ])
   })
 
@@ -225,38 +247,56 @@ describe('client > endpoint wiring', () => {
     ])
   })
 
-  it('FE-APISURF-007: packingApi maps item, bag and template endpoints', async () => {
+  it('FE-APISURF-007: packingApi runs locally (Dexie-backed, zero HTTP)', async () => {
+    // The adapter's own suite (tests/unit/local/packing.test.ts) pins
+    // envelopes, guards and error strings; here each method only has to
+    // resolve over seeded rows without emitting a request. The hosted-only
+    // verbs (sharing, contributors, templates, bulk import) are gone.
+    const seedPackingWorld = async () => {
+      await db.trips.put(buildTrip({ id: 1 }))
+      await db.packingItems.put(buildPackingItem({ id: 4, trip_id: 1 }))
+      await db.packingItems.put(buildPackingItem({ id: 5, trip_id: 1 }))
+      await db.packingBags.put({
+        id: 2, trip_id: 1, name: 'Carry-on', color: '#6366f1',
+        weight_limit_grams: null, sort_order: 0, created_at: '2025-01-01T00:00:00.000Z',
+      } as never)
+      await db.localUsers.put({ id: 9, name: 'ann', is_self: 0 })
+      await db.tripMembers.put({
+        tripId: 1, id: 9, username: 'ann', role: 'member',
+        added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true,
+      } as LocalTripMember)
+    }
     await assertCalls([
-      { n: 'list', r: () => packingApi.list(1), e: 'GET /api/trips/1/packing' },
-      { n: 'create', r: () => packingApi.create(1, { name: 'Towel' }), e: 'POST /api/trips/1/packing' },
-      { n: 'bulkImport', r: () => packingApi.bulkImport(1, [{ name: 'Socks' }]), e: 'POST /api/trips/1/packing/import' },
-      { n: 'update', r: () => packingApi.update(1, 4, { checked: true }), e: 'PUT /api/trips/1/packing/4' },
-      { n: 'delete', r: () => packingApi.delete(1, 4), e: 'DELETE /api/trips/1/packing/4' },
-      { n: 'reorder', r: () => packingApi.reorder(1, [4, 5]), e: 'PUT /api/trips/1/packing/reorder' },
-      { n: 'setSharing', r: () => packingApi.setSharing(1, 4, { visibility: 'shared' }), e: 'PUT /api/trips/1/packing/4/sharing' },
-      { n: 'clone', r: () => packingApi.clone(1, 4), e: 'POST /api/trips/1/packing/4/clone' },
-      { n: 'addContributor', r: () => packingApi.addContributor(1, 4), e: 'POST /api/trips/1/packing/4/contributors' },
-      { n: 'removeContributor', r: () => packingApi.removeContributor(1, 4, 9), e: 'DELETE /api/trips/1/packing/4/contributors/9' },
-      { n: 'getCategoryAssignees', r: () => packingApi.getCategoryAssignees(1), e: 'GET /api/trips/1/packing/category-assignees' },
-      { n: 'listTemplates', r: () => packingApi.listTemplates(1), e: 'GET /api/trips/1/packing/templates' },
-      { n: 'applyTemplate', r: () => packingApi.applyTemplate(1, 6), e: 'POST /api/trips/1/packing/apply-template/6' },
-      { n: 'saveAsTemplate', r: () => packingApi.saveAsTemplate(1, 'Beach'), e: 'POST /api/trips/1/packing/save-as-template' },
-      { n: 'setBagMembers', r: () => packingApi.setBagMembers(1, 2, [9]), e: 'PUT /api/trips/1/packing/bags/2/members' },
-      { n: 'listBags', r: () => packingApi.listBags(1), e: 'GET /api/trips/1/packing/bags' },
-      { n: 'createBag', r: () => packingApi.createBag(1, { name: 'Carry-on' }), e: 'POST /api/trips/1/packing/bags' },
-      { n: 'updateBag', r: () => packingApi.updateBag(1, 2, { name: 'Hold' }), e: 'PUT /api/trips/1/packing/bags/2' },
-      { n: 'deleteBag', r: () => packingApi.deleteBag(1, 2), e: 'DELETE /api/trips/1/packing/bags/2' },
+      { n: 'list', r: async () => { await seedPackingWorld(); return packingApi.list(1) }, e: 'local' },
+      { n: 'create', r: async () => { await seedPackingWorld(); return packingApi.create(1, { name: 'Towel' }) }, e: 'local' },
+      { n: 'update', r: async () => { await seedPackingWorld(); return packingApi.update(1, 4, { checked: true }) }, e: 'local' },
+      { n: 'delete', r: async () => { await seedPackingWorld(); return packingApi.delete(1, 4) }, e: 'local' },
+      { n: 'reorder', r: async () => { await seedPackingWorld(); return packingApi.reorder(1, [4, 5]) }, e: 'local' },
+      { n: 'clone', r: async () => { await seedPackingWorld(); return packingApi.clone(1, 4) }, e: 'local' },
+      { n: 'getCategoryAssignees', r: async () => { await seedPackingWorld(); return packingApi.getCategoryAssignees(1) }, e: 'local' },
+      { n: 'setCategoryAssignees', r: async () => { await seedPackingWorld(); return packingApi.setCategoryAssignees(1, 'Docs', [9]) }, e: 'local' },
+      { n: 'setBagMembers', r: async () => { await seedPackingWorld(); return packingApi.setBagMembers(1, 2, [9]) }, e: 'local' },
+      { n: 'listBags', r: async () => { await seedPackingWorld(); return packingApi.listBags(1) }, e: 'local' },
+      { n: 'createBag', r: async () => { await seedPackingWorld(); return packingApi.createBag(1, { name: 'Carry-on' }) }, e: 'local' },
+      { n: 'updateBag', r: async () => { await seedPackingWorld(); return packingApi.updateBag(1, 2, { name: 'Hold' }) }, e: 'local' },
+      { n: 'deleteBag', r: async () => { await seedPackingWorld(); return packingApi.deleteBag(1, 2) }, e: 'local' },
     ])
   })
 
-  it('FE-APISURF-008: todoApi maps todo endpoints', async () => {
+  it('FE-APISURF-008: todoApi runs locally (Dexie-backed, zero HTTP)', async () => {
+    const seedTodoWorld = async () => {
+      await db.trips.put(buildTrip({ id: 1 }))
+      await db.todoItems.put(buildTodoItem({ id: 3, trip_id: 1 }))
+      await db.todoItems.put(buildTodoItem({ id: 4, trip_id: 1 }))
+    }
     await assertCalls([
-      { n: 'list', r: () => todoApi.list(1), e: 'GET /api/trips/1/todo' },
-      { n: 'create', r: () => todoApi.create(1, { name: 'Book train' }), e: 'POST /api/trips/1/todo' },
-      { n: 'update', r: () => todoApi.update(1, 3, { checked: true }), e: 'PUT /api/trips/1/todo/3' },
-      { n: 'delete', r: () => todoApi.delete(1, 3), e: 'DELETE /api/trips/1/todo/3' },
-      { n: 'reorder', r: () => todoApi.reorder(1, [3, 4]), e: 'PUT /api/trips/1/todo/reorder' },
-      { n: 'getCategoryAssignees', r: () => todoApi.getCategoryAssignees(1), e: 'GET /api/trips/1/todo/category-assignees' },
+      { n: 'list', r: async () => { await seedTodoWorld(); return todoApi.list(1) }, e: 'local' },
+      { n: 'create', r: async () => { await seedTodoWorld(); return todoApi.create(1, { name: 'Book train' }) }, e: 'local' },
+      { n: 'update', r: async () => { await seedTodoWorld(); return todoApi.update(1, 3, { checked: true }) }, e: 'local' },
+      { n: 'delete', r: async () => { await seedTodoWorld(); return todoApi.delete(1, 3) }, e: 'local' },
+      { n: 'reorder', r: async () => { await seedTodoWorld(); return todoApi.reorder(1, [3, 4]) }, e: 'local' },
+      { n: 'getCategoryAssignees', r: async () => { await seedTodoWorld(); return todoApi.getCategoryAssignees(1) }, e: 'local' },
+      { n: 'setCategoryAssignees', r: async () => { await seedTodoWorld(); return todoApi.setCategoryAssignees(1, 'Prep', []) }, e: 'local' },
     ])
   })
 
@@ -407,8 +447,18 @@ describe('client > request payloads', () => {
       .map((d) => d.id)
     expect(stored).toEqual([3, 1, 2])
     expect(log).toHaveLength(0)
-    expect((await traceOne(() => packingApi.reorder(1, [2, 1]))).body).toEqual({ orderedIds: [2, 1] })
-    expect((await traceOne(() => todoApi.reorder(1, [9]))).body).toEqual({ orderedIds: [9] })
+    // packingApi/todoApi reorders are local too — assert the persisted
+    // sort_order the wire body's orderedIds field used to set.
+    await db.packingItems.bulkPut([
+      buildPackingItem({ id: 1, trip_id: 1, sort_order: 0 }),
+      buildPackingItem({ id: 2, trip_id: 1, sort_order: 1 }),
+    ])
+    await packingApi.reorder(1, [2, 1])
+    expect((await db.packingItems.get(2))!.sort_order).toBe(0)
+    expect((await db.packingItems.get(1))!.sort_order).toBe(1)
+    await db.todoItems.put(buildTodoItem({ id: 9, trip_id: 1, sort_order: 0 }))
+    await todoApi.reorder(1, [9])
+    expect((await db.todoItems.get(9))!.sort_order).toBe(0)
     // budgetApi's reorders are local too — assert the persisted positions the
     // wire body's orderedIds / orderedCategories fields used to set.
     await db.trips.put(buildTrip({ id: 1 }))
@@ -460,7 +510,17 @@ describe('client > request payloads', () => {
     expect(members.map((m) => m.user_id)).toEqual([4])
     expect((await db.budgetItems.get(2))!.members!.map((m) => m.user_id)).toEqual([4])
     expect(log).toHaveLength(0)
-    expect((await traceOne(() => packingApi.setBagMembers(1, 2, [6]))).body).toEqual({ user_ids: [6] })
+    // packingApi.setBagMembers is local — its "body" is the junction rewrite
+    // the wire user_ids used to cause, roster-filtered like the others.
+    await db.packingBags.put({
+      id: 2, trip_id: 1, name: 'Hold', color: '#6366f1',
+      weight_limit_grams: null, sort_order: 0, created_at: '2025-01-01T00:00:00.000Z',
+    } as never)
+    log = []
+    const { members: bagMembers } = await packingApi.setBagMembers(1, 2, [4, 6])
+    expect(bagMembers.map((m) => m.user_id)).toEqual([4])
+    expect((await db.packingBagMembers.toArray()).map((r) => r.user_id)).toEqual([4])
+    expect(log).toHaveLength(0)
     // reservationsApi.setTravelers is local — its "body" is the junction
     // rewrite filtered to the trip roster (4 is a member, 6 is off-roster).
     await db.reservations.put(buildReservation({ id: 2, trip_id: 1 }))
@@ -606,14 +666,28 @@ describe('client > query parameters', () => {
     expect(current.description).toBe('Klar')
   })
 
-  it('FE-APISURF-044: packing/todo category assignees encode the category name', async () => {
-    const packing = await traceOne(() => packingApi.setCategoryAssignees(1, 'Rain gear/Wet', [4]))
-    expect(packing.url).toBe('/api/trips/1/packing/category-assignees/Rain%20gear%2FWet')
-    expect(packing.body).toEqual({ user_ids: [4] })
+  it('FE-APISURF-044: packing/todo category assignees store the raw category name', async () => {
+    // The axios version URL-encoded the category name into the path and sent
+    // user_ids as the body; the local adapters key the junction row by the
+    // raw name and filter ids to the trip roster (4 is on trip 1, 5 is not).
+    await db.trips.put(buildTrip({ id: 1 }))
+    await db.localUsers.put({ id: 4, name: 'ann', is_self: 0 })
+    await db.tripMembers.put({
+      tripId: 1, id: 4, username: 'ann', role: 'member',
+      added_at: '2025-01-01T00:00:00.000Z', invited_by_username: 'Me', is_guest: true,
+    } as LocalTripMember)
+    log = []
 
-    const todo = await traceOne(() => todoApi.setCategoryAssignees(1, 'Before & after', [5]))
-    expect(todo.url).toBe('/api/trips/1/todo/category-assignees/Before%20%26%20after')
-    expect(todo.body).toEqual({ user_ids: [5] })
+    const packing = await packingApi.setCategoryAssignees(1, 'Rain gear/Wet', [4, 5])
+    expect(packing.assignees.map((a) => a.user_id)).toEqual([4])
+    const packingRows = await db.packingCategoryAssignees.toArray()
+    expect(packingRows.map((r) => [r.category_name, r.user_id])).toEqual([['Rain gear/Wet', 4]])
+
+    const todo = await todoApi.setCategoryAssignees(1, 'Before & after', [4, 5])
+    expect(todo.assignees.map((a) => a.user_id)).toEqual([4])
+    const todoRows = await db.todoCategoryAssignees.toArray()
+    expect(todoRows.map((r) => [r.category_name, r.user_id])).toEqual([['Before & after', 4]])
+    expect(log).toHaveLength(0)
   })
 
 })

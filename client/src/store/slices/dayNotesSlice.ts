@@ -125,8 +125,15 @@ export const createDayNotesSlice = (set: SetState, get: GetState): DayNotesSlice
       try {
         await dayNotesApi.delete(tripId, fromDayId, noteId)
       } catch (delErr: unknown) {
-        // The source survived, so drop the copy rather than leave a duplicate behind.
-        await dayNotesApi.delete(tripId, toDayId, result.note.id).catch(() => {})
+        // The source survived, so drop the copy rather than leave a duplicate
+        // behind. Best-effort: if the cleanup delete also fails, the original
+        // delErr still decides the outcome — warn so the leftover copy on the
+        // target day is diagnosable instead of invisible.
+        try {
+          await dayNotesApi.delete(tripId, toDayId, result.note.id)
+        } catch (cleanupErr: unknown) {
+          console.warn('moveDayNote: could not remove the copied note from the target day', cleanupErr)
+        }
         throw delErr
       }
       set(s => ({

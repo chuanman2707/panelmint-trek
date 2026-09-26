@@ -80,10 +80,6 @@ export const adminHandlers = [
     return HttpResponse.json({ addons: [] });
   }),
 
-  http.get('/api/admin/packing-templates', () => {
-    return HttpResponse.json({ templates: [] });
-  }),
-
   http.get('/api/admin/audit-log', () => {
     return HttpResponse.json({ logs: [], total: 0 });
   }),
