@@ -30,33 +30,11 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'Theo mặc định, PanelMint dùng Valhalla công cộng của FOSSGIS để tránh đường thu phí, đường cao tốc và phà. Nhập URL Valhalla riêng tại đây để dùng thay thế. Nếu chỉ cấu hình máy chủ định tuyến riêng, Valhalla công cộng sẽ không được dùng. Sau khi nhập URL riêng, hãy khởi động lại máy chủ và tải lại trang.',
   'settings.mapHint': 'Mẫu URL cho ô bản đồ',
-  'settings.mapProvider': 'Nhà cung cấp bản đồ',
-  'settings.mapProviderHint':
-    'Ảnh hưởng tới Công cụ lập kế hoạch chuyến đi và bản đồ hành trình. Atlas luôn sử dụng Leaflet.',
-  'settings.mapLeafletSubtitle': '2D cổ điển, bất kỳ ô raster nào',
-  'settings.mapMapboxSubtitle': 'Gạch vector, tòa nhà 3D và địa hình',
-  'settings.mapMapLibreSubtitle': 'OpenFreeMap gạch vector, không có mã thông báo',
-  'settings.mapExperimental': 'thực nghiệm',
-  'settings.mapMapboxToken': 'Mapbox Mã thông báo truy cập',
-  'settings.mapMapboxTokenHint': 'Mã thông báo công khai (pk.*) từ',
-  'settings.mapMapboxTokenLink': 'mapbox.com → Mã thông báo truy cập',
   'settings.mapCartoKey': 'Khóa API CARTO',
   'settings.mapCartoKeyHint': 'Bản đồ nền CARTO hiển thị hình mờ nếu không có khóa. Miễn phí, không cần tài khoản, từ',
   'settings.mapCartoKeyLink': 'khóa API bản đồ nền carto.com',
   'settings.mapCartoKeyMissing':
     'Mẫu này là bản đồ nền CARTO. Không có khóa, CARTO in "API KEY REQUIRED" lên mọi ô bản đồ. Cho đến khi bạn nhập khóa, PanelMint hiển thị bản đồ nền mặc định.',
-  'settings.mapStyle': 'Kiểu bản đồ',
-  'settings.mapStylePlaceholder': 'Chọn kiểu Mapbox',
-  'settings.mapStyleHint': 'Đặt trước hoặc của riêng bạn mapbox://styles/USER/ID URL',
-  'settings.mapOpenFreeMapStylePlaceholder': 'Chọn kiểu OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint':
-    'Đặt trước hoặc kiểu OpenFreeMap URL. Kiểu OpenFreeMap hoạt động mà không cần mã thông báo.',
-  'settings.map3dBuildings': 'Tòa nhà & địa hình 3D',
-  'settings.map3dHint': 'Cao độ + ép đùn tòa nhà 3D thực - hoạt động trên mọi phong cách, bao gồm cả vệ tinh.',
-  'settings.mapHighQuality': 'Chế độ chất lượng cao',
-  'settings.mapHighQualityHint':
-    'Khử răng cưa + chiếu hình ảnh địa cầu cho các cạnh sắc nét hơn và thế giới quan chân thực hơn.',
-  'settings.mapHighQualityWarning': 'Có thể ảnh hưởng đến hiệu suất trên các thiết bị cấp thấp hơn.',
   'settings.mapTipLabel': 'Mẹo:',
   'settings.mapTip':
     'nhấp chuột phải và kéo để xoay/cao độ bản đồ. Nhấp chuột giữa để thêm địa điểm (nhấp chuột phải được dành riêng cho việc xoay).',

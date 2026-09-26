@@ -30,32 +30,12 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'PanelMint, ücretli yolları, otoyolları ve feribotları önlemek için varsayılan olarak FOSSGIS’in herkese açık Valhalla hizmetini kullanır. Bunun yerine kendi Valhalla sunucunuzu kullanmak için URL’sini buraya girin. Yalnızca özel bir rota sunucusu yapılandırılmışsa herkese açık Valhalla kullanılmaz. Özel URL girdikten sonra sunucuyu yeniden başlatın ve sayfayı yenileyin.',
   'settings.mapHint': 'Harita kutucukları için URL şablonu',
-  'settings.mapProvider': 'Harita Sağlayıcısı',
-  'settings.mapProviderHint': 'Seyahat planlayıcı ve Journey haritalarını etkiler. Atlas her zaman Leaflet kullanır.',
-  'settings.mapLeafletSubtitle': 'Klasik 2D, herhangi bir raster kutucuk',
-  'settings.mapMapboxSubtitle': 'Vektör kutucuklar, 3D binalar ve arazi',
-  'settings.mapMapLibreSubtitle': 'OpenFreeMap vektör kutucuklar, anahtar gerekmez',
-  'settings.mapExperimental': 'Deneysel',
-  'settings.mapMapboxToken': 'Mapbox Erişim Anahtarı',
-  'settings.mapMapboxTokenHint': 'Genel anahtar (pk.*) kaynağı:',
-  'settings.mapMapboxTokenLink': 'Mapbox.com → Jetonlara erişim',
   'settings.mapCartoKey': 'CARTO API anahtarı',
   'settings.mapCartoKeyHint':
     'CARTO temel haritaları anahtar olmadan filigran gösterir. Ücretsiz, hesap gerekmez, kaynağı:',
   'settings.mapCartoKeyLink': 'carto.com temel harita API anahtarı',
   'settings.mapCartoKeyMissing':
     'Bu şablon bir CARTO temel haritası. Anahtar olmadan CARTO her karoya "API KEY REQUIRED" damgası basar. Anahtar girilene kadar PanelMint varsayılan temel haritayı gösterir.',
-  'settings.mapStyle': 'Harita Stili',
-  'settings.mapStylePlaceholder': 'Bir Mapbox stili seçin',
-  'settings.mapStyleHint': 'Ön ayar veya kendi mapbox://styles/KULLANICI/ID adresiniz',
-  'settings.mapOpenFreeMapStylePlaceholder': 'Bir OpenFreeMap stili seçin',
-  'settings.mapOpenFreeMapStyleHint':
-    "Ön ayar veya OpenFreeMap stil URL'si. OpenFreeMap stilleri anahtar gerektirmeden çalışır.",
-  'settings.map3dBuildings': '3D Binalar ve Arazi',
-  'settings.map3dHint': 'Eğim + gerçek 3D bina çıkıntıları — uydu dahil her stilde çalışır.',
-  'settings.mapHighQuality': 'Yüksek Kalite Modu',
-  'settings.mapHighQualityHint': 'Keskin kenarlar ve gerçekçi dünya görünümü için antialiasing + küre projeksiyonu.',
-  'settings.mapHighQualityWarning': 'Düşük donanımlı cihazlarda performansı etkileyebilir.',
   'settings.mapTipLabel': 'İpucu:',
   'settings.mapTip':
     'Haritayı döndürmek/eğmek için sağ tıklayıp sürükleyin. Yer eklemek için orta tıklama (sağ tık döndürmeye ayrılmıştır).',

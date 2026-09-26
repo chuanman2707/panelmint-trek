@@ -7,6 +7,7 @@ import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDra
 import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupLike } from './markerCluster'
 import RoadtripViaMarkers from './RoadtripViaMarkers'
 import HazardLayers from './HazardLayers'
+import { useRoadtripHazards } from './useRoadtripHazards'
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
 import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
 import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays'
@@ -14,9 +15,8 @@ import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays'
 /**
  * The drive-time pill for one offered route.
  *
- * A divIcon rather than a tooltip: it has to be clickable, it has to sit exactly on the
- * road, and it is the same shape the GL renderers build by hand — one look across all
- * three maps.
+ * A divIcon rather than a tooltip: it has to be clickable and it has to sit exactly on
+ * the road.
  */
 function alternativeLabelIcon(label: string, note: string, background: string, active: boolean) {
   const outline = active ? 'outline:2px solid #fff;outline-offset:1px;' : ''
@@ -272,9 +272,9 @@ function CameraHoverGuard({ movingRef, onMoveStart, onZoom }: { movingRef: { cur
 /**
  * Takes a corridor hit dropped anywhere on the map and reports where it landed.
  *
- * The container rather than the drawn route: a polyline is a real element here but not in
- * the GL renderers, and the drop coordinate answers "where on the drive" just as well
- * once the caller projects it onto the routed geometry — one behaviour for all three.
+ * The container rather than the drawn route: a polyline is a thin target, and the drop
+ * coordinate answers "where on the drive" just as well once the caller projects it onto
+ * the routed geometry.
  */
 function PoiDropTarget({ onPoiDropOnRoute }: { onPoiDropOnRoute?: (osmId: string, lat: number, lng: number) => void }) {
   const map = useMap()
@@ -391,8 +391,8 @@ interface BoundsControllerProps {
   /**
    * An explicit stretch of map to frame, independent of the day being shown.
    *
-   * `fitKey` cannot express this: it carries no coordinates, and each renderer decides
-   * for itself that it means "the selected day". Weighing the ways of driving one leg
+   * `fitKey` cannot express this: it carries no coordinates, and on the map it always
+   * means "the selected day". Weighing the ways of driving one leg
    * needs that leg on screen, which is neither the day nor the trip.
    */
   focusPoints?: [number, number][]
@@ -712,6 +712,11 @@ export const MapView = memo(function MapView({
   onChooseAlternative,
   onHighlightAlternative,
 }: any) {
+  // Road-trip hazard warnings are fetched here rather than injected — the
+  // MapViewAuto seam that used to do it is gone. An explicit `hazards` prop
+  // still wins, so a caller holding a feed of its own keeps what it passed.
+  const hazardsFeed = useRoadtripHazards(tripId, clusterLoosely)
+  const shownHazards = hazards ?? hazardsFeed.feed?.hazards
   // The caller hands over whatever the user configured. PanelMint is raster-only —
   // a stored vector style (a pre-conversion setting) resolves as 'vector' here and
   // is drawn as the OSM fallback rather than leaving the map blank.
@@ -1160,7 +1165,7 @@ export const MapView = memo(function MapView({
         roadRoutes={transportRoutes}
       />
 
-      {hazards?.length > 0 && <HazardLayers hazards={hazards} />}
+      {shownHazards?.length > 0 && <HazardLayers hazards={shownHazards} />}
 
       <ClusteredPois pois={pois} enabled={clusterLoosely} onPoiClick={onPoiClick}>{poiMarkers}</ClusteredPois>
       {/* Charging stops / rest areas a plugin route places on the drawn day route.

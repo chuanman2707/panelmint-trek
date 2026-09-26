@@ -258,15 +258,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'Standardkartan för alla användare på denna instans. Varje användare kan fortfarande ändra inställningarna i sina egna inställningar.',
   'admin.defaultSettings.providerLeaflet': 'Standard (gratis)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Delat Mapbox-token',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Används för alla användare som inte har angett sin egen token – på så sätt får hela instansen tillgång till Mapbox utan att nyckeln behöver delas ut individuellt. Lagras i krypterad form.',
-  'admin.defaultSettings.mapboxStyle': 'Kartstil',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Välj en stil…',
-  'admin.defaultSettings.mapbox3d': '3D-byggnader och terräng',
-  'admin.defaultSettings.mapboxQuality': 'Högkvalitetsläge',
   'admin.defaultSettings.cartoKey': 'Delad CARTO-nyckel',
   'admin.defaultSettings.cartoKeyHint':
     'Används för alla användare som inte har angett en egen nyckel, på så sätt får hela instansen CARTO-rutor utan vattenstämpel. Lagras i krypterad form.',

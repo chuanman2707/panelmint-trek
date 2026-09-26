@@ -790,15 +790,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'Peta default untuk semua orang di instance ini. Setiap pengguna tetap dapat menggantinya di pengaturan masing-masing.',
   'admin.defaultSettings.providerLeaflet': 'Standar (gratis)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Token Mapbox bersama',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Digunakan untuk setiap pengguna yang belum memasukkan token mereka sendiri — sehingga seluruh instance mendapatkan Mapbox tanpa perlu membagikan kunci satu per satu. Disimpan dalam bentuk terenkripsi.',
-  'admin.defaultSettings.mapboxStyle': 'Gaya peta',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Pilih gaya…',
-  'admin.defaultSettings.mapbox3d': 'Bangunan & medan 3D',
-  'admin.defaultSettings.mapboxQuality': 'Mode kualitas tinggi',
   'admin.defaultSettings.cartoKey': 'Kunci CARTO bersama',
   'admin.defaultSettings.cartoKeyHint':
     'Digunakan untuk setiap pengguna yang belum memasukkan kunci mereka sendiri, sehingga seluruh instance mendapatkan ubin CARTO tanpa tanda air. Disimpan dalam bentuk terenkripsi.',

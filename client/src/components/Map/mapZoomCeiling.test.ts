@@ -17,9 +17,9 @@ import 'leaflet.markercluster'
 import { MAP_MAX_ZOOM } from '../../constants/mapDefaults'
 
 /**
- * A layer that is not a GridLayer, which is what a vector basemap amounts to:
- * maplibre-gl-leaflet hands back an L.Layer holding a canvas, so it has no
- * beforeAdd and never reaches Leaflet's _addZoomLimit.
+ * A layer that is not a GridLayer, which is what a vector basemap was: it
+ * handed the map an L.Layer holding a canvas, so it had no beforeAdd and never
+ * reached Leaflet's _addZoomLimit.
  */
 const GlCanvasLayer = L.Layer.extend({ onAdd: () => undefined, onRemove: () => undefined })
 function glCanvasLayer(): L.Layer {

@@ -787,15 +787,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'Die Standardkarte für alle auf dieser Instanz. Jeder Nutzer kann sie weiterhin in den eigenen Einstellungen überschreiben.',
   'admin.defaultSettings.providerLeaflet': 'Standard (kostenlos)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Gemeinsames Mapbox-Token',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Wird für jeden Nutzer verwendet, der kein eigenes Token eingegeben hat — so erhält die gesamte Instanz Mapbox, ohne den Schlüssel einzeln teilen zu müssen. Verschlüsselt gespeichert.',
-  'admin.defaultSettings.mapboxStyle': 'Kartenstil',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Stil auswählen…',
-  'admin.defaultSettings.mapbox3d': '3D-Gebäude & Gelände',
-  'admin.defaultSettings.mapboxQuality': 'Hochqualitätsmodus',
   'admin.defaultSettings.cartoKey': 'Gemeinsamer CARTO-Key',
   'admin.defaultSettings.cartoKeyHint':
     'Wird für jeden Nutzer verwendet, der keinen eigenen Key eingetragen hat, damit die ganze Instanz CARTO-Kacheln ohne Wasserzeichen bekommt. Verschlüsselt gespeichert.',

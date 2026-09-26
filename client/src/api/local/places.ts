@@ -118,8 +118,8 @@ function validateLengths(body: Record<string, unknown>): void {
   }
 }
 
-// A bad hex makes MapLibre fail hard when it parses the paint property, and the
-// update body is an open record that Zod does not police.
+// route_color leaves the database for the map's track styling, and the update
+// body is an open record that Zod does not police.
 function validateRouteColor(body: Record<string, unknown>): void {
   const value = body.route_color;
   if (value === undefined || value === null) return;

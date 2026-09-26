@@ -790,15 +790,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'La mappa predefinita per tutti gli utenti di questa istanza. Ogni utente può comunque sostituirla nelle proprie impostazioni.',
   'admin.defaultSettings.providerLeaflet': 'Standard (gratuito)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Token Mapbox condiviso',
-  'admin.defaultSettings.mapboxTokenHint':
-    "Usato per ogni utente che non ha inserito un proprio token — così tutta l'istanza ottiene Mapbox senza dover condividere la chiave individualmente. Archiviato in forma crittografata.",
-  'admin.defaultSettings.mapboxStyle': 'Stile mappa',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Scegli uno stile…',
-  'admin.defaultSettings.mapbox3d': 'Edifici & terreno in 3D',
-  'admin.defaultSettings.mapboxQuality': 'Modalità alta qualità',
   'admin.defaultSettings.cartoKey': 'Chiave CARTO condivisa',
   'admin.defaultSettings.cartoKeyHint':
     "Usata per ogni utente che non ha inserito una propria chiave, così tutta l'istanza ottiene le tessere CARTO senza filigrana. Archiviata in forma crittografata.",

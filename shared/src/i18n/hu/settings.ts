@@ -30,33 +30,12 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'A PanelMint alapértelmezés szerint a FOSSGIS nyilvános Valhalláját használja a fizetős utak, autópályák és kompok elkerüléséhez. Itt megadhatja saját Valhallája URL-jét, hogy azt használja helyette. Ha csak saját útvonaltervező van beállítva, a nyilvános Valhalla nem használatos. Saját URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
   'settings.mapHint': 'URL sablon a térképcsempékhez',
-  'settings.mapProvider': 'Térkép szolgáltató',
-  'settings.mapProviderHint': 'A Trip Planner és Journey térképekre érvényes. Az Atlas mindig Leafletet használ.',
-  'settings.mapLeafletSubtitle': 'Klasszikus 2D, bármilyen raszter csempe',
-  'settings.mapMapboxSubtitle': 'Vektoros csempék, 3D épületek és terep',
-  'settings.mapMapLibreSubtitle': 'OpenFreeMap vektoros csempék, token nélkül',
-  'settings.mapExperimental': 'Kísérleti',
-  'settings.mapMapboxToken': 'Mapbox hozzáférési token',
-  'settings.mapMapboxTokenHint': 'Publikus token (pk.*) innen:',
-  'settings.mapMapboxTokenLink': 'mapbox.com → Hozzáférési tokenek',
   'settings.mapCartoKey': 'CARTO API-kulcs',
   'settings.mapCartoKeyHint':
     'A CARTO alaptérképek kulcs nélkül vízjelet jelenítenek meg. Ingyenes, fiók nélkül, innen:',
   'settings.mapCartoKeyLink': 'carto.com alaptérkép API-kulcs',
   'settings.mapCartoKeyMissing':
     'Ez a sablon CARTO alaptérkép. Kulcs nélkül a CARTO minden csempére ráírja: "API KEY REQUIRED". Amíg nincs kulcs megadva, a PanelMint az alapértelmezett alaptérképet mutatja.',
-  'settings.mapStyle': 'Térkép stílus',
-  'settings.mapStylePlaceholder': 'Válassz Mapbox stílust',
-  'settings.mapStyleHint': 'Preset vagy saját mapbox://styles/USER/ID URL',
-  'settings.mapOpenFreeMapStylePlaceholder': 'Válassz OpenFreeMap stílust',
-  'settings.mapOpenFreeMapStyleHint':
-    'Preset vagy OpenFreeMap stílus URL. Az OpenFreeMap stílusok token nélkül működnek.',
-  'settings.map3dBuildings': '3D épületek és terep',
-  'settings.map3dHint': 'Dőlés + valódi 3D épület-kiemelés — minden stílussal működik, beleértve a műholdast.',
-  'settings.mapHighQuality': 'Magas minőség mód',
-  'settings.mapHighQualityHint':
-    'Antialiasing + földgömb-vetítés az élesebb kontúrokért és egy valósághű világnézethez.',
-  'settings.mapHighQualityWarning': 'Gyengébb eszközökön befolyásolhatja a teljesítményt.',
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Jobb klikk és húzás a térkép forgatásához/döntéséhez. Középső kattintás hely hozzáadásához (a jobb klikk a forgatáshoz van fenntartva).',

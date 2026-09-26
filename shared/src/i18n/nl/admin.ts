@@ -786,15 +786,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'De standaardkaart voor iedereen op deze instantie. Elke gebruiker kan dit nog steeds aanpassen in zijn eigen instellingen.',
   'admin.defaultSettings.providerLeaflet': 'Standaard (gratis)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Gedeeld Mapbox-token',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Wordt gebruikt voor elke gebruiker die nog geen eigen token heeft ingevoerd — zo krijgt de hele instantie Mapbox zonder de sleutel apart te delen. Versleuteld opgeslagen.',
-  'admin.defaultSettings.mapboxStyle': 'Kaartstijl',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Kies een stijl…',
-  'admin.defaultSettings.mapbox3d': '3D-gebouwen & terrein',
-  'admin.defaultSettings.mapboxQuality': 'Hogekwaliteitsmodus',
   'admin.defaultSettings.cartoKey': 'Gedeelde CARTO-sleutel',
   'admin.defaultSettings.cartoKeyHint':
     'Wordt gebruikt voor elke gebruiker die nog geen eigen sleutel heeft ingevoerd, zo krijgt de hele instantie CARTO-tegels zonder watermerk. Versleuteld opgeslagen.',

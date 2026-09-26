@@ -76,5 +76,5 @@ their current position until the file gets converted.
 
 Genuinely dynamic values (data-driven colors like `cat.color`, computed
 geometry/transforms/sizes), and the surfaces CSS variables can't reach: injected
-map popup/marker HTML, Mapbox/MapLibre paint, and the standalone `@react-pdf`
+map popup/marker HTML, and the standalone `@react-pdf`
 documents. Mark intentional exceptions with a `theme-lint-disable` line comment.

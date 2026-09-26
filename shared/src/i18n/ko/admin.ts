@@ -750,15 +750,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     '이 인스턴스의 모든 사용자에게 적용되는 기본 지도입니다. 각 사용자는 자신의 설정에서 이를 변경할 수 있습니다.',
   'admin.defaultSettings.providerLeaflet': '표준 (무료)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': '공유 Mapbox 토큰',
-  'admin.defaultSettings.mapboxTokenHint':
-    '자신의 토큰을 입력하지 않은 모든 사용자에게 사용됩니다 — 키를 개별적으로 공유하지 않아도 인스턴스 전체에서 Mapbox를 사용할 수 있습니다. 암호화하여 저장됩니다.',
-  'admin.defaultSettings.mapboxStyle': '지도 스타일',
-  'admin.defaultSettings.mapboxStylePlaceholder': '스타일을 선택하세요…',
-  'admin.defaultSettings.mapbox3d': '3D 건물 & 지형',
-  'admin.defaultSettings.mapboxQuality': '고품질 모드',
   'admin.defaultSettings.cartoKey': '공유 CARTO 키',
   'admin.defaultSettings.cartoKeyHint':
     '자신의 키를 입력하지 않은 모든 사용자에게 사용됩니다. 이렇게 하면 인스턴스 전체에서 워터마크 없는 CARTO 타일을 사용할 수 있습니다. 암호화하여 저장됩니다.',

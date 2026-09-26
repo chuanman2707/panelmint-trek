@@ -795,15 +795,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'La carte par défaut pour tous les utilisateurs de cette instance. Chaque utilisateur peut toujours la remplacer dans ses propres paramètres.',
   'admin.defaultSettings.providerLeaflet': 'Standard (gratuit)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Jeton Mapbox partagé',
-  'admin.defaultSettings.mapboxTokenHint':
-    "Utilisé pour chaque utilisateur n'ayant pas saisi son propre jeton — ainsi toute l'instance bénéficie de Mapbox sans partager la clé individuellement. Stocké de façon chiffrée.",
-  'admin.defaultSettings.mapboxStyle': 'Style de carte',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Choisissez un style…',
-  'admin.defaultSettings.mapbox3d': 'Bâtiments & terrain en 3D',
-  'admin.defaultSettings.mapboxQuality': 'Mode haute qualité',
   'admin.defaultSettings.cartoKey': 'Clé CARTO partagée',
   'admin.defaultSettings.cartoKeyHint':
     "Utilisée pour chaque utilisateur n'ayant pas saisi sa propre clé, ainsi toute l'instance reçoit les tuiles CARTO sans filigrane. Stockée de façon chiffrée.",

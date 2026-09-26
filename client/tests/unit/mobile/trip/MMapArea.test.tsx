@@ -30,8 +30,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 // The real renderer boots Leaflet; the area only ever hands it props.
-vi.mock('../../../../src/components/Map/MapViewAuto', () => ({
-  MapViewAuto: (props: Record<string, unknown>) => {
+vi.mock('../../../../src/components/Map/MapView', () => ({
+  MapView: (props: Record<string, unknown>) => {
     mocks.props = props
     ;(props.onMapReady as ((map: CompassMap | null) => void) | undefined)?.(mocks.glMap)
     return <div data-testid="map-renderer" />

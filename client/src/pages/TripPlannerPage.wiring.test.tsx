@@ -42,7 +42,7 @@ function props(name: string): Record<string, AnyProp> {
   return (captured[name] ?? {}) as Record<string, AnyProp>
 }
 
-vi.mock('../components/Map/MapViewAuto', () => ({ MapViewAuto: stub('map', 'map-view') }))
+vi.mock('../components/Map/MapView', () => ({ MapView: stub('map', 'map-view') }))
 vi.mock('../components/Map/MapCompassPill', () => ({ MapCompassPill: stub('compass', 'compass-pill') }))
 vi.mock('../components/Map/PoiCategoryPill', () => ({ default: stub('poiPill', 'poi-pill') }))
 vi.mock('../components/Map/usePoiExplore', () => ({

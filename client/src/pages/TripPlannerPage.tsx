@@ -4,7 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router'
 import { useTripStore } from '../store/tripStore'
 import { useCanDo } from '../store/permissionsStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { MapViewAuto as MapView } from '../components/Map/MapViewAuto'
+import { MapView } from '../components/Map/MapView'
 import { TripRouteOverviewPill, TripRouteOverviewPanel } from '../components/Map/TripRouteOverview'
 import DayPlanSidebar from '../components/Planner/DayPlanSidebar'
 import { DayPlanSidebarTransportDetailModal } from '../components/Planner/DayPlanSidebarTransportDetailModal'
@@ -439,8 +439,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             {/* Bottom-RIGHT. Not the top corridor between the panels, which is already
                 contested by the POI bar and the collapse tabs (#2247); and not the
                 bottom-left corner, where Leaflet's base-layer switcher sits at
-                z-index 1000 and would cover this. The right corner is free on both
-                renderers — the locate button that lives there is phone-only. */}
+                z-index 1000 and would cover this. The right corner is free —
+                the locate button that lives there is phone-only. */}
             {(!roadtripActive) && (
               <div className="hidden md:flex" style={{
                 position: 'absolute', bottom: 18, right: mapInsetRight + 14, zIndex: 26,

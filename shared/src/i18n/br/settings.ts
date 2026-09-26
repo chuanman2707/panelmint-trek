@@ -31,32 +31,11 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'Por padrão, o PanelMint usa a Valhalla pública da FOSSGIS para evitar pedágios, rodovias e balsas. Insira aqui a URL da sua própria Valhalla para usá-la no lugar. Se apenas uma instância de roteamento própria estiver configurada, a Valhalla pública não será usada. Após inserir uma URL própria, reinicie o servidor e recarregue a página.',
   'settings.mapHint': 'URL do modelo de blocos do mapa',
-  'settings.mapProvider': 'Provedor de mapa',
-  'settings.mapProviderHint': 'Afeta os mapas do Planejador de Viagem e Diário. Atlas sempre usa Leaflet.',
-  'settings.mapLeafletSubtitle': 'Clássico 2D, quaisquer blocos raster',
-  'settings.mapMapboxSubtitle': 'Blocos vetoriais, prédios 3D & terreno',
-  'settings.mapMapLibreSubtitle': 'Blocos vetoriais OpenFreeMap, sem token',
-  'settings.mapExperimental': 'Experimental',
-  'settings.mapMapboxToken': 'Token de acesso Mapbox',
-  'settings.mapMapboxTokenHint': 'Token público (pk.*) de',
-  'settings.mapMapboxTokenLink': 'mapbox.com → Tokens de acesso',
   'settings.mapCartoKey': 'Chave de API do CARTO',
   'settings.mapCartoKeyHint': "Os mapas base do CARTO exibem uma marca d'água sem chave. Gratuita e sem conta, em",
   'settings.mapCartoKeyLink': 'chave de API de mapas base do carto.com',
   'settings.mapCartoKeyMissing':
     'Este modelo é um mapa base do CARTO. Sem uma chave, o CARTO estampa "API KEY REQUIRED" em cada bloco. Até você inserir uma, o PanelMint mostra o mapa base padrão.',
-  'settings.mapStyle': 'Estilo do mapa',
-  'settings.mapStylePlaceholder': 'Selecionar um estilo Mapbox',
-  'settings.mapStyleHint': 'Preset ou sua própria URL mapbox://styles/USER/ID',
-  'settings.mapOpenFreeMapStylePlaceholder': 'Selecionar um estilo OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint':
-    'Preset ou URL de estilo OpenFreeMap. Os estilos OpenFreeMap funcionam sem token.',
-  'settings.map3dBuildings': 'Prédios 3D & terreno',
-  'settings.map3dHint': 'Inclinação + extrusões 3D reais de prédios — funciona em todo estilo, incluindo satélite.',
-  'settings.mapHighQuality': 'Modo alta qualidade',
-  'settings.mapHighQualityHint':
-    'Antialiasing + projeção global para bordas mais nítidas e uma visão realista do mundo.',
-  'settings.mapHighQualityWarning': 'Pode afetar o desempenho em dispositivos menos potentes.',
   'settings.mapTipLabel': 'Dica:',
   'settings.mapTip':
     'Clique direito e arraste para girar/inclinar o mapa. Clique do meio para adicionar um local (o clique direito é reservado para rotação).',

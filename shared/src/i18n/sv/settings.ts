@@ -30,32 +30,11 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'PanelMint använder som standard FOSSGIS publika Valhalla för att undvika vägtullar, motorvägar och färjor. Ange URL:en till din egen Valhalla här för att använda den i stället. Om bara en egen ruttserver är konfigurerad används inte den publika Valhalla. Starta om servern och ladda om sidan efter att du angett en egen URL.',
   'settings.mapHint': 'URL-mall för kartrutor',
-  'settings.mapProvider': 'Kartleverantör',
-  'settings.mapProviderHint': 'Påverkar resplaneraren och resedagbokens kartor. Atlas använder alltid Leaflet.',
-  'settings.mapLeafletSubtitle': 'Klassisk 2D, valfria rasterplattor',
-  'settings.mapMapboxSubtitle': 'Vektorplattor, 3D-byggnader och terräng',
-  'settings.mapMapLibreSubtitle': 'OpenFreeMap-vektorplattor, ingen token',
-  'settings.mapOpenFreeMapStylePlaceholder': 'Välj en OpenFreeMap-stil',
-  'settings.mapOpenFreeMapStyleHint':
-    'Förinställning eller OpenFreeMap-stil-URL. OpenFreeMap-stilar fungerar utan token.',
-  'settings.mapExperimental': 'Experimentell',
-  'settings.mapMapboxToken': 'Mapbox-åtkomsttoken',
-  'settings.mapMapboxTokenHint': 'Offentlig token (pk.*) från',
-  'settings.mapMapboxTokenLink': 'mapbox.com → Åtkomsttoken',
   'settings.mapCartoKey': 'CARTO API-nyckel',
   'settings.mapCartoKeyHint': 'CARTO-bakgrundskartor visar en vattenstämpel utan nyckel. Gratis och utan konto, från',
   'settings.mapCartoKeyLink': 'API-nyckel för bakgrundskartor på carto.com',
   'settings.mapCartoKeyMissing':
     'Den här mallen är en CARTO-bakgrundskarta. Utan nyckel stämplar CARTO "API KEY REQUIRED" på varje ruta. Tills en nyckel anges visar PanelMint standardbakgrundskartan.',
-  'settings.mapStyle': 'Kartstil',
-  'settings.mapStylePlaceholder': 'Välj en Mapbox-stil',
-  'settings.mapStyleHint': 'Förinställda eller egna mapbox://styles/USER/ID länk',
-  'settings.map3dBuildings': '3D-byggnader och terräng',
-  'settings.map3dHint':
-    'Vinkel + verklighetstrogna 3D-byggnadsextrusioner — fungerar för alla stilar, inklusive satellitstil.',
-  'settings.mapHighQuality': 'Högkvalitetsläge',
-  'settings.mapHighQualityHint': 'Antialiasing + globprojektion för skarpare kanter och en realistisk världsbild.',
-  'settings.mapHighQualityWarning': 'Kan påverka prestandan på enheter i lägre enheter.',
   'settings.mapTipLabel': 'Tips:',
   'settings.mapTip':
     'högerklicka och dra för att rotera eller luta kartan. Mittklicka för att lägga till en plats (högerklick är reserverat för rotation).',

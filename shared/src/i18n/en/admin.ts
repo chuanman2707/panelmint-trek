@@ -252,15 +252,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'The default map for everyone on this instance. Each user can still override it in their own settings.',
   'admin.defaultSettings.providerLeaflet': 'Standard (free)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Shared Mapbox token',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Used for every user who has not entered their own token — so the whole instance gets Mapbox without sharing the key individually. Stored encrypted.',
-  'admin.defaultSettings.mapboxStyle': 'Map style',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Choose a style…',
-  'admin.defaultSettings.mapbox3d': '3D buildings & terrain',
-  'admin.defaultSettings.mapboxQuality': 'High-quality mode',
   'admin.defaultSettings.cartoKey': 'Shared CARTO key',
   'admin.defaultSettings.cartoKeyHint':
     'Used for every user who has not entered their own key, so the whole instance gets CARTO tiles without a watermark. Stored encrypted.',

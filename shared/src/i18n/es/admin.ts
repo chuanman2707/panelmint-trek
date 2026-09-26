@@ -797,15 +797,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'El mapa predeterminado para todos en esta instancia. Cada usuario puede cambiarlo en sus propios ajustes.',
   'admin.defaultSettings.providerLeaflet': 'Estándar (gratis)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Token de Mapbox compartido',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Se usa para cada usuario que no haya introducido su propio token, de modo que toda la instancia obtenga Mapbox sin compartir la clave individualmente. Se almacena cifrado.',
-  'admin.defaultSettings.mapboxStyle': 'Estilo de mapa',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Elige un estilo…',
-  'admin.defaultSettings.mapbox3d': 'Edificios y terreno en 3D',
-  'admin.defaultSettings.mapboxQuality': 'Modo de alta calidad',
   'admin.defaultSettings.cartoKey': 'Clave de CARTO compartida',
   'admin.defaultSettings.cartoKeyHint':
     'Se usa para cada usuario que no haya introducido su propia clave, de modo que toda la instancia obtenga teselas de CARTO sin marca de agua. Se almacena cifrada.',

@@ -31,32 +31,12 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'За замовчуванням PanelMint використовує публічну Valhalla FOSSGIS для уникнення платних доріг, автомагістралей і поромів. Введіть тут URL власної Valhalla, щоб використовувати її замість публічної. Якщо налаштовано лише власний сервер маршрутизації, публічна Valhalla не використовується. Після введення власного URL перезапустіть сервер і оновіть сторінку.',
   'settings.mapHint': 'URL-шаблон для тайлів карти',
-  'settings.mapProvider': 'Провайдер карти',
-  'settings.mapProviderHint': 'Застосовується до Trip Planner та Journey. Atlas завжди використовує Leaflet.',
-  'settings.mapLeafletSubtitle': 'Класичні 2D, будь-які растрові тайли',
-  'settings.mapMapboxSubtitle': 'Векторні тайли, 3D-будинки та рельєф',
-  'settings.mapMapLibreSubtitle': 'Векторні тайли OpenFreeMap, без токена',
-  'settings.mapExperimental': 'Експериментально',
-  'settings.mapMapboxToken': 'Токен доступу Mapbox',
-  'settings.mapMapboxTokenHint': 'Публічний токен (pk.*) з',
-  'settings.mapMapboxTokenLink': 'mapbox.com → Токени доступу',
   'settings.mapCartoKey': 'Ключ API CARTO',
   'settings.mapCartoKeyHint':
     'Без ключа базові карти CARTO показують водяний знак. Безкоштовно та без облікового запису, на',
   'settings.mapCartoKeyLink': 'ключ API базових карт carto.com',
   'settings.mapCartoKeyMissing':
     'Цей шаблон є базовою картою CARTO. Без ключа CARTO наносить "API KEY REQUIRED" на кожен тайл. Доки ключ не вказано, PanelMint показує базову карту за замовчуванням.',
-  'settings.mapStyle': 'Стиль карти',
-  'settings.mapStylePlaceholder': 'Виберіть стиль Mapbox',
-  'settings.mapStyleHint': 'Preset або власний URL mapbox://styles/USER/ID',
-  'settings.mapOpenFreeMapStylePlaceholder': 'Виберіть стиль OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint': 'Preset або URL стилю OpenFreeMap. Стилі OpenFreeMap працюють без токена.',
-  'settings.map3dBuildings': '3D-будинки та рельєф',
-  'settings.map3dHint': 'Нахил + справжні 3D-будинки — працює з усіма стилями, включаючи супутник.',
-  'settings.mapHighQuality': 'Режим високої якості',
-  'settings.mapHighQualityHint':
-    'Згладжування + проекція глобуса для більш чітких країв та реалістичного вигляду світу.',
-  'settings.mapHighQualityWarning': 'Може вплинути на продуктивність на слабких пристроях.',
   'settings.mapTipLabel': 'Порада:',
   'settings.mapTip':
     'Затисніть праву кнопку миші та перетягніть, щоб повернути/нахилити карту. Клік середньою кнопкою — додати місце (права кнопка зарезервована для обертання).',

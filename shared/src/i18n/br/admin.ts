@@ -781,15 +781,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'O mapa padrão para todos nesta instância. Cada usuário ainda pode substituí-lo nas próprias configurações.',
   'admin.defaultSettings.providerLeaflet': 'Padrão (gratuito)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Token compartilhado do Mapbox',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Usado para todos os usuários que não inseriram o próprio token — assim toda a instância usa o Mapbox sem compartilhar a chave individualmente. Armazenado de forma criptografada.',
-  'admin.defaultSettings.mapboxStyle': 'Estilo do mapa',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Escolha um estilo…',
-  'admin.defaultSettings.mapbox3d': 'Edifícios & relevo em 3D',
-  'admin.defaultSettings.mapboxQuality': 'Modo de alta qualidade',
   'admin.defaultSettings.cartoKey': 'Chave CARTO compartilhada',
   'admin.defaultSettings.cartoKeyHint':
     "Usada para todos os usuários que não inseriram a própria chave, assim toda a instância recebe blocos do CARTO sem marca d'água. Armazenada de forma criptografada.",

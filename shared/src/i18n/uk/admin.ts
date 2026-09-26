@@ -786,15 +786,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'Карта за замовчуванням для всіх на цьому екземплярі. Кожен користувач може змінити її у власних налаштуваннях.',
   'admin.defaultSettings.providerLeaflet': 'Стандартна (безкоштовна)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Спільний токен Mapbox',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Використовується для кожного користувача, який не ввів власний токен — щоб увесь екземпляр отримав Mapbox без потреби ділитися ключем окремо. Зберігається в зашифрованому вигляді.',
-  'admin.defaultSettings.mapboxStyle': 'Стиль карти',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Виберіть стиль…',
-  'admin.defaultSettings.mapbox3d': '3D-будівлі та рельєф',
-  'admin.defaultSettings.mapboxQuality': 'Режим високої якості',
   'admin.defaultSettings.cartoKey': 'Спільний ключ CARTO',
   'admin.defaultSettings.cartoKeyHint':
     'Використовується для кожного користувача, який не ввів власний ключ, щоб увесь екземпляр отримував плитки CARTO без водяного знака. Зберігається в зашифрованому вигляді.',

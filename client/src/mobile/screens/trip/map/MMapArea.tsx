@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { MapViewAuto } from '../../../../components/Map/MapViewAuto'
+import { MapView } from '../../../../components/Map/MapView'
 import { MapCompassPill, type CompassMap } from '../../../../components/Map/MapCompassPill'
 import { MAP_LAYER_SWITCHER_INSET, MAP_ROUND_CONTROL_SIZE } from '../../../../components/Map/MapLayerSwitcher'
 import { TripRouteOverviewPill, TripRouteOverviewPanel } from '../../../../components/Map/TripRouteOverview'
@@ -20,7 +20,7 @@ import type { ViewportPadding } from '../../../../utils/mapViewport'
 const NO_POIS: Poi[] = []
 
 /**
- * The compass stands one gap to the right of the base-layer switcher both engines draw
+ * The compass stands one gap to the right of the base-layer switcher the map draws
  * in the bottom left corner. Worked out from the switcher's own numbers rather than
  * written down as 70, so moving or resizing the switcher carries the compass along.
  */
@@ -37,7 +37,7 @@ const NO_INSETS: SafeInsets = { top: 0, bottom: 0 }
 /**
  * The safe-area insets as numbers, read off a probe that is padded by them.
  *
- * The frame handed to the map engine is pixels, and `env()` only resolves inside CSS. On a
+ * The frame handed to the map is pixels, and `env()` only resolves inside CSS. On a
  * phone with a notch the chrome sits a status bar lower (and a home indicator higher) than
  * its classes spell out, so a frame worked out without the insets would put the far end of
  * a leg under the day chips. A computed padding is where the browser hands the resolved
@@ -80,7 +80,7 @@ function useSafeInsets(probe: RefObject<HTMLElement | null>): SafeInsets {
  * `--bottom-nav-h` puts the round controls' band on, so the frame ends where they begin,
  * and they only take the two corners of it.
  *
- * The sides keep the 20px both engines already give a phone: nothing floats there.
+ * The sides keep the 20px the map already gives a phone: nothing floats there.
  */
 function alternativesFitPadding(insets: SafeInsets): ViewportPadding {
   return {
@@ -140,11 +140,10 @@ function holdFocus(
 /**
  * Fullscreen map layer of the mobile trip screen (plan tab). Stays mounted for
  * the whole plan-tab lifetime — the plan timeline / places browser overlays
- * simply cover it — so tiles, markers and the GL engine stay warm across view
- * toggles.
+ * simply cover it — so tiles and markers stay warm across view toggles.
  *
- * The map itself is the shared planner renderer (Leaflet or GL, per user
- * setting) with the full desktop feature set: clusters, photo/icon markers,
+ * The map itself is the shared Leaflet planner renderer with the full desktop
+ * feature set: clusters, photo/icon markers,
  * day-order badges, dashed day route, transport overlays per booking, POI
  * explore markers and long-press → add place. Only the floating chrome is
  * mobile: the POI bar spans the full width below the day-chip rail, and the round
@@ -181,9 +180,8 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
   //
   // Memoised on what the stage is made of rather than rebuilt per render: the shell
   // re-renders on every store write, a settings toggle included, and a fresh
-  // `focusPoints` array reframes the camera while fresh lines and places set their
-  // GeoJSON sources again. On the stage that also kept the GL style busy, which is how
-  // the satellite switch came to miss every tap there.
+  // `focusPoints` array reframes the camera while fresh lines and places redraw
+  // their layers.
   const stage = useMemo(
     () => onStage ? stageOf(planner.roadtripRoutes.days, planner.selectedDayId) : null,
     [onStage, planner.roadtripRoutes.days, planner.selectedDayId],
@@ -316,7 +314,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
     // safe-bottom + 12, or the alternatives bar when the picker puts one over it, which is
     // what --m-stage-lift adds. The round controls sit straight on that floor and add
     // their own 12px, close enough to the thumb to reach one-handed. Everything that reads
-    // --bottom-nav-h (the compass, both engines' locate button and base-layer switcher,
+    // --bottom-nav-h (the compass, the map's locate button and base-layer switcher,
     // the overview stack) follows on its own. The band used to float a further 38px up to
     // leave the corner under it to the map credit; the phone map carries no visible credit
     // any more (see mobile.css), so that row would now only be a gap over the dock.
@@ -345,7 +343,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         aria-hidden="true"
         className="pointer-events-none invisible absolute left-0 top-0 pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)]"
       />
-      <MapViewAuto
+      <MapView
         tripId={planner.tripId}
         places={stageMap ? stagePlaces : planner.mapPlaces}
         dayPlaces={onStage ? undefined : planner.dayPlaces}
@@ -427,8 +425,9 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         </div>
       )}
 
-      {/* Compass, GL maps only (Leaflet cannot rotate). Both engines draw the base-layer
-          switcher in the bottom left corner, so the compass sits beside it rather than in
+      {/* Compass — idle today: Leaflet cannot rotate, so nothing calls onMapReady and
+          glMap stays null. The map draws the base-layer switcher in the bottom left
+          corner, so a compass sits beside it rather than in
           the corner: at `left-3` it started 8px left of the switcher and ran on under it,
           reading as a second button showing through the frosted shell. Same
           --bottom-nav-h band as the locate button's `right: 12`, so the round controls

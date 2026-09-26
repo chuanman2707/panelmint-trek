@@ -728,15 +728,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProvider': '地圖引擎',
   'admin.defaultSettings.mapProviderHint': '此執行個體上所有人的預設地圖。每位使用者仍可在自己的設定中覆寫此項。',
   'admin.defaultSettings.providerLeaflet': '標準（免費）',
-  'admin.defaultSettings.providerMapbox': 'Mapbox（3D）',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': '共用的 Mapbox 權杖',
-  'admin.defaultSettings.mapboxTokenHint':
-    '用於每一位尚未輸入自己權杖的使用者 — 如此整個執行個體都能使用 Mapbox，而無需個別共享金鑰。以加密方式儲存。',
-  'admin.defaultSettings.mapboxStyle': '地圖樣式',
-  'admin.defaultSettings.mapboxStylePlaceholder': '選擇樣式…',
-  'admin.defaultSettings.mapbox3d': '3D 建築物與地形',
-  'admin.defaultSettings.mapboxQuality': '高品質模式',
   'admin.defaultSettings.cartoKey': '共用的 CARTO 金鑰',
   'admin.defaultSettings.cartoKeyHint':
     '用於每一位尚未輸入自己金鑰的使用者，如此整個執行個體都能取得沒有浮水印的 CARTO 圖磚。以加密方式儲存。',

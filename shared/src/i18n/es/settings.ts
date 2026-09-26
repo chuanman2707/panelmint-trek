@@ -30,33 +30,11 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'PanelMint usa por defecto la Valhalla pública de FOSSGIS para evitar peajes, autopistas y ferris. Introduce aquí la URL de tu propia Valhalla para usarla en su lugar. Si solo se configura una instancia de rutas propia, no se utiliza la Valhalla pública. Tras introducir una URL propia, reinicia el servidor y recarga la página.',
   'settings.mapHint': 'Plantilla de URL para los mosaicos del mapa',
-  'settings.mapProvider': 'Proveedor de mapa',
-  'settings.mapProviderHint': 'Afecta a los mapas de Trip Planner y Journey. Atlas siempre usa Leaflet.',
-  'settings.mapLeafletSubtitle': 'Clásico 2D, cualquier mosaico raster',
-  'settings.mapMapboxSubtitle': 'Mosaicos vectoriales, edificios 3D y terreno',
-  'settings.mapMapLibreSubtitle': 'Mosaicos vectoriales de OpenFreeMap, sin token',
-  'settings.mapExperimental': 'Experimental',
-  'settings.mapMapboxToken': 'Token de acceso de Mapbox',
-  'settings.mapMapboxTokenHint': 'Token público (pk.*) de',
-  'settings.mapMapboxTokenLink': 'mapbox.com → Tokens de acceso',
   'settings.mapCartoKey': 'Clave de API de CARTO',
   'settings.mapCartoKeyHint': 'Los mapas base de CARTO muestran una marca de agua sin clave. Gratuita y sin cuenta, en',
   'settings.mapCartoKeyLink': 'clave de API de mapas base de carto.com',
   'settings.mapCartoKeyMissing':
     'Esta plantilla es un mapa base de CARTO. Sin clave, CARTO estampa "API KEY REQUIRED" en cada tesela. Hasta que introduzcas una, PanelMint muestra el mapa base predeterminado.',
-  'settings.mapStyle': 'Estilo de mapa',
-  'settings.mapStylePlaceholder': 'Seleccionar un estilo de Mapbox',
-  'settings.mapStyleHint': 'Preset o tu propia URL mapbox://styles/USER/ID',
-  'settings.mapOpenFreeMapStylePlaceholder': 'Seleccionar un estilo de OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint':
-    'Preset o URL de estilo de OpenFreeMap. Los estilos de OpenFreeMap funcionan sin token.',
-  'settings.map3dBuildings': 'Edificios 3D y terreno',
-  'settings.map3dHint':
-    'Inclinación + extrusiones 3D reales de edificios — funciona con todos los estilos, incluyendo satélite.',
-  'settings.mapHighQuality': 'Modo de alta calidad',
-  'settings.mapHighQualityHint':
-    'Antialiasing + proyección global para bordes más nítidos y una vista realista del mundo.',
-  'settings.mapHighQualityWarning': 'Puede afectar el rendimiento en dispositivos menos potentes.',
   'settings.mapTipLabel': 'Consejo:',
   'settings.mapTip':
     'Clic derecho y arrastrar para rotar/inclinar el mapa. Clic central para añadir un lugar (el clic derecho está reservado para la rotación).',

@@ -50,7 +50,7 @@ The offline core is flagship work surrounded by a periphery that ignores it. New
 
 ## Big-picture pieces
 
-- **Maps** (`src/components/Map/`): Leaflet only — `MapViewAuto.tsx` is a thin passthrough to `MapView` kept as the seam callers import. Raster tiles (OSM default; Amap GCJ-02 and satellite presets remain); a stored vector-style URL resolves to the raster fallback. The raster prefetcher (`sync/tilePrefetcher.ts`) fetches tiles `no-cors` so custom tile providers without CORS headers keep working.
+- **Maps** (`src/components/Map/`): Leaflet only — callers import `MapView` directly (it fetches road-trip hazards itself; the `MapViewAuto` passthrough is gone). Raster tiles (OSM default; Amap GCJ-02 and satellite presets remain); a stored vector-style URL resolves to the raster fallback. The raster prefetcher (`sync/tilePrefetcher.ts`) fetches tiles `no-cors` so custom tile providers without CORS headers keep working.
 - **i18n** (`src/i18n/TranslationContext.tsx`): `en` is bundled; every other locale is a dynamic `import('@trek/shared/i18n/<locale>')` so Vite emits one chunk per locale. Strings live in `shared/`, never here.
 - **Mobile shell** (`src/mobile/`): below the phone breakpoint (`useIsPhone`) `App.tsx` wraps routes in `MobileShell` and the `M*` screens under `mobile/screens/` take over. A UI change to a domain with an `M*` twin usually needs both — put shared logic in one hook/module and keep only markup in each shell.
 - **Managed installs** (`src/managed/index.tsx`): the attachment point for screens that only exist on a centrally administered install. Empty here by design — an operator replaces it at build time. Don't put features there.

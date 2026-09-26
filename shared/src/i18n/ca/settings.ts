@@ -20,29 +20,12 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'PanelMint utilitza per defecte la Valhalla pública de FOSSGIS per evitar peatges, autopistes i ferris. Introdueix aquí l’URL de la teva Valhalla per utilitzar-la en lloc de la pública. Si només hi ha una instància d’encaminament pròpia configurada, no s’utilitza la Valhalla pública. Després d’introduir una URL pròpia, reinicia el servidor i torna a carregar la pàgina.',
   'settings.mapHint': "Plantilla d'URL per als mosaics del mapa",
-  'settings.mapProvider': 'Proveïdor de mapa',
-  'settings.mapProviderHint': 'Afecta els mapes de Trip Planner i Journey. Atles sempre utilitza Leaflet.',
-  'settings.mapLeafletSubtitle': 'Clàssic 2D, qualsevol mosaic raster',
-  'settings.mapMapboxSubtitle': 'Mosaics vectorials, edificis 3D i terreny',
-  'settings.mapExperimental': 'Experimental',
-  'settings.mapMapboxToken': "Token d'accés de Mapbox",
-  'settings.mapMapboxTokenHint': 'Token públic (pk.*) de',
-  'settings.mapMapboxTokenLink': "mapbox.com → Tokens d'accés",
   'settings.mapCartoKey': "Clau d'API de CARTO",
   'settings.mapCartoKeyHint':
     "Els mapes base de CARTO mostren una marca d'aigua sense clau. Gratuïta i sense compte, des de",
   'settings.mapCartoKeyLink': "clau d'API de mapes base de carto.com",
   'settings.mapCartoKeyMissing':
     'Aquesta plantilla és un mapa base de CARTO. Sense clau, CARTO estampa "API KEY REQUIRED" a cada tessel·la. Mentre no hi hagi clau, PanelMint mostra el mapa base per defecte.',
-  'settings.mapStyle': 'Estil de mapa',
-  'settings.mapStylePlaceholder': 'Selecciona un estil de Mapbox',
-  'settings.mapStyleHint': 'Predefinit o la teva pròpia URL mapbox://styles/USUARI/ID',
-  'settings.map3dBuildings': 'Edificis 3D i terreny',
-  'settings.map3dHint':
-    "Inclinació + extrusions 3D reals d'edificis — funciona amb tots els estils, incloent-hi satèl·lit.",
-  'settings.mapHighQuality': "Mode d'alta qualitat",
-  'settings.mapHighQualityHint': 'Antialiàsia + projecció global per a vores més nítides i una vista realista del món.',
-  'settings.mapHighQualityWarning': 'Pot afectar el rendiment en dispositius menys potents.',
   'settings.mapTipLabel': 'Consell:',
   'settings.mapTip':
     'Clic dret i arrossegar per girar/inclinar el mapa. Clic central per afegir un lloc (el clic dret està reservat per a la rotació).',
@@ -321,10 +304,6 @@ const settings: TranslationStrings = {
   'settings.mapPoiPillHint':
     "Mostra una píndola de categories al mapa del viatge per trobar restaurants, allotjaments i més a prop, des d'OpenStreetMap.",
 
-  'settings.mapMapLibreSubtitle': "Tessel·les vectorials d'OpenFreeMap, sense token",
-  'settings.mapOpenFreeMapStylePlaceholder': "Selecciona un estil d'OpenFreeMap",
-  'settings.mapOpenFreeMapStyleHint':
-    "URL d'estil o predefinit d'OpenFreeMap. Els estils d'OpenFreeMap funcionen sense token.",
   'settings.distance': 'Unitat de distància',
   'settings.aiAlwaysRetry': 'Reintentar sempre les importacions de reserves com a IA',
   'settings.aiAlwaysRetryHint':

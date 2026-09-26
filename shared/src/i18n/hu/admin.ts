@@ -795,15 +795,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'Az alapértelmezett térkép mindenkinek ezen a példányon. Minden felhasználó felülírhatja a saját beállításaiban.',
   'admin.defaultSettings.providerLeaflet': 'Alapértelmezett (ingyenes)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Megosztott Mapbox-token',
-  'admin.defaultSettings.mapboxTokenHint':
-    'Minden olyan felhasználóhoz használatos, aki nem adta meg a saját tokenjét — így az egész példány eléri a Mapboxot anélkül, hogy egyenként kellene megosztani a kulcsot. Titkosítva tárolódik.',
-  'admin.defaultSettings.mapboxStyle': 'Térképstílus',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Válassz stílust…',
-  'admin.defaultSettings.mapbox3d': '3D épületek & domborzat',
-  'admin.defaultSettings.mapboxQuality': 'Kiváló minőségű mód',
   'admin.defaultSettings.cartoKey': 'Megosztott CARTO-kulcs',
   'admin.defaultSettings.cartoKeyHint':
     'Minden olyan felhasználóhoz használatos, aki nem adta meg a saját kulcsát, így az egész példány vízjel nélküli CARTO-csempéket kap. Titkosítva tárolódik.',

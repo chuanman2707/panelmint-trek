@@ -91,8 +91,8 @@ export function labelFloorPx(type: string): number {
  * floor, walked point to point. A straight two-point line measures the same
  * as before, so every existing floor holds for the case it was written for.
  *
- * `project` is whichever renderer's own projection: Leaflet's
- * latLngToContainerPoint or Mapbox's project, wrapped to take [lat, lng].
+ * `project` is the map's own projection — Leaflet's latLngToContainerPoint —
+ * wrapped to take [lat, lng].
  */
 export function hopIsVisible(
   type: string,

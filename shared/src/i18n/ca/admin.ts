@@ -429,15 +429,6 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.mapProviderHint':
     'El mapa per defecte per a tothom en aquesta instància. Cada usuari pot canviar-lo en els seus propis ajustos.',
   'admin.defaultSettings.providerLeaflet': 'Estàndard (gratuït)',
-  'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
-  'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
-  'admin.defaultSettings.mapboxToken': 'Token de Mapbox compartit',
-  'admin.defaultSettings.mapboxTokenHint':
-    "S'utilitza per a cada usuari que no hagi introduït el seu propi token, de manera que tota la instància obtingui Mapbox sense compartir la clau individualment. S'emmagatzema xifrat.",
-  'admin.defaultSettings.mapboxStyle': 'Estil de mapa',
-  'admin.defaultSettings.mapboxStylePlaceholder': 'Tria un estil…',
-  'admin.defaultSettings.mapbox3d': 'Edificis i terreny en 3D',
-  'admin.defaultSettings.mapboxQuality': "Mode d'alta qualitat",
   'admin.defaultSettings.cartoKey': 'Clau CARTO compartida',
   'admin.defaultSettings.cartoKeyHint':
     "S'utilitza per a cada usuari que no hagi introduït la seva pròpia clau, de manera que tota la instància obtingui tessel·les de CARTO sense marca d'aigua. S'emmagatzema xifrada.",

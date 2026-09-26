@@ -30,34 +30,12 @@ const settings: TranslationStrings = {
   'settings.valhallaBaseHint':
     'PanelMint utilise par défaut la Valhalla publique de FOSSGIS pour éviter les péages, autoroutes et ferries. Saisissez ici l’URL de votre propre Valhalla pour l’utiliser à la place. Si seule une instance de routage personnalisée est configurée, la Valhalla publique n’est pas utilisée. Après avoir saisi une URL personnalisée, redémarrez le serveur et rechargez la page.',
   'settings.mapHint': "Modèle d'URL pour les tuiles de carte",
-  'settings.mapProvider': 'Fournisseur de carte',
-  'settings.mapProviderHint': 'Affecte les cartes Trip Planner et Journey. Atlas utilise toujours Leaflet.',
-  'settings.mapLeafletSubtitle': 'Classique 2D, toutes tuiles raster',
-  'settings.mapMapboxSubtitle': 'Tuiles vectorielles, bâtiments 3D & terrain',
-  'settings.mapMapLibreSubtitle': 'Tuiles vectorielles OpenFreeMap, sans jeton',
-  'settings.mapExperimental': 'Expérimental',
-  'settings.mapMapboxToken': "Jeton d'accès Mapbox",
-  'settings.mapMapboxTokenHint': 'Jeton public (pk.*) depuis',
-  'settings.mapMapboxTokenLink': "mapbox.com → Jetons d'accès",
   'settings.mapCartoKey': "Clé d'API CARTO",
   'settings.mapCartoKeyHint':
     'Les fonds de carte CARTO affichent un filigrane sans clé. Gratuite et sans compte, depuis',
   'settings.mapCartoKeyLink': "clé d'API de fonds de carte carto.com",
   'settings.mapCartoKeyMissing':
     'Ce modèle est un fond de carte CARTO. Sans clé, CARTO appose "API KEY REQUIRED" sur chaque tuile. Tant que la clé manque, PanelMint affiche le fond de carte par défaut.',
-  'settings.mapStyle': 'Style de carte',
-  'settings.mapStylePlaceholder': 'Sélectionner un style Mapbox',
-  'settings.mapStyleHint': 'Preset ou votre propre URL mapbox://styles/USER/ID',
-  'settings.mapOpenFreeMapStylePlaceholder': 'Sélectionner un style OpenFreeMap',
-  'settings.mapOpenFreeMapStyleHint':
-    'Preset ou URL de style OpenFreeMap. Les styles OpenFreeMap fonctionnent sans jeton.',
-  'settings.map3dBuildings': 'Bâtiments 3D & terrain',
-  'settings.map3dHint':
-    'Inclinaison + extrusions 3D réelles des bâtiments — fonctionne avec tous les styles, y compris satellite.',
-  'settings.mapHighQuality': 'Mode haute qualité',
-  'settings.mapHighQualityHint':
-    'Anticrénelage + projection globe pour des bords plus nets et une vue réaliste du monde.',
-  'settings.mapHighQualityWarning': 'Peut affecter les performances sur les appareils moins puissants.',
   'settings.mapTipLabel': 'Astuce :',
   'settings.mapTip':
     'Clic droit et glisser pour pivoter/incliner la carte. Clic milieu pour ajouter un lieu (le clic droit est réservé à la rotation).',
