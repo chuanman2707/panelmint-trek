@@ -50,7 +50,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'GNU AGPL v3 자유 소프트웨어 — 코드는 자유롭게 사용하고, 연구하고, 공유할 수 있습니다.',
   'settings.about.description':
-    'PanelMint은 첫 아이디어부터 마지막 추억까지 여행을 체계적으로 관리하는 자체 호스팅 여행 플래너입니다. 일별 계획, 예산, 짐 목록, 사진 등 모든 것이 하나의 서버에 담겨 있습니다.',
+    'PanelMint은 첫 아이디어부터 마지막 추억까지 여행을 체계적으로 관리하는 오프라인 우선 여행 플래너입니다. 일별 계획, 예산, 짐 목록 등 모든 것이 한곳에, 내 기기에 담겨 있습니다.',
   'settings.about.madeWith': '으로 만들어졌습니다',
   'settings.about.madeBy': 'Maurice와 성장하는 오픈 소스 커뮤니티가 함께',
   'settings.about.multiTabNote': '다른 브라우저 탭에서 한 수정 사항은 이 탭이 다시 포커스를 얻을 때 표시됩니다.',

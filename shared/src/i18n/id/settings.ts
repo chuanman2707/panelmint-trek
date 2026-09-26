@@ -47,7 +47,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Perangkat lunak bebas berlisensi GNU AGPL v3 — kodenya milikmu untuk dipakai, dipelajari, dan dibagikan.',
   'settings.about.description':
-    'PanelMint adalah perencana perjalanan self-hosted yang membantu kamu mengatur perjalanan dari ide pertama hingga kenangan terakhir. Perencanaan harian, anggaran, daftar bawaan, foto dan masih banyak lagi — semua di satu tempat, di servermu sendiri.',
+    'PanelMint adalah perencana perjalanan offline-first yang membantu kamu mengatur perjalanan dari ide pertama hingga kenangan terakhir. Perencanaan harian, anggaran, daftar bawaan dan masih banyak lagi — semua di satu tempat, di perangkatmu sendiri.',
   'settings.about.madeWith': 'Dibuat dengan',
   'settings.about.madeBy': 'oleh Maurice dan komunitas open-source yang terus berkembang.',
   'settings.about.multiTabNote': 'Perubahan yang dibuat di tab browser lain muncul saat tab ini kembali difokuskan.',

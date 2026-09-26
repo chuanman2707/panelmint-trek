@@ -47,7 +47,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Wolne oprogramowanie na licencji GNU AGPL v3 — kod jest twój: używaj, badaj i udostępniaj.',
   'settings.about.description':
-    'PanelMint to samodzielnie hostowany planer podróży, który pomaga organizować wyprawy od pierwszego pomysłu po ostatnie wspomnienie. Planowanie dzienne, budżet, listy pakowania, zdjęcia i wiele więcej — wszystko w jednym miejscu, na własnym serwerze.',
+    'PanelMint to planer podróży działający w trybie offline-first, który pomaga organizować wyprawy od pierwszego pomysłu po ostatnie wspomnienie. Planowanie dzienne, budżet, listy pakowania i wiele więcej — wszystko w jednym miejscu, na własnym urządzeniu.',
   'settings.about.madeWith': 'Stworzone z',
   'settings.about.madeBy': "przez Maurice'a i rosnącą społeczność open-source.",
   'settings.about.multiTabNote': 'Zmiany wprowadzone w innej karcie przeglądarki pojawią się, gdy ta karta odzyska fokus.',

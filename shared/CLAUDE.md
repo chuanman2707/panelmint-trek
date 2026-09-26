@@ -26,8 +26,6 @@ Single test: `npx vitest run src/i18n/i18n-parity.spec.ts`, or `npx vitest run -
 
 One folder per domain exporting Zod schemas plus inferred types (`export type X = z.infer<typeof xSchema>`), re-exported from the root barrel. Domain-agnostic primitives (`idSchema`, `idParamSchema`, `nonEmptyString`, pagination) live in `src/common/`. A few pure isomorphic helpers live beside the schemas because both sides need the same answer; they follow the same rules as everything here.
 
-**`src/plugin-permissions.ts` is frozen legacy** — machine-generated upstream from the deleted server's plugin protocol; the generator is gone, so treat it as an ordinary source file (it only still exists because the plugin contract surface hasn't been cleaned up yet).
-
 **Schemas mirror the exact wire behavior the old server routes had** (`weather/weather.schema.ts` is the example): strings stay strings because the route never coerced them, optional fields reflect partial response subsets, and bespoke 4xx error strings are reproduced verbatim in the `api/local/*` adapters, not derived from the schema. Don't "tidy up" a schema to be stricter than the contract it documents.
 
 ## Rules for new contracts
@@ -47,7 +45,7 @@ The parity rule governs **existing** routes; it is not a license to mint new deb
 - **`<locale>/`** — one folder per language, one file per UI domain plus an `index.ts` barrel; each file exports a flat map of dot-namespaced keys typed as `TranslationStrings`. The runtime `t(key)` only resolves these top-level keys.
 - **`en/` is canonical.** Every other locale must have the identical file set and top-level keys — `i18n:parity:strict` enforces it. When you add or rename a key, update every locale.
 - **Every locale gets a real translation — an English placeholder is not acceptable.** Parity only checks that the key exists, so copying the `en` string passes the check while shipping English to those users. Write native phrasing with the locale's own punctuation and the same `{placeholders}` as `en`; if you genuinely cannot translate one, say so instead of filling it with English.
-- **Further i18n specs run in `npm test`** and fail changes that parity lets through: placeholder parity (every `{placeholder}` in an `en` string must appear in each translation), no `en` string may call TREK "self-hosted" (the same build runs on managed installs; exemptions live in the spec), and a wording regression test for plugin permission descriptions (currently one string — add a case there when a permission's real behavior changes). None of these are part of `i18n:parity`, which checks key sets only.
+- **Further i18n specs run in `npm test`** and fail changes that parity lets through: placeholder parity (every `{placeholder}` in an `en` string must appear in each translation) and the self-hosted wording rule — PanelMint is browser-local with no server, so no `en` string may describe it as self-hosted (exemptions live in `scripts/i18n-selfhost-wording.mjs`). None of these are part of `i18n:parity`, which checks key sets only.
 
 ## Sanitization (`src/sanitize/sanitize.ts`)
 

@@ -28,9 +28,9 @@ The layering is **component → feature hook → store/slice → `repo/` → `ap
 
 - **`src/store/`** — Zustand. `tripStore.ts` is composed from slices in `store/slices/`; `slices/remoteEventHandler.ts` holds the event appliers the local adapters reuse (there is no socket — the name is historical).
 - **`src/repo/`** — per-entity repositories mediating between the API surface and the offline cache. Always go through a repo for trip data.
-- **`src/api/client.ts`** — the single Axios instance, typed from `@trek/shared`, plus the interim hosted-domain surfaces not yet ported to `src/api/local/`. Local trip/day CRUD already runs on `api/local/` against `panelmintDb`; ports continue domain by domain — never add new consumers of the axios surfaces.
-- **`src/db/panelmintDb.ts`** — the local Dexie database (trips, days, settings, …). `src/db/offlineDb.ts` is the legacy read-through cache still referenced by unported repo fallbacks; it shrinks as domains land locally. Database and table names are the on-device contract — renaming one orphans every user's data.
-- **`src/sync/`** — connectivity (`networkMode.ts`), storage persistence, and raster map pre-download (`tilePrefetcher.ts`). There is no mutation queue or reconnect replay anymore — writes are local and durable immediately.
+- **`src/api/client.ts`** — a pure `export * from './local'` barrel typed from `@trek/shared`; every domain runs on the Dexie-backed adapters in `api/local/`. There is no axios instance and no `/api/*` traffic — never introduce one.
+- **`src/db/panelmintDb.ts`** — the local Dexie database (trips, days, settings, …). Database and table names are the on-device contract — renaming one orphans every user's data.
+- **`src/sync/`** — connectivity (`networkMode.ts`), storage persistence (`persistentStorage.ts`) and tile-cache maintenance (`tileCache.ts` — the `map-tiles` runtime cache is written by the service worker; only the clearing side lives here). There is no mutation queue or reconnect replay — writes are local and durable immediately.
 
 ## Rules for new code
 
@@ -50,11 +50,10 @@ The offline core is flagship work surrounded by a periphery that ignores it. New
 
 ## Big-picture pieces
 
-- **Maps** (`src/components/Map/`): Leaflet only — callers import `MapView` directly (it fetches road-trip hazards itself; the `MapViewAuto` passthrough is gone). Raster tiles (OSM default; Amap GCJ-02 and satellite presets remain); a stored vector-style URL resolves to the raster fallback. The raster prefetcher (`sync/tilePrefetcher.ts`) fetches tiles `no-cors` so custom tile providers without CORS headers keep working.
+- **Maps** (`src/components/Map/`): Leaflet only — callers import `MapView` directly (the `MapViewAuto` passthrough is gone). Raster tiles (OSM default; Amap GCJ-02 and satellite presets remain); a stored vector-style URL resolves to the raster fallback. Tiles are cached by the service worker's `map-tiles` runtime cache (see `vite.config.js`).
 - **i18n** (`src/i18n/TranslationContext.tsx`): `en` is bundled; every other locale is a dynamic `import('@trek/shared/i18n/<locale>')` so Vite emits one chunk per locale. Strings live in `shared/`, never here.
 - **Mobile shell** (`src/mobile/`): below the phone breakpoint (`useIsPhone`) `App.tsx` wraps routes in `MobileShell` and the `M*` screens under `mobile/screens/` take over. A UI change to a domain with an `M*` twin usually needs both — put shared logic in one hook/module and keep only markup in each shell.
-- **Managed installs** (`src/managed/index.tsx`): the attachment point for screens that only exist on a centrally administered install. Empty here by design — an operator replaces it at build time. Don't put features there.
 
 ## Tests
 
-vitest with `@vitejs/plugin-react`, a custom jsdom environment (`tests/environment/`), `forks` pool. Tests live in `tests/{unit,integration}/` and co-located as `src/**/*.test.{ts,tsx}`. `msw` mocks HTTP (for the not-yet-ported hosted surfaces), `fake-indexeddb` backs Dexie. Page tests render JSX against a mocked hook; hook/slice logic is tested in isolation (see `store/slices/budgetSlice.test.ts`).
+vitest with `@vitejs/plugin-react`, a custom jsdom environment (`tests/environment/`), `forks` pool. Tests live in `tests/{unit,integration}/` and co-located as `src/**/*.test.{ts,tsx}`. `msw` mocks the external-API hosts the app still calls (tile/geocoding/fx) and fails cross-origin requests nobody mocked — `fake-indexeddb` backs Dexie. Page tests render JSX against a mocked hook; hook/slice logic is tested in isolation (see `store/slices/budgetSlice.test.ts`).

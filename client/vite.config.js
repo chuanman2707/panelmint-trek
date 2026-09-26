@@ -50,14 +50,13 @@ export default defineConfig(({ mode }) => ({
         // Anything above this is dropped from the precache manifest. The build does
         // not fail over it, it only prints "won't be precached", so the ceiling has
         // to sit close to the real bundle or an accidental heavyweight goes
-        // offline-broken unnoticed. Largest precached entry is the heic-to chunk at
-        // 3.0 MB, which leaves about 670 kB of headroom; the entry chunk is 258 kB.
+        // offline-broken unnoticed. Largest precached entry is the entry chunk at
+        // ~0.9 MB, which leaves ~2.6 MB of headroom.
         maximumFileSizeToCacheInBytes: 3.5 * 1024 * 1024,
         // Every route chunk is precached alongside the shell, deliberately: for an
         // offline-first travel planner a route the user never opened before losing
         // signal still has to work. The trade is that splitting buys first paint and
-        // not install size: 107 entries / 17,795 KiB before any of it, 463 /
-        // 23,292 KiB now (measured, not estimated).
+        // not install size: 159 entries / 6,060 KiB measured on the static build.
         //
         // Keep this figure honest. #2228 traced PWA boot failures to the browser
         // evicting this origin's whole bucket, precached shell included, and this

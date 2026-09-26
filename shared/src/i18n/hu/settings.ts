@@ -48,7 +48,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Szabad szoftver a GNU AGPL v3 alatt — a kód a tiéd: használd, tanulmányozd, oszd meg.',
   'settings.about.description':
-    'A PanelMint egy saját szerveren üzemeltetett útitervező, amely segít az utazásaid megszervezésében az első ötlettől az utolsó emlékig. Napi tervezés, költségvetés, csomagolási listák, fotók és még sok más — minden egy helyen, a saját szervereden.',
+    'A PanelMint egy offline-first útitervező, amely segít az utazásaid megszervezésében az első ötlettől az utolsó emlékig. Napi tervezés, költségvetés, csomagolási listák és még sok más — minden egy helyen, a saját eszközödön.',
   'settings.about.madeWith': 'Készítve',
   'settings.about.madeBy': 'Maurice és egy növekvő nyílt forráskódú közösség által.',
   'settings.about.multiTabNote': 'A másik böngészőlapon végzett módosítások akkor jelennek meg, amikor ez a lap újra fókuszba kerül.',

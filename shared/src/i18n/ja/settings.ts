@@ -48,7 +48,8 @@ const settings: TranslationStrings = {
   'settings.about.sourceCodeHint': 'GitHub で PanelMint のコードを閲覧・フォーク・監査',
   'settings.about.license':
     'GNU AGPL v3 のフリーソフトウェアです — コードは自由に使用・研究・共有できます。',
-  'settings.about.description': 'PanelMintはセルフホスト型の旅行プランナーです。',
+  'settings.about.description':
+    'PanelMintはオフラインで使える旅行プランナーです。最初の思いつきから最後の思い出まで、旅行の整理を助けます。日程計画、予算、パッキングリストなど——すべてが一か所に、あなたのデバイス上に。',
   'settings.about.madeWith': 'Made with',
   'settings.about.madeBy': 'by Maurice とオープンソースコミュニティ。',
   'settings.about.multiTabNote': '別のブラウザータブで行った編集は、このタブにフォーカスが戻ったときに表示されます。',

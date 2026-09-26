@@ -50,7 +50,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'GNU AGPL v3 ile özgür yazılım — kod; kullanmanız, incelemeniz ve paylaşmanız için sizindir.',
   'settings.about.description':
-    'PanelMint, seyahatlerinizi ilk fikirden son anıya kadar organize etmenize yardımcı olan, kendi kendine barındırılan bir seyahat planlayıcıdır. Gün planlaması, bütçe, paketleme listeleri, fotoğraflar ve çok daha fazlası; hepsi tek bir yerde, kendi sunucunuzda.',
+    'PanelMint, seyahatlerinizi ilk fikirden son anıya kadar organize etmenize yardımcı olan, çevrimdışı öncelikli bir seyahat planlayıcıdır. Gün planlaması, bütçe, paketleme listeleri ve çok daha fazlası; hepsi tek bir yerde, kendi cihazınızda.',
   'settings.about.madeWith': 'İle yapıldı',
   'settings.about.madeBy': 'Maurice ve büyüyen bir açık kaynak topluluğu tarafından.',
   'settings.about.multiTabNote': 'Başka bir tarayıcı sekmesinde yapılan düzenlemeler, bu sekme yeniden odaklandığında görünür.',

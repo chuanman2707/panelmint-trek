@@ -17,22 +17,19 @@
     if (!s || s.v !== 1) return;
 
     var root = document.documentElement;
-    var path = location.pathname;
-    var isShared = path.indexOf('/shared/') === 0 || path.indexOf('/public/') === 0;
 
     var dark;
-    if (isShared) dark = false;
-    else if (s.darkMode === 'auto') dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (s.darkMode === 'auto') dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     else dark = s.darkMode === true || s.darkMode === 'dark';
     root.classList.toggle('dark', dark);
 
-    var scheme = isShared ? 'default' : s.scheme;
+    var scheme = s.scheme;
     if (scheme && scheme !== 'default') root.setAttribute('data-scheme', scheme);
-    if (!isShared && s.noTransparency) root.setAttribute('data-no-transparency', '');
+    if (s.noTransparency) root.setAttribute('data-no-transparency', '');
     if (s.density === 'compact') root.setAttribute('data-density', 'compact');
     if (s.reduceMotion) root.setAttribute('data-reduce-motion', '');
 
-    if (!isShared && scheme === 'custom' && s.accent) {
+    if (scheme === 'custom' && s.accent) {
       root.style.setProperty('--accent-custom-light', s.accent.light);
       root.style.setProperty('--accent-custom-dark', s.accent.dark);
       if (s.accentText) {

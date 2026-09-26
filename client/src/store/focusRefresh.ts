@@ -32,7 +32,9 @@ function onVisibilityChange(): void {
   if (document.visibilityState !== 'visible') return
   const tripId = useTripStore.getState().trip?.id
   if (tripId == null) return
-  void refreshOpenTrip(tripId)
+  // Non-fatal all the way out: a rejection here would be an unhandled
+  // promise rejection (and flakes test teardown where `window` is gone).
+  refreshOpenTrip(tripId).catch(() => {})
 }
 
 /**

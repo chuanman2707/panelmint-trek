@@ -47,7 +47,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Vrije software onder de GNU AGPL v3 — de code is van jou om te gebruiken, te bestuderen en te delen.',
   'settings.about.description':
-    "PanelMint is een zelf-gehoste reisplanner die je helpt je reizen te organiseren van het eerste idee tot de laatste herinnering. Dagplanning, budget, paklijsten, foto's en nog veel meer — alles op één plek, op je eigen server.",
+    'PanelMint is een offline-first reisplanner die je helpt je reizen te organiseren van het eerste idee tot de laatste herinnering. Dagplanning, budget, paklijsten en nog veel meer — alles op één plek, op je eigen apparaat.',
   'settings.about.madeWith': 'Gemaakt met',
   'settings.about.madeBy': 'door Maurice en een groeiende open-source community.',
   'settings.about.multiTabNote': 'Bewerkingen in een ander browsertabblad verschijnen zodra dit tabblad weer focus krijgt.',

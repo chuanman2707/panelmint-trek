@@ -27,14 +27,9 @@ export const FORBIDDEN = /self[-\s]?hosted/i;
  * short: it is the only way this rule can be worn down.
  */
 export const ALLOWED = [
-  {
-    key: 'settings.about.description',
-    because:
-      'the self-description shown to somebody who set TREK up themselves, and it is ' +
-      'accurate for them. A centrally administered install renders ' +
-      'settings.about.descriptionManaged instead, so neither reader is told the ' +
-      'wrong thing and self-hosters lose nothing.',
-  },
+  // Currently empty — PanelMint is browser-local, so "self-hosted" is wrong for
+  // every reader. The mechanism stays so a future legitimately-managed string
+  // can be exempted here with its reason.
 ];
 
 /**

@@ -52,7 +52,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Free software under the GNU AGPL v3 — the code is yours to use, study and share.',
   'settings.about.description':
-    'PanelMint is a self-hosted travel planner that helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place, on your own server.',
+    'PanelMint is an offline-first travel planner that helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists and much more — all in one place, on your own device.',
   'settings.about.madeWith': 'Made with',
   'settings.about.madeBy': 'by Maurice and a growing open-source community.',
   'settings.about.multiTabNote': 'Edits made in another browser tab appear when this tab regains focus.',

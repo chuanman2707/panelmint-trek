@@ -52,7 +52,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Phần mềm tự do theo GNU AGPL v3 — mã nguồn là của bạn để dùng, nghiên cứu và chia sẻ.',
   'settings.about.description':
-    'PanelMint là công cụ lập kế hoạch du lịch tự lưu trữ giúp bạn tổ chức các chuyến đi của mình từ ý tưởng đầu tiên đến kỷ niệm cuối cùng. Lập kế hoạch trong ngày, ngân sách, danh sách đóng gói, ảnh và nhiều nội dung khác — tất cả đều ở cùng một nơi, trên máy chủ của riêng bạn.',
+    'PanelMint là công cụ lập kế hoạch du lịch ưu tiên ngoại tuyến giúp bạn tổ chức các chuyến đi của mình từ ý tưởng đầu tiên đến kỷ niệm cuối cùng. Lập kế hoạch trong ngày, ngân sách, danh sách đóng gói và nhiều nội dung khác — tất cả đều ở cùng một nơi, trên thiết bị của riêng bạn.',
   'settings.about.madeWith': 'Được làm bằng',
   'settings.about.madeBy': 'của Maurice và cộng đồng nguồn mở đang phát triển.',
   'settings.about.multiTabNote': 'Các chỉnh sửa thực hiện trong một tab trình duyệt khác sẽ xuất hiện khi tab này được lấy nét trở lại.',

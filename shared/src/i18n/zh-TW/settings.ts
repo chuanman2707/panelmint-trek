@@ -47,7 +47,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'GNU AGPL v3 下的自由軟體——程式碼歸你所有，可使用、研究並分享。',
   'settings.about.description':
-    'PanelMint 是一款自架旅遊規劃器，幫助您從最初構想到最後回憶，整理每次旅行。日程規劃、預算、行李清單、照片及更多功能——全部集中在您自己的伺服器上。',
+    'PanelMint 是一款離線優先的旅遊規劃器，幫助您從最初構想到最後回憶，整理每次旅行。日程規劃、預算、行李清單及更多功能——全部集中在您自己的裝置上。',
   'settings.about.madeWith': '以',
   'settings.about.madeBy': '由 Maurice 及不斷成長的開源社群製作。',
   'settings.about.multiTabNote': '在其他瀏覽器分頁中所做的修改，會在此分頁重新取得焦點時顯示。',

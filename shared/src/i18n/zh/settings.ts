@@ -46,7 +46,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'GNU AGPL v3 下的自由软件——代码归你所有，可使用、研究并分享。',
   'settings.about.description':
-    'PanelMint 是一个自托管的旅行规划工具，帮助你从最初的想法到最后的回忆，全程组织你的旅行。日程规划、预算、行李清单、照片等——一切尽在一处，在你自己的服务器上。',
+    'PanelMint 是一款离线优先的旅行规划工具，帮助你从最初的想法到最后的回忆，全程组织你的旅行。日程规划、预算、行李清单等——一切尽在一处，就在你自己的设备上。',
   'settings.about.madeWith': '用',
   'settings.about.madeBy': '由 Maurice 和不断壮大的开源社区打造。',
   'settings.about.multiTabNote': '在其他浏览器标签页中所做的修改，会在此标签页重新获得焦点时显示。',

@@ -1,10 +1,11 @@
-// Shared types for the TREK travel planner.
+// Shared types for the PanelMint travel planner.
 //
-// Domain entity/response types are now sourced from @trek/shared — the single
-// source of truth shared with the server. The Zod schemas there are built to
-// match the REAL server response shapes (see shared/src/<domain>/*.schema.ts,
-// each documented against the producing service). Re-exported here so the rest
-// of the client keeps importing from '../types' unchanged.
+// Domain entity/response types are sourced from @trek/shared — the single
+// source of truth for the app's data contracts. The Zod schemas there mirror
+// the response shapes the deleted server's routes produced (see
+// shared/src/<domain>/*.schema.ts), which is what the api/local adapters were
+// ported against. Re-exported here so the rest of the client keeps importing
+// from '../types' unchanged.
 import type {
   TrekWsEventName,
   TrekWsPluginEventName,

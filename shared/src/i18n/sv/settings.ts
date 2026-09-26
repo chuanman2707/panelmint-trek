@@ -53,7 +53,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Fri programvara under GNU AGPL v3 — koden är din att använda, studera och dela.',
   'settings.about.description':
-    'PanelMint är en resplanerare som du själv kan driva och som hjälper dig att organisera dina resor från den första idén till det sista minnet. Dagsplanering, budget, packlistor, foton och mycket mer – allt på ett och samma ställe, på din egen server.',
+    'PanelMint är en offline-först resplanerare som hjälper dig att organisera dina resor från den första idén till det sista minnet. Dagsplanering, budget, packlistor och mycket mer – allt på ett och samma ställe, på din egen enhet.',
   'settings.about.madeWith': 'Gjord med',
   'settings.about.madeBy': 'av Maurice och en växande open source-gemenskap.',
   'settings.about.multiTabNote': 'Ändringar i en annan webbläsarflik visas när den här fliken får fokus igen.',

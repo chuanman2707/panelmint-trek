@@ -5,7 +5,7 @@ Everything below is dashboard work — no code changes needed.
 
 ## 1. Connect the repo
 
-1. Push `panelmint` (already pushed — this branch is the production line).
+1. Push `panelmint` — this branch is the production line.
 2. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** →
    **Connect to Git** → select the `panelmint-trek` repo.
 3. Production branch: **`panelmint`**.
@@ -17,7 +17,7 @@ Everything below is dashboard work — no code changes needed.
 | Framework preset | None |
 | Build command | `npm run build` |
 | Build output directory | `client/dist` |
-| Root directory | leave blank (repo root — the monorepo) |
+| Root directory | leave blank — the repo itself is the `panelmint-trek` monorepo; the field is only for apps in a subdirectory |
 
 - `npm run build` builds `shared/` then `client/` — do **not** substitute a
   client-only command; the client type-checks and bundles against shared's

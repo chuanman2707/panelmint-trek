@@ -47,7 +47,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Svobodný software pod licencí GNU AGPL v3 — kód je váš k používání, studiu i sdílení.',
   'settings.about.description':
-    'PanelMint je samohostovaný plánovač cest, který vám pomůže organizovat výlety od prvního nápadu po poslední vzpomínku. Denní plánování, rozpočet, balicí seznamy, fotky a mnoho dalšího — vše na jednom místě, na vašem vlastním serveru.',
+    'PanelMint je offline-first plánovač cest, který vám pomůže organizovat výlety od prvního nápadu po poslední vzpomínku. Denní plánování, rozpočet, balicí seznamy a mnoho dalšího — vše na jednom místě, na vašem vlastním zařízení.',
   'settings.about.madeWith': 'Vytvořeno s',
   'settings.about.madeBy': 'Mauricem a rostoucí open-source komunitou.',
   'settings.about.multiTabNote': 'Změny provedené na jiné kartě prohlížeče se zobrazí, když se tato karta vrátí do popředí.',

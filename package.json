@@ -23,8 +23,7 @@
     "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=client"
   },
   "devDependencies": {
-    "concurrently": "^10.0.4",
-    "unrun": "^0.3.1"
+    "concurrently": "^10.0.4"
   },
   "comment:overrides": "Force a single React 19 across the workspace so the test renderer (@testing-library/react) and the app share one react-dom.",
   "overrides": {

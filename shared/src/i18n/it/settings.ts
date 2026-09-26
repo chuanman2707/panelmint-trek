@@ -47,7 +47,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Software libero sotto la GNU AGPL v3 — il codice è tuo: usalo, studialo e condividilo.',
   'settings.about.description':
-    "PanelMint è un pianificatore di viaggi self-hosted che ti aiuta a organizzare i tuoi viaggi dalla prima idea all'ultimo ricordo. Pianificazione giornaliera, budget, liste bagagli, foto e molto altro — tutto in un unico posto, sul tuo server.",
+    "PanelMint è un pianificatore di viaggi offline-first che ti aiuta a organizzare i tuoi viaggi dalla prima idea all'ultimo ricordo. Pianificazione giornaliera, budget, liste bagagli e molto altro — tutto in un unico posto, sul tuo dispositivo.",
   'settings.about.madeWith': 'Fatto con',
   'settings.about.madeBy': 'da Maurice e una crescente comunità open-source.',
   'settings.about.multiTabNote': 'Le modifiche fatte in un\'altra scheda del browser appaiono quando questa scheda torna in primo piano.',

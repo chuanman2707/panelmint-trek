@@ -1,10 +1,10 @@
 /**
  * The canonical locale must not describe PanelMint as self-hosted.
  *
- * Not a style rule. The same build runs on an install its admin set up and on
- * one somebody else operates, and a string that assumes the first is simply
- * wrong on the second: it tells a reader to use their own server, check their
- * own logs, or update something they cannot reach.
+ * Not a style rule. PanelMint is browser-local — there is no server to host —
+ * and a string that assumes one is simply wrong: it tells a reader to use
+ * their own server, check their own logs, or update something that does not
+ * exist.
  *
  * This exists because the parity check cannot catch it. That one compares the
  * file set and the top-level keys across all 23 locales and never looks at a

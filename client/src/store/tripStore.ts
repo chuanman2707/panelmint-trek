@@ -193,7 +193,10 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     ])
     // Accommodations live in planner-local state, not this store — nudge the
     // planner to reload them too (e.g. a trip date change made while offline).
-    window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+    // Guarded: this can settle after jsdom teardown, where `window` is gone.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+    }
   },
 
   refreshDays: async (tripId: number | string) => {

@@ -504,12 +504,6 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
 
   // Trip
   'trip:updated': payload => ({ trip: payload.trip as Trip }),
-
-  // Memories / Photos
-  'memories:updated': payload => {
-    window.dispatchEvent(new CustomEvent('memories:updated', { detail: payload }))
-    return {}
-  },
 }
 
 /**
@@ -548,18 +542,17 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
 
   /*
    * The accommodation cascade announces its reservation without sending it,
-   * which the applier above correctly declines to invent an entity from. Left
-   * at that, a hotel booked by one member would not appear for the others
-   * until they reloaded, so honour the ping the way day:reordered does and
-   * fetch the authoritative list.
+   * which the applier above correctly declines to invent an entity from, so
+   * honour the ping the way day:reordered does and re-read the authoritative
+   * list out of Dexie.
    */
   if ((type === 'reservation:created' || type === 'reservation:updated') && !payload.reservation) {
     const tripId = get().trip?.id
     if (tripId) get().loadReservations(tripId)
   }
 
-  // A reorder/insert re-pins dates and re-stamps booking times server-side, so
-  // pull the authoritative days + reservations for collaborators.
+  // A reorder/insert re-pins dates and re-stamps booking times in Dexie, so
+  // pull the authoritative days + reservations back into the store.
   if (type === 'day:reordered') {
     const tripId = get().trip?.id
     if (tripId) {
@@ -569,7 +562,7 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
   }
 
   // A trip date-range change re-dates day rows and re-anchors bookings and
-  // accommodations server-side (#1288), so pull the authoritative days +
+  // accommodations in Dexie (#1288), so pull the authoritative days +
   // reservations and tell the planner to reload accommodations (they live in
   // page-local state, not this store).
   if (type === 'trip:updated') {

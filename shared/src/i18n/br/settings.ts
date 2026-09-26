@@ -47,7 +47,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Software livre sob a GNU AGPL v3 — o código é seu para usar, estudar e compartilhar.',
   'settings.about.description':
-    'PanelMint é um planejador de viagens auto-hospedado que ajuda você a organizar suas viagens da primeira ideia à última lembrança. Planejamento diário, orçamento, listas de bagagem, fotos e muito mais — tudo em um só lugar, no seu próprio servidor.',
+    'PanelMint é um planejador de viagens offline-first que ajuda você a organizar suas viagens da primeira ideia à última lembrança. Planejamento diário, orçamento, listas de bagagem e muito mais — tudo em um só lugar, no seu próprio dispositivo.',
   'settings.about.madeWith': 'Feito com',
   'settings.about.madeBy': 'por Maurice e uma crescente comunidade open-source.',
   'settings.about.multiTabNote': 'Edições feitas em outra aba do navegador aparecem quando esta aba volta ao foco.',

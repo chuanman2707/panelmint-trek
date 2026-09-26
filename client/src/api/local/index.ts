@@ -1,12 +1,9 @@
-// Barrel for the local api adapters — the end-state surface of api/client.ts.
+// Barrel for the local api adapters — the whole api surface of the app.
 //
-// A domain lands here as its adapter is implemented:
-//     export { tripsApi } from './trips'
-// and `client.ts` swaps that domain's axios object for
-//     export { tripsApi } from './local'
-// — the import surface callers see never changes. Once every kept domain is
-// swapped, client.ts shrinks to `export * from './local'` and the axios
-// instance is deleted (plan task A9). Conventions: ./README.md.
+// Every kept domain runs on a Dexie-backed adapter here; `api/client.ts` is a
+// pure `export * from './local'` so the import surface callers use never
+// changed across the port. There is no axios instance and no hosted surface
+// left to swap. Conventions: ./README.md.
 export { tripsApi } from './trips'
 export { daysApi } from './days'
 export { dashboardApi } from './dashboard'
@@ -14,7 +11,6 @@ export { weatherApi } from './weather'
 export { airportsApi } from './airports'
 export { tagsApi } from './tags'
 export { tripMembersApi } from './tripMembers'
-export { shareApi } from './share'
 export { configApi } from './config'
 export { placesApi } from './places'
 export { categoriesApi } from './categories'

@@ -49,7 +49,7 @@ const settings: TranslationStrings = {
   'settings.about.license':
     'Freie Software unter der GNU AGPL v3 — der Code gehört dir zum Nutzen, Studieren und Teilen.',
   'settings.about.description':
-    'PanelMint ist ein selbst gehosteter Reiseplaner, der dir hilft, deine Trips von der ersten Idee bis zur letzten Erinnerung zu organisieren. Tagesplanung, Budget, Packlisten, Fotos und vieles mehr — alles an einem Ort, auf deinem eigenen Server.',
+    'PanelMint ist ein Offline-First-Reiseplaner, der dir hilft, deine Trips von der ersten Idee bis zur letzten Erinnerung zu organisieren. Tagesplanung, Budget, Packlisten und vieles mehr — alles an einem Ort, auf deinem eigenen Gerät.',
   'settings.about.madeWith': 'Entwickelt mit',
   'settings.about.madeBy': 'von Maurice und einer wachsenden Open-Source-Community.',
   'settings.about.multiTabNote': 'Änderungen, die in einem anderen Browser-Tab gemacht wurden, erscheinen, sobald dieser Tab wieder fokussiert wird.',
