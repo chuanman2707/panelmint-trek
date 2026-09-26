@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'khóa API bản đồ nền carto.com',
   'settings.mapCartoKeyMissing':
     'Mẫu này là bản đồ nền CARTO. Không có khóa, CARTO in "API KEY REQUIRED" lên mọi ô bản đồ. Cho đến khi bạn nhập khóa, PanelMint hiển thị bản đồ nền mặc định.',
+  'settings.routingBaseUrl': 'Máy chủ định tuyến',
+  'settings.routingBaseUrlHint':
+    'Để trống để dùng các máy chủ định tuyến công cộng của FOSSGIS. Máy chủ tự cài phải phục vụ API OSRM tại <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Máy chủ Valhalla',
+  'settings.valhallaBaseUrlHint':
+    'Để trống để dùng Valhalla công cộng của FOSSGIS. Nếu phía trên đã đặt máy chủ định tuyến, engine thứ hai này sẽ không được hỏi gì cả.',
   'settings.saveMap': 'Lưu bản đồ',
   'settings.colorMode': 'Chế độ màu',
   'settings.light': 'Sáng',
@@ -41,7 +47,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Tìm thấy một vấn đề? Hãy cho chúng tôi biết',
   'settings.about.featureRequest': 'Yêu cầu tính năng',
   'settings.about.featureRequestHint': 'Đề xuất tính năng mới',
-  'settings.about.wikiHint': 'Tài liệu & hướng dẫn',
+  'settings.about.sourceCode': 'Mã nguồn',
+  'settings.about.sourceCodeHint': 'Đọc, fork và kiểm tra PanelMint trên GitHub',
+  'settings.about.license':
+    'Phần mềm tự do theo GNU AGPL v3 — mã nguồn là của bạn để dùng, nghiên cứu và chia sẻ.',
   'settings.about.description':
     'PanelMint là công cụ lập kế hoạch du lịch tự lưu trữ giúp bạn tổ chức các chuyến đi của mình từ ý tưởng đầu tiên đến kỷ niệm cuối cùng. Lập kế hoạch trong ngày, ngân sách, danh sách đóng gói, ảnh và nhiều nội dung khác — tất cả đều ở cùng một nơi, trên máy chủ của riêng bạn.',
   'settings.about.madeWith': 'Được làm bằng',

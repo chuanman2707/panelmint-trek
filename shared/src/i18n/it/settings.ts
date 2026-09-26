@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'chiave API mappe base di carto.com',
   'settings.mapCartoKeyMissing':
     'Questo modello è una mappa base CARTO. Senza chiave, CARTO stampa "API KEY REQUIRED" su ogni tassello. Finché non inserisci una chiave, PanelMint mostra la mappa base predefinita.',
+  'settings.routingBaseUrl': 'Server di routing',
+  'settings.routingBaseUrlHint':
+    'Lascia vuoto per gli host di routing pubblici di FOSSGIS. Un server personalizzato deve rispondere all’API OSRM su <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Server Valhalla',
+  'settings.valhallaBaseUrlHint':
+    'Lascia vuoto per il Valhalla pubblico di FOSSGIS. Se sopra è impostato un server di routing, questo secondo motore non viene interrogato affatto.',
   'settings.saveMap': 'Salva Mappa',
   'settings.colorMode': 'Modalità Colore',
   'settings.light': 'Chiara',
@@ -36,7 +42,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Hai trovato un problema? Faccelo sapere',
   'settings.about.featureRequest': 'Richiedi funzionalità',
   'settings.about.featureRequestHint': 'Suggerisci una nuova funzionalità',
-  'settings.about.wikiHint': 'Documentazione e guide',
+  'settings.about.sourceCode': 'Codice sorgente',
+  'settings.about.sourceCodeHint': 'Consulta, duplica e verifica PanelMint su GitHub',
+  'settings.about.license':
+    'Software libero sotto la GNU AGPL v3 — il codice è tuo: usalo, studialo e condividilo.',
   'settings.about.description':
     "PanelMint è un pianificatore di viaggi self-hosted che ti aiuta a organizzare i tuoi viaggi dalla prima idea all'ultimo ricordo. Pianificazione giornaliera, budget, liste bagagli, foto e molto altro — tutto in un unico posto, sul tuo server.",
   'settings.about.madeWith': 'Fatto con',

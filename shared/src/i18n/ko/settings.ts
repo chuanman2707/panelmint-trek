@@ -17,6 +17,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com 배경 지도 API 키',
   'settings.mapCartoKeyMissing':
     '이 템플릿은 CARTO 배경 지도입니다. 키가 없으면 CARTO가 모든 타일에 "API KEY REQUIRED"를 새깁니다. 키를 입력하기 전까지 PanelMint은 기본 배경 지도를 표시합니다.',
+  'settings.routingBaseUrl': '라우팅 서버',
+  'settings.routingBaseUrlHint':
+    '비워 두면 공개 FOSSGIS 라우팅 호스트를 사용합니다. 사용자 지정 서버는 <base>/route/v1/<profile>/… 에서 OSRM API를 제공해야 합니다.',
+  'settings.valhallaBaseUrl': 'Valhalla 서버',
+  'settings.valhallaBaseUrlHint':
+    '비워 두면 공개 FOSSGIS Valhalla를 사용합니다. 위에 라우팅 서버가 설정되어 있으면 이 두 번째 엔진에는 전혀 요청하지 않습니다.',
   'settings.saveMap': '지도 저장',
   'settings.colorMode': '색상 모드',
   'settings.light': '라이트',
@@ -39,7 +45,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': '문제를 발견하셨나요? 알려주세요',
   'settings.about.featureRequest': '기능 요청',
   'settings.about.featureRequestHint': '새로운 기능을 제안하세요',
-  'settings.about.wikiHint': '문서 및 가이드',
+  'settings.about.sourceCode': '소스 코드',
+  'settings.about.sourceCodeHint': 'GitHub에서 PanelMint 코드를 읽고, 포크하고, 감사하세요',
+  'settings.about.license':
+    'GNU AGPL v3 자유 소프트웨어 — 코드는 자유롭게 사용하고, 연구하고, 공유할 수 있습니다.',
   'settings.about.description':
     'PanelMint은 첫 아이디어부터 마지막 추억까지 여행을 체계적으로 관리하는 자체 호스팅 여행 플래너입니다. 일별 계획, 예산, 짐 목록, 사진 등 모든 것이 하나의 서버에 담겨 있습니다.',
   'settings.about.madeWith': '으로 만들어졌습니다',

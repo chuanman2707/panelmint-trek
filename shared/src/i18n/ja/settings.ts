@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com ベースマップ API キー',
   'settings.mapCartoKeyMissing':
     'このテンプレートは CARTO のベースマップです。キーがないと CARTO はすべてのタイルに "API KEY REQUIRED" を焼き込みます。 キーを入力するまで、PanelMint は既定のベースマップを表示します。',
+  'settings.routingBaseUrl': 'ルーティングサーバー',
+  'settings.routingBaseUrlHint':
+    '空欄の場合は公開の FOSSGIS ルーティングホストを使用します。独自サーバーは <base>/route/v1/<profile>/… で OSRM API を提供している必要があります。',
+  'settings.valhallaBaseUrl': 'Valhalla サーバー',
+  'settings.valhallaBaseUrlHint':
+    '空欄の場合は公開の FOSSGIS Valhalla を使用します。上のルーティングサーバーが設定されている場合、この第2エンジンには一切問い合わせません。',
   'settings.saveMap': '地図を保存',
   'settings.colorMode': 'カラーモード',
   'settings.light': 'ライト',
@@ -38,7 +44,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': '問題を見つけたらお知らせください',
   'settings.about.featureRequest': '機能リクエスト',
   'settings.about.featureRequestHint': '新機能を提案',
-  'settings.about.wikiHint': 'ドキュメント・ガイド',
+  'settings.about.sourceCode': 'ソースコード',
+  'settings.about.sourceCodeHint': 'GitHub で PanelMint のコードを閲覧・フォーク・監査',
+  'settings.about.license':
+    'GNU AGPL v3 のフリーソフトウェアです — コードは自由に使用・研究・共有できます。',
   'settings.about.description': 'PanelMintはセルフホスト型の旅行プランナーです。',
   'settings.about.madeWith': 'Made with',
   'settings.about.madeBy': 'by Maurice とオープンソースコミュニティ。',

@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com API klíč pro podkladové mapy',
   'settings.mapCartoKeyMissing':
     'Tato šablona je podkladová mapa CARTO. Bez klíče CARTO vypálí do každé dlaždice nápis "API KEY REQUIRED". Dokud klíč nezadáte, PanelMint zobrazuje výchozí podkladovou mapu.',
+  'settings.routingBaseUrl': 'Směrovací server',
+  'settings.routingBaseUrlHint':
+    'Nechte prázdné pro veřejné směrovací hostitele FOSSGIS. Vlastní server musí obsluhovat rozhraní OSRM na <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Server Valhalla',
+  'settings.valhallaBaseUrlHint':
+    'Nechte prázdné pro veřejnou instanci Valhalla od FOSSGIS. Je-li výše nastaven směrovací server, na tento druhý engine se neptáme vůbec.',
   'settings.saveMap': 'Uložit nastavení mapy',
   'settings.colorMode': 'Barevné schéma',
   'settings.light': 'Světlé',
@@ -36,7 +42,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Našli jste problém? Dejte nám vědět',
   'settings.about.featureRequest': 'Navrhnout funkci',
   'settings.about.featureRequestHint': 'Navrhněte novou funkci',
-  'settings.about.wikiHint': 'Dokumentace a návody',
+  'settings.about.sourceCode': 'Zdrojový kód',
+  'settings.about.sourceCodeHint': 'Čtěte, forkujte a kontrolujte PanelMint na GitHubu',
+  'settings.about.license':
+    'Svobodný software pod licencí GNU AGPL v3 — kód je váš k používání, studiu i sdílení.',
   'settings.about.description':
     'PanelMint je samohostovaný plánovač cest, který vám pomůže organizovat výlety od prvního nápadu po poslední vzpomínku. Denní plánování, rozpočet, balicí seznamy, fotky a mnoho dalšího — vše na jednom místě, na vašem vlastním serveru.',
   'settings.about.madeWith': 'Vytvořeno s',

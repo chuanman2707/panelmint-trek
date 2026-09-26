@@ -17,6 +17,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'κλειδί API βασικών χαρτών carto.com',
   'settings.mapCartoKeyMissing':
     'Αυτό το πρότυπο είναι βασικός χάρτης CARTO. Χωρίς κλειδί, η CARTO τυπώνει "API KEY REQUIRED" σε κάθε πλακίδιο. Μέχρι να εισαγάγετε κλειδί, το PanelMint εμφανίζει τον προεπιλεγμένο βασικό χάρτη.',
+  'settings.routingBaseUrl': 'Διακομιστής δρομολόγησης',
+  'settings.routingBaseUrlHint':
+    'Αφήστε το κενό για τους δημόσιους κεντρικούς υπολογιστές δρομολόγησης του FOSSGIS. Ένας προσαρμοσμένος διακομιστής πρέπει να απαντά στο API του OSRM στο <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Διακομιστής Valhalla',
+  'settings.valhallaBaseUrlHint':
+    'Αφήστε το κενό για το δημόσιο Valhalla του FOSSGIS. Αν έχει οριστεί διακομιστής δρομολόγησης παραπάνω, αυτή η δεύτερη μηχανή δεν ερωτάται καθόλου.',
   'settings.saveMap': 'Αποθήκευση Χάρτη',
   'settings.colorMode': 'Λειτουργία Χρώματος',
   'settings.light': 'Φωτεινό',
@@ -40,7 +46,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Βρήκατε πρόβλημα; Ενημερώστε μας',
   'settings.about.featureRequest': 'Αίτημα Λειτουργίας',
   'settings.about.featureRequestHint': 'Προτείνετε ένα νέο χαρακτηριστικό',
-  'settings.about.wikiHint': 'Τεκμηρίωση & οδηγοί',
+  'settings.about.sourceCode': 'Πηγαίος κώδικας',
+  'settings.about.sourceCodeHint': 'Διαβάστε, κάντε fork και ελέγξτε το PanelMint στο GitHub',
+  'settings.about.license':
+    'Ελεύθερο λογισμικό υπό την GNU AGPL v3 — ο κώδικας είναι δικός σας για χρήση, μελέτη και κοινοποίηση.',
   'settings.about.description':
     'Το PanelMint είναι ένας self-hosted ταξιδιωτικός σχεδιαστής που σας βοηθά να οργανώσετε τα ταξίδια σας από την πρώτη ιδέα μέχρι την τελευταία ανάμνηση. Σχεδιασμός ημερών, προϋπολογισμός, λίστες πακεταρίσματος, φωτογραφίες και πολλά άλλα — όλα σε ένα μέρος, στον δικό σας server.',
   'settings.about.madeWith': 'Φτιαγμένο με',

@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com basemap API-sleutel',
   'settings.mapCartoKeyMissing':
     'Deze sjabloon is een CARTO-basiskaart. Zonder sleutel drukt CARTO "API KEY REQUIRED" op elke tegel. Zolang er geen sleutel is, toont PanelMint de standaardbasiskaart.',
+  'settings.routingBaseUrl': 'Routingserver',
+  'settings.routingBaseUrlHint':
+    'Laat leeg voor de publieke FOSSGIS-routeringshosts. Een eigen server moet de OSRM-API aanbieden op <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Valhalla-server',
+  'settings.valhallaBaseUrlHint':
+    'Laat leeg voor de publieke FOSSGIS Valhalla. Als hierboven een routingserver is ingesteld, wordt deze tweede engine helemaal niet bevraagd.',
   'settings.saveMap': 'Kaart opslaan',
   'settings.colorMode': 'Kleurmodus',
   'settings.light': 'Licht',
@@ -36,7 +42,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Probleem gevonden? Laat het ons weten',
   'settings.about.featureRequest': 'Feature aanvragen',
   'settings.about.featureRequestHint': 'Stel een nieuwe functie voor',
-  'settings.about.wikiHint': 'Documentatie en handleidingen',
+  'settings.about.sourceCode': 'Broncode',
+  'settings.about.sourceCodeHint': 'Lees, fork en audit PanelMint op GitHub',
+  'settings.about.license':
+    'Vrije software onder de GNU AGPL v3 — de code is van jou om te gebruiken, te bestuderen en te delen.',
   'settings.about.description':
     "PanelMint is een zelf-gehoste reisplanner die je helpt je reizen te organiseren van het eerste idee tot de laatste herinnering. Dagplanning, budget, paklijsten, foto's en nog veel meer — alles op één plek, op je eigen server.",
   'settings.about.madeWith': 'Gemaakt met',

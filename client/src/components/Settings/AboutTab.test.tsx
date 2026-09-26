@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '../../../tests/helpers/render';
+import { render, screen } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import AboutTab from './AboutTab';
 
@@ -19,22 +19,15 @@ describe('AboutTab', () => {
     expect(screen.getByText('v2.9.10')).toBeInTheDocument();
   });
 
-  it('FE-COMP-ABOUT-003: displays Ko-fi link with correct href', () => {
+  it('FE-COMP-ABOUT-003: the source-code card links to the PanelMint repo', () => {
     render(<AboutTab appVersion="2.9.10" />);
-    const link = screen.getByText('Ko-fi').closest('a');
-    expect(link).toHaveAttribute('href', 'https://ko-fi.com/mauriceboe');
+    const link = screen.getByText('Source code').closest('a');
+    expect(link).toHaveAttribute('href', 'https://github.com/chuanman2707/panelmint-trek');
   });
 
-  it('FE-COMP-ABOUT-004: displays Buy Me a Coffee link with correct href', () => {
+  it('FE-COMP-ABOUT-004: shows the AGPL license note next to the source offer', () => {
     render(<AboutTab appVersion="2.9.10" />);
-    const link = screen.getByText('Buy Me a Coffee').closest('a');
-    expect(link).toHaveAttribute('href', 'https://buymeacoffee.com/mauriceboe');
-  });
-
-  it('FE-COMP-ABOUT-005: displays Discord link with correct href', () => {
-    render(<AboutTab appVersion="2.9.10" />);
-    const link = screen.getByText('Discord').closest('a');
-    expect(link).toHaveAttribute('href', 'https://discord.gg/NhZBDSd4qW');
+    expect(screen.getByText(/GNU AGPL v3/)).toBeInTheDocument();
   });
 
   it('FE-COMP-ABOUT-006: displays bug report link', () => {
@@ -51,16 +44,28 @@ describe('AboutTab', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
-  it('FE-COMP-ABOUT-008: displays wiki link', () => {
+  it('FE-COMP-ABOUT-008: the upstream donation, Discord and wiki surfaces are gone', () => {
     render(<AboutTab appVersion="2.9.10" />);
-    const link = document.querySelector('a[href*="wiki"]');
-    expect(link).toBeInTheDocument();
+    expect(screen.queryByText('Ko-fi')).toBeNull();
+    expect(screen.queryByText('Buy Me a Coffee')).toBeNull();
+    expect(screen.queryByText('Discord')).toBeNull();
+    expect(screen.queryByText('Wiki')).toBeNull();
+    for (const sel of [
+      'a[href*="ko-fi"]',
+      'a[href*="buymeacoffee"]',
+      'a[href*="discord"]',
+      'a[href*="wiki"]',
+      'a[href*="liketrek"]',
+      'a[href*="mauriceboe"]',
+    ]) {
+      expect(document.querySelector(sel), sel).toBeNull();
+    }
   });
 
   it('FE-COMP-ABOUT-009: all external links have rel="noopener noreferrer"', () => {
     render(<AboutTab appVersion="2.9.10" />);
     const links = document.querySelectorAll('a');
-    expect(links).toHaveLength(6);
+    expect(links).toHaveLength(3);
     links.forEach((link) => {
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
@@ -78,71 +83,5 @@ describe('AboutTab', () => {
     render(<AboutTab appVersion="1.0.0" />);
     expect(screen.getByText('v1.0.0')).toBeInTheDocument();
     expect(screen.queryByText('v2.9.10')).toBeNull();
-  });
-
-  it('FE-COMP-ABOUT-012: Ko-fi link hover changes border and box-shadow styles', () => {
-    render(<AboutTab appVersion="1.0.0" />);
-    const link = screen.getByText('Ko-fi').closest('a') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(255, 94, 91)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
-  });
-
-  it('FE-COMP-ABOUT-013: Buy Me a Coffee link hover changes border and box-shadow styles', () => {
-    render(<AboutTab appVersion="1.0.0" />);
-    const link = screen.getByText('Buy Me a Coffee').closest('a') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(255, 221, 0)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
-  });
-
-  it('FE-COMP-ABOUT-014: Discord link hover changes border and box-shadow styles', () => {
-    render(<AboutTab appVersion="1.0.0" />);
-    const link = screen.getByText('Discord').closest('a') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(88, 101, 242)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
-  });
-
-  it('FE-COMP-ABOUT-015: Bug report link hover changes border and box-shadow styles', () => {
-    render(<AboutTab appVersion="1.0.0" />);
-    const link = document.querySelector('a[href*="issues/new"]') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(239, 68, 68)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
-  });
-
-  it('FE-COMP-ABOUT-016: Feature request link hover changes border and box-shadow styles', () => {
-    render(<AboutTab appVersion="1.0.0" />);
-    const link = document.querySelector('a[href*="labels=enhancement"]') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(245, 158, 11)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
-  });
-
-  it('FE-COMP-ABOUT-017: Wiki link hover changes border and box-shadow styles', () => {
-    render(<AboutTab appVersion="1.0.0" />);
-    const link = document.querySelector('a[href*="wiki"]') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(99, 102, 241)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
   });
 });

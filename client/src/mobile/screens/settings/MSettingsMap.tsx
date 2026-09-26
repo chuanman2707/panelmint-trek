@@ -46,11 +46,15 @@ export default function MSettingsMap() {
   const [saving, setSaving] = useState(false)
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
   const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
+  const [routingBaseUrl, setRoutingBaseUrl] = useState<string>(settings.routing_base_url || '')
+  const [valhallaBaseUrl, setValhallaBaseUrl] = useState<string>(settings.valhalla_base_url || '')
   const [presetOpen, setPresetOpen] = useState(false)
 
   useEffect(() => {
     setMapTileUrl(settings.map_tile_url || '')
     setCartoKey(settings.carto_api_key || '')
+    setRoutingBaseUrl(settings.routing_base_url || '')
+    setValhallaBaseUrl(settings.valhalla_base_url || '')
   }, [settings])
 
   const previewPlaces = useMemo(
@@ -83,6 +87,8 @@ export default function MSettingsMap() {
       await updateSettings({
         map_tile_url: mapTileUrl,
         carto_api_key: cartoKey,
+        routing_base_url: routingBaseUrl.trim(),
+        valhalla_base_url: valhallaBaseUrl.trim(),
       })
       toast.success(t('settings.toast.mapSaved'))
     } catch (err: unknown) {
@@ -153,6 +159,31 @@ export default function MSettingsMap() {
           rightWidth: 0,
           hasInspector: false,
         })}
+      </div>
+
+      {/* Routing engines — blank keeps the public FOSSGIS hosts (desktop parity). */}
+      <div className="mt-3 border-t border-[color:var(--m-rowbr)] pt-[12px]">
+        <MSetEyebrow className="mb-[5px]">{t('settings.routingBaseUrl')}</MSetEyebrow>
+        <MSetInput
+          mono
+          value={routingBaseUrl}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoutingBaseUrl(e.target.value)}
+          placeholder="https://router.example.com"
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <MSetHint>{t('settings.routingBaseUrlHint')}</MSetHint>
+
+        <MSetEyebrow className="mb-[5px] mt-[12px]">{t('settings.valhallaBaseUrl')}</MSetEyebrow>
+        <MSetInput
+          mono
+          value={valhallaBaseUrl}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValhallaBaseUrl(e.target.value)}
+          placeholder="https://valhalla.example.com"
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <MSetHint>{t('settings.valhallaBaseUrlHint')}</MSetHint>
       </div>
 
       <MSetButton className="mt-3" onClick={save} disabled={saving}>

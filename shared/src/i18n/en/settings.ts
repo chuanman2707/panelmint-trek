@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com basemap API key',
   'settings.mapCartoKeyMissing':
     'This template is a CARTO basemap. Without a key CARTO stamps "API KEY REQUIRED" onto every tile. Until you enter one, PanelMint shows the default basemap instead.',
+  'settings.routingBaseUrl': 'Routing server',
+  'settings.routingBaseUrlHint':
+    'Leave empty for the public FOSSGIS routing hosts. A custom server must answer the OSRM API at <base>/route/v1/<profile>/….',
+  'settings.valhallaBaseUrl': 'Valhalla server',
+  'settings.valhallaBaseUrlHint':
+    'Leave empty for the public FOSSGIS Valhalla. If a routing server is set above, this second engine is not asked at all.',
   'settings.saveMap': 'Save Map',
   'settings.colorMode': 'Color Mode',
   'settings.light': 'Light',
@@ -41,7 +47,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Found an issue? Let us know',
   'settings.about.featureRequest': 'Feature Request',
   'settings.about.featureRequestHint': 'Suggest a new feature',
-  'settings.about.wikiHint': 'Documentation & guides',
+  'settings.about.sourceCode': 'Source code',
+  'settings.about.sourceCodeHint': 'Read, fork and audit PanelMint on GitHub',
+  'settings.about.license':
+    'Free software under the GNU AGPL v3 — the code is yours to use, study and share.',
   'settings.about.description':
     'PanelMint is a self-hosted travel planner that helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place, on your own server.',
   'settings.about.madeWith': 'Made with',

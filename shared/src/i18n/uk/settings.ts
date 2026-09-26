@@ -17,6 +17,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'ключ API базових карт carto.com',
   'settings.mapCartoKeyMissing':
     'Цей шаблон є базовою картою CARTO. Без ключа CARTO наносить "API KEY REQUIRED" на кожен тайл. Доки ключ не вказано, PanelMint показує базову карту за замовчуванням.',
+  'settings.routingBaseUrl': 'Сервер маршрутизації',
+  'settings.routingBaseUrlHint':
+    'Залиште порожнім для публічних хостів маршрутизації FOSSGIS. Власний сервер має обслуговувати OSRM API за адресою <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Сервер Valhalla',
+  'settings.valhallaBaseUrlHint':
+    'Залиште порожнім для публічного Valhalla від FOSSGIS. Якщо вище вказано сервер маршрутизації, цей другий рушій взагалі не опитується.',
   'settings.saveMap': 'Зберегти карту',
   'settings.colorMode': 'Кольорова схема',
   'settings.light': 'Світла',
@@ -37,7 +43,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Знайшли проблему? Повідомте нам',
   'settings.about.featureRequest': 'Запропонувати функцію',
   'settings.about.featureRequestHint': 'Запропонуйте нову функцію',
-  'settings.about.wikiHint': 'Документація та керівництва',
+  'settings.about.sourceCode': 'Вихідний код',
+  'settings.about.sourceCodeHint': 'Читайте, форкайте та перевіряйте PanelMint на GitHub',
+  'settings.about.license':
+    'Вільне ПЗ за ліцензією GNU AGPL v3 — код ваш: використовуйте, вивчайте та поширюйте.',
   'settings.about.description':
     'PanelMint — це self-hosted планувальник подорожей, який допомагає організувати поїздки від першої ідеї до останнього спогаду. Планування по днях, бюджет, списки речей, фото та багато іншого — все в одному місці, на вашому власному сервері.',
   'settings.about.madeWith': 'Зроблено з',

@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'kunci API peta dasar carto.com',
   'settings.mapCartoKeyMissing':
     'Templat ini adalah peta dasar CARTO. Tanpa kunci, CARTO mencetak "API KEY REQUIRED" di setiap ubin. Sampai kunci dimasukkan, PanelMint menampilkan peta dasar bawaan.',
+  'settings.routingBaseUrl': 'Server perutean',
+  'settings.routingBaseUrlHint':
+    'Kosongkan untuk memakai host perutean publik FOSSGIS. Server kustom harus melayani API OSRM di <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Server Valhalla',
+  'settings.valhallaBaseUrlHint':
+    'Kosongkan untuk Valhalla publik FOSSGIS. Jika server perutean di atas diisi, mesin kedua ini tidak akan ditanya sama sekali.',
   'settings.saveMap': 'Simpan Peta',
   'settings.colorMode': 'Mode Warna',
   'settings.light': 'Terang',
@@ -36,7 +42,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Menemukan masalah? Beri tahu kami',
   'settings.about.featureRequest': 'Permintaan Fitur',
   'settings.about.featureRequestHint': 'Sarankan fitur baru',
-  'settings.about.wikiHint': 'Dokumentasi & panduan',
+  'settings.about.sourceCode': 'Kode sumber',
+  'settings.about.sourceCodeHint': 'Baca, fork, dan audit PanelMint di GitHub',
+  'settings.about.license':
+    'Perangkat lunak bebas berlisensi GNU AGPL v3 — kodenya milikmu untuk dipakai, dipelajari, dan dibagikan.',
   'settings.about.description':
     'PanelMint adalah perencana perjalanan self-hosted yang membantu kamu mengatur perjalanan dari ide pertama hingga kenangan terakhir. Perencanaan harian, anggaran, daftar bawaan, foto dan masih banyak lagi — semua di satu tempat, di servermu sendiri.',
   'settings.about.madeWith': 'Dibuat dengan',

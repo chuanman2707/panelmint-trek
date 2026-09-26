@@ -17,6 +17,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': "clau d'API de mapes base de carto.com",
   'settings.mapCartoKeyMissing':
     'Aquesta plantilla és un mapa base de CARTO. Sense clau, CARTO estampa "API KEY REQUIRED" a cada tessel·la. Mentre no hi hagi clau, PanelMint mostra el mapa base per defecte.',
+  'settings.routingBaseUrl': 'Servidor de rutes',
+  'settings.routingBaseUrlHint':
+    'Deixa’l en blanc per utilitzar els amfitrions públics de rutes de FOSSGIS. Un servidor personalitzat ha de respondre a l’API d’OSRM a <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Servidor Valhalla',
+  'settings.valhallaBaseUrlHint':
+    'Deixa’l en blanc per al Valhalla públic de FOSSGIS. Si a dalt hi ha un servidor de rutes configurat, aquest segon motor no es consulta en absolut.',
   'settings.saveMap': 'Desa el mapa',
   'settings.colorMode': 'Mode de color',
   'settings.light': 'Clar',
@@ -36,7 +42,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Has trobat un problema? Comunica-nos-ho',
   'settings.about.featureRequest': 'Sol·licita una funció',
   'settings.about.featureRequestHint': 'Suggereix una funció nova',
-  'settings.about.wikiHint': 'Documentació i guies',
+  'settings.about.sourceCode': 'Codi font',
+  'settings.about.sourceCodeHint': 'Llegeix, fes-ne una bifurcació i audita PanelMint a GitHub',
+  'settings.about.license':
+    'Programari lliure sota la GNU AGPL v3 — el codi és teu per usar-lo, estudiar-lo i compartir-lo.',
   'settings.about.description':
     "PanelMint és un planificador de viatges autoallotjat que t'ajuda a organitzar els teus viatges des de la primera idea fins al darrer record. Planificació diària, pressupost, llistes d'equipatge, fotos i molt més — tot en un sol lloc, al teu propi servidor.",
   'settings.about.madeWith': 'Fet amb',

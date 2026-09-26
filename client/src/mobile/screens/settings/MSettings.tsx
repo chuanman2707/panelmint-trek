@@ -28,8 +28,7 @@ interface SectionTab {
 /**
  * Mobile settings screen: back + section-switcher pill on top, the section
  * dropdown panel in flow below it, then the active section's cards. Shares the
- * desktop page's useSettings() hook (tab state, ?tab=/?mfa= deep links, addon
- * gating, app version).
+ * desktop page's useSettings() hook (tab state, ?tab= deep link, app version).
  */
 export default function MSettings() {
   const { t } = useTranslation()

@@ -17,6 +17,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com temel harita API anahtarı',
   'settings.mapCartoKeyMissing':
     'Bu şablon bir CARTO temel haritası. Anahtar olmadan CARTO her karoya "API KEY REQUIRED" damgası basar. Anahtar girilene kadar PanelMint varsayılan temel haritayı gösterir.',
+  'settings.routingBaseUrl': 'Rota sunucusu',
+  'settings.routingBaseUrlHint':
+    'Herkese açık FOSSGIS rota sunucuları için boş bırakın. Özel bir sunucu <base>/route/v1/<profile>/… altında OSRM API’sini sunmalıdır.',
+  'settings.valhallaBaseUrl': 'Valhalla sunucusu',
+  'settings.valhallaBaseUrlHint':
+    'Herkese açık FOSSGIS Valhalla’sı için boş bırakın. Yukarıda bir rota sunucusu ayarlanmışsa bu ikinci motora hiç sorulmaz.',
   'settings.saveMap': 'Haritayı Kaydet',
   'settings.colorMode': 'Renk Modu',
   'settings.light': 'Açık',
@@ -39,7 +45,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Bir sorun mu buldunuz? Bize bildirin',
   'settings.about.featureRequest': 'Özellik İsteği',
   'settings.about.featureRequestHint': 'Yeni bir özellik önerin',
-  'settings.about.wikiHint': 'Belgeler ve kılavuzlar',
+  'settings.about.sourceCode': 'Kaynak kodu',
+  'settings.about.sourceCodeHint': 'PanelMint’i GitHub’da okuyun, çatallayın ve denetleyin',
+  'settings.about.license':
+    'GNU AGPL v3 ile özgür yazılım — kod; kullanmanız, incelemeniz ve paylaşmanız için sizindir.',
   'settings.about.description':
     'PanelMint, seyahatlerinizi ilk fikirden son anıya kadar organize etmenize yardımcı olan, kendi kendine barındırılan bir seyahat planlayıcıdır. Gün planlaması, bütçe, paketleme listeleri, fotoğraflar ve çok daha fazlası; hepsi tek bir yerde, kendi sunucunuzda.',
   'settings.about.madeWith': 'İle yapıldı',

@@ -1,4 +1,4 @@
-// FE-COMP-MAP-001 to FE-COMP-MAP-035
+// FE-COMP-MAP-001 to FE-COMP-MAP-044
 import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { useAuthStore } from '../../store/authStore';
@@ -6,6 +6,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildSettings } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
+import { db } from '../../db/panelmintDb';
 import MapSettingsTab from './MapSettingsTab';
 
 // Mock MapView to avoid Leaflet DOM issues in jsdom. tileUrl is surfaced because
@@ -231,5 +232,110 @@ describe('MapSettingsTab – CARTO key', () => {
     render(<MapSettingsTab />);
 
     expect(screen.queryByText(/API KEY REQUIRED/)).not.toBeInTheDocument();
+  });
+});
+
+// ── Routing engines (040+) ──────────────────────────────────────────
+// routing_base_url and valhalla_base_url drive RouteCalculator/valhallaRoute;
+// the tab edits them like the tile URL and saves everything with one button.
+
+function routingInput(): HTMLInputElement {
+  return screen.getByPlaceholderText('https://router.example.com');
+}
+
+function valhallaInput(): HTMLInputElement {
+  return screen.getByPlaceholderText('https://valhalla.example.com');
+}
+
+describe('MapSettingsTab – routing servers', () => {
+  it('FE-COMP-MAP-040: the two routing base-URL fields are offered', () => {
+    render(<MapSettingsTab />);
+
+    expect(screen.getByText('Routing server')).toBeInTheDocument();
+    expect(screen.getByText('Valhalla server')).toBeInTheDocument();
+    expect(routingInput()).toBeInTheDocument();
+    expect(valhallaInput()).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-041: stored values seed the fields', () => {
+    seedStore(useSettingsStore, {
+      settings: buildSettings({
+        routing_base_url: 'https://osrm.example.com',
+        valhalla_base_url: 'https://valhalla.example.com',
+      }),
+    });
+    render(<MapSettingsTab />);
+
+    expect(screen.getByDisplayValue('https://osrm.example.com')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://valhalla.example.com')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-042: edited routing URLs go out in the same Save Map patch', async () => {
+    const user = userEvent.setup();
+    const updateSettings = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, {
+      settings: buildSettings(),
+      updateSettings,
+    });
+    render(<MapSettingsTab />);
+
+    await user.type(routingInput(), 'https://osrm.example.com');
+    await user.type(valhallaInput(), 'https://valhalla.example.com');
+    await user.click(screen.getByText('Save Map'));
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        map_tile_url: expect.any(String),
+        carto_api_key: expect.any(String),
+        routing_base_url: 'https://osrm.example.com',
+        valhalla_base_url: 'https://valhalla.example.com',
+      }),
+    );
+  });
+
+  it('FE-COMP-MAP-043: untouched fields save blank — the FOSSGIS fallback stays armed', async () => {
+    const user = userEvent.setup();
+    const updateSettings = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, {
+      settings: buildSettings(),
+      updateSettings,
+    });
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('Save Map'));
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ routing_base_url: '', valhalla_base_url: '' }),
+    );
+  });
+
+  it('FE-COMP-MAP-044: saving through the real store persists both URLs in the settings table', async () => {
+    const user = userEvent.setup();
+    // Back to the real store so the write really lands in fake-indexeddb.
+    resetAllStores();
+    await db.settings.clear();
+    seedStore(useSettingsStore, { settings: buildSettings() });
+    render(
+      <>
+        <ToastContainer />
+        <MapSettingsTab />
+      </>,
+    );
+
+    await user.type(routingInput(), 'https://osrm.example.com');
+    await user.type(valhallaInput(), 'https://valhalla.example.com');
+    await user.click(screen.getByText('Save Map'));
+
+    await waitFor(async () => {
+      expect(await db.settings.get('routing_base_url')).toEqual({
+        key: 'routing_base_url',
+        value: 'https://osrm.example.com',
+      });
+      expect(await db.settings.get('valhalla_base_url')).toEqual({
+        key: 'valhalla_base_url',
+        value: 'https://valhalla.example.com',
+      });
+    });
+    expect(useSettingsStore.getState().settings.routing_base_url).toBe('https://osrm.example.com');
   });
 });

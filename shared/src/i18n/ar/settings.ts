@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'مفتاح API لخرائط carto.com الأساسية',
   'settings.mapCartoKeyMissing':
     'هذا القالب خريطة أساسية من CARTO. بدون مفتاح تطبع CARTO عبارة "API KEY REQUIRED" على كل بلاطة. إلى أن تُدخل مفتاحًا، تعرض PanelMint الخريطة الأساسية الافتراضية بدلاً منها.',
+  'settings.routingBaseUrl': 'خادم التوجيه',
+  'settings.routingBaseUrlHint':
+    'اتركه فارغًا لمضيفات التوجيه العامة من FOSSGIS. على الخادم المخصص أن يجيب عن واجهة OSRM في <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'خادم Valhalla',
+  'settings.valhallaBaseUrlHint':
+    'اتركه فارغًا لـ Valhalla العامة من FOSSGIS. إذا ضُبط خادم توجيه أعلاه، فلن يُسأل هذا المحرك الثاني إطلاقًا.',
   'settings.saveMap': 'حفظ الخريطة',
   'settings.colorMode': 'نمط الألوان',
   'settings.light': 'فاتح',
@@ -38,7 +44,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'وجدت مشكلة؟ أخبرنا',
   'settings.about.featureRequest': 'اقتراح ميزة',
   'settings.about.featureRequestHint': 'اقترح ميزة جديدة',
-  'settings.about.wikiHint': 'التوثيق والأدلة',
+  'settings.about.sourceCode': 'الشيفرة المصدرية',
+  'settings.about.sourceCodeHint': 'اقرأ PanelMint وانسخه ودقّقه على GitHub',
+  'settings.about.license':
+    'برمجية حرة بموجب GNU AGPL v3 — الشيفرة ملك لك لتستخدمها وتدرسها وتشاركها.',
   'settings.about.description':
     'PanelMint هو مخطط سفر مستضاف ذاتيًا يساعدك على تنظيم رحلاتك من أول فكرة حتى آخر ذكرى. تخطيط يومي، ميزانية، قوائم تعبئة، صور والمزيد — كل شيء في مكان واحد، على خادمك الخاص.',
   'settings.about.madeWith': 'صُنع بـ',

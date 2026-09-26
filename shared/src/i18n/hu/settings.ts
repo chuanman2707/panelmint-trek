@@ -17,6 +17,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com alaptérkép API-kulcs',
   'settings.mapCartoKeyMissing':
     'Ez a sablon CARTO alaptérkép. Kulcs nélkül a CARTO minden csempére ráírja: "API KEY REQUIRED". Amíg nincs kulcs megadva, a PanelMint az alapértelmezett alaptérképet mutatja.',
+  'settings.routingBaseUrl': 'Útvonaltervező szerver',
+  'settings.routingBaseUrlHint':
+    'Hagyd üresen a nyilvános FOSSGIS útvonaltervező kiszolgálókhoz. Az egyéni szervernek az OSRM API-t kell kiszolgálnia a <base>/route/v1/<profile>/… útvonalon.',
+  'settings.valhallaBaseUrl': 'Valhalla szerver',
+  'settings.valhallaBaseUrlHint':
+    'Hagyd üresen a nyilvános FOSSGIS Valhallához. Ha fent útvonaltervező szerver van megadva, ez a második motor egyáltalán nem kap kérést.',
   'settings.saveMap': 'Térkép mentése',
   'settings.colorMode': 'Színmód',
   'settings.light': 'Világos',
@@ -37,7 +43,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Problémát találtál? Jelezd nekünk',
   'settings.about.featureRequest': 'Funkció javaslat',
   'settings.about.featureRequestHint': 'Javasolj egy új funkciót',
-  'settings.about.wikiHint': 'Dokumentáció és útmutatók',
+  'settings.about.sourceCode': 'Forráskód',
+  'settings.about.sourceCodeHint': 'Olvasd, forkold és vizsgáld át a PanelMintot a GitHubon',
+  'settings.about.license':
+    'Szabad szoftver a GNU AGPL v3 alatt — a kód a tiéd: használd, tanulmányozd, oszd meg.',
   'settings.about.description':
     'A PanelMint egy saját szerveren üzemeltetett útitervező, amely segít az utazásaid megszervezésében az első ötlettől az utolsó emlékig. Napi tervezés, költségvetés, csomagolási listák, fotók és még sok más — minden egy helyen, a saját szervereden.',
   'settings.about.madeWith': 'Készítve',

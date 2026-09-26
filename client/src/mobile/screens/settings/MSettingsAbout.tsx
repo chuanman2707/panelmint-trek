@@ -1,4 +1,4 @@
-import { Bug, BookOpen, Coffee, ExternalLink, Heart, Info, Lightbulb } from 'lucide-react'
+import { Bug, Code2, ExternalLink, Heart, Info, Lightbulb, Scale } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { MSetCard } from './MSettingsUi'
@@ -10,17 +10,18 @@ interface AboutLink {
   sub: string
 }
 
-/** "About" section — AboutTab parity as tappable link rows. */
+/**
+ * "About" section — AboutTab parity as tappable link rows. The source link
+ * leads (the AGPL source offer); the donation/upstream-community rows belong
+ * to TREK upstream and are gone.
+ */
 export default function MSettingsAbout({ appVersion }: { appVersion: string }) {
   const { t } = useTranslation()
 
   const links: AboutLink[] = [
-    { href: 'https://ko-fi.com/mauriceboe', icon: Coffee, title: 'Ko-fi', sub: t('admin.github.support') },
-    { href: 'https://buymeacoffee.com/mauriceboe', icon: Heart, title: 'Buy Me a Coffee', sub: t('admin.github.support') },
-    { href: 'https://discord.gg/NhZBDSd4qW', icon: Heart, title: 'Discord', sub: 'Join the community' },
+    { href: 'https://github.com/chuanman2707/panelmint-trek', icon: Code2, title: t('settings.about.sourceCode'), sub: t('settings.about.sourceCodeHint') },
     { href: 'https://github.com/chuanman2707/panelmint-trek/issues/new', icon: Bug, title: t('settings.about.reportBug'), sub: t('settings.about.reportBugHint') },
     { href: 'https://github.com/chuanman2707/panelmint-trek/issues/new?labels=enhancement', icon: Lightbulb, title: t('settings.about.featureRequest'), sub: t('settings.about.featureRequestHint') },
-    { href: 'https://github.com/mauriceboe/TREK/wiki', icon: BookOpen, title: 'Wiki', sub: t('settings.about.wikiHint') },
   ]
 
   return (
@@ -54,6 +55,11 @@ export default function MSettingsAbout({ appVersion }: { appVersion: string }) {
           </a>
         ))}
       </div>
+
+      <p className="mt-3 flex items-start gap-[6px] font-geist text-[0.625rem] leading-relaxed text-m-muted">
+        <Scale size={11} className="mt-[1px] flex-none" />
+        {t('settings.about.license')}
+      </p>
     </MSetCard>
   )
 }

@@ -88,7 +88,7 @@ describe('MSettingsMap', () => {
     expect(screen.getByTestId('leaflet-preview')).toHaveAttribute('data-tile', 'https://tiles.test/a.png');
   });
 
-  it('FE-MOB-SETMAP-012: saving persists the tile URL and the CARTO key', async () => {
+  it('FE-MOB-SETMAP-012: saving persists the tile URL, the CARTO key and the routing bases', async () => {
     const user = userEvent.setup();
     const updateSettings = seedMap({ map_tile_url: OSM_URL });
     renderMap();
@@ -98,6 +98,8 @@ describe('MSettingsMap', () => {
     expect(updateSettings).toHaveBeenCalledWith({
       map_tile_url: OSM_URL,
       carto_api_key: '',
+      routing_base_url: '',
+      valhalla_base_url: '',
     });
     await screen.findByText('Map settings saved');
   });
@@ -159,5 +161,32 @@ describe('MSettingsMap', () => {
     await user.type(cartoInput(), 'demo-key');
 
     expect(screen.queryByText(/API KEY REQUIRED/)).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-SETMAP-030: the routing base-URL fields render and seed from settings', () => {
+    seedMap({ routing_base_url: 'https://osrm.example.com', valhalla_base_url: 'https://valhalla.example.com' });
+    renderMap();
+
+    expect(screen.getByText('Routing server')).toBeInTheDocument();
+    expect(screen.getByText('Valhalla server')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://osrm.example.com')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://valhalla.example.com')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-SETMAP-031: edited routing URLs reach the same Save payload', async () => {
+    const user = userEvent.setup();
+    const updateSettings = seedMap();
+    renderMap();
+
+    await user.type(screen.getByPlaceholderText('https://router.example.com'), 'https://osrm.example.com');
+    await user.type(screen.getByPlaceholderText('https://valhalla.example.com'), 'https://valhalla.example.net');
+    await user.click(screen.getByRole('button', { name: 'Save Map' }));
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routing_base_url: 'https://osrm.example.com',
+        valhalla_base_url: 'https://valhalla.example.net',
+      }),
+    );
   });
 });

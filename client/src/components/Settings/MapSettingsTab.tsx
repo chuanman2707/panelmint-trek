@@ -46,10 +46,14 @@ export default function MapSettingsTab(): React.ReactElement {
   const [saving, setSaving] = useState(false)
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
   const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
+  const [routingBaseUrl, setRoutingBaseUrl] = useState<string>(settings.routing_base_url || '')
+  const [valhallaBaseUrl, setValhallaBaseUrl] = useState<string>(settings.valhalla_base_url || '')
 
   useEffect(() => {
     setMapTileUrl(settings.map_tile_url || '')
     setCartoKey(settings.carto_api_key || '')
+    setRoutingBaseUrl(settings.routing_base_url || '')
+    setValhallaBaseUrl(settings.valhalla_base_url || '')
   }, [settings])
 
   const previewPlaces = useMemo((): Place[] => [{
@@ -77,6 +81,8 @@ export default function MapSettingsTab(): React.ReactElement {
       await updateSettings({
         map_tile_url: mapTileUrl,
         carto_api_key: cartoKey,
+        routing_base_url: routingBaseUrl.trim(),
+        valhalla_base_url: valhallaBaseUrl.trim(),
       })
       toast.success(t('settings.toast.mapSaved'))
     } catch (err: unknown) {
@@ -155,6 +161,37 @@ export default function MapSettingsTab(): React.ReactElement {
             rightWidth: 0,
             hasInspector: false,
           })}
+        </div>
+      </div>
+
+      {/* Routing engines — blank keeps the public FOSSGIS hosts; see
+          RouteCalculator.routeBaseFor and valhallaRoute.valhallaBase. */}
+      <div className="border-t border-edge-secondary pt-4 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-content-secondary mb-1.5">{t('settings.routingBaseUrl')}</label>
+          <input
+            type="text"
+            value={routingBaseUrl}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoutingBaseUrl(e.target.value)}
+            placeholder="https://router.example.com"
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full px-3 py-2 border border-edge rounded-lg text-sm font-mono bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent"
+          />
+          <p className="text-xs text-content-faint mt-1">{t('settings.routingBaseUrlHint')}</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-content-secondary mb-1.5">{t('settings.valhallaBaseUrl')}</label>
+          <input
+            type="text"
+            value={valhallaBaseUrl}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValhallaBaseUrl(e.target.value)}
+            placeholder="https://valhalla.example.com"
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full px-3 py-2 border border-edge rounded-lg text-sm font-mono bg-surface-input text-content focus:ring-2 focus:ring-accent focus:border-transparent"
+          />
+          <p className="text-xs text-content-faint mt-1">{t('settings.valhallaBaseUrlHint')}</p>
         </div>
       </div>
 

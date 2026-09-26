@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'API-nyckel för bakgrundskartor på carto.com',
   'settings.mapCartoKeyMissing':
     'Den här mallen är en CARTO-bakgrundskarta. Utan nyckel stämplar CARTO "API KEY REQUIRED" på varje ruta. Tills en nyckel anges visar PanelMint standardbakgrundskartan.',
+  'settings.routingBaseUrl': 'Routningsserver',
+  'settings.routingBaseUrlHint':
+    'Lämna tomt för FOSSGIS publika routningsvärdar. En egen server måste svara på OSRM-API:t under <base>/route/v1/<profile>/… .',
+  'settings.valhallaBaseUrl': 'Valhalla-server',
+  'settings.valhallaBaseUrlHint':
+    'Lämna tomt för FOSSGIS publika Valhalla. Om en routningsserver är angiven ovan tillfrågas den här andra motorn inte alls.',
   'settings.saveMap': 'Spara karta',
   'settings.colorMode': 'Färgläge',
   'settings.light': 'Ljust',
@@ -42,7 +48,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': 'Har du upptäckt ett problem? Meddela oss',
   'settings.about.featureRequest': 'Förslag på ny funktion',
   'settings.about.featureRequestHint': 'Föreslå en ny funktion',
-  'settings.about.wikiHint': 'Dokumentation och handledningar',
+  'settings.about.sourceCode': 'Källkod',
+  'settings.about.sourceCodeHint': 'Läs, forka och granska PanelMint på GitHub',
+  'settings.about.license':
+    'Fri programvara under GNU AGPL v3 — koden är din att använda, studera och dela.',
   'settings.about.description':
     'PanelMint är en resplanerare som du själv kan driva och som hjälper dig att organisera dina resor från den första idén till det sista minnet. Dagsplanering, budget, packlistor, foton och mycket mer – allt på ett och samma ställe, på din egen server.',
   'settings.about.madeWith': 'Gjord med',

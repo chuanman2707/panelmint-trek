@@ -16,6 +16,12 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyLink': 'carto.com 底图 API 密钥',
   'settings.mapCartoKeyMissing':
     '此模板是 CARTO 底图。没有密钥时，CARTO 会在每个瓦片上打上 "API KEY REQUIRED"。 在输入密钥之前，PanelMint 会显示默认底图。',
+  'settings.routingBaseUrl': '路由服务器',
+  'settings.routingBaseUrlHint':
+    '留空则使用 FOSSGIS 公共路由主机。自定义服务器必须在 <base>/route/v1/<profile>/… 下提供 OSRM API。',
+  'settings.valhallaBaseUrl': 'Valhalla 服务器',
+  'settings.valhallaBaseUrlHint':
+    '留空则使用 FOSSGIS 公共 Valhalla。若上方已设置路由服务器，则完全不会询问这第二个引擎。',
   'settings.saveMap': '保存地图',
   'settings.colorMode': '颜色模式',
   'settings.light': '浅色',
@@ -35,7 +41,10 @@ const settings: TranslationStrings = {
   'settings.about.reportBugHint': '发现问题？告诉我们',
   'settings.about.featureRequest': '功能建议',
   'settings.about.featureRequestHint': '建议一个新功能',
-  'settings.about.wikiHint': '文档和指南',
+  'settings.about.sourceCode': '源代码',
+  'settings.about.sourceCodeHint': '在 GitHub 上阅读、复刻并审计 PanelMint',
+  'settings.about.license':
+    'GNU AGPL v3 下的自由软件——代码归你所有，可使用、研究并分享。',
   'settings.about.description':
     'PanelMint 是一个自托管的旅行规划工具，帮助你从最初的想法到最后的回忆，全程组织你的旅行。日程规划、预算、行李清单、照片等——一切尽在一处，在你自己的服务器上。',
   'settings.about.madeWith': '用',
