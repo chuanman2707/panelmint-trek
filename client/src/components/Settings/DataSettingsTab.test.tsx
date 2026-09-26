@@ -114,7 +114,7 @@ describe('DataSettingsTab', () => {
     expect(addToast).toHaveBeenCalledWith('There are no trips to export yet', 'info', undefined);
   });
 
-  it('FE-COMP-DATA-004: an export failure surfaces the thrown message', async () => {
+  it('FE-COMP-DATA-004: an export failure toasts the localized error, not the raw system message', async () => {
     await db.trips.put(buildTrip({ id: 1 }));
     vi.mocked(downloadAllTripsFile).mockRejectedValueOnce(new Error('quota exceeded'));
     const user = userEvent.setup();
@@ -122,7 +122,10 @@ describe('DataSettingsTab', () => {
 
     await user.click(screen.getByRole('button', { name: /export all trips/i }));
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('quota exceeded', 'error', undefined));
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith('Could not export your trips', 'error', undefined)
+    );
+    expect(addToast).not.toHaveBeenCalledWith('quota exceeded', 'error', undefined);
     expect(downloadBlob).not.toHaveBeenCalled();
   });
 

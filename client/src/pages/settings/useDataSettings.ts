@@ -52,8 +52,11 @@ export function useDataSettings() {
           } else {
             toast.success(t('settings.data.exportDone'));
           }
-        } catch (err: unknown) {
-          toast.error(err instanceof Error ? err.message : t('settings.data.exportError'));
+        } catch {
+          // Export failures toast the localized key — raw system/Dexie messages
+          // stay out of the UI (unlike import decode, where the codec's own
+          // friendly strings are the spec'd surface).
+          toast.error(t('settings.data.exportError'));
         }
       }),
     [exclusive, t, toast]
