@@ -1,0 +1,22 @@
+# PanelMint — Cloudflare Pages headers.
+# Vite copies client/public into dist verbatim, so Pages picks this file up
+# from the build output. Header lines must be indented under the path.
+#
+# CSP rationale:
+#  - connect-src is deliberately enumerated: exactly the external APIs the
+#    client fetches. User-configured custom routing_base_url/valhalla_base_url
+#    endpoints outside this list will not connect — the accepted trade-off of
+#    shipping a real CSP.
+#  - img-src keeps a blanket https: on purpose: users may set arbitrary image
+#    URLs (place.image_url, trip cover) and arbitrary custom tile templates in
+#    Settings — enumerating only would break the feature. The shipped raster
+#    presets and flag CDN are listed anyway as documentation.
+#  - script-src 'self' with no unsafe-inline: index.html loads /theme-boot.js
+#    as an external script precisely so the pre-paint theme fix complies.
+#  - data:/blob: in img-src: trip covers are stored as data: URLs and object
+#    URLs back image previews.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tile.openstreetmap.de https://tiles.stadiamaps.com https://*.is.autonavi.com https://server.arcgisonline.com https://flagcdn.com https:; font-src 'self'; connect-src 'self' https://photon.komoot.io https://nominatim.openstreetmap.org https://api.open-meteo.com https://archive-api.open-meteo.com https://api.frankfurter.dev https://routing.openstreetmap.de https://valhalla1.openstreetmap.de https://overpass-api.de https://overpass.kumi.systems https://overpass.private.coffee https://maps.mail.ru https://*.wikipedia.org https://*.wikivoyage.org https://www.wikidata.org; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY

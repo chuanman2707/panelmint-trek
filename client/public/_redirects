@@ -1,0 +1,3 @@
+# SPA fallback: real static assets resolve first; every other path serves
+# index.html with a 200 so react-router owns deep links.
+/* /index.html 200

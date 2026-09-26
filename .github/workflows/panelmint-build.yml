@@ -1,0 +1,68 @@
+name: PanelMint build
+
+# Gate for the static deploy: PanelMint is a client-only PWA published to
+# Cloudflare Pages (build = `npm ci && npm run build`, output = client/dist).
+# Every push to `panelmint` and every `panelmint-v*` release tag runs the full
+# gate so a red build never reaches a deploy.
+on:
+  push:
+    branches: [panelmint]
+    tags: ['panelmint-v*']
+
+concurrency:
+  group: panelmint-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # No repo version pin; 22 is the current LTS line.
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The client type-checks, tests and bundles against shared's compiled
+      # dist/ — shared must be built first, always.
+      - name: Build shared contracts
+        run: npm run build --workspace=shared
+
+      - name: Typecheck shared
+        run: npm run typecheck --workspace=shared
+
+      - name: Typecheck client
+        run: npm run typecheck --workspace=client
+
+      # `npm run lint --workspace=shared` is `eslint --fix` — it would silently
+      # rewrite and pass violations a check-only run would flag. Lint shared
+      # without --fix so the gate cannot degrade.
+      - name: Lint shared (check-only)
+        working-directory: shared
+        run: npx eslint "src/**/*.ts"
+
+      - name: Lint client
+        run: npm run lint --workspace=client
+
+      - name: Page pattern
+        run: npm run lint:pages --workspace=client
+
+      - name: i18n parity
+        run: npm run i18n:parity:strict --workspace=shared
+
+      # Both workspaces' vitest suites (shared specs + client unit/integration).
+      - name: Test
+        run: npm run test
+
+      # prebuild generates the PWA icons; dist/ then contains _headers and
+      # _redirects from client/public for Cloudflare Pages.
+      - name: Build client
+        run: npm run build --workspace=client
