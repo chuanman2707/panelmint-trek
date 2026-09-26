@@ -3,7 +3,12 @@ import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/rende
 import userEvent from '@testing-library/user-event'
 import { buildDay, buildReservation } from '../../../tests/helpers/factories'
 import { DayPlanSidebarToolbar } from './DayPlanSidebarToolbar'
+import { downloadTripFile } from '../../share/actions'
 import type { Reservation } from '../../types'
+
+vi.mock('../../share/actions', () => ({
+  downloadTripFile: vi.fn(async () => {}),
+}))
 
 const t = (key: string, params?: Record<string, unknown>) =>
   params ? `${key}|${Object.values(params).join('|')}` : key
@@ -62,17 +67,18 @@ describe('DayPlanSidebarToolbar', () => {
     expect(screen.queryByText('dayplan.pdf')).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DPTOOLBAR-002: the export button opens the dialog with the file-export stub', async () => {
+  it('FE-PLANNER-DPTOOLBAR-002: the export button opens the dialog and the file row exports through the codec', async () => {
     const user = userEvent.setup()
     const toast = makeToast()
-    render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
+    render(<DayPlanSidebarToolbar {...makeProps({ toast, tripId: 3, tripTitle: 'Road' })} />)
     const btn = screen.getByRole('button', { name: 'dayplan.export' })
     expect(btn).toHaveAttribute('aria-expanded', 'false')
     await user.click(btn)
     expect(btn).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('dayplan.exportDocument')).toBeInTheDocument()
     await user.click(screen.getByText('dayplan.exportFile'))
-    await waitFor(() => expect(toast.info).toHaveBeenCalledWith('dayplan.exportFileTooltip'))
+    await waitFor(() => expect(downloadTripFile).toHaveBeenCalledWith(3, 'Road'))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('dayplan.exportFileDone'))
   })
 
   it('FE-PLANNER-DPTOOLBAR-003: hovering the export button shows its tooltip', async () => {

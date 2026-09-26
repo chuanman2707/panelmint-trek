@@ -9,6 +9,7 @@ import type { Day, Reservation } from '../../types'
 
 interface DayPlanSidebarToolbarProps {
   tripId: number
+  tripTitle?: string
   days: Day[]
   reservations: Reservation[]
   allConnectionsShown?: boolean
@@ -29,7 +30,7 @@ interface DayPlanSidebarToolbarProps {
 }
 
 export function DayPlanSidebarToolbar({
-  tripId, days, reservations,
+  tripId, tripTitle, days, reservations,
   allConnectionsShown = false, onToggleAllConnections,
   t, locale, toast,
   expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
@@ -64,6 +65,8 @@ export function DayPlanSidebarToolbar({
         <TripExportModal
           isOpen={exportOpen}
           onClose={() => setExportOpen(false)}
+          tripId={tripId}
+          tripTitle={tripTitle}
           t={t}
           toast={toast}
         />

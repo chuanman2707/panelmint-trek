@@ -23,6 +23,7 @@ import { RASTER_FALLBACK_TILE_URL, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { resolvePoolAssignmentId } from './tripPlannerModel'
 import { isDeepLinkableTripTab, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
+import { shareTripLink } from '../../share/actions'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import {
   parseStoredConnections, resolveEffectiveConnections, resolveVisibleConnectionIds,
@@ -935,6 +936,21 @@ export function useTripPlanner() {
 
   const mapTileUrl = useTileUrl(RASTER_FALLBACK_TILE_URL)
 
+  // Navbar share button — the codec packs the whole trip into an /import?d=
+  // link and the clipboard carries it; past SHARE_URL_MAX_CHARS the bundle is
+  // too big for a URL and the file export takes over instead.
+  const handleShare = useCallback(async () => {
+    if (!trip) return
+    try {
+      const outcome = await shareTripLink(trip.id, trip.title)
+      if (outcome === 'copied') toast.success(t('share.copied'))
+      else if (outcome === 'file') toast.info(t('share.tooBigForLink'))
+      else toast.error(t('share.copyFailed'))
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('share.copyFailed'))
+    }
+  }, [trip, toast, t])
+
   const fontStyle = { fontFamily: "var(--font-system)" }
 
   // Splash screen — show for initial load + a brief moment for photos to start loading
@@ -978,6 +994,7 @@ export function useTripPlanner() {
     handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces, confirmChangeCategory,
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
+    handleShare,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, fontStyle, splashDone,
   }

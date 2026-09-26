@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { ChevronRight, FileDown } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { useTranslation } from '../../../../i18n'
+import { downloadTripFile } from '../../../../share/actions'
 import { INNER_CLS, TileHeader } from './MTripSheetUi'
 import type { MTripSheetsProps } from '../MTripShell'
 import type { LucideIcon } from 'lucide-react'
@@ -9,15 +10,22 @@ import type { LucideIcon } from 'lucide-react'
 /**
  * Export sheet ('export', opened from the Mehr sheet). The hosted formats — ICS
  * download/subscribe, GPX, the server-rendered PDF — are cut in the local build.
- * The one remaining row is the file export, a stub until Phase C wires the
- * `.panelmint.json` codec (`src/share/codec.ts`).
+ * The remaining row is the file export: the share codec (`src/share/codec.ts`)
+ * packs the trip into a `.panelmint.json` the /import page can read back.
  */
 export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   const { t } = useTranslation()
   const open = shell.sheet?.id === 'export'
 
-  const exportFile = () => {
-    planner.toast.info(t('dayplan.exportFileTooltip'))
+  const exportFile = async () => {
+    if (!planner.trip) return
+    try {
+      await downloadTripFile(planner.trip.id, planner.trip.title)
+      planner.toast.success(t('dayplan.exportFileDone'))
+      shell.closeSheet()
+    } catch (err: unknown) {
+      planner.toast.error(err instanceof Error ? err.message : t('dayplan.exportFileError'))
+    }
   }
 
   return (

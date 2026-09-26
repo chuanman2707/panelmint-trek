@@ -237,6 +237,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     handleSavePlace, openPlaceEditor, handleDeletePlace, confirmDeletePlace, confirmDeletePlaces, confirmChangeCategory,
     handleAssignToDay, handleRemoveAssignment, handleReorder, handleReorderDays, handleAddDay, handleUpdateDayTitle,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
+    handleShare,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, fontStyle, splashDone,
   } = useTripPlanner()
@@ -300,7 +301,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
 
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', ...fontStyle }}>
-      <Navbar tripTitle={trip.title} showBack onBack={() => navigate('/dashboard')} />
+      <Navbar tripTitle={trip.title} showBack onBack={() => navigate('/dashboard')} onShare={handleShare} />
 
       <div className="bg-surface-elevated border-b border-edge-faint" style={{
         position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, zIndex: 40,

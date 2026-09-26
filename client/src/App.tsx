@@ -21,6 +21,7 @@ import OfflineBanner from './components/Layout/OfflineBanner'
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'))
 const TripPlannerPage = lazyWithRetry(() => import('./pages/TripPlannerPage'))
 const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage'))
+const ImportPage = lazyWithRetry(() => import('./pages/ImportPage'))
 
 // The phone screens are chunks of their own, alongside the desktop pages rather
 // than inside them: a phone never loads the desktop planner, a desktop never the
@@ -208,6 +209,16 @@ export default function App() {
             element={
               <RouteShell>
                 <ViewportRoute phone={MSettingsScreen} desktop={SettingsPage} />
+              </RouteShell>
+            }
+          />
+          {/* /import is one component on every viewport — no M* twin, so no
+              ViewportRoute split. */}
+          <Route
+            path="/import"
+            element={
+              <RouteShell>
+                <ImportPage />
               </RouteShell>
             }
           />

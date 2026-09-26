@@ -1,7 +1,12 @@
-// FE-PLANNER-EXPORTMODAL-001 to FE-PLANNER-EXPORTMODAL-003
+// FE-PLANNER-EXPORTMODAL-001 to FE-PLANNER-EXPORTMODAL-004
 import { render, screen, waitFor } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { TripExportModal } from './TripExportModal'
+import { downloadTripFile } from '../../share/actions'
+
+vi.mock('../../share/actions', () => ({
+  downloadTripFile: vi.fn(async () => {}),
+}))
 
 const t = (key: string, params?: Record<string, unknown>) =>
   params ? `${key}|${Object.values(params).join('|')}` : key
@@ -19,6 +24,8 @@ function makeProps(overrides: Partial<React.ComponentProps<typeof TripExportModa
   return {
     isOpen: true,
     onClose: vi.fn(),
+    tripId: 1,
+    tripTitle: 'Summer',
     t,
     toast: makeToast(),
     ...overrides,
@@ -35,7 +42,7 @@ describe('TripExportModal', () => {
     expect(screen.queryByText('dayplan.export')).not.toBeInTheDocument()
   })
 
-  it('FE-PLANNER-EXPORTMODAL-002: open, the export-file stub is the only row — the hosted formats and the PDF are cut', () => {
+  it('FE-PLANNER-EXPORTMODAL-002: open, the export-file row is the only one — the hosted formats and the PDF are cut', () => {
     render(<TripExportModal {...makeProps()} />)
     expect(screen.getByText('dayplan.exportDocument')).toBeInTheDocument()
     expect(screen.getByText('dayplan.exportFile')).toBeInTheDocument()
@@ -45,11 +52,25 @@ describe('TripExportModal', () => {
     }
   })
 
-  it('FE-PLANNER-EXPORTMODAL-003: the file row is a stub until the Phase C codec lands — it explains instead of exporting', async () => {
+  it('FE-PLANNER-EXPORTMODAL-003: the file row runs the codec export, toasts and closes', async () => {
     const user = userEvent.setup()
+    const onClose = vi.fn()
     const toast = makeToast()
-    render(<TripExportModal {...makeProps({ toast })} />)
+    render(<TripExportModal {...makeProps({ toast, onClose, tripId: 7, tripTitle: 'Road' })} />)
     await user.click(screen.getByText('dayplan.exportFile'))
-    await waitFor(() => expect(toast.info).toHaveBeenCalledWith('dayplan.exportFileTooltip'))
+    await waitFor(() => expect(downloadTripFile).toHaveBeenCalledWith(7, 'Road'))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('dayplan.exportFileDone'))
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+  })
+
+  it('FE-PLANNER-EXPORTMODAL-004: a failed export toasts the error and stays open', async () => {
+    vi.mocked(downloadTripFile).mockRejectedValueOnce(new Error('boom'))
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const toast = makeToast()
+    render(<TripExportModal {...makeProps({ toast, onClose })} />)
+    await user.click(screen.getByText('dayplan.exportFile'))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('boom'))
+    expect(onClose).not.toHaveBeenCalled()
   })
 })

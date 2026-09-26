@@ -3,10 +3,13 @@ import { ChevronRight, Download, FileDown } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Modal from '../shared/Modal'
 import type { useToast } from '../shared/Toast'
+import { downloadTripFile } from '../../share/actions'
 
 interface TripExportModalProps {
   isOpen: boolean
   onClose: () => void
+  tripId: number
+  tripTitle?: string
   t: (key: string, params?: Record<string, unknown>) => string
   toast: ReturnType<typeof useToast>
 }
@@ -14,16 +17,21 @@ interface TripExportModalProps {
 /**
  * Every way a trip leaves PanelMint, in one dialog. The hosted formats — ICS
  * download, calendar feed subscription, GPX, the server-rendered PDF — are cut
- * in the local build. The one remaining row is the file export, a stub until
- * Phase C wires the `.panelmint.json` codec (`src/share/codec.ts`).
+ * in the local build. The remaining row is the file export: the share codec
+ * (`src/share/codec.ts`) packs the whole trip into a `.panelmint.json` the
+ * /import page can read back.
  */
 export function TripExportModal({
-  isOpen, onClose, t, toast,
+  isOpen, onClose, tripId, tripTitle, t, toast,
 }: TripExportModalProps) {
-  // Stub: the codec lands in Phase C; until then the row reports that instead
-  // of silently doing nothing.
-  const exportFile = () => {
-    toast.info(t('dayplan.exportFileTooltip'))
+  const exportFile = async () => {
+    try {
+      await downloadTripFile(tripId, tripTitle)
+      toast.success(t('dayplan.exportFileDone'))
+      onClose()
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('dayplan.exportFileError'))
+    }
   }
 
   return (

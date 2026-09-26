@@ -16,6 +16,7 @@ import type { Accommodation, Reservation } from '../../types'
 import { calculateRouteWithLegs, generateCoMapsUrl, generateGoogleMapsUrl } from '../Map/RouteCalculator'
 import DayPlanSidebar from './DayPlanSidebar'
 import { makeMarkerDraggable } from '../Map/markerDrag'
+import { downloadTripFile } from '../../share/actions'
 
 // ── Hoisted mock state (accessible in vi.mock factories) ────────────────────
 const mockDayNotesState = vi.hoisted(() => ({
@@ -74,6 +75,10 @@ beforeAll(() => { (globalThis as any).IntersectionObserver = MockIO })
 
 vi.mock('../../hooks/useDayNotes', () => ({
   useDayNotes: () => mockDayNotesState,
+}))
+
+vi.mock('../../share/actions', () => ({
+  downloadTripFile: vi.fn(async () => {}),
 }))
 
 vi.mock('../Weather/WeatherWidget', () => ({
@@ -633,7 +638,7 @@ describe('DayPlanSidebar', () => {
     expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument()
   })
 
-  it('FE-PLANNER-DAYPLAN-026: the export dialog carries the export-file stub instead of the PDF', async () => {
+  it('FE-PLANNER-DAYPLAN-026: the export dialog runs the codec file export instead of the PDF', async () => {
     const user = userEvent.setup()
     render(<DayPlanSidebar {...makeDefaultProps()} />)
     await user.click(screen.getByRole('button', { name: 'Export' }))
@@ -641,7 +646,8 @@ describe('DayPlanSidebar', () => {
     expect(screen.queryByText('PDF')).not.toBeInTheDocument()
     await user.click(row)
     await waitFor(() => {
-      expect(mockToast.info).toHaveBeenCalled()
+      expect(downloadTripFile).toHaveBeenCalledWith(1, 'Trip 1')
+      expect(mockToast.success).toHaveBeenCalledWith('Trip file downloaded')
     })
   })
 

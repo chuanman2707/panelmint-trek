@@ -56,7 +56,9 @@ const dayplan: TranslationStrings = {
   'dayplan.exportIntro': 'خذ خطتك معك: كمستند أو في تقويمك أو على جهاز GPS.',
   'dayplan.exportDocument': 'مستند',
   'dayplan.exportFile': 'تصدير ملف',
-  'dayplan.exportFileTooltip': 'نزّل الرحلة كملف .panelmint.json (قريبًا)',
+  'dayplan.exportFileTooltip': 'نزّل الرحلة كملف .panelmint.json',
+  'dayplan.exportFileDone': 'تم تنزيل ملف الرحلة',
+  'dayplan.exportFileError': 'تعذّر تصدير ملف الرحلة',
   'dayplan.exportCalendar': 'التقويم',
   'dayplan.pdf': 'PDF', // en-fallback
   'dayplan.mobile.searchPlaces': 'Search places...', // en-fallback

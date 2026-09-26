@@ -2804,6 +2804,12 @@ export class DexieStore
     return this.map('tags') as Map<number, Tag>;
   }
 
+  /** All category rows — the share importer matches the seeded palette by
+   *  name before minting self-owned rows. */
+  categoryRows(): Category[] {
+    return [...(this.map('categories') as Map<number, Category>).values()];
+  }
+
   settingsValue<T>(key: string): T | undefined {
     return (this.map('settings') as Map<string, SettingsRow>).get(key)?.value as T | undefined;
   }
