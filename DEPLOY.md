@@ -30,7 +30,9 @@ Everything below is dashboard work — no code changes needed.
   Workers Static Assets flow, and bare `npx wrangler deploy` refuses to
   auto-detect at a monorepo root. `name` must match the dashboard project
   name (`panelmint-trek`); `assets.directory` points at `client/dist` and
-  `not_found_handling` gives the SPA fallback alongside `_redirects`.
+  `not_found_handling` owns the SPA fallback (Workers rejects a
+  `/* /index.html 200` `_redirects` rule as an infinite loop — the pattern
+  matches `/index.html` itself — so that file was removed).
 - `client/public/_headers` (CSP + security headers) and `_redirects` (SPA
   fallback) are committed and ship into `dist/`; Pages applies them
   automatically. `public/templates/` (shareable trip templates) comes along
