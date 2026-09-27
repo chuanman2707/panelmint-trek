@@ -17,6 +17,7 @@ Everything below is dashboard work — no code changes needed.
 | Framework preset | None |
 | Build command | `npm run build` |
 | Build output directory | `client/dist` |
+| Deploy command | `npx wrangler deploy` (default) — reads root `wrangler.jsonc` |
 | Root directory | leave blank — the repo itself is the `panelmint-trek` monorepo; the field is only for apps in a subdirectory |
 
 - `npm run build` builds `shared/` then `client/` — do **not** substitute a
@@ -25,6 +26,11 @@ Everything below is dashboard work — no code changes needed.
 - Pages installs dependencies from `package-lock.json` before the build.
 - Set env var **`NODE_VERSION=22`** if the project defaults lower — CI builds
   on Node 22.
+- `wrangler.jsonc` at the repo root is required: git builds deploy via the
+  Workers Static Assets flow, and bare `npx wrangler deploy` refuses to
+  auto-detect at a monorepo root. `name` must match the dashboard project
+  name (`panelmint-trek`); `assets.directory` points at `client/dist` and
+  `not_found_handling` gives the SPA fallback alongside `_redirects`.
 - `client/public/_headers` (CSP + security headers) and `_redirects` (SPA
   fallback) are committed and ship into `dist/`; Pages applies them
   automatically. `public/templates/` (shareable trip templates) comes along
